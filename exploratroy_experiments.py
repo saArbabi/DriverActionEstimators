@@ -30,6 +30,16 @@ config = {
 "Note": ""
 }
 # %%
+
+
+###
+episode_len = 30
+x_init = 100
+lead_x = [x_init]
+for i in range(episode_len):
+    lead_x.append(lead_x[i]+10*0.1)
+###
+# %%
 def get_desired_gap(vel, dv):
     gap = min_jamx + desired_tgap*vel+(vel*dv)/ \
                                     (2*np.sqrt(max_acc*max_decc))
@@ -40,24 +50,15 @@ def act(vel, obs):
     acc = max_acc*(1-(vel/desired_v)**4-\
                                         (desired_gap/obs['dx'])**2)
     return sorted([-3, acc, 3])[1]
-
 # idm params
-desired_v=15 # m/s
+desired_v=12 # m/s
 desired_tgap=2.8 # s
 min_jamx=0 # m
 max_acc=3 # m/s^2
 max_decc=3 # m/s^2
-###
-episode_len = 30
-x_init = 100
-lead_x = [x_init]
-for i in range(episode_len):
-    lead_x.append(lead_x[i]+10*0.1)
-###
-# %%
 xs = []
 ys = []
-sample_size = 200
+sample_size = 1000
 x_range = range(0, 80)
 v_range = range(5, 10)
 
@@ -100,25 +101,23 @@ def train_exp(durations, exp_trains, exp_vals, config, exp_name):
     train_loss = []
     valid_loss = []
 
-    model = Encoder(config)
+    idm_model = Encoder(config)
 
-    t0 = time.time()
-    for epoch in range(4):
-        t1 = time.time()
+    train_indx = int(sample_size*0.8)
+    for epoch in range(5):
         # model.train_loop([xs, ys])
-        model.train_loop([xs[0:150], ys[0:150]])
-        # model.test_loop([xs[150:], ys[150:]], epoch)
-        train_loss.append(round(model.train_loss.result().numpy().item(), 2))
-        valid_loss.append(round(model.test_loss.result().numpy().item(), 2))
+        idm_model.train_loop([xs[0:train_indx], ys[0:train_indx]])
+        idm_model.test_loop([xs[train_indx:], ys[train_indx:]], epoch)
+        train_loss.append(round(idm_model.train_loss.result().numpy().item(), 2))
+        valid_loss.append(round(idm_model.test_loss.result().numpy().item(), 2))
         # modelEvaluate(model, validation_data, config)
         print(epoch, 'epochs completed')
-        print('train_loss', train_loss[-1])
-        print('valid_loss', valid_loss[-1])
-        print(time.time() - t1)
+        # print('train_loss', train_loss[-1])
+        # print('valid_loss', valid_loss[-1])
 
     exp_trains[exp_name] = train_loss
     exp_vals[exp_name] = valid_loss
-    durations[exp_name] = time.time() - t0
+    durations[exp_name] = 0
 
 
     return durations, exp_trains, exp_vals
@@ -142,3 +141,26 @@ plt.legend(['val', 'train'])
 ys[0][0]
 xs[0][-1]
  ]
+# idm_model =
+# %%
+import model
+reload(model)
+from model import  Encoder
+
+idm_model = Encoder(config)
+state = tf.reshape(tf.constant(xs[0]), [1, 30, 3])
+
+idm_model.idm_sim(state, None)
+
+# %%
+des_v = np.arange(5, 20, 0.1)
+desired_gap = get_desired_gap(vel, obs['dv'])
+
+
+acc_func = []
+for des_vel in des_v:
+    acc = max_acc*(1-(vel/des_vel)**4-\
+                                        (desired_gap/obs['dx'])**2)
+    acc_func.append(acc)
+
+plt.plot(des_v, acc_func)

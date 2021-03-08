@@ -85,15 +85,14 @@ class Encoder(AbstractModel):
                         }
 
         # self.desired_v = self.idm_param['desired_v']
-        self.desired_tgap = tf.fill([self.batch_size, 1], self.idm_param['desired_tgap'])
         self.min_jamx = tf.fill([self.batch_size, 1], self.idm_param['min_jamx'])
         self.max_acc = tf.fill([self.batch_size, 1], self.idm_param['max_acc'])
         self.max_decc = tf.fill([self.batch_size, 1], self.idm_param['max_decc'])
 
-    def param_activation(self, min_val, max_val):
-        activation_function = tf.add(K.tanh, 1)
-        scale = (target_max-target_min)/2.
-        return tf.add(tf.multiply(activation_function, scale), target_min)
+    def param_activation(self, x, min_val, max_val):
+        activation_function = tf.add(tf.tanh(x), 1)
+        scale = (max_val-min_val)/2.
+        return tf.add(tf.multiply(activation_function, scale), min_val)
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
@@ -103,36 +102,40 @@ class Encoder(AbstractModel):
 
         # idm params
         self.neu_desired_v = Dense(1)
+        self.neu_desired_tgap = Dense(1)
         # self.desired_tgap = Dense(1, activation=self.param_activation(, ))
         # self.min_jamx = Dense(1, activation=self.param_activation(, ))
         # self.min_jamx = Dense(1, activation=self.param_activation(, ))
-        # self.neu_acc = Dense(1)
-        self.neu_acc = Dense(1, activation=K.tanh)
+        self.neu_acc = Dense(1)
+        # self.neu_acc = Dense(1, activation=K.tanh)
         # self.neu_acc = Dense(1, activation=self.param_activation(-3, 3))
 
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
-        print(state.shape)
+        # print(state.shape)
         batch_size = 50 # dynamiclaly assigned
         # tf.print(state)
 
-        vel = tf.slice(state, [0, 30, 0], [batch_size, 1, 1])
-        dv = tf.slice(state, [0, 30, 1], [batch_size, 1, 1])
-        dx = tf.slice(state, [0, 30, 2], [batch_size, 1, 1])
+        vel = tf.slice(state, [0, 29, 0], [batch_size, 1, 1])
+        dv = tf.slice(state, [0, 29, 1], [batch_size, 1, 1])
+        dx = tf.slice(state, [0, 29, 2], [batch_size, 1, 1])
         vel = tf.reshape(vel, [batch_size, 1])
         dv = tf.reshape(dv, [batch_size, 1])
         dx = tf.reshape(dx, [batch_size, 1])
-        print(vel.shape)
+        # print(vel.shape)
 
-        desired_v = self.neu_desired_v(h_t)
+        # desired_v = self.neu_desired_v(h_t)
+        desired_v = self.param_activation(self.neu_desired_v(h_t), 5, 50)
+        desired_tgap = self.param_activation(self.neu_desired_tgap(h_t), 1, 3)
         # print(h_t.shape)
         # desired_v = tf.fill([self.batch_size, 1], 15.)
+        self.desired_tgap = tf.fill([self.batch_size, 1], self.idm_param['desired_tgap'])
 
         mult_1 = tf.multiply(self.max_acc, self.max_decc)
         mult_2 = tf.multiply(2., tf.sqrt(mult_1))
         mult_3 = tf.multiply(vel, dv)
         div_1 = tf.divide(mult_3, mult_2)
-        mult_4 = tf.multiply(self.desired_tgap, vel)
+        mult_4 = tf.multiply(desired_tgap, vel)
         desired_gap = tf.add_n([self.min_jamx, mult_4, div_1])
         ###
         pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
@@ -140,12 +143,16 @@ class Encoder(AbstractModel):
         subtract_1 = tf.add(pow_2, pow_1)
         subtract_2 = tf.subtract(1., subtract_1)
         acc = tf.multiply(self.max_acc, subtract_2)
+        # acc = self.param_activation(acc, -3, 3)
+
         # acc = tf.reshape(self.neu_acc(acc), [batch_size, 1])
-        # print(acc.numpy())
-        # tf.print(h_t)
+                # tf.print(h_t)
         # tf.print(desired_v)
         # tf.print(acc)
         # tf.print(state)
+        tf.print(desired_v)
+        # tf.print(acc)
+
         return acc
 
     def call(self, inputs):
@@ -154,4 +161,8 @@ class Encoder(AbstractModel):
         h_t = self.linear_layer_2(h_t)
         h_t = self.linear_layer_3(h_t)
         return self.idm_sim(inputs, h_t)
-        # return self.neu_acc(h_t)
+        # # return self.neu_acc(h_t)
+        # acc = self.param_activation(self.neu_acc(h_t), -3, 3)
+        # # tf.print(acc)
+        #
+        # return acc
