@@ -53,7 +53,7 @@ def act(vel, obs):
 # idm params
 desired_v=12 # m/s
 desired_tgap=2.8 # s
-min_jamx=0 # m
+min_jamx=4 # m
 max_acc=3 # m/s^2
 max_decc=3 # m/s^2
 xs = []
@@ -153,14 +153,28 @@ state = tf.reshape(tf.constant(xs[0]), [1, 30, 3])
 idm_model.idm_sim(state, None)
 
 # %%
-des_v = np.arange(5, 20, 0.1)
-desired_gap = get_desired_gap(vel, obs['dv'])
+# var = np.arange(5, 20, 0.1)
+var = np.arange(5, 20, 0.1)
+accs = []
+for varel in var:
+    desired_gap = min_jamx + desired_tgap*vel+(vel*obs['dv'])/ \
+                                    (2*np.sqrt(max_acc*max_decc))
 
-
-acc_func = []
-for des_vel in des_v:
-    acc = max_acc*(1-(vel/des_vel)**4-\
+    acc = max_acc*(1-(vel/varel)**4-\
                                         (desired_gap/obs['dx'])**2)
-    acc_func.append(acc)
+    accs.append(acc)
 
-plt.plot(des_v, acc_func)
+plt.plot(var, accs)
+
+# %%
+var = np.arange(0, 2, 0.1)
+accs = []
+for v in var:
+    desired_gap = v + desired_tgap*vel+(vel*obs['dv'])/ \
+                                    (2*np.sqrt(max_acc*max_decc))
+
+    acc = max_acc*(1-(vel/12)**4-\
+                                        (desired_gap/obs['dx'])**2)
+    accs.append(acc)
+
+plt.plot(var, accs)

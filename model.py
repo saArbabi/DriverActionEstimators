@@ -85,7 +85,6 @@ class Encoder(AbstractModel):
                         }
 
         # self.desired_v = self.idm_param['desired_v']
-        self.min_jamx = tf.fill([self.batch_size, 1], self.idm_param['min_jamx'])
         self.max_acc = tf.fill([self.batch_size, 1], self.idm_param['max_acc'])
         self.max_decc = tf.fill([self.batch_size, 1], self.idm_param['max_decc'])
 
@@ -96,13 +95,14 @@ class Encoder(AbstractModel):
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
-        self.linear_layer_1 = Dense(50, activation=K.relu)
-        self.linear_layer_2 = Dense(50, activation=K.relu)
-        self.linear_layer_3 = Dense(50, activation=K.relu)
-
-        # idm params
+        # self.linear_layer_1 = Dense(50, activation=K.relu)
+        # self.linear_layer_2 = Dense(50, activation=K.relu)
+        # self.linear_layer_3 = Dense(50, activation=K.relu)
+        #
+        # # idm params
         self.neu_desired_v = Dense(1)
         self.neu_desired_tgap = Dense(1)
+        self.neu_min_jamx = Dense(1, activation=K.relu)
         # self.desired_tgap = Dense(1, activation=self.param_activation(, ))
         # self.min_jamx = Dense(1, activation=self.param_activation(, ))
         # self.min_jamx = Dense(1, activation=self.param_activation(, ))
@@ -127,16 +127,16 @@ class Encoder(AbstractModel):
         # desired_v = self.neu_desired_v(h_t)
         desired_v = self.param_activation(self.neu_desired_v(h_t), 5, 50)
         desired_tgap = self.param_activation(self.neu_desired_tgap(h_t), 1, 3)
+        min_jamx = self.neu_min_jamx(h_t)
         # print(h_t.shape)
         # desired_v = tf.fill([self.batch_size, 1], 15.)
-        self.desired_tgap = tf.fill([self.batch_size, 1], self.idm_param['desired_tgap'])
 
         mult_1 = tf.multiply(self.max_acc, self.max_decc)
         mult_2 = tf.multiply(2., tf.sqrt(mult_1))
         mult_3 = tf.multiply(vel, dv)
         div_1 = tf.divide(mult_3, mult_2)
         mult_4 = tf.multiply(desired_tgap, vel)
-        desired_gap = tf.add_n([self.min_jamx, mult_4, div_1])
+        desired_gap = tf.add_n([min_jamx, mult_4, div_1])
         ###
         pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
         pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
@@ -151,15 +151,16 @@ class Encoder(AbstractModel):
         # tf.print(acc)
         # tf.print(state)
         tf.print(desired_v)
+        # tf.print(min_jamx)
         # tf.print(acc)
 
         return acc
 
     def call(self, inputs):
         _, h_t, c_t = self.lstm_layer(inputs)
-        h_t = self.linear_layer_1(h_t)
-        h_t = self.linear_layer_2(h_t)
-        h_t = self.linear_layer_3(h_t)
+        # h_t = self.linear_layer_1(h_t)
+        # h_t = self.linear_layer_2(h_t)
+        # h_t = self.linear_layer_3(h_t)
         return self.idm_sim(inputs, h_t)
         # # return self.neu_acc(h_t)
         # acc = self.param_activation(self.neu_acc(h_t), -3, 3)
