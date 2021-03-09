@@ -86,9 +86,9 @@ len(xs)
 # plt.plot(rear_v)
 
 # %%
-import model
-reload(model)
-from model import  Encoder
+from exploratory.models import idm_neural
+reload(idm_neural)
+from exploratory.models.idm_neural import  Encoder
 
 exp_trains = {}
 exp_vals = {}
@@ -101,10 +101,10 @@ def train_exp(durations, exp_trains, exp_vals, config, exp_name):
     train_loss = []
     valid_loss = []
 
-    idm_model = Encoder(config)
+    idm_model = Encoder(config, model_use='training')
 
     train_indx = int(sample_size*0.8)
-    for epoch in range(5):
+    for epoch in range(20):
         # model.train_loop([xs, ys])
         idm_model.train_loop([xs[0:train_indx], ys[0:train_indx]])
         idm_model.test_loop([xs[train_indx:], ys[train_indx:]], epoch)
@@ -120,22 +120,16 @@ def train_exp(durations, exp_trains, exp_vals, config, exp_name):
     durations[exp_name] = 0
 
 
-    return durations, exp_trains, exp_vals
+    return idm_model, durations, exp_trains, exp_vals
 
 # train_debugger()
-durations, exp_trains, exp_vals = train_exp(durations, exp_trains,
+idm_model, durations, exp_trains, exp_vals = train_exp(durations, exp_trains,
                                         exp_vals, config, 'exp002')
-
-legend = [
-            '1',
-            '2',
-            '3',
-
-        ]
 
 plt.plot(exp_vals['exp002'])
 plt.plot(exp_trains['exp002'])
 plt.legend(['val', 'train'])
+
 
 # %%
 ys[0][0]
@@ -143,38 +137,11 @@ xs[0][-1]
  ]
 # idm_model =
 # %%
-import model
-reload(model)
-from model import  Encoder
 
-idm_model = Encoder(config)
-state = tf.reshape(tf.constant(xs[0]), [1, 30, 3])
+idm_model.model_use = 'inference'
+idm_model.batch_size = 1
+input = np.array(xs[200])
+input.shape = (1, 30, 3)
+idm_model(input)
 
-idm_model.idm_sim(state, None)
-
-# %%
-# var = np.arange(5, 20, 0.1)
-var = np.arange(5, 20, 0.1)
-accs = []
-for varel in var:
-    desired_gap = min_jamx + desired_tgap*vel+(vel*obs['dv'])/ \
-                                    (2*np.sqrt(max_acc*max_decc))
-
-    acc = max_acc*(1-(vel/varel)**4-\
-                                        (desired_gap/obs['dx'])**2)
-    accs.append(acc)
-
-plt.plot(var, accs)
-
-# %%
-var = np.arange(0, 2, 0.1)
-accs = []
-for v in var:
-    desired_gap = v + desired_tgap*vel+(vel*obs['dv'])/ \
-                                    (2*np.sqrt(max_acc*max_decc))
-
-    acc = max_acc*(1-(vel/12)**4-\
-                                        (desired_gap/obs['dx'])**2)
-    accs.append(acc)
-
-plt.plot(var, accs)
+# .numpy()[0][0]+

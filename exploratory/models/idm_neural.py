@@ -16,9 +16,6 @@ class AbstractModel(tf.keras.Model):
         self.exp_dir = './models/experiments/'+config['exp_id']
         self.optimizer = tf.optimizers.Adam(self.config['learning_rate'])
         self.batch_size = self.config['batch_size']
-        self.pred_step_n = config['data_config']['pred_step_n']
-        self.batch_count = None
-        self.epochs_n = self.config['epochs_n']
         self.callback_def()
 
     def architecture_def(self):
@@ -66,21 +63,11 @@ class AbstractModel(tf.keras.Model):
         return dataset
 
 class Encoder(AbstractModel):
-    def __init__(self, config):
+    def __init__(self, config, model_use):
         super(Encoder, self).__init__(config)
-        self.enc_units = 50
-
+        self.enc_units = 55
+        self.model_use = model_use # can be training or inference
         self.architecture_def()
-        self.default_config()
-
-    def default_config(self):
-        # TODO nonstationary params
-        self.idm_param = {
-                         'max_acc':3., # m/s^2
-                        'max_decc':3., # m/s^2
-                        }
-        self.max_acc = tf.fill([self.batch_size, 1], self.idm_param['max_acc'])
-        self.max_decc = tf.fill([self.batch_size, 1], self.idm_param['max_decc'])
 
     def param_activation(self, x, min_val, max_val):
         activation_function = tf.add(tf.tanh(x), 1)
@@ -92,13 +79,18 @@ class Encoder(AbstractModel):
         # # idm params
         self.neu_desired_v = Dense(1)
         self.neu_desired_tgap = Dense(1)
-        self.neu_min_jamx = Dense(1, activation=K.relu)
+        self.neu_min_jamx = Dense(1)
         self.neu_acc = Dense(1)
+        self.neu_max_acc = Dense(1)
+        self.neu_max_decc = Dense(1)
 
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
         # print(state.shape)
-        batch_size = 50 # dynamiclaly assigned
+        if self.model_use == 'training':
+            batch_size = 50
+        elif self.model_use == 'inference':
+            batch_size = 1
 
         vel = tf.slice(state, [0, 29, 0], [batch_size, 1, 1])
         dv = tf.slice(state, [0, 29, 1], [batch_size, 1, 1])
@@ -107,25 +99,36 @@ class Encoder(AbstractModel):
         dv = tf.reshape(dv, [batch_size, 1])
         dx = tf.reshape(dx, [batch_size, 1])
 
-        desired_v = self.param_activation(self.neu_desired_v(h_t), 5, 50)
-        desired_tgap = self.param_activation(self.neu_desired_tgap(h_t), 1, 3)
-        min_jamx = self.neu_min_jamx(h_t)
+        desired_v = self.param_activation(self.neu_desired_v(h_t), 5, 20)
+        desired_tgap = self.param_activation(self.neu_desired_tgap(h_t), 0.5, 3)
+        min_jamx = self.param_activation(self.neu_min_jamx(h_t), 0, 5)
+        max_acc = self.param_activation(self.neu_max_acc(h_t), 1, 3)
+        max_decc = self.param_activation(self.neu_max_decc(h_t), 1, 3)
 
-        mult_1 = tf.multiply(self.max_acc, self.max_decc)
+        mult_1 = tf.multiply(max_acc, max_decc)
         mult_2 = tf.multiply(2., tf.sqrt(mult_1))
         mult_3 = tf.multiply(vel, dv)
         div_1 = tf.divide(mult_3, mult_2)
         mult_4 = tf.multiply(desired_tgap, vel)
+
         desired_gap = tf.add_n([min_jamx, mult_4, div_1])
         ###
         pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
         pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
         subtract_1 = tf.add(pow_2, pow_1)
         subtract_2 = tf.subtract(1., subtract_1)
-        acc = tf.multiply(self.max_acc, subtract_2)
-
-        return acc
+        acc = tf.multiply(max_acc, subtract_2)
+        if self.model_use == 'training':
+            return acc
+        elif self.model_use == 'inference':
+            idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_acc, max_decc], axis=1)
+            return idm_param
 
     def call(self, inputs):
         _, h_t, c_t = self.lstm_layer(inputs)
-        return self.idm_sim(inputs, h_t)
+        if self.model_use == 'training':
+            action = self.idm_sim(inputs, h_t)
+            return action
+        elif self.model_use == 'inference':
+            idm_param = self.idm_sim(inputs, h_t)
+            return idm_param

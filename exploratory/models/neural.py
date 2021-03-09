@@ -13,12 +13,8 @@ class AbstractModel(tf.keras.Model):
     def __init__(self, config):
         super(AbstractModel, self).__init__(name="AbstractModel")
         self.config = config['model_config']
-        self.exp_dir = './models/experiments/'+config['exp_id']
         self.optimizer = tf.optimizers.Adam(self.config['learning_rate'])
         self.batch_size = self.config['batch_size']
-        self.pred_step_n = config['data_config']['pred_step_n']
-        self.batch_count = None
-        self.epochs_n = self.config['epochs_n']
         self.callback_def()
 
     def architecture_def(self):
@@ -69,63 +65,12 @@ class Encoder(AbstractModel):
     def __init__(self, config):
         super(Encoder, self).__init__(config)
         self.enc_units = 50
-
         self.architecture_def()
-        self.default_config()
-
-    def default_config(self):
-        # TODO nonstationary params
-        self.idm_param = {
-                         'max_acc':3., # m/s^2
-                        'max_decc':3., # m/s^2
-                        }
-        self.max_acc = tf.fill([self.batch_size, 1], self.idm_param['max_acc'])
-        self.max_decc = tf.fill([self.batch_size, 1], self.idm_param['max_decc'])
-
-    def param_activation(self, x, min_val, max_val):
-        activation_function = tf.add(tf.tanh(x), 1)
-        scale = (max_val-min_val)/2.
-        return tf.add(tf.multiply(activation_function, scale), min_val)
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
-        # # idm params
-        self.neu_desired_v = Dense(1)
-        self.neu_desired_tgap = Dense(1)
-        self.neu_min_jamx = Dense(1, activation=K.relu)
         self.neu_acc = Dense(1)
-
-    def idm_sim(self, state, h_t):
-        # state: [v, dv, dx]
-        # print(state.shape)
-        batch_size = 50 # dynamiclaly assigned
-
-        vel = tf.slice(state, [0, 29, 0], [batch_size, 1, 1])
-        dv = tf.slice(state, [0, 29, 1], [batch_size, 1, 1])
-        dx = tf.slice(state, [0, 29, 2], [batch_size, 1, 1])
-        vel = tf.reshape(vel, [batch_size, 1])
-        dv = tf.reshape(dv, [batch_size, 1])
-        dx = tf.reshape(dx, [batch_size, 1])
-
-        desired_v = self.param_activation(self.neu_desired_v(h_t), 5, 50)
-        desired_tgap = self.param_activation(self.neu_desired_tgap(h_t), 1, 3)
-        min_jamx = self.neu_min_jamx(h_t)
-
-        mult_1 = tf.multiply(self.max_acc, self.max_decc)
-        mult_2 = tf.multiply(2., tf.sqrt(mult_1))
-        mult_3 = tf.multiply(vel, dv)
-        div_1 = tf.divide(mult_3, mult_2)
-        mult_4 = tf.multiply(desired_tgap, vel)
-        desired_gap = tf.add_n([min_jamx, mult_4, div_1])
-        ###
-        pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
-        pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
-        subtract_1 = tf.add(pow_2, pow_1)
-        subtract_2 = tf.subtract(1., subtract_1)
-        acc = tf.multiply(self.max_acc, subtract_2)
-
-        return acc
 
     def call(self, inputs):
         _, h_t, c_t = self.lstm_layer(inputs)
-        return self.idm_sim(inputs, h_t)
+        return self.neu_acc(h_t)
