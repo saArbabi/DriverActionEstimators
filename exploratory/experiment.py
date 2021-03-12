@@ -300,8 +300,8 @@ class NeurIDMVehicle(Vehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v-self.v, self.lead_vehicle.x-self.x])
 
-        # if len(self.obs_history) % 30 == 0:
-        if len(self.obs_history) == 30:
+        if len(self.obs_history) % 30 == 0:
+        # if len(self.obs_history) == 30:
             self.control_type = 'neural'
             input = np.array(self.obs_history)
             input.shape = (1, 30, 3)
@@ -324,8 +324,8 @@ class NeurIDMVehicle(Vehicle):
 """
 vis
 """
-# from models.neural import  Encoder
-from models.idm_neural import  Encoder
+from models.neural import  Encoder
+# from models.idm_neural import  Encoder
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -335,8 +335,8 @@ import tensorflow as tf
 env = Env()
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=10)
 follower = IDMVehicle(id='follower', lane_id=1, x=40, v=10)
-neural = NeurIDMVehicle(id='neural', lane_id=1, x=40, v=10)
-# neural = NeurVehicle(id='neural', lane_id=1, x=40, v=10)
+# neural = NeurIDMVehicle(id='neural', lane_id=1, x=40, v=10)
+neural = NeurVehicle(id='neural', lane_id=1, x=40, v=10)
 follower.lead_vehicle = leader
 neural.lead_vehicle = leader
 env.vehicles = [leader, follower, neural]
