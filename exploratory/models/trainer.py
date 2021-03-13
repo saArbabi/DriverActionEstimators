@@ -14,18 +14,19 @@ config = {
 }
 # from exploratory.models import neural
 # reload(neural)
-# from exploratory.models.neural import  Encoder
+from exploratory.models.neural import  Encoder
 from exploratory.models import idm_neural
 reload(idm_neural)
-from exploratory.models.idm_neural import  Encoder
+# from exploratory.models.idm_neural import  Encoder
 # (1) Load model and setup checkpoints
-# model = Encoder(config)
-model = Encoder(config, model_use='training')
+model = Encoder(config)
+# model = Encoder(config, model_use='training')
 
 # for more on checkpointing model see: https://www.tensorflow.org/guide/checkpoint
 ckpt = tf.train.Checkpoint(step=tf.Variable(1), net=model) # no need for optimizer for now
 # ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
-exp_dir = './experiments/idm_neural/model_dir'
+exp_dir = './experiments/neural_2/model_dir'
+# exp_dir = './experiments/idm_neural_2/model_dir'
 manager = tf.train.CheckpointManager(ckpt, exp_dir, max_to_keep=None)
 ckpt.restore(manager.latest_checkpoint)
 if manager.latest_checkpoint:

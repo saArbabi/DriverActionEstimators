@@ -165,7 +165,7 @@ class IDMVehicle(Vehicle):
         # TODO nonstationary params
         self.idm_param = {
                         'desired_v':12, # m/s
-                        'desired_tgap':1.5, # s
+                        'desired_tgap':3, # s
                         'min_jamx':2, # m
                         'max_acc':1.4, # m/s^2
                         'max_decc':2, # m/s^2
@@ -223,7 +223,7 @@ class NeurVehicle(Vehicle):
         self.max_decc = self.idm_param['max_decc']
 
     def loadModel(self, config):
-        checkpoint_dir = './sim/experiments/model_dir'
+        checkpoint_dir = './sim/experiments/neural_2/model_dir'
         # checkpoint_dir = './experiments/model_dir'
         self.policy = Encoder(config)
         Checkpoint = tf.train.Checkpoint(net=self.policy)
@@ -272,7 +272,7 @@ class NeurIDMVehicle(Vehicle):
         # TODO nonstationary params
         self.idm_param = {
                         'desired_v':12, # m/s
-                        'desired_tgap':1.5, # s
+                        'desired_tgap':3, # s
                         'min_jamx':2, # m
                         'max_acc':1.4, # m/s^2
                         'max_decc':2, # m/s^2
@@ -285,7 +285,7 @@ class NeurIDMVehicle(Vehicle):
         self.max_decc = self.idm_param['max_decc']
 
     def loadModel(self, config):
-        checkpoint_dir = './sim/experiments/idm_neural/model_dir'
+        checkpoint_dir = './sim/experiments/idm_neural_2/model_dir'
         # checkpoint_dir = './experiments/model_dir'
         self.policy = Encoder(config, model_use='inference')
         Checkpoint = tf.train.Checkpoint(net=self.policy)
@@ -324,8 +324,8 @@ class NeurIDMVehicle(Vehicle):
 """
 vis
 """
-from models.neural import  Encoder
-# from models.idm_neural import  Encoder
+# from models.neural import  Encoder
+from models.idm_neural import  Encoder
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -335,8 +335,8 @@ import tensorflow as tf
 env = Env()
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=10)
 follower = IDMVehicle(id='follower', lane_id=1, x=40, v=10)
-# neural = NeurIDMVehicle(id='neural', lane_id=1, x=40, v=10)
-neural = NeurVehicle(id='neural', lane_id=1, x=40, v=10)
+neural = NeurIDMVehicle(id='neural', lane_id=1, x=40, v=10)
+# neural = NeurVehicle(id='neural', lane_id=1, x=40, v=10)
 follower.lead_vehicle = leader
 neural.lead_vehicle = leader
 env.vehicles = [leader, follower, neural]
