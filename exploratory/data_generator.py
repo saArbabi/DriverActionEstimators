@@ -59,8 +59,11 @@ for sample_i in range(sample_size):
     xs.append(sample_xs)
     ys.append([acc])
 
-with open("./exploratory/x_vals", "wb") as fp:
+"""WRONG CODE, DO NOT USE. 
+"""
+data_type = 'data_01'
+with open('./datasets/'+data_type+'/x_vals', "wb") as fp:
     pickle.dump(xs, fp)
 
-with open("./exploratory/y_vals", "wb") as fp:
+with open('./datasets/'+data_type+'/y_vals', "wb") as fp:
     pickle.dump(ys, fp)
