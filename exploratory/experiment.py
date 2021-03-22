@@ -248,14 +248,14 @@ class LSTMIDMVehicle(NeurVehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        if len(self.obs_history) % 30 == 0:
+        if len(self.obs_history) % 60 == 0:
         # if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
             x_scaled = self.scaler.transform(x)
 
-            x_scaled.shape = (1, 30, 4)
-            x.shape = (1, 30, 4)
+            x_scaled.shape = (1, 60, 4)
+            x.shape = (1, 60, 4)
             param = self.policy([x_scaled, x]).numpy()[0]
             self.obs_history.pop(0)
 
@@ -358,8 +358,8 @@ driver_type = 'normal'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='dnn_03', driver_type=driver_type)
-follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
-# follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
+# follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
+follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstm_01')
 follower_IDM = IDMVehicle(id='idm', lane_id=1, x=40, v=20, driver_type=driver_type)
 # neural = NeurIDMVehicle(id='neural', lane_id=1, x=40, v=25)

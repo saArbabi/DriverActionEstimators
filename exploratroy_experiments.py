@@ -229,7 +229,7 @@ exp_dir = './models/experiments/dnn_03/model_dir'
 exp_dir = './models/experiments/lstm_01/model_dir'
 exp_dir = './models/experiments/lstmidm_01/model_dir'
 exp_dir = './models/experiments/lstmidm_03/model_dir'
-exp_dir = './models/experiments/lstmidm_03_6s/model_dir'
+exp_dir = './models/experiments/lstmidm_6s_03/model_dir'
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 

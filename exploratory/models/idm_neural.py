@@ -99,9 +99,9 @@ class Encoder(AbstractModel):
         elif self.model_use == 'inference':
             batch_size = 1
 
-        vel = tf.slice(state, [0, 29, 0], [batch_size, 1, 1])
-        dv = tf.slice(state, [0, 29, 2], [batch_size, 1, 1])
-        dx = tf.slice(state, [0, 29, 3], [batch_size, 1, 1])
+        vel = tf.slice(state, [0, 59, 0], [batch_size, 1, 1])
+        dv = tf.slice(state, [0, 59, 2], [batch_size, 1, 1])
+        dx = tf.slice(state, [0, 59, 3], [batch_size, 1, 1])
         vel = tf.reshape(vel, [batch_size, 1])
         dv = tf.reshape(dv, [batch_size, 1])
         dx = tf.reshape(dx, [batch_size, 1])
