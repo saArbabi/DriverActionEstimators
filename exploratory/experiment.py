@@ -248,8 +248,8 @@ class LSTMIDMVehicle(NeurVehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        if len(self.obs_history) % 30 == 0:
-        # if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
+        # if len(self.obs_history) % 30 == 0:
+        if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
             x_scaled = self.scaler.transform(x)
@@ -301,7 +301,7 @@ vis
 # from models.neural import  Encoder
 
 # from models.dnn import  Encoder
-def set_follower(model_name, driver_type):
+def set_follower(model_type, model_name, driver_type):
     config = {
              "model_config": {
                  "learning_rate": 1e-3,
@@ -310,7 +310,6 @@ def set_follower(model_name, driver_type):
                 "exp_id": "NA",
                 "Note": ""}
 
-    model_type = model_name[:-6]
     exp_dir = './models/experiments/'+model_name+'/model_dir'
 
     with open('./models/experiments/scaler.pickle', 'rb') as handle:
@@ -326,15 +325,20 @@ def set_follower(model_name, driver_type):
     if model_type == 'lstm':
         from models.lstm import  Encoder
         model = Encoder(config)
-        # model = Encoder(config, model_use='inference')
         model.load_weights(exp_dir)
         follower = LSTMVehicle(id='neural', lane_id=1, x=40, v=20,
                         driver_type=driver_type, model=model)
 
-    if model_type == 'lstmidm':
-        from models.idm_neural import  Encoder
+    if model_type == 'lstm_idm':
+        from models.lstm_idm import  Encoder
         model = Encoder(config, model_use='inference')
-        # model = Encoder(config, model_use='inference')
+        model.load_weights(exp_dir)
+        follower = LSTMIDMVehicle(id='neural', lane_id=1, x=40, v=20,
+                        driver_type=driver_type, model=model)
+
+    if  model_type == 'lstm_seq_idm':
+        from models.lstm_seq_idm import  Encoder
+        model = Encoder(config, model_use='inference')
         model.load_weights(exp_dir)
         follower = LSTMIDMVehicle(id='neural', lane_id=1, x=40, v=20,
                         driver_type=driver_type, model=model)
@@ -352,21 +356,17 @@ import tensorflow as tf
 os.chdir('./sim')
 env = Env()
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
-# follower_neural = set_follower(model_name='dnn_03')
-# follower_neural = set_follower(model_name='lstm')
-# follower_neural = set_follower(model_name='lstmidm')
+
 driver_type = 'normal'
 # driver_type = 'aggressive'
-# follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
-# follower_neural = set_follower(model_name='dnn_01', driver_type=driver_type)
-follower_neural = set_follower(model_name='lstmidm_sq_04', driver_type=driver_type)
-# follower_neural = set_follower(model_name='lstmidm_01', driver_type=driver_type)
-# follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
-# follower_neural = set_follower(model_name='lstm_01')
+# follower_neural = set_follower(model_type= 'dnn', model_name='dnn_03', driver_type=driver_type)
+# follower_neural = set_follower(model_type= 'lstm', model_name='lstm_01', driver_type=driver_type)
+# follower_neural = set_follower(model_type= 'lstm_idm', model_name='lstm_idm_03', driver_type=driver_type)
+follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq_idm_03',\
+                                                                driver_type=driver_type)
+
 follower_IDM = IDMVehicle(id='idm', lane_id=1, x=40, v=20, driver_type=driver_type)
-# neural = NeurIDMVehicle(id='neural', lane_id=1, x=40, v=25)
-# neural = NeurVehicle(id='neural', lane_id=1, x=40, v=25)
-# neural = DNNVehicle(id='neural', lane_id=1, x=40, v=16)
+
 follower_IDM.lead_vehicle = leader
 follower_neural.lead_vehicle = leader
 # env.vehicles = [leader, follower_IDM]

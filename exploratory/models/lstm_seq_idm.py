@@ -87,12 +87,6 @@ class Encoder(AbstractModel):
         self.neu_act = Dense(1)
         self.neu_max_act = Dense(1)
         self.neu_min_act = Dense(1)
-        # self.neu_desired_v = Dense(1, activation=K.tanh)
-        # self.neu_desired_tgap = Dense(1, activation=K.tanh)
-        # self.neu_min_jamx = Dense(1, activation=K.tanh)
-        # self.neu_act = Dense(1, activation=K.tanh)
-        # self.neu_max_act = Dense(1, activation=K.tanh)
-        # self.neu_min_act = Dense(1, activation=K.tanh)
 
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
@@ -116,7 +110,6 @@ class Encoder(AbstractModel):
             for step in tf.range(30):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
                                 (act_seq, tf.TensorShape([None,None,None]))])
-
 
                 vel = tf.slice(state, [0, step, 0], [batch_size, 1, 1])
                 dv = tf.slice(state, [0, step, 2], [batch_size, 1, 1])

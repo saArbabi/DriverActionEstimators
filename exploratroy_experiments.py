@@ -8,6 +8,8 @@ from model import Encoder
 from importlib import reload
 import tensorflow as tf
 import time
+from sklearn import preprocessing
+import pickle
 # %%
 
 normal_idm = {
@@ -48,8 +50,6 @@ config = {
 ###
 # %%
 
-    # return sorted([-3, acc, 3])[1]
-
 def get_idm_params(driver_type):
     if driver_type == 'normal':
         idm_param = normal_idm
@@ -88,7 +88,7 @@ def data_generator(model_type):
 
     drivers = ['normal', 'timid', 'aggressive']
     # drivers = ['normal']
-    training_size = 20000
+    training_size = 10000
     veh_training_size = int(training_size/len(drivers))
 
     for driver in drivers:
@@ -115,17 +115,46 @@ def data_generator(model_type):
                 follower_x = follower_x + follower_v * 0.1 \
                                             + 0.5 * acc * 0.1 **2
                 lead_x = lead_x + lead_v * 0.1
-                ys.append([acc])
-                # ys.append([sorted([-3, acc, 3])[1]])
+                # ys.append([acc])
+                ys.append([sorted([-3, acc, 3])[1]])
 
     scaler = preprocessing.StandardScaler().fit(xs)
-    # xs_scaled = xs
     xs_scaled = scaler.transform(xs).tolist()
 
     if model_type == 'dnn':
-        return xs_scaled, xs, ys, scaler
+        return [xs_scaled, ys], scaler
 
-    if model_type == 'lstmidm':
+    if model_type == 'lstm':
+        xs_h = [] # history, scaled
+        ys_c = [] # current, not scaled
+        xs_h_seq = []
+
+        for i in range(len(xs)):
+            xs_h_seq.append(xs_scaled[i])
+            if len(xs_h_seq) % episode_len/2 == 0:
+                xs_h.append(xs_h_seq)
+                ys_c.append(ys[i])
+                xs_h_seq = []
+
+        return [xs_h, ys_c], scaler
+
+    if model_type == 'lstm_idm':
+        xs_h = [] # history, scaled
+        ys_c = [] # current, not scaled
+        xs_c = [] # current, not scaled
+        xs_h_seq = []
+
+        for i in range(len(xs)):
+            xs_h_seq.append(xs_scaled[i])
+            if len(xs_h_seq) % episode_len/2 == 0:
+                xs_h.append(xs_h_seq)
+                ys_c.append(ys[i])
+                xs_c.append(xs[i])
+                xs_h_seq = []
+
+        return [xs_h, xs_c, ys_c], scaler
+
+    if model_type == 'lstm_seq_idm':
         xs_h = [] # history, scaled
         xs_f = [] # future, not scaled
         ys_f = [] # future, not scaled
@@ -152,60 +181,97 @@ def data_generator(model_type):
                     xs_f_seq.append(xs[i])
                     ys_f_seq.append(ys[i])
 
-        return xs_h, xs_f, ys_f, scaler
+        return [xs_h, xs_f, ys_f], scaler
 
 
-xs_h, xs_f, ys_f, scaler = data_generator(model_type='lstmidm')
 
-# xs_scaled, xs, ys, scaler = data_generator(model_type='dnn')
-# max(ys)
-plt.plot(ys_f[0])
+# training_data, scaler = data_generator(model_type='dnn')
+# training_data, scaler = data_generator(model_type='lstm_idm')
+training_data, scaler = data_generator(model_type='lstm_seq_idm')
 
-# %%
-np.array(ys_f).max()
-np.array(ys_f).min()
-len(xs_f)
-plt.plot(ys_f[150])
-for i in range(60):
-    plt.plot(ys_f[i])
-# %%
-y = np.array(ys_f)
-y.shape
-y.shape = ()
-
-plt.hist(np.array(ys_f)[0:1000,:,0], bins=150)
+# plt.hist(np.array(ys_f)[:,:,0], bins=150)
 # %%
 class Trainer():
-    def __init__(self):
+    def __init__(self, model_type):
         self.model = None
+        self.model_type = model_type
         self.train_loss = []
         self.valid_loss = []
         self.epoch_count = 0
         self.initiate_model()
 
     def initiate_model(self, model_type=None):
+        if self.model_type == 'dnn':
+            from exploratory.models import dnn
+            reload(dnn)
+            from exploratory.models.dnn import  Encoder
+            self.model = Encoder(config)
 
-        from exploratory.models import idm_neural
-        reload(idm_neural)
-        from exploratory.models.idm_neural import  Encoder
-        self.model = Encoder(config, model_use='training')
+        if self.model_type == 'lstm':
+            from exploratory.models import lstm
+            reload(lstm)
+            from exploratory.models.lstm import  Encoder
+            self.model = Encoder(config)
 
-    def train(self, epochs, xs_h, xs_f, ys_f):
-        train_indx = int(len(xs_h)*0.8)
-        for epoch in range(epochs):
-            input = [xs_h[0:train_indx], xs_f[0:train_indx], ys_f[0:train_indx]]
-            self.model.train_loop(input)
-            input = [xs_h[train_indx:], xs_f[train_indx:], ys_f[train_indx:]]
-            self.model.test_loop(input, epoch)
-            self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
-            self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
-            print(self.epoch_count, 'epochs completed')
-            self.epoch_count += 1
+        elif self.model_type == 'lstm_idm':
+            from exploratory.models import lstm_idm
+            reload(lstm_idm)
+            from exploratory.models.lstm_idm import  Encoder
+            self.model = Encoder(config, model_use='training')
+
+        elif self.model_type == 'lstm_seq_idm':
+            from exploratory.models import lstm_seq_idm
+            reload(lstm_seq_idm)
+            from exploratory.models.lstm_seq_idm import  Encoder
+            self.model = Encoder(config, model_use='training')
+
+    def train(self, training_data, epochs):
+
+        if self.model_type == 'dnn' or self.model_type == 'lstm':
+            xs, ys = training_data
+            train_indx = int(len(xs)*0.8)
+
+            for epoch in range(epochs):
+                self.model.train_loop([xs[0:train_indx], ys[0:train_indx]])
+                self.model.test_loop([xs[train_indx:], ys[train_indx:]], epoch)
+                self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
+                self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+                print(epoch, 'epochs completed')
+                self.epoch_count += 1
+
+        elif self.model_type == 'lstm_idm':
+            xs_h, xs_c, ys_c = training_data
+            train_indx = int(len(xs_h)*0.8)
+            for epoch in range(epochs):
+                input = [xs_h[0:train_indx], xs_c[0:train_indx], ys_c[0:train_indx]]
+                self.model.train_loop(input)
+                input = [xs_h[train_indx:], xs_c[train_indx:], ys_c[train_indx:]]
+                self.model.test_loop(input, epoch)
+                self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
+                self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+                print(self.epoch_count, 'epochs completed')
+                self.epoch_count += 1
+
+        elif self.model_type == 'lstm_seq_idm':
+            xs_h, xs_f, ys_f = training_data
+            train_indx = int(len(xs_h)*0.8)
+            for epoch in range(epochs):
+                input = [xs_h[0:train_indx], xs_f[0:train_indx], ys_f[0:train_indx]]
+                self.model.train_loop(input)
+                input = [xs_h[train_indx:], xs_f[train_indx:], ys_f[train_indx:]]
+                self.model.test_loop(input, epoch)
+                self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
+                self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+                print(self.epoch_count, 'epochs completed')
+                self.epoch_count += 1
 
 
-model_trainer = Trainer()
+# model_trainer = Trainer(model_type='dnn')
+# model_trainer = Trainer(model_type='lstm')
+# model_trainer = Trainer(model_type='lstm_idm')
+model_trainer = Trainer(model_type='lstm_seq_idm')
 # %%
-model_trainer.train(5, xs_h, xs_f, ys_f)
+model_trainer.train(training_data, epochs=5)
 plt.plot(model_trainer.valid_loss)
 plt.plot(model_trainer.train_loss)
 
@@ -226,12 +292,9 @@ exp_dir = './models/experiments/dnn_01/model_dir'
 exp_dir = './models/experiments/dnn_02/model_dir'
 exp_dir = './models/experiments/dnn_03/model_dir'
 exp_dir = './models/experiments/lstm_01/model_dir'
-exp_dir = './models/experiments/lstmidm_01/model_dir'
-exp_dir = './models/experiments/lstmidm_03/model_dir'
-exp_dir = './models/experiments/lstmidm_03_6s/model_dir'
-
-exp_dir = './models/experiments/lstmidm_sq_01/model_dir'
-exp_dir = './models/experiments/lstmidm_sq_04/model_dir'
+exp_dir = './models/experiments/lstm_idm_01/model_dir'
+exp_dir = './models/experiments/lstm_idm_03/model_dir'
+exp_dir = './models/experiments/lstm_seq_idm_03/model_dir'
 
 
 # %%
