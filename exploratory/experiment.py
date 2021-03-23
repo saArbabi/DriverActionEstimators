@@ -359,7 +359,7 @@ driver_type = 'normal'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='dnn_01', driver_type=driver_type)
-follower_neural = set_follower(model_name='lstmidm_sq_03', driver_type=driver_type)
+follower_neural = set_follower(model_name='lstmidm_sq_04', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstm_01')

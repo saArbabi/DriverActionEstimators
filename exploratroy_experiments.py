@@ -231,13 +231,13 @@ exp_dir = './models/experiments/lstmidm_03/model_dir'
 exp_dir = './models/experiments/lstmidm_03_6s/model_dir'
 
 exp_dir = './models/experiments/lstmidm_sq_01/model_dir'
-exp_dir = './models/experiments/lstmidm_sq_03/model_dir'
+exp_dir = './models/experiments/lstmidm_sq_04/model_dir'
 
 
 # %%
 model_trainer.model.save_weights(exp_dir)
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
- pickle.dump(scaler, handle)
+    pickle.dump(scaler, handle)
 
 # %%
 
