@@ -248,8 +248,8 @@ class LSTMIDMVehicle(NeurVehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        # if len(self.obs_history) % 30 == 0:
-        if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
+        if len(self.obs_history) % 30 == 0:
+        # if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
             x_scaled = self.scaler.transform(x)
@@ -358,7 +358,7 @@ driver_type = 'normal'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='dnn_01', driver_type=driver_type)
-follower_neural = set_follower(model_name='lstmidm_sq_01', driver_type=driver_type)
+follower_neural = set_follower(model_name='lstmidm_sq_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstm_01')

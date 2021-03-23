@@ -174,6 +174,7 @@ class Trainer():
         self.initiate_model()
 
     def initiate_model(self, model_type=None):
+
         from exploratory.models import idm_neural
         reload(idm_neural)
         from exploratory.models.idm_neural import  Encoder
