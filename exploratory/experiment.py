@@ -357,12 +357,15 @@ os.chdir('./sim')
 env = Env()
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
 
-driver_type = 'normal'
+# driver_type = 'normal'
+driver_type = 'timid'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_type= 'dnn', model_name='dnn_03', driver_type=driver_type)
 # follower_neural = set_follower(model_type= 'lstm', model_name='lstm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_type= 'lstm_idm', model_name='lstm_idm_03', driver_type=driver_type)
-follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq_idm_03',\
+# follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq_idm_03',\
+#                                                                 driver_type=driver_type)
+follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='try',\
                                                                 driver_type=driver_type)
 
 follower_IDM = IDMVehicle(id='idm', lane_id=1, x=40, v=20, driver_type=driver_type)

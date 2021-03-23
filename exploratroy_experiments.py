@@ -88,17 +88,21 @@ def data_generator(model_type):
 
     drivers = ['normal', 'timid', 'aggressive']
     # drivers = ['normal']
-    training_size = 10000
+    training_size = 3000
     veh_training_size = int(training_size/len(drivers))
 
     for driver in drivers:
         desired_v, desired_tgap, min_jamx, max_acc, max_decc = get_idm_params(driver)
 
         for _ in range(veh_training_size):
-            follower_x = np.random.choice(range(40, 80))
-            follower_v = np.random.choice(range(15, 30))
-            lead_v = np.random.choice(range(15, 30))
+            # follower_x = np.random.choice(range(40, 80))
+            # follower_v = np.random.choice(range(15, 30))
+            # lead_v = np.random.choice(range(15, 30))
             lead_x = 100
+            follower_x = 40
+            # follower_x = np.random.choice(range(30, 95))
+            follower_v = 20
+            lead_v = 20
 
             for i in range(episode_len):
                 dv = follower_v-lead_v
@@ -114,9 +118,14 @@ def data_generator(model_type):
                 follower_v = follower_v + acc * 0.1
                 follower_x = follower_x + follower_v * 0.1 \
                                             + 0.5 * acc * 0.1 **2
+
+                lead_v = lead_v + 1.5*np.sin(lead_x*0.01) * 0.1
                 lead_x = lead_x + lead_v * 0.1
                 # ys.append([acc])
                 ys.append([sorted([-3, acc, 3])[1]])
+                # if acc < -5:
+                #     print('shit', acc)
+                #     print('xs: ', xs[-1])
 
     scaler = preprocessing.StandardScaler().fit(xs)
     xs_scaled = scaler.transform(xs).tolist()
@@ -188,7 +197,7 @@ def data_generator(model_type):
 # training_data, scaler = data_generator(model_type='dnn')
 # training_data, scaler = data_generator(model_type='lstm_idm')
 training_data, scaler = data_generator(model_type='lstm_seq_idm')
-
+len(training_data[0])
 # plt.hist(np.array(ys_f)[:,:,0], bins=150)
 # %%
 class Trainer():
@@ -295,6 +304,12 @@ exp_dir = './models/experiments/lstm_01/model_dir'
 exp_dir = './models/experiments/lstm_idm_01/model_dir'
 exp_dir = './models/experiments/lstm_idm_03/model_dir'
 exp_dir = './models/experiments/lstm_seq_idm_03/model_dir'
+exp_dir = './models/experiments/lstm_seq6s_idm_03/model_dir'
+exp_dir = './models/experiments/try/model_dir'
+
+
+
+exp_dir = './models/experiments/lstm_seq_idm_01/model_dir'
 
 
 # %%
@@ -319,12 +334,20 @@ model_trainer.model.model_use = 'inference'
 # reload(idm_neural)
 # from exploratory.models.idm_neural import  Encoder
 # model = Encoder(config, model_use='training')
+xs_h, xs_f, ys_f = training_data
+xs_f[0][0]
+# %%
+start = 2450
+end = 2500
+for i in range(start, end):
+    x = np.array(xs_h[i])
+    x_scaled = np.array(xs_h[i])
 
-for i in range(10):
-    input = np.array([[xs_h[i]], [xs_f[i]]])
-    out = model_trainer.model(input)
-    # print('true: ', ys[i])
-    print('pred: ', out)
+    x_scaled.shape = (1, 30, 4)
+    x.shape = (1, 30, 4)
+    param = model_trainer.model([x_scaled, x]).numpy()[0]
+
+    print('pred: ', param)
 
 # %%
 x = np.linspace(-5, 20, 100)

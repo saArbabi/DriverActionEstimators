@@ -96,7 +96,6 @@ class Encoder(AbstractModel):
         elif self.model_use == 'inference':
             batch_size = 1
 
-
         # tf.print(self.neu_desired_v(h_t))
         desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
