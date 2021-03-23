@@ -89,16 +89,16 @@ def data_generator(model_type):
 
     # drivers = ['normal', 'timid', 'aggressive']
     drivers = ['normal']
-    data_size = 10000
-    training_size = int(data_size/len(drivers))
+    training_size = 10000
+    veh_training_size = int(training_size/len(drivers))
 
     for driver in drivers:
         desired_v, desired_tgap, min_jamx, max_acc, max_decc = get_idm_params(driver)
 
-        for sample_i in range(training_size):
+        for _ in range(veh_training_size):
             follower_x = np.random.choice(range(40, 80))
-            follower_v = np.random.choice(range(15, 25))
-            lead_v = np.random.choice(range(15, 30))
+            follower_v = np.random.choice(range(15, 30))
+            lead_v = follower_v + np.random.choice(range(15, 30))
             lead_x = 100
 
             for i in range(episode_len):
@@ -117,8 +117,10 @@ def data_generator(model_type):
                                             + 0.5 * acc * 0.1 **2
                 lead_x = lead_x + lead_v * 0.1
                 ys.append([acc])
+                # ys.append([sorted([-3, acc, 3])[1]])
 
     scaler = preprocessing.StandardScaler().fit(xs)
+    # xs_scaled = xs
     xs_scaled = scaler.transform(xs).tolist()
 
     if model_type == 'dnn':
@@ -132,18 +134,8 @@ def data_generator(model_type):
         xs_h_seq = []
         xs_f_seq = []
         ys_f_seq = []
-
-        for i in range(len(xs)):
-            if len(xs_h_seq) < episode_len/2:
-                # history
-                xs_h_seq.append(xs_scaled[i])
-
-            elif len(ys_f_seq) < episode_len/2:
-                # future
-                xs_f_seq.append(xs[i])
-                ys_f_seq.append(ys[i])
-
-            else:
+        for i in range(len(xs)+1):
+            if len(xs_h_seq) == len(ys_f_seq) == episode_len/2:
                 xs_h.append(xs_h_seq)
                 xs_f.append(xs_f_seq)
                 ys_f.append(ys_f_seq)
@@ -151,6 +143,15 @@ def data_generator(model_type):
                 xs_f_seq = []
                 ys_f_seq = []
 
+            if i < len(xs):
+                if len(xs_h_seq) < episode_len/2:
+                    # history
+                    xs_h_seq.append(xs_scaled[i])
+
+                elif len(ys_f_seq) < episode_len/2:
+                    # future
+                    xs_f_seq.append(xs[i])
+                    ys_f_seq.append(ys[i])
 
         return xs_h, xs_f, ys_f, scaler
 
@@ -159,11 +160,16 @@ xs_h, xs_f, ys_f, scaler = data_generator(model_type='lstmidm')
 
 # xs_scaled, xs, ys, scaler = data_generator(model_type='dnn')
 # max(ys)
-xs[0]
-ys[0]
-plt.plot(ys[20])
-len(ys_f[0])
-xs_h[0]
+plt.plot(ys_f[0])
+
+# %%
+np.array(ys_f).min()
+len(xs_f)
+plt.plot(ys_f[150])
+for i in range(60):
+    plt.plot(ys_f[i])
+# %%
+
 # %%
 class Trainer():
     def __init__(self):
@@ -223,12 +229,11 @@ exp_dir = './models/experiments/lstmidm_03_6s/model_dir'
 exp_dir = './models/experiments/lstmidm_sq_01/model_dir'
 exp_dir = './models/experiments/lstmidm_sq_03/model_dir'
 
-with open('./models/experiments/scaler.pickle', 'wb') as handle:
-    pickle.dump(scaler, handle)
 
 # %%
 model_trainer.model.save_weights(exp_dir)
-model.load_weights(exp_dir)
+with open('./models/experiments/scaler.pickle', 'wb') as handle:
+ pickle.dump(scaler, handle)
 
 # %%
 
@@ -241,7 +246,7 @@ normal_idm = {
                 'max_decc':2, # m/s^2
                 }
 
-model.model_use = 'inference'
+model_trainer.model.model_use = 'inference'
 # model.model_use = 'training'
 # from exploratory.models import idm_neural
 # reload(idm_neural)
@@ -249,8 +254,8 @@ model.model_use = 'inference'
 # model = Encoder(config, model_use='training')
 
 for i in range(10):
-    input = np.array([[xs_scaled[i]], [xs[i]]])
-    out = model(input)
+    input = np.array([[xs_h[i]], [xs_f[i]]])
+    out = model_trainer.model(input)
     # print('true: ', ys[i])
     print('pred: ', out)
 
