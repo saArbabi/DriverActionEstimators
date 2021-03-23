@@ -85,11 +85,10 @@ def data_generator(model_type):
     xs = []
     ys = []
     episode_len = 60
-    lead_v = 20
 
-    # drivers = ['normal', 'timid', 'aggressive']
-    drivers = ['normal']
-    training_size = 10000
+    drivers = ['normal', 'timid', 'aggressive']
+    # drivers = ['normal']
+    training_size = 20000
     veh_training_size = int(training_size/len(drivers))
 
     for driver in drivers:
@@ -98,7 +97,7 @@ def data_generator(model_type):
         for _ in range(veh_training_size):
             follower_x = np.random.choice(range(40, 80))
             follower_v = np.random.choice(range(15, 30))
-            lead_v = follower_v + np.random.choice(range(15, 30))
+            lead_v = np.random.choice(range(15, 30))
             lead_x = 100
 
             for i in range(episode_len):
@@ -163,13 +162,18 @@ xs_h, xs_f, ys_f, scaler = data_generator(model_type='lstmidm')
 plt.plot(ys_f[0])
 
 # %%
+np.array(ys_f).max()
 np.array(ys_f).min()
 len(xs_f)
 plt.plot(ys_f[150])
 for i in range(60):
     plt.plot(ys_f[i])
 # %%
+y = np.array(ys_f)
+y.shape
+y.shape = ()
 
+plt.hist(np.array(ys_f)[0:1000,:,0], bins=150)
 # %%
 class Trainer():
     def __init__(self):

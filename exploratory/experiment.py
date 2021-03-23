@@ -150,7 +150,7 @@ class LeadVehicle(Vehicle):
 
     def act(self):
         # return 0
-        return 1*np.sin(self.x*0.01)
+        return 1.5*np.sin(self.x*0.01)
 
 class IDMVehicle(Vehicle):
     def __init__(self, id, lane_id, x, v, driver_type=None):
@@ -264,7 +264,7 @@ class LSTMIDMVehicle(NeurVehicle):
             self.min_jamx = param[2]
             self.max_acc = param[3]
             self.max_decc = param[4]
-            # print(param)
+            print(param)
 
         obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
         desired_gap = self.get_desired_gap(obs['dv'])
@@ -359,7 +359,7 @@ driver_type = 'normal'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='dnn_01', driver_type=driver_type)
-follower_neural = set_follower(model_name='lstmidm_sq_01', driver_type=driver_type)
+follower_neural = set_follower(model_name='lstmidm_sq_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstm_01')
