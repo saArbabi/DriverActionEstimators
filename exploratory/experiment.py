@@ -15,7 +15,7 @@ lead vehicle
 class Viewer():
     def __init__(self, env_config):
         self.env_config  = env_config
-        self.fig = plt.figure(figsize=(7, 7))
+        self.fig = plt.figure(figsize=(10, 3))
         self.env_ax = self.fig.add_subplot(211)
         self.tree_info = None
         self.belief_info = None
@@ -68,7 +68,7 @@ class Viewer():
 
     def update_plots(self, vehicles, env_clock):
         self.draw_env(self.env_ax, vehicles, env_clock)
-        plt.pause(0.000000001)
+        plt.pause(0.00000000000000000000001)
         # plt.show()
 
 class Env():
@@ -93,7 +93,7 @@ class Env():
         self.config = {'lane_count':2,
                         'lane_width':3.7, # m
                         'lane_length':10000, # m
-                        'percept_range':300, # m, front and back
+                        'percept_range':500, # m, front and back
                         }
 
     def step(self, decision=None):
@@ -248,8 +248,8 @@ class LSTMIDMVehicle(NeurVehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        if len(self.obs_history) % 30 == 0:
-        # if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
+        # if len(self.obs_history) % 30 == 0:
+        if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
             x_scaled = self.scaler.transform(x)
@@ -357,8 +357,9 @@ leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
 driver_type = 'normal'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
-# follower_neural = set_follower(model_name='dnn_03', driver_type=driver_type)
-follower_neural = set_follower(model_name='lstmidm_03', driver_type=driver_type)
+# follower_neural = set_follower(model_name='dnn_01', driver_type=driver_type)
+follower_neural = set_follower(model_name='lstmidm_sq_01', driver_type=driver_type)
+# follower_neural = set_follower(model_name='lstmidm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstmidm_6s_03', driver_type=driver_type)
 # follower_neural = set_follower(model_name='lstm_01')
 follower_IDM = IDMVehicle(id='idm', lane_id=1, x=40, v=20, driver_type=driver_type)

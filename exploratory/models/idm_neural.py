@@ -41,8 +41,8 @@ class AbstractModel(tf.keras.Model):
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            pred_acc = self(states)
-            loss = tf.keras.losses.MSE(targets, pred_acc)
+            act_pred = self(states)
+            loss = self.mse(targets, act_pred)
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
@@ -51,21 +51,24 @@ class AbstractModel(tf.keras.Model):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        pred_acc = self(states)
-        loss = tf.keras.losses.MSE(targets, pred_acc)
+        act_pred = self(states)
+        loss = self.mse(targets, act_pred)
         self.test_loss.reset_states()
         self.test_loss(loss)
 
     def batch_data(self, sets):
         data_slices = tuple([tf.cast(set, dtype='float32') for set in sets])
         dataset = tf.data.Dataset.from_tensor_slices(\
-                                data_slices).batch(self.batch_size, drop_remainder=True)
+            data_slices).shuffle(len(data_slices[0])).batch(self.batch_size, drop_remainder=True)
         return dataset
+
+    def mse(self, act_true, act_pred):
+        return K.mean(K.square(act_pred - act_true))
 
 class Encoder(AbstractModel):
     def __init__(self, config, model_use):
         super(Encoder, self).__init__(config)
-        self.enc_units = 55
+        self.enc_units = 50
         self.model_use = model_use # can be training or inference
         self.architecture_def()
 
@@ -81,15 +84,15 @@ class Encoder(AbstractModel):
         self.neu_desired_v = Dense(1)
         self.neu_desired_tgap = Dense(1)
         self.neu_min_jamx = Dense(1)
-        self.neu_acc = Dense(1)
-        self.neu_max_acc = Dense(1)
-        self.neu_max_decc = Dense(1)
+        self.neu_act = Dense(1)
+        self.neu_max_act = Dense(1)
+        self.neu_min_act = Dense(1)
         # self.neu_desired_v = Dense(1, activation=K.tanh)
         # self.neu_desired_tgap = Dense(1, activation=K.tanh)
         # self.neu_min_jamx = Dense(1, activation=K.tanh)
-        # self.neu_acc = Dense(1, activation=K.tanh)
-        # self.neu_max_acc = Dense(1, activation=K.tanh)
-        # self.neu_max_decc = Dense(1, activation=K.tanh)
+        # self.neu_act = Dense(1, activation=K.tanh)
+        # self.neu_max_act = Dense(1, activation=K.tanh)
+        # self.neu_min_act = Dense(1, activation=K.tanh)
 
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
@@ -99,37 +102,48 @@ class Encoder(AbstractModel):
         elif self.model_use == 'inference':
             batch_size = 1
 
-        vel = tf.slice(state, [0, 29, 0], [batch_size, 1, 1])
-        dv = tf.slice(state, [0, 29, 2], [batch_size, 1, 1])
-        dx = tf.slice(state, [0, 29, 3], [batch_size, 1, 1])
-        vel = tf.reshape(vel, [batch_size, 1])
-        dv = tf.reshape(dv, [batch_size, 1])
-        dx = tf.reshape(dx, [batch_size, 1])
-        # tf.print(self.neu_desired_v(h_t))
 
-        desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 30.)
+        # tf.print(self.neu_desired_v(h_t))
+        desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
         min_jamx = self.param_activation(batch_size, self.neu_min_jamx(h_t), 0., 5.)
-        max_acc = self.param_activation(batch_size, self.neu_max_acc(h_t), 0., 3.)
-        max_decc = self.param_activation(batch_size, self.neu_max_decc(h_t), 0., 4.)
+        max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0., 3.)
+        min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0., 4.)
 
-        mult_1 = tf.multiply(max_acc, max_decc)
-        mult_2 = tf.multiply(2., tf.sqrt(mult_1))
-        mult_3 = tf.multiply(vel, dv)
-        div_1 = tf.divide(mult_3, mult_2)
-        mult_4 = tf.multiply(desired_tgap, vel)
-
-        desired_gap = tf.add_n([min_jamx, mult_4, div_1])
-        ###
-        pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
-        pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
-        subtract_1 = tf.add(pow_2, pow_1)
-        subtract_2 = tf.subtract(1., subtract_1)
-        acc = tf.multiply(max_acc, subtract_2)
         if self.model_use == 'training':
-            return acc
+            act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+
+            for step in tf.range(30):
+                tf.autograph.experimental.set_loop_options(shape_invariants=[
+                                (act_seq, tf.TensorShape([None,None,None]))])
+
+
+                vel = tf.slice(state, [0, step, 0], [batch_size, 1, 1])
+                dv = tf.slice(state, [0, step, 2], [batch_size, 1, 1])
+                dx = tf.slice(state, [0, step, 3], [batch_size, 1, 1])
+                vel = tf.reshape(vel, [batch_size, 1])
+                dv = tf.reshape(dv, [batch_size, 1])
+                dx = tf.reshape(dx, [batch_size, 1])
+
+                mult_1 = tf.multiply(max_act, min_act)
+                mult_2 = tf.multiply(2., tf.sqrt(mult_1))
+                mult_3 = tf.multiply(vel, dv)
+                div_1 = tf.divide(mult_3, mult_2)
+                mult_4 = tf.multiply(desired_tgap, vel)
+
+                desired_gap = tf.add_n([min_jamx, mult_4, div_1])
+                pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
+                pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
+                subtract_1 = tf.add(pow_2, pow_1)
+                subtract_2 = tf.subtract(1., subtract_1)
+
+                act = tf.multiply(max_act, subtract_2)
+                act_seq = tf.concat([tf.reshape(act, [batch_size, 1, 1]), act_seq], axis=1)
+
+            return act_seq
+
         elif self.model_use == 'inference':
-            idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_acc, max_decc], axis=1)
+            idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
             return idm_param
 
     def call(self, inputs):

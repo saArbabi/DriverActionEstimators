@@ -87,8 +87,9 @@ def data_generator(model_type):
     episode_len = 60
     lead_v = 20
 
-    drivers = ['normal', 'timid', 'aggressive']
-    data_size = 20000
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
+    data_size = 10000
     training_size = int(data_size/len(drivers))
 
     for driver in drivers:
@@ -123,100 +124,87 @@ def data_generator(model_type):
     if model_type == 'dnn':
         return xs_scaled, xs, ys, scaler
 
-    if model_type == 'lstm' or model_type == 'lstmidm':
-        seq_xs_scaled = []
-        seq_xs = []
-        seq_ys = []
-        obs_history_scaled = []
-        obs_history = []
+    if model_type == 'lstmidm':
+        xs_h = [] # history, scaled
+        xs_f = [] # future, not scaled
+        ys_f = [] # future, not scaled
+
+        xs_h_seq = []
+        xs_f_seq = []
+        ys_f_seq = []
 
         for i in range(len(xs)):
-            obs_history_scaled.append(xs_scaled[i])
-            obs_history.append(xs[i])
-            if len(obs_history) % episode_len == 0:
-                seq_ys.append(ys[i])
-                seq_xs_scaled.append(obs_history_scaled)
-                seq_xs.append(obs_history)
-                obs_history_scaled = []
-                obs_history = []
+            if len(xs_h_seq) < episode_len/2:
+                # history
+                xs_h_seq.append(xs_scaled[i])
 
-        return seq_xs_scaled, seq_xs, seq_ys, scaler
+            elif len(ys_f_seq) < episode_len/2:
+                # future
+                xs_f_seq.append(xs[i])
+                ys_f_seq.append(ys[i])
+
+            else:
+                xs_h.append(xs_h_seq)
+                xs_f.append(xs_f_seq)
+                ys_f.append(ys_f_seq)
+                xs_h_seq = []
+                xs_f_seq = []
+                ys_f_seq = []
 
 
-xs_scaled, xs, ys, scaler = data_generator(model_type='lstm')
+        return xs_h, xs_f, ys_f, scaler
+
+
+xs_h, xs_f, ys_f, scaler = data_generator(model_type='lstmidm')
 
 # xs_scaled, xs, ys, scaler = data_generator(model_type='dnn')
 # max(ys)
 xs[0]
-xs_scaled[0]
+ys[0]
+plt.plot(ys[20])
+len(ys_f[0])
+xs_h[0]
 # %%
-from exploratory.models import dnn
-reload(dnn)
-from exploratory.models.dnn import  Encoder
+class Trainer():
+    def __init__(self):
+        self.model = None
+        self.train_loss = []
+        self.valid_loss = []
+        self.epoch_count = 0
+        self.initiate_model()
 
-def train_exp(xs_scaled, xs, ys, model_type):
-    train_indx = int(len(xs)*0.8)
-    train_loss = []
-    valid_loss = []
-    epoch_n = 30
-
-    if model_type == 'dnn':
-        from exploratory.models.dnn import  Encoder
-        model = Encoder(config)
-
-        for epoch in range(epoch_n):
-            model.train_loop([xs[0:train_indx], ys[0:train_indx]])
-            model.test_loop([xs[train_indx:], ys[train_indx:]], epoch)
-            train_loss.append(round(model.train_loss.result().numpy().item(), 2))
-            valid_loss.append(round(model.test_loss.result().numpy().item(), 2))
-
-            print(epoch, 'epochs completed')
-
-    if model_type == 'lstm':
-        from exploratory.models.lstm import  Encoder
-        model = Encoder(config)
-
-        for epoch in range(epoch_n):
-            model.train_loop([xs[0:train_indx], ys[0:train_indx]])
-            model.test_loop([xs[train_indx:], ys[train_indx:]], epoch)
-            train_loss.append(round(model.train_loss.result().numpy().item(), 2))
-            valid_loss.append(round(model.test_loss.result().numpy().item(), 2))
-
-            print(epoch, 'epochs completed')
-
-    if model_type == 'lstmidm':
+    def initiate_model(self, model_type=None):
         from exploratory.models import idm_neural
         reload(idm_neural)
         from exploratory.models.idm_neural import  Encoder
-        model = Encoder(config, model_use='training')
+        self.model = Encoder(config, model_use='training')
 
-        for epoch in range(epoch_n):
-            input = [xs_scaled[0:train_indx], xs[0:train_indx], ys[0:train_indx]]
-            model.train_loop(input)
-            input = [xs_scaled[train_indx:], xs[train_indx:], ys[train_indx:]]
-            model.test_loop(input, epoch)
-            train_loss.append(round(model.train_loss.result().numpy().item(), 2))
-            valid_loss.append(round(model.test_loss.result().numpy().item(), 2))
+    def train(self, epochs, xs_h, xs_f, ys_f):
+        train_indx = int(len(xs_h)*0.8)
+        for epoch in range(epochs):
+            input = [xs_h[0:train_indx], xs_f[0:train_indx], ys_f[0:train_indx]]
+            self.model.train_loop(input)
+            input = [xs_h[train_indx:], xs_f[train_indx:], ys_f[train_indx:]]
+            self.model.test_loop(input, epoch)
+            self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
+            self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+            print(self.epoch_count, 'epochs completed')
+            self.epoch_count += 1
 
-            print(epoch, 'epochs completed')
 
-    return model, train_loss, valid_loss
-
-# train_debugger()
-# model = Encoder(config, model_use='training')
-
-# model, train_loss, valid_loss = train_exp(model, xs, ys, 'dnn')
-# model, train_loss, valid_loss = train_exp(model, xs, ys, 'lstm')
-model, train_loss, valid_loss = train_exp(xs_scaled, xs, ys, 'lstmidm')
-
+model_trainer = Trainer()
 # %%
-plt.plot(valid_loss)
-plt.plot(train_loss)
+model_trainer.train(5, xs_h, xs_f, ys_f)
+plt.plot(model_trainer.valid_loss)
+plt.plot(model_trainer.train_loss)
 
 plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
+
+# %%
+
 # %%
 import pickle
 import os
@@ -230,11 +218,15 @@ exp_dir = './models/experiments/lstm_01/model_dir'
 exp_dir = './models/experiments/lstmidm_01/model_dir'
 exp_dir = './models/experiments/lstmidm_03/model_dir'
 exp_dir = './models/experiments/lstmidm_03_6s/model_dir'
+
+exp_dir = './models/experiments/lstmidm_sq_01/model_dir'
+exp_dir = './models/experiments/lstmidm_sq_03/model_dir'
+
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 
 # %%
-model.save_weights(exp_dir)
+model_trainer.model.save_weights(exp_dir)
 model.load_weights(exp_dir)
 
 # %%
