@@ -81,12 +81,19 @@ class Encoder(AbstractModel):
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
         # # idm params
+        # self.neu_desired_v = Dense(1)
+        # self.neu_desired_tgap = Dense(1)
+        # self.neu_min_jamx = Dense(1)
+        # self.neu_act = Dense(1)
+        # self.neu_max_act = Dense(1)
+        # self.neu_min_act = Dense(1)
+
         self.neu_desired_v = Dense(1)
         self.neu_desired_tgap = Dense(1)
-        self.neu_min_jamx = Dense(1)
-        self.neu_act = Dense(1)
+        self.neu_min_jamx = Dense(1, activation=K.exp)
         self.neu_max_act = Dense(1)
         self.neu_min_act = Dense(1)
+
 
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
@@ -96,18 +103,17 @@ class Encoder(AbstractModel):
         elif self.model_use == 'inference':
             batch_size = 1
 
-
-        # tf.print(self.neu_desired_v(h_t))
         desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
-        min_jamx = self.param_activation(batch_size, self.neu_min_jamx(h_t), 0., 5.)
-        max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0., 3.)
-        min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0., 4.)
+        min_jamx = self.neu_min_jamx(h_t)
+        max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0.5, 3.)
+        min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0.5, 4.)
+        # tf.print(min_jamx)
 
         if self.model_use == 'training':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
-            for step in tf.range(30):
+            for step in tf.range(50):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
                                 (act_seq, tf.TensorShape([None,None,None]))])
 

@@ -162,24 +162,24 @@ class IDMVehicle(Vehicle):
                         'desired_v':25, # m/s
                         'desired_tgap':1.5, # s
                         'min_jamx':2, # m
-                        'max_acc':1.4, # m/s^2
-                        'max_decc':2, # m/s^2
+                        'max_act':1.4, # m/s^2
+                        'min_act':2, # m/s^2
                         }
 
         timid_idm = {
                         'desired_v':19.4, # m/s
                         'desired_tgap':2, # s
                         'min_jamx':4, # m
-                        'max_acc':0.8, # m/s^2
-                        'max_decc':1, # m/s^2
+                        'max_act':0.8, # m/s^2
+                        'min_act':1, # m/s^2
                         }
 
         aggressive_idm = {
                         'desired_v':30, # m/s
                         'desired_tgap':1, # s
                         'min_jamx':0, # m
-                        'max_acc':2, # m/s^2
-                        'max_decc':3, # m/s^2
+                        'max_act':2, # m/s^2
+                        'min_act':3, # m/s^2
                         }
         if not driver_type:
             raise ValueError('No driver_type specified')
@@ -194,18 +194,18 @@ class IDMVehicle(Vehicle):
         self.desired_v = idm_param['desired_v']
         self.desired_tgap = idm_param['desired_tgap']
         self.min_jamx = idm_param['min_jamx']
-        self.max_acc = idm_param['max_acc']
-        self.max_decc = idm_param['max_decc']
+        self.max_act = idm_param['max_act']
+        self.min_act = idm_param['min_act']
 
     def get_desired_gap(self, dv):
         gap = self.min_jamx + self.desired_tgap*self.v+(self.v*dv)/ \
-                                        (2*np.sqrt(self.max_acc*self.max_decc))
+                                        (2*np.sqrt(self.max_act*self.min_act))
         return gap
 
     def act(self):
         obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
         desired_gap = self.get_desired_gap(obs['dv'])
-        acc = self.max_acc*(1-(self.v/self.desired_v)**4-\
+        acc = self.max_act*(1-(self.v/self.desired_v)**4-\
                                             (desired_gap/obs['dx'])**2)
         return acc
 
@@ -237,7 +237,7 @@ class DNNVehicle(NeurVehicle):
         else:
             obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
             desired_gap = self.get_desired_gap(obs['dv'])
-            action = self.max_acc*(1-(self.v/self.desired_v)**4-\
+            action = self.max_act*(1-(self.v/self.desired_v)**4-\
                                                 (desired_gap/obs['dx'])**2)
         return action
 
@@ -248,27 +248,28 @@ class LSTMIDMVehicle(NeurVehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        # if len(self.obs_history) % 30 == 0:
-        if len(self.obs_history) % 30 == 0 and self.control_type == 'idm':
+        steps = 50
+        if len(self.obs_history) % steps == 0:
+        # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
             x_scaled = self.scaler.transform(x)
 
-            x_scaled.shape = (1, 30, 4)
-            x.shape = (1, 30, 4)
+            x_scaled.shape = (1, steps, 4)
+            x.shape = (1, steps, 4)
             param = self.policy([x_scaled, x]).numpy()[0]
             self.obs_history.pop(0)
 
             self.desired_v = param[0]
             self.desired_tgap = param[1]
             self.min_jamx = param[2]
-            self.max_acc = param[3]
-            self.max_decc = param[4]
+            self.max_act = param[3]
+            self.min_act = param[4]
             print(param)
 
         obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
         desired_gap = self.get_desired_gap(obs['dv'])
-        action = self.max_acc*(1-(self.v/self.desired_v)**4-\
+        action = self.max_act*(1-(self.v/self.desired_v)**4-\
                                             (desired_gap/obs['dx'])**2)
         return action
 
@@ -292,7 +293,7 @@ class LSTMVehicle(NeurVehicle):
         else:
             obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
             desired_gap = self.get_desired_gap(obs['dv'])
-            action = self.max_acc*(1-(self.v/self.desired_v)**4-\
+            action = self.max_act*(1-(self.v/self.desired_v)**4-\
                                                 (desired_gap/obs['dx'])**2)
         return action
 """
@@ -357,16 +358,16 @@ os.chdir('./sim')
 env = Env()
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
 
-# driver_type = 'normal'
-driver_type = 'timid'
+driver_type = 'normal'
+# driver_type = 'timid'
 # driver_type = 'aggressive'
 # follower_neural = set_follower(model_type= 'dnn', model_name='dnn_03', driver_type=driver_type)
 # follower_neural = set_follower(model_type= 'lstm', model_name='lstm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_type= 'lstm_idm', model_name='lstm_idm_03', driver_type=driver_type)
-# follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq_idm_03',\
-#                                                                 driver_type=driver_type)
-follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='try',\
+follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq6s_idm_03',\
                                                                 driver_type=driver_type)
+# follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='try',\
+#                                                                 driver_type=driver_type)
 
 follower_IDM = IDMVehicle(id='idm', lane_id=1, x=40, v=20, driver_type=driver_type)
 

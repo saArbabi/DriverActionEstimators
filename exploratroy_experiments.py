@@ -16,24 +16,24 @@ normal_idm = {
                 'desired_v':25, # m/s
                 'desired_tgap':1.5, # s
                 'min_jamx':2, # m
-                'max_acc':1.4, # m/s^2
-                'max_decc':2, # m/s^2
+                'max_act':1.4, # m/s^2
+                'min_act':2, # m/s^2
                 }
 
 timid_idm = {
                 'desired_v':19.4, # m/s
                 'desired_tgap':2, # s
                 'min_jamx':4, # m
-                'max_acc':0.8, # m/s^2
-                'max_decc':1, # m/s^2
+                'max_act':0.8, # m/s^2
+                'min_act':1, # m/s^2
                 }
 
 aggressive_idm = {
                 'desired_v':30, # m/s
                 'desired_tgap':1, # s
                 'min_jamx':0, # m
-                'max_acc':2, # m/s^2
-                'max_decc':3, # m/s^2
+                'max_act':2, # m/s^2
+                'min_act':3, # m/s^2
                 }
 
 config = {
@@ -61,10 +61,10 @@ def get_idm_params(driver_type):
     desired_v = idm_param['desired_v']
     desired_tgap = idm_param['desired_tgap']
     min_jamx = idm_param['min_jamx']
-    max_acc = idm_param['max_acc']
-    max_decc = idm_param['max_decc']
+    max_act = idm_param['max_act']
+    min_act = idm_param['min_act']
 
-    return desired_v, desired_tgap, min_jamx, max_acc, max_decc
+    return desired_v, desired_tgap, min_jamx, max_act, min_act
 
 # %%
 """
@@ -72,34 +72,35 @@ Synthetic data specs
 """
 def get_desired_gap(follower_v, dv):
     gap = min_jamx + desired_tgap*follower_v+(follower_v*dv)/ \
-                                    (2*np.sqrt(max_acc*max_decc))
+                                    (2*np.sqrt(max_act*min_act))
     return gap
 
 def act(follower_v, obs):
     desired_gap = get_desired_gap(follower_v, dv)
-    acc = max_acc*(1-(follower_v/desired_v)**4-\
+    acc = max_act*(1-(follower_v/desired_v)**4-\
                                         (desired_gap/dx)**2)
     return sorted([-3, acc, 3])[1]
 
 def data_generator(model_type):
     xs = []
     ys = []
-    episode_len = 60
+    episode_len = 100
 
     drivers = ['normal', 'timid', 'aggressive']
     # drivers = ['normal']
-    training_size = 3000
+    training_size = 20000
     veh_training_size = int(training_size/len(drivers))
 
     for driver in drivers:
-        desired_v, desired_tgap, min_jamx, max_acc, max_decc = get_idm_params(driver)
+        desired_v, desired_tgap, min_jamx, max_act, min_act = get_idm_params(driver)
 
         for _ in range(veh_training_size):
-            # follower_x = np.random.choice(range(40, 80))
+            follower_x = np.random.choice(range(40, 80))
             # follower_v = np.random.choice(range(15, 30))
             # lead_v = np.random.choice(range(15, 30))
+
             lead_x = 100
-            follower_x = 40
+            # follower_x = 40
             # follower_x = np.random.choice(range(30, 95))
             follower_v = 20
             lead_v = 20
@@ -110,9 +111,9 @@ def data_generator(model_type):
                 xs.append([follower_v, lead_v, dv, dx])
 
                 desired_gap = min_jamx + desired_tgap*follower_v+(follower_v*dv)/ \
-                                                (2*np.sqrt(max_acc*max_decc))
+                                                (2*np.sqrt(max_act*min_act))
 
-                acc = max_acc*(1-(follower_v/desired_v)**4-\
+                acc = max_act*(1-(follower_v/desired_v)**4-\
                                                     (desired_gap/dx)**2)
 
                 follower_v = follower_v + acc * 0.1
@@ -324,8 +325,8 @@ normal_idm = {
                 'desired_v':25, # m/s
                 'desired_tgap':1.5, # s
                 'min_jamx':2, # m
-                'max_acc':1.4, # m/s^2
-                'max_decc':2, # m/s^2
+                'max_act':1.4, # m/s^2
+                'min_act':2, # m/s^2
                 }
 
 model_trainer.model.model_use = 'inference'
@@ -337,8 +338,8 @@ model_trainer.model.model_use = 'inference'
 xs_h, xs_f, ys_f = training_data
 xs_f[0][0]
 # %%
-start = 2450
-end = 2500
+start = 0
+end = 5
 for i in range(start, end):
     x = np.array(xs_h[i])
     x_scaled = np.array(xs_h[i])
