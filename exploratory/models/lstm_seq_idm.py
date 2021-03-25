@@ -59,7 +59,7 @@ class AbstractModel(tf.keras.Model):
     def batch_data(self, sets):
         data_slices = tuple([tf.cast(set, dtype='float32') for set in sets])
         dataset = tf.data.Dataset.from_tensor_slices(\
-            data_slices).shuffle(300).batch(self.batch_size, drop_remainder=True)
+            data_slices).shuffle(len(data_slices[0])).batch(self.batch_size, drop_remainder=True)
         return dataset
 
     def mse(self, act_true, act_pred):
@@ -90,7 +90,7 @@ class Encoder(AbstractModel):
 
         self.neu_desired_v = Dense(1)
         self.neu_desired_tgap = Dense(1)
-        self.neu_min_jamx = Dense(1)
+        self.neu_min_jamx = Dense(1, activation=K.relu)
         # self.neu_min_jamx = Dense(1, activation=K.exp)
         # self.neu_min_jamx = Dense(1)
         self.neu_max_act = Dense(1)
@@ -107,7 +107,7 @@ class Encoder(AbstractModel):
 
         desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
-        min_jamx = tf.abs(self.param_activation(batch_size, self.neu_min_jamx(h_t), -5., 5.))
+        min_jamx = self.neu_min_jamx(h_t)
         max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0.5, 3.)
         min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0.5, 4.)
         # # tf.print(min_jamx)
