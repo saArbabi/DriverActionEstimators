@@ -46,18 +46,34 @@ class Viewer():
         plt.title('Elapsed time: '+str(round(env_clock, 1)))
 
     def draw_vehicles(self, ax, vehicles):
-        xs = [veh.x for veh in vehicles if veh.id != 'sdv']
-        ys = [veh.y for veh in vehicles if veh.id != 'sdv']
-        ax.scatter(xs, ys, s=100, marker=">", color='grey')
+        xs = [veh.x for veh in vehicles if veh.id != 'neural']
+        ys = [veh.y for veh in vehicles if veh.id != 'neural']
         for veh in vehicles:
             vehicle_color = 'grey'
-            if veh.id == 'neural':
-                if veh.control_type != 'idm':
-                    vehicle_color = 'green'
-            if veh.id == 'idm':
-                vehicle_color = 'purple'
+            edgecolors = 'black'
 
-            ax.scatter(veh.x, veh.y, s=100, marker=">", color=vehicle_color)
+            if veh.id == 'neural':
+                vehicle_color = 'none'
+
+                if veh.control_type == 'neural':
+                    edgecolors = 'green'
+                if veh.control_type == 'normal_idm':
+                    edgecolors = 'orange'
+                if veh.control_type == 'timid_idm':
+                    edgecolors = 'yellow'
+                if veh.control_type == 'aggressive_idm':
+                    edgecolors = 'red'
+
+            if veh.id == 'normal_idm':
+                vehicle_color = 'orange'
+            if veh.id == 'timid_idm':
+                vehicle_color = 'yellow'
+            if veh.id == 'aggressive_idm':
+                vehicle_color = 'red'
+
+            ax.scatter(veh.x, veh.y, s=100, marker=">", \
+                                            facecolors=vehicle_color, edgecolors=edgecolors)
+
             ax.annotate(round(veh.v, 1), (veh.x, veh.y+0.1))
             # ax.annotate(round(veh.v, 1), (veh.x, veh.y+0.1))
 
@@ -184,11 +200,11 @@ class IDMVehicle(Vehicle):
         if not driver_type:
             raise ValueError('No driver_type specified')
 
-        if driver_type == 'normal':
+        if driver_type == 'normal_idm':
             idm_param = normal_idm
-        if driver_type == 'timid':
+        if driver_type == 'timid_idm':
             idm_param = timid_idm
-        if driver_type == 'aggressive':
+        if driver_type == 'aggressive_idm':
             idm_param = aggressive_idm
 
         self.desired_v = idm_param['desired_v']
@@ -248,7 +264,7 @@ class LSTMIDMVehicle(NeurVehicle):
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        steps = 50
+        steps = 100
         if len(self.obs_history) % steps == 0:
         # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
@@ -260,11 +276,11 @@ class LSTMIDMVehicle(NeurVehicle):
             param = self.policy([x_scaled, x]).numpy()[0]
             self.obs_history.pop(0)
 
-            self.desired_v = param[0]
-            self.desired_tgap = param[1]
-            self.min_jamx = param[2]
-            self.max_act = param[3]
-            self.min_act = param[4]
+            # self.desired_v = param[0]
+            # self.desired_tgap = param[1]
+            # self.min_jamx = param[2]
+            # self.max_act = param[3]
+            # self.min_act = param[4]
             print(param)
 
         obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
@@ -358,23 +374,30 @@ os.chdir('./sim')
 env = Env()
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
 
-driver_type = 'normal'
-# driver_type = 'timid'
-# driver_type = 'aggressive'
+# driver_type = 'normal_idm'
+driver_type = 'timid_idm'
+# driver_type = 'aggressive_idm'
 # follower_neural = set_follower(model_type= 'dnn', model_name='dnn_03', driver_type=driver_type)
 # follower_neural = set_follower(model_type= 'lstm', model_name='lstm_01', driver_type=driver_type)
 # follower_neural = set_follower(model_type= 'lstm_idm', model_name='lstm_idm_03', driver_type=driver_type)
-follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq6s_idm_03',\
-                                                                driver_type=driver_type)
-# follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='try',\
+# follower_neural = set_follower(model_type= 'lstm_seq_idm', model_name='lstm_seq6s_idm_03',\
 #                                                                 driver_type=driver_type)
 
-follower_IDM = IDMVehicle(id='idm', lane_id=1, x=40, v=20, driver_type=driver_type)
+model_type='lstm_seq_idm'
+# model_type='lstm_idm'
+model_name='try'
+follower_neural = set_follower(model_type=model_type, model_name=model_name, driver_type=driver_type)
 
-follower_IDM.lead_vehicle = leader
+follower_IDM1 = IDMVehicle(id='normal_idm', lane_id=1, x=40, v=20, driver_type='normal_idm')
+follower_IDM2 = IDMVehicle(id='timid_idm', lane_id=1, x=40, v=20, driver_type='timid_idm')
+follower_IDM3 = IDMVehicle(id='aggressive_idm', lane_id=1, x=40, v=20, driver_type='aggressive_idm')
+
+follower_IDM1.lead_vehicle = leader
+follower_IDM2.lead_vehicle = leader
+follower_IDM3.lead_vehicle = leader
 follower_neural.lead_vehicle = leader
 # env.vehicles = [leader, follower_IDM]
-env.vehicles = [leader, follower_IDM, follower_neural]
+env.vehicles = [leader, follower_IDM1, follower_IDM2, follower_IDM3, follower_neural]
 obs = env.reset()
 env.render()
 

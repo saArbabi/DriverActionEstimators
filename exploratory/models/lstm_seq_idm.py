@@ -41,7 +41,7 @@ class AbstractModel(tf.keras.Model):
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            act_pred = self(states)
+            act_pred, _ = self(states)
             loss = self.mse(targets, act_pred)
 
         gradients = tape.gradient(loss, self.trainable_variables)
@@ -51,7 +51,7 @@ class AbstractModel(tf.keras.Model):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        act_pred = self(states)
+        act_pred, _ = self(states)
         loss = self.mse(targets, act_pred)
         self.test_loss.reset_states()
         self.test_loss(loss)
@@ -59,11 +59,11 @@ class AbstractModel(tf.keras.Model):
     def batch_data(self, sets):
         data_slices = tuple([tf.cast(set, dtype='float32') for set in sets])
         dataset = tf.data.Dataset.from_tensor_slices(\
-            data_slices).shuffle(len(data_slices[0])).batch(self.batch_size, drop_remainder=True)
+            data_slices).shuffle(300).batch(self.batch_size, drop_remainder=True)
         return dataset
 
     def mse(self, act_true, act_pred):
-        return K.mean(K.square(act_pred - act_true))
+        return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
 class Encoder(AbstractModel):
     def __init__(self, config, model_use):
@@ -90,7 +90,9 @@ class Encoder(AbstractModel):
 
         self.neu_desired_v = Dense(1)
         self.neu_desired_tgap = Dense(1)
-        self.neu_min_jamx = Dense(1, activation=K.exp)
+        self.neu_min_jamx = Dense(1)
+        # self.neu_min_jamx = Dense(1, activation=K.exp)
+        # self.neu_min_jamx = Dense(1)
         self.neu_max_act = Dense(1)
         self.neu_min_act = Dense(1)
 
@@ -100,20 +102,28 @@ class Encoder(AbstractModel):
         # print(state.shape)
         if self.model_use == 'training':
             batch_size = 256
-        elif self.model_use == 'inference':
+        elif self.model_use == 'inference' or self.model_use == 'debug':
             batch_size = 1
 
         desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
-        min_jamx = self.neu_min_jamx(h_t)
+        min_jamx = tf.abs(self.param_activation(batch_size, self.neu_min_jamx(h_t), -5., 5.))
         max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0.5, 3.)
         min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0.5, 4.)
-        # tf.print(min_jamx)
+        # # tf.print(min_jamx)
 
-        if self.model_use == 'training':
+        # desired_tgap =  tf.fill([batch_size, 1], 1.5)
+        # # min_jamx = self.neu_min_jamx(h_t)
+        # min_jamx =  tf.fill([batch_size, 1], 2.)
+        # max_act =  tf.fill([batch_size, 1], 1.4)
+        # min_act =  tf.fill([batch_size, 1], 2.)
+        # tf.print(min_jamx)
+        idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
+
+        if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
-            for step in tf.range(50):
+            for step in tf.range(100):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
                                 (act_seq, tf.TensorShape([None,None,None]))])
 
@@ -137,19 +147,19 @@ class Encoder(AbstractModel):
                 subtract_2 = tf.subtract(1., subtract_1)
 
                 act = tf.multiply(max_act, subtract_2)
-                act_seq = tf.concat([tf.reshape(act, [batch_size, 1, 1]), act_seq], axis=1)
+                act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
 
-            return act_seq
+            return act_seq, idm_param
 
         elif self.model_use == 'inference':
-            idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
             return idm_param
 
     def call(self, inputs):
         _, h_t, c_t = self.lstm_layer(inputs[0])
-        if self.model_use == 'training':
-            action = self.idm_sim(inputs[1], h_t)
-            return action
+        if self.model_use == 'training' or self.model_use == 'debug':
+            action, idm_param = self.idm_sim(inputs[1], h_t)
+            return action, idm_param
+
         elif self.model_use == 'inference':
             idm_param = self.idm_sim(inputs[1], h_t)
             return idm_param
