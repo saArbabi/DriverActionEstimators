@@ -78,6 +78,8 @@ class Encoder(AbstractModel):
         min_val = tf.fill([batch_size, 1], min_val)
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
+
+
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
         # # idm params
@@ -89,12 +91,12 @@ class Encoder(AbstractModel):
         # self.neu_min_act = Dense(1)
 
         self.neu_desired_v = Dense(1)
-        self.neu_desired_tgap = Dense(1)
-        self.neu_min_jamx = Dense(1, activation=K.relu)
+        self.neu_desired_tgap = Dense(1, activation=K.exp)
+        self.neu_min_jamx = Dense(1)
         # self.neu_min_jamx = Dense(1, activation=K.exp)
         # self.neu_min_jamx = Dense(1)
-        self.neu_max_act = Dense(1)
-        self.neu_min_act = Dense(1)
+        self.neu_max_act = Dense(1, activation=K.exp)
+        self.neu_min_act = Dense(1, activation=K.exp)
 
 
     def idm_sim(self, state, h_t):
@@ -106,10 +108,18 @@ class Encoder(AbstractModel):
             batch_size = 1
 
         desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
-        desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
-        min_jamx = self.neu_min_jamx(h_t)
-        max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0.5, 3.)
-        min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0.5, 4.)
+        # desired_tgap = self.param_activation(batch_size, self.neu_desired_tgap(h_t), 0.5, 3.)
+        min_jamx = tf.abs(self.param_activation(batch_size, self.neu_min_jamx(h_t), -5., 5.))
+        # max_act = self.param_activation(batch_size, self.neu_max_act(h_t), 0.5, 3.)
+        # min_act = self.param_activation(batch_size, self.neu_min_act(h_t), 0.5, 4.)
+        #
+
+        # desired_v = self.neu_desired_v(h_t)
+        desired_tgap = self.neu_desired_tgap(h_t)
+        # min_jamx = self.neu_min_jamx(h_t)
+        max_act = self.neu_max_act(h_t)
+        min_act = self.neu_min_act(h_t)
+
         # # tf.print(min_jamx)
 
         # desired_tgap =  tf.fill([batch_size, 1], 1.5)

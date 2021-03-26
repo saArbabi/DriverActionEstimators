@@ -47,11 +47,10 @@ config = {
     "Note": ""
 }
 # %%
-
-
-###
 # %%
-
+"""
+Synthetic data generation
+"""
 def get_idm_params(driver_type):
     if driver_type == 'normal':
         idm_param = normal_idm
@@ -68,21 +67,6 @@ def get_idm_params(driver_type):
 
     return desired_v, desired_tgap, min_jamx, max_act, min_act
 
-# %%
-"""
-Synthetic data specs
-"""
-def get_desired_gap(follower_v, dv):
-    gap = min_jamx + desired_tgap*follower_v+(follower_v*dv)/ \
-                                    (2*np.sqrt(max_act*min_act))
-    return gap
-
-def act(follower_v, obs):
-    desired_gap = get_desired_gap(follower_v, dv)
-    acc = max_act*(1-(follower_v/desired_v)**4-\
-                                        (desired_gap/dx)**2)
-    return sorted([-3, acc, 3])[1]
-
 def data_generator():
     xs = []
     ys = []
@@ -91,18 +75,18 @@ def data_generator():
     drivers = ['normal', 'timid', 'aggressive']
     # drivers = ['normal']
     # drivers = ['aggressive']
-    training_size = 30000
     episode_id = 0
-    episode_n = 30 # for each driver  type
+    episode_n = 50
 
     while episode_id < episode_n:
         for driver in drivers:
             desired_v, desired_tgap, min_jamx, max_act, min_act = get_idm_params(driver)
 
-            follower_x = 40
+            follower_x = np.random.choice(range(30, 50))
             lead_x = 100
-            follower_v = 20 + np.random.choice(range(-5, 5))
-            lead_v = 20 + np.random.choice(range(-5, 5))
+            follower_v = 20 + np.random.choice(range(-3, 3))
+            lead_v = 20 + np.random.choice(range(-3, 3))
+            lead_acc_mag = np.random.normal(1.5, 0.5)
 
             for time_step in range(episode_steps_n):
                 dv = follower_v-lead_v
@@ -118,18 +102,13 @@ def data_generator():
                 follower_x = follower_x + follower_v * 0.1 \
                                             + 0.5 * acc * 0.1 **2
 
-                acc_magnitude = np.random.normal(1.5, 0.5)
-                lead_v = lead_v + 1.5*np.sin(lead_x*0.01) * 0.1
+                lead_v = lead_v + lead_acc_mag*np.sin(lead_x*0.04) * 0.1
                 lead_x = lead_x + lead_v * 0.1
                 xs.append([episode_id, follower_v, lead_v, dv, dx, acc])
                 ys.append([episode_id, acc])
                 info[episode_id] = driver
 
             episode_id += 1
-                # ys.append([sorted([-3, acc, 3])[1]])
-                # if acc < -5:
-                #     print('shit', acc)
-                #     print('xs: ', xs[-1])
     xs = np.array(xs)
     # scaler = preprocessing.StandardScaler().fit(xs[:, 2:])
     xs_scaled = xs.copy()
@@ -224,27 +203,9 @@ def seqseq_prep(h_len, f_len):
 # training_data, scaler = seq_prep(h_len=30)
 # training_data, scaler = seq_prep(h_len=30)
 training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_data[0].shape
-training_data[-1].shape
-info
-# %%
-np.array(training_data[0]).shape
-ys = np.array(training_data[2])
-np.array(training_data[2])
-plt.hist(ys.flatten(), bins=150)
 
 
-# %%
-d = {}
-d['ag'] = [1,2,3]
-d['ti'] = [5,2,3]
-d
 
-list(d.values())
-# %%
-plt.plot(np.array(training_data[0])[-100, :, -1])
-plt.plot(range(99, 199), np.array(training_data[1])[-100, :, -1])
-plt.grid()
 # %%
 class Trainer():
     def __init__(self, model_type):
@@ -324,11 +285,11 @@ class Trainer():
                 print(self.epoch_count, 'epochs completed')
                 self.epoch_count += 1
 
-
 # model_trainer = Trainer(model_type='dnn')
 # model_trainer = Trainer(model_type='lstm')
 # model_trainer = Trainer(model_type='lstm_idm')
 model_trainer = Trainer(model_type='lstm_seq_idm')
+training_data[0][:,:,-1].min()
 # %%
 model_trainer.train(training_data, epochs=5)
 plt.plot(model_trainer.valid_loss)
@@ -338,6 +299,7 @@ plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
+model_trainer.valid_loss
 
 # %%
 
@@ -359,7 +321,7 @@ exp_dir = './models/experiments/try/model_dir'
 
 
 
-exp_dir = './models/experiments/lstm_seq_idm_01/model_dir'
+exp_dir = './models/experiments/lstm_seq_idm/model'
 
 
 # %%
@@ -379,17 +341,17 @@ normal_idm = {
                 }
 
 model_trainer.model.model_use = 'inference'
-model_trainer.model.model_use = 'debug'
-# model.model_use = 'training'
-# from exploratory.models import idm_neural
-# reload(idm_neural)
-# from exploratory.models.idm_neural import  Encoder
-# model = Encoder(config, model_use='training')
-xs_h, xs_f, ys_f = training_data
-episode_ids = list(info.keys())
-xs_h.shape
-xs_h[xs_h[:, 0, 0] == 0].shape
+
 # %%
+model_trainer.model.model_use = 'debug'
+xs_h, xs_f, ys_f = training_data
+train_indx = int(len(xs_h)*0.8)
+episode_ids = np.unique(xs_h[train_indx:, 0, 0])
+
+xs_h = xs_h[train_indx:, :, :]
+xs_f = xs_f[train_indx:, :, :]
+ys_f = ys_f[train_indx:, :, :]
+
 for _ in range(20):
     plt.figure()
     episode_id = np.random.choice(episode_ids)
@@ -397,8 +359,8 @@ for _ in range(20):
     xs_h_epis = xs_h[xs_h[:, 0, 0] == episode_id]
     xs_f_epis = xs_f[xs_f[:, 0, 0] == episode_id]
     ys_f_epis = ys_f[ys_f[:, 0, 0] == episode_id]
-
-    i = 100
+    i_choices = range(len(xs_h_epis))
+    i = np.random.choice(i_choices)
     xs_h_i = xs_h_epis[i:i+1, :, 1:]
     xs_f_i = xs_f_epis[i:i+1, :, 1:]
     ys_f_i = ys_f_epis[i:i+1, :, 1:]
@@ -410,45 +372,7 @@ for _ in range(20):
     plt.plot(range(99, 199), actions, color='grey')
     plt.plot(range(99, 199), ys_f_i[0, :, -1], color='red')
     plt.plot(xs_h_i[0, :, -1], color='purple')
+    plt.ylim(-3, 3)
     plt.grid()
     plt.legend(['pred', 'true'])
 # %%
-desired_v = 25.
-desired_tgap =  1.5
-# min_jamx = self.neu_min_jamx(h_t)
-min_jamx =  2.
-max_act = 1.4
-min_act = 2.
-# tf.print(min_jamx)
-xs_f[5445][0]
-
-
-vel =  22.2
-dv = -4
-dx =  73.7
-
-mult_1 = tf.multiply(max_act, min_act)
-mult_2 = tf.multiply(2., tf.sqrt(mult_1))
-mult_3 = tf.multiply(vel, dv)
-div_1 = tf.divide(mult_3, mult_2)
-mult_4 = tf.multiply(desired_tgap, vel)
-
-desired_gap = tf.add_n([min_jamx, mult_4, div_1])
-pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
-pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
-subtract_1 = tf.add(pow_2, pow_1)
-subtract_2 = tf.subtract(1., subtract_1)
-
-tf.multiply(max_act, subtract_2)
-
-# %%
-x = np.linspace(-5, 20, 100)
-
-y = np.sin(0.05*x)
-plt.plot(x, y)
-plt.grid()
-# %%
-model_name = 'lstm_01'
-model_type = model_name[:-3]
-a = tf.constant([1.,2,3])
-tf.multiply(2., a)
