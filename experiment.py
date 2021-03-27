@@ -1,3 +1,8 @@
+import os
+import pickle
+import sys
+from factory.environment import Env
+from factory.vehicles import *
 
 def set_follower(lane_id, model_type, model_name, driver_type):
     config = {
@@ -10,8 +15,8 @@ def set_follower(lane_id, model_type, model_name, driver_type):
 
     exp_dir = './models/experiments/'+model_name+'/model'
 
-    with open('./models/experiments/scaler.pickle', 'rb') as handle:
-        scaler = pickle.load(handle)
+    # with open('./models/experiments/scaler.pickle', 'rb') as handle:
+    #     scaler = pickle.load(handle)
 
     if model_type == 'dnn':
         from models.core.dnn import  Encoder
@@ -41,18 +46,20 @@ def set_follower(lane_id, model_type, model_name, driver_type):
         follower = LSTMIDMVehicle(id='neural', lane_id=lane_id, x=40, v=20,
                         driver_type=driver_type, model=model)
 
-    follower.scaler = scaler
+    # follower.scaler = scaler
     return follower
 
-import os
-import pickle
-import sys
-from factory.environment import Env
-from factory.vehicles import LeadVehicle, IDMVehicle, LSTMIDMVehicle
-env = Env()
 
+env = Env()
+#
+# model_type='lstm_seq_idm'
+# model_name='lstm_seq_idm'
+# model_type='dnn'
+# model_type='lstm'
+# model_type='lstm_idm'
 model_type='lstm_seq_idm'
-model_name='lstm_seq_idm'
+# model_name=model_type
+model_name='lstm_seq4s_idm'
 # model_type='lstm_idm'
 leader1 = LeadVehicle(id='leader', lane_id=3, x=100, v=20)
 leader2 = LeadVehicle(id='leader', lane_id=2, x=100, v=20)
@@ -87,11 +94,12 @@ env.vehicles = [
                 leader2,
                 leader3]
 
-env.render()
+env.render(model_type)
 for i in range(5000):
-    env.render()
     env.step()
-    if i % 100 == 0:
+    env.render()
+
+    if env.elapsed_time > 0 and  round(env.elapsed_time, 1) % 10 == 0:
         answer = input('Continue?')
         if answer == 'n':
             sys.exit()

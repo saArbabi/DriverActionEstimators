@@ -35,7 +35,7 @@ class LeadVehicle(Vehicle):
 
     def act(self):
         # return 0
-        return 1.5*np.sin(self.x*0.01)
+        return 1.5*np.sin(self.x*0.04)
 
 class IDMVehicle(Vehicle):
     def __init__(self, id, lane_id, x, v, driver_type=None):
@@ -114,8 +114,7 @@ class DNNVehicle(NeurVehicle):
         if len(self.obs_history) % 30 == 0:
             self.control_type = 'neural'
             x = np.array([self.obs_history[-1]])
-            x = self.scaler.transform(x)
-
+            # x = self.scaler.transform(x)
             action = self.policy(x).numpy()[0][0]
             self.obs_history.pop(0)
 
@@ -129,13 +128,14 @@ class DNNVehicle(NeurVehicle):
 class LSTMIDMVehicle(NeurVehicle):
     def __init__(self, id, lane_id, x, v, driver_type, model):
         super().__init__(id, lane_id, x, v, driver_type, model)
-        self.action = 0
+        self.elapsed_time = 0
+
 
     def act(self):
         self.obs_history.append([self.v, self.lead_vehicle.v, \
-        self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x, self.action])
+        self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        steps = 100
+        steps = 40
         if len(self.obs_history) % steps == 0:
         # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
@@ -143,16 +143,19 @@ class LSTMIDMVehicle(NeurVehicle):
             # x_scaled = self.scaler.transform(x)
 
             # x_scaled.shape = (1, steps, 5)
-            x.shape = (1, steps, 5)
-            param = self.policy([x, x]).numpy()[0]
+            x.shape = (1, steps, 4)
             self.obs_history.pop(0)
 
+            # if round(self.elapsed_time, 1) % 10 == 0:
+            param = self.policy([x, x]).numpy()[0]
             self.desired_v = param[0]
             self.desired_tgap = param[1]
             self.min_jamx = param[2]
             self.max_act = param[3]
             self.min_act = param[4]
-            print(param)
+                # print(param)
+
+            self.elapsed_time += 0.1
 
         obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
         desired_gap = self.get_desired_gap(obs['dv'])
@@ -172,8 +175,7 @@ class LSTMVehicle(NeurVehicle):
         if len(self.obs_history) % 30 == 0:
             self.control_type = 'neural'
             x = np.array(self.obs_history)
-            x = self.scaler.transform(x)
-
+            # x = self.scaler.transform(x)
             x.shape = (1, 30, 4)
             action = self.policy(x).numpy()[0][0]
             self.obs_history.pop(0)
