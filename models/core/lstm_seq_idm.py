@@ -45,7 +45,7 @@ class Encoder(AbstractModel):
         if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
-            for step in tf.range(40):
+            for step in tf.range(20):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
                                 (act_seq, tf.TensorShape([None,None,None]))])
 

@@ -59,7 +59,7 @@ env = Env()
 # model_type='lstm_idm'
 model_type='lstm_seq_idm'
 # model_name=model_type
-model_name='lstm_seq4s_idm'
+model_name='lstm_seq2s_idm'
 # model_type='lstm_idm'
 leader1 = LeadVehicle(id='leader', lane_id=3, x=100, v=20)
 leader2 = LeadVehicle(id='leader', lane_id=2, x=100, v=20)

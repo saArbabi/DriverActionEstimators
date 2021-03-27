@@ -15,7 +15,7 @@ from factory.data_generator import *
 training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
-training_data, info, scaler = seqseq_prep(h_len=40, f_len=40, training_samples_n=training_samples_n)
+training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 training_data[0].shape
 
 # %%
@@ -114,7 +114,7 @@ print(model_trainer.valid_loss[-1])
 
 # %%
 # %%
-model_trainer.save_model(model_name ='lstm_seq4s_idm')
+model_trainer.save_model(model_name ='lstm_seq2s_idm')
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
 exp_dir = './models/experiments/lstm_seq_idm/model'

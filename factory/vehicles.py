@@ -135,7 +135,7 @@ class LSTMIDMVehicle(NeurVehicle):
         self.obs_history.append([self.v, self.lead_vehicle.v, \
         self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
-        steps = 40
+        steps = 20
         if len(self.obs_history) % steps == 0:
         # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
