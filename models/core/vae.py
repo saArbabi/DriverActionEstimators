@@ -22,8 +22,8 @@ class VAEIDM(AbstractModel):
         super(VAEIDM, self).__init__(config)
         self.encoder = Encoder()
         self.decoder = Decoder(config)
-        self.mse_loss = 0
-        self.kl_loss = 0
+        # mse_loss = 0
+        # self.kl_loss = 0
 
     def callback_def(self):
         self.train_klloss = tf.keras.metrics.Mean(name='train_loss')
@@ -60,38 +60,40 @@ class VAEIDM(AbstractModel):
         a_ = self.idm(desired_v)
         return  a_
 
-    def vae_loss(self, act_true, act_pred, z_mean, z_log_sigma):
-        # generation loss
-        mse_loss = tf.square(tf.subtract(act_pred, act_true))
-        # kl loss
+    def kl_loss(self, z_mean, z_log_sigma):
         kl_loss = 1 + z_log_sigma - K.square(z_mean) - K.exp(z_log_sigma)
         kl_loss = K.sum(kl_loss, axis=-1)
         kl_loss *= -0.5
-        self.mse_loss = tf.reduce_mean(mse_loss)
-        self.kl_loss = tf.reduce_mean(kl_loss)
-        return self.kl_loss + self.mse_loss
+        return tf.reduce_mean(kl_loss)
+
+    def vae_loss(self, mse_loss, kl_loss):
+        return  kl_loss +  mse_loss
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
             act_pred, mean, logvar = self(states)
-            loss = self.vae_loss(targets, act_pred, mean, logvar)
+            mse_loss = self.mse(targets, act_pred)
+            kl_loss = self.kl_loss(mean, logvar)
+            loss = self.vae_loss(mse_loss, kl_loss)
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         self.train_mseloss.reset_states()
         self.train_klloss.reset_states()
-        self.train_mseloss(self.mse_loss)
-        self.train_klloss(self.kl_loss)
+        self.train_mseloss(mse_loss)
+        self.train_klloss(kl_loss)
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
         act_pred, mean, logvar = self(states)
-        loss = self.vae_loss(targets, act_pred, mean, logvar)
+        mse_loss = self.mse(targets, act_pred)
+        kl_loss = self.kl_loss(mean, logvar)
+        loss = self.vae_loss(mse_loss, kl_loss)
         self.test_klloss.reset_states()
         self.test_mseloss.reset_states()
-        self.test_mseloss(self.mse_loss)
-        self.test_klloss(self.kl_loss)
+        self.test_mseloss(mse_loss)
+        self.test_klloss(kl_loss)
 
     def call(self, inputs):
         mean, logvar = self.encode(inputs[0])
@@ -118,7 +120,7 @@ class Decoder(tf.keras.Model):
         if self.model_use == 'training':
             batch_size = 256
         elif self.model_use == 'inference' or self.model_use == 'debug':
-            batch_size = 1
+            batch_size = 50
 
         # desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = tf.fill([batch_size, 1], 1.5)

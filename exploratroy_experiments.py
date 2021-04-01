@@ -161,14 +161,47 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 """visualse latent vector.
 """
-xs_h, xs_f, ys_f = training_data
-train_indx = int(len(xs_h)*0.8)
-episode_ids = np.unique(xs_h[train_indx:, 0, 0])
+model_trainer.model.model_use = 'debug'
 
+train_indx = int(len(xs_h)*0.8)
+xs_h, xs_f, ys_f = training_data
 xs_h = xs_h[train_indx:, :, :]
 xs_f = xs_f[train_indx:, :, :]
 ys_f = ys_f[train_indx:, :, :]
 
+indxs = np.random.choice(range(len(xs_h)), 256)
+a_, mean, logvar = model_trainer.model([xs_h[indxs, :, 1:], \
+                            xs_f[indxs, :, 1:]])
+
+episodes = xs_h[indxs, 0, 0]
+tim = []
+norm = []
+agg = []
+
+for indx, epis in zip(indxs.tolist(), episodes.tolist()):
+    if info[epis] == 'timid':
+        tim.append(indx)
+    elif info[epis] == 'normal':
+        norm.append(indx)
+    elif info[epis] == 'aggressive':
+        agg.append(indx)
+
+for epis in episodes:
+    if info[epis]
+info
+samples = model_trainer.model.sample([mean, logvar]).numpy()
+plt.scatter(samples[:, 0], samples[:, 1], color='yellow')
+plt.scatter(samples[:, 0], samples[:, 1], color='orange')
+plt.scatter(samples[agg, 0], samples[agg, 1], color='red')
+
+type(agg)
+int(agg)
+samples.numpy()[[1,2,3], 0]
+
+agg
+# %%
+a = np.array([1,2,3,4])
+a[[1,2]]
 for _ in range(20):
     plt.figure()
     episode_id = np.random.choice(episode_ids)
