@@ -40,7 +40,7 @@ class VAEIDM(AbstractModel):
     # @tf.function
     def sample(self, args):
         z_mean, z_log_sigma = args
-        epsilon = K.random_normal(shape=(256, self.encoder.latent_dim),
+        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0], self.encoder.latent_dim),
                                   mean=0., stddev=0.1)
         return z_mean + K.exp(z_log_sigma) * epsilon
 
@@ -50,7 +50,7 @@ class VAEIDM(AbstractModel):
 
     def decode(self, z, apply_sigmoid=False):
         des_v = self.decoder(z)
-        des_v = self.param_activation(256, des_v, 15., 35.)
+        des_v = self.param_activation(tf.shape(z)[0], des_v, 15., 35.)
         return des_v
 
     def get_actions(self):
@@ -112,15 +112,15 @@ class Decoder(tf.keras.Model):
         self.layer_1 = Dense(10, activation=K.relu)
         self.layer_2 = Dense(60, activation=K.relu)
         self.layer_3 = Dense(60, activation=K.relu)
-        self.layer_4 = Dense(60, activation=K.relu)
+        self.layer_4 = Dense(10, activation=K.relu)
         self.layer_out = Dense(1)
 
     def idm_sim(self, state, desired_v):
         # state: [v, dv, dx]
-        if self.model_use == 'training':
-            batch_size = 256
-        elif self.model_use == 'inference' or self.model_use == 'debug':
-            batch_size = 50
+        # if self.model_use == 'training':
+        #     batch_size = 256
+        # elif self.model_use == 'inference' or self.model_use == 'debug':
+        batch_size = tf.shape(desired_v)[0]
 
         # desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
         desired_tgap = tf.fill([batch_size, 1], 1.5)
@@ -183,8 +183,8 @@ class Encoder(tf.keras.Model):
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
-        self.z_mean = Dense(1)
-        self.z_log_sigma = Dense(1)
+        self.z_mean = Dense(self.latent_dim)
+        self.z_log_sigma = Dense(self.latent_dim)
         #
         # tfpl.MultivariateNormalTriL(self.latent_dim,
         #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),

@@ -139,7 +139,7 @@ plt.plot(model_trainer.train_klloss)
 plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
-plt.ylabel('loss (MSE)')
+plt.ylabel('loss (KL)')
 plt.title('KL')
 
 # %%
@@ -163,16 +163,14 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 """
 model_trainer.model.model_use = 'debug'
 
-train_indx = int(len(xs_h)*0.8)
 xs_h, xs_f, ys_f = training_data
+train_indx = int(len(xs_h)*0.8)
+
 xs_h = xs_h[train_indx:, :, :]
 xs_f = xs_f[train_indx:, :, :]
 ys_f = ys_f[train_indx:, :, :]
 
-indxs = np.random.choice(range(len(xs_h)), 256)
-a_, mean, logvar = model_trainer.model([xs_h[indxs, :, 1:], \
-                            xs_f[indxs, :, 1:]])
-
+indxs = np.random.choice(range(len(xs_h)), 500, replace=False)
 episodes = xs_h[indxs, 0, 0]
 tim = []
 norm = []
@@ -185,20 +183,27 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
         norm.append(indx)
     elif info[epis] == 'aggressive':
         agg.append(indx)
+#
+# for epis in episodes:
+#     if info[epis]
 
-for epis in episodes:
-    if info[epis]
-info
-samples = model_trainer.model.sample([mean, logvar]).numpy()
-plt.scatter(samples[:, 0], samples[:, 1], color='yellow')
+# %%
+def latent_samples(model_trainer, indx):
+    a_, mean, logvar = model_trainer.model([xs_h[indx, :, 1:], \
+                                xs_f[indx, :, 1:]])
+    samples = model_trainer.model.sample([mean, logvar]).numpy()
+    return samples
+
+samples = latent_samples(model_trainer, agg)
+plt.scatter(samples[:, 0], samples[:, 1], color='red')
+samples = latent_samples(model_trainer, tim)
+plt.scatter(samples[:, 0], samples[:, 1], color='green')
+samples = latent_samples(model_trainer, norm)
 plt.scatter(samples[:, 0], samples[:, 1], color='orange')
-plt.scatter(samples[agg, 0], samples[agg, 1], color='red')
+plt.ylabel('$z_1$')
+plt.xlabel('$z_2$')
 
-type(agg)
-int(agg)
-samples.numpy()[[1,2,3], 0]
 
-agg
 # %%
 a = np.array([1,2,3,4])
 a[[1,2]]
