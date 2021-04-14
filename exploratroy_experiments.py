@@ -296,7 +296,7 @@ dys = []
 np.clip(3, -1, 1)
 for dy in np.arange(1.85, 0, -0.1):
     mean = dy/1.85
-    alpha = np.random.normal(mean, 0.2, 1)
+    alpha = np.random.normal(mean, 0.1, 1)
     ass.append(np.clip(alpha, 0, 1))
     dys.append(dy)
 
