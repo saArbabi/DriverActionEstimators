@@ -54,6 +54,14 @@ def get_idm_params(driver_type):
 
     return desired_v, desired_tgap, min_jamx, max_act, min_act
 
+def get_alpha(dy):
+    if dy < 0:
+        return 1
+    else:
+        mean = dy/1.85
+        alpha = np.random.normal(mean, 0.2, 1)
+        return np.clip(alpha, 0, 1)
+
 def data_generator():
     xs = []
     ys = []
@@ -69,12 +77,21 @@ def data_generator():
         for driver in drivers:
             desired_v, desired_tgap, min_jamx, max_act, min_act = get_idm_params(driver)
 
+            # sim initializations
+            # follower
             follower_x = np.random.choice(range(30, 50))
-            lead_x = 100
             follower_v = 20 + np.random.choice(range(-3, 3))
+            # leader
+            lead_x = 100
             lead_v = 20 + np.random.choice(range(-3, 3))
             lead_acc_mag = np.random.uniform(0, 3)
             sin_freq = np.random.uniform(0.02, 0.06)
+            # merger
+            steps_lapse = 0
+            merge_step_indicate = np.random.choice(range(0, episode_steps_n))
+            merge_step_init = merge_step_indicate + 20
+            merge_x = np.random.choice(range(70, lead_x))
+            alpha = 0
 
             for time_step in range(episode_steps_n):
                 dv = follower_v-lead_v

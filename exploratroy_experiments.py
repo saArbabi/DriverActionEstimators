@@ -276,3 +276,28 @@ for _ in range(20):
     plt.grid()
     plt.legend(['pred', 'true'])
 # %%
+shape, scale = 1., 0.3  # mean=4, std=2*sqrt(2)
+s = np.random.gamma(shççapeç, scale, 1000)
+s[s>1]=1
+import matplotlib.pyplot as plt
+import scipy.special as sps
+x = np.linspace(0, 1, 1000)
+y = x**(shape-1)*(np.exp(-x/scale) /
+                     (sps.gamma(shape)*scale**shape))
+plt.plot(x+1, y, linewidth=2, color='r')
+plt.show()
+n
+s =
+np.random.normal(0, 1, 1000)
+# %%
+np.arange(1.85, 0, -0.1)
+ass = []
+dys = []
+np.clip(3, -1, 1)
+for dy in np.arange(1.85, 0, -0.1):
+    mean = dy/1.85
+    alpha = np.random.normal(mean, 0.2, 1)
+    ass.append(np.clip(alpha, 0, 1))
+    dys.append(dy)
+
+plt.plot(dys, ass)
