@@ -13,12 +13,6 @@ class Encoder(AbstractModel):
         self.model_use = model_use # can be training or inference
         self.architecture_def()
 
-    def param_activation(self, batch_size, x, min_val, max_val):
-        activation_function = tf.tanh(x)
-        scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
-        min_val = tf.fill([batch_size, 1], min_val)
-        return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
-
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
         self.neu_desired_v = Dense(1)
@@ -26,21 +20,44 @@ class Encoder(AbstractModel):
         self.neu_min_jamx = Dense(1)
         self.neu_max_act = Dense(1, activation=K.exp)
         self.neu_min_act = Dense(1, activation=K.exp)
+        self.neu_attention = TimeDistributed(Dense(1, K.softmax))
+
+    def param_activation(self, batch_size, x, min_val, max_val):
+        activation_function = tf.tanh(x)
+        scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
+        min_val = tf.fill([batch_size, 1], min_val)
+        return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
+
+    def compute_idm_param(self, x, batch_size):
+        desired_v = self.param_activation(batch_size, self.neu_desired_v(x), 15., 35.)
+        min_jamx = tf.abs(self.param_activation(batch_size, self.neu_min_jamx(x), -5., 5.))
+        desired_tgap = self.neu_desired_tgap(x)
+        max_act = self.neu_max_act(x)
+        min_act = self.neu_min_act(x)
+        return [desired_v, desired_tgap, min_jamx, max_act, min_act]
+
+    def idm(self, vel, dv, dx, idm_param):
+        desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
+
+        mult_1 = tf.multiply(max_act, min_act)
+        mult_2 = tf.multiply(2., tf.sqrt(mult_1))
+        mult_3 = tf.multiply(vel, dv)
+        div_1 = tf.divide(mult_3, mult_2)
+        mult_4 = tf.multiply(desired_tgap, vel)
+
+        desired_gap = tf.add_n([min_jamx, mult_4, div_1])
+        pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
+        pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
+        subtract_1 = tf.add(pow_2, pow_1)
+        subtract_2 = tf.subtract(1., subtract_1)
+
+        act = tf.multiply(max_act, subtract_2)
+        return act
 
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
-        if self.model_use == 'training':
-            batch_size = 256
-        elif self.model_use == 'inference' or self.model_use == 'debug':
-            batch_size = 1
-
-        desired_v = self.param_activation(batch_size, self.neu_desired_v(h_t), 15., 35.)
-        min_jamx = tf.abs(self.param_activation(batch_size, self.neu_min_jamx(h_t), -5., 5.))
-        desired_tgap = self.neu_desired_tgap(h_t)
-        max_act = self.neu_max_act(h_t)
-        min_act = self.neu_min_act(h_t)
-
-        idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
+        batch_size = tf.shape(state)[0]
+        idm_param = self.compute_idm_param(h_t, batch_size)
 
         if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
@@ -56,19 +73,7 @@ class Encoder(AbstractModel):
                 dv = tf.reshape(dv, [batch_size, 1])
                 dx = tf.reshape(dx, [batch_size, 1])
 
-                mult_1 = tf.multiply(max_act, min_act)
-                mult_2 = tf.multiply(2., tf.sqrt(mult_1))
-                mult_3 = tf.multiply(vel, dv)
-                div_1 = tf.divide(mult_3, mult_2)
-                mult_4 = tf.multiply(desired_tgap, vel)
-
-                desired_gap = tf.add_n([min_jamx, mult_4, div_1])
-                pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
-                pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
-                subtract_1 = tf.add(pow_2, pow_1)
-                subtract_2 = tf.subtract(1., subtract_1)
-
-                act = tf.multiply(max_act, subtract_2)
+                act = self.idm(vel, dv, dx, idm_param)
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
 
             return act_seq
