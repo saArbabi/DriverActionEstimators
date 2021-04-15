@@ -26,7 +26,8 @@ plt.plot(dy_p)
 feature = training_data[0][0:10000, 0, -1]
 feature
 _ = plt.hist(feature, bins=150)
-
+(training_data[0][0:10000, 0, -1]==0).sum()
+training_data[0][0:10000, 0, -1].shape
 # %%
 class Trainer():
     def __init__(self, model_type):
@@ -126,7 +127,7 @@ model_trainer = Trainer(model_type='lstm_seq_idm')
 # model_trainer = Trainer(model_type='vae_idm')
 # training_data[0][:,:,-1].min()
 
-#8 %%
+# %%
 # model_trainer.train(training_data, epochs=5)
 # plt.figure()
 # plt.plot(model_trainer.valid_mseloss)
@@ -154,6 +155,7 @@ plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 print(model_trainer.valid_loss[-1])
+
 # %%
 
 

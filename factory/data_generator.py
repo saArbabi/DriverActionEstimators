@@ -59,8 +59,9 @@ def get_alpha(dy):
         return 1
     else:
         mean = abs(dy)/1.85
-        alpha = np.random.normal(mean, 0.1, 1)
-        return np.clip(alpha, 0, 1).tolist()[0]
+        # alpha = np.random.normal(mean, 0.1, 1)
+        return mean
+        # return np.clip(alpha, 0, 1).tolist()[0]
 
 def idm_act(_v, _dv, _dx, idm_params):
     desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
@@ -123,7 +124,7 @@ def data_generator():
                 dy += m_vlat*0.1
 
                 # follower
-                alpha = 1
+                alpha = 0
                 # alpha = get_alpha(dy)
                 act = (1-alpha)*fl_act + (alpha)*fm_act
                 f_v = f_v + act * 0.1

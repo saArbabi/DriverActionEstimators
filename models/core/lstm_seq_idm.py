@@ -20,7 +20,8 @@ class Encoder(AbstractModel):
         self.neu_min_jamx = Dense(1)
         self.neu_max_act = Dense(1, activation=K.exp)
         self.neu_min_act = Dense(1, activation=K.exp)
-        self.neu_attention = TimeDistributed(Dense(1, K.softmax))
+        self.neu_attention = Dense(1, K.sigmoid)
+        # self.neu_attention = TimeDistributed(Dense(1, K.softmax))
 
     def param_activation(self, batch_size, x, min_val, max_val):
         activation_function = tf.tanh(x)
@@ -63,19 +64,41 @@ class Encoder(AbstractModel):
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
             for step in tf.range(20):
+                # tf.autograph.experimental.set_loop_options(shape_invariants=[
+                #                 (act_seq, tf.TensorShape([None,None,None])),
+                #                 (dy, tf.TensorShape([None,None,None])),
+                #                  (alpha, tf.TensorShape([None,None,None]))])
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
                                 (act_seq, tf.TensorShape([None,None,None]))])
 
+                dy = tf.slice(state, [0, step, 7], [batch_size, 1, 1])
                 vel = tf.slice(state, [0, step, 0], [batch_size, 1, 1])
                 dv = tf.slice(state, [0, step, 2], [batch_size, 1, 1])
                 dx = tf.slice(state, [0, step, 3], [batch_size, 1, 1])
+
+                # alpha = 0.5
+
+                dy = tf.reshape(dy, [batch_size, 1])
                 vel = tf.reshape(vel, [batch_size, 1])
                 dv = tf.reshape(dv, [batch_size, 1])
                 dx = tf.reshape(dx, [batch_size, 1])
+                fl_act = self.idm(vel, dv, dx, idm_param)
 
-                act = self.idm(vel, dv, dx, idm_param)
+                dv = tf.slice(state, [0, step, 5], [batch_size, 1, 1])
+                dx = tf.slice(state, [0, step, 6], [batch_size, 1, 1])
+                dv = tf.reshape(dv, [batch_size, 1])
+                dx = tf.reshape(dx, [batch_size, 1])
+                fm_act = self.idm(vel, dv, dx, idm_param)
+
+                alpha = self.neu_attention(dy)
+                # alpha = self.neu_attention(tf.concat([dy, h_t], axis=1))
+
+                # alpha = 1
+                # alpha = tf.reshape(alpha, [batch_size, 1])
+                act = (1-alpha)*fl_act + (alpha)*fm_act
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
-
+                #
+                # tf.print(alpha)
             return act_seq
             # return act_seq, idm_param
 
