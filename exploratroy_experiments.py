@@ -17,9 +17,13 @@ training_samples_n = 5000
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 training_data[1].shape
-
+np.array([1]).tolist()[0]
 # %%
-feature = training_data[0][0:10000, -1]
+dy_p = training_data[1][100, :, -1]
+training_data[1][0:250, 0, -1].mean()
+plt.plot(dy_p)
+# %%
+feature = training_data[0][0:10000, 0, -1]
 feature
 _ = plt.hist(feature, bins=150)
 
@@ -122,7 +126,7 @@ class Trainer():
 model_trainer = Trainer(model_type='vae_idm')
 # training_data[0][:,:,-1].min()
 
-# %%
+#8 %%
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)

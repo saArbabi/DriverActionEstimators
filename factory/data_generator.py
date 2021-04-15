@@ -55,21 +55,21 @@ def get_idm_params(driver_type):
     return [desired_v, desired_tgap, min_jamx, max_act, min_act]
 
 def get_alpha(dy):
-    if dy < 0:
+    if dy < -1.85:
         return 1
     else:
-        mean = dy/1.85
+        mean = abs(dy)/1.85
         alpha = np.random.normal(mean, 0.1, 1)
-        return np.clip(alpha, 0, 1)
+        return np.clip(alpha, 0, 1).tolist()[0]
 
 def idm_act(_v, _dv, _dx, idm_params):
     desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
     desired_gap = min_jamx + desired_tgap*_v+(_v*_dv)/ \
                                     (2*np.sqrt(max_act*min_act))
 
-    _acc = max_act*(1-(_v/desired_v)**4-\
+    act = max_act*(1-(_v/desired_v)**4-\
                                         (desired_gap/_dx)**2)
-    return acc
+    return act
 
 def data_generator():
     xs = []
@@ -92,41 +92,50 @@ def data_generator():
             # leader
             l_x = 100
             l_v = 20 + np.random.choice(range(-3, 3))
-            lead_acc_mag = np.random.uniform(0, 3)
+            l_act_mag = np.random.uniform(0, 3)
             sin_freq = np.random.uniform(0.02, 0.06)
             # merger
             steps_lapse = 0
-            merge_step_indicate = np.random.choice(range(0, episode_steps_n))
-            merge_step_init = merge_step_indicate + 20
-            merge_x = np.random.choice(range(70, l_x))
+            m_step_init = np.random.choice(range(0, episode_steps_n))
+            m_x = np.random.choice(range(70, l_x))
             alpha = 0
             dy = 0
+            m_v = f_v
+            m_vlat = 0
 
             for time_step in range(episode_steps_n):
                 # leader
                 fl_dv = f_v-l_v
                 lf_dx = l_x-f_x
-                fl_acc = idm_act(f_v, fl_dv, lf_dx, idm_params)
+                fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
+                l_v = l_v + l_act_mag*np.sin(l_x*sin_freq) * 0.1
+                l_x = l_x + l_v * 0.1
+
                 # merger
                 fm_dv = f_v-m_v
                 mf_dx = m_x-f_x
-                fm_acc = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                m_x = m_x + m_v * 0.1
+                if time_step > m_step_init and dy > -3.7:
+                    m_vlat = -1
+                elif dy < -3.7:
+                    m_vlat = 0
+                dy += m_vlat*0.1
 
                 # follower
+                alpha = 1
+                # alpha = get_alpha(dy)
+                act = (1-alpha)*fl_act + (alpha)*fm_act
+                f_v = f_v + act * 0.1
+                f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
 
-                acc = *fl_acc + (alpha)*fm_acc
-                f_v = f_v + acc * 0.1
-                f_x = f_x + f_v * 0.1 + 0.5 * acc * 0.1 **2
+                xs.append([episode_id, f_v,
+                                    l_v, fl_dv, lf_dx, \
+                                    m_v, fm_dv, mf_dx, dy])
 
-                l_v = l_v + lead_acc_mag*np.sin(l_x*sin_freq) * 0.1
-                l_x = l_x + l_v * 0.1
-                xs.append([episode_id, f_v, l_v, dv, dx])
-                ys.append([episode_id, acc])
-                info[episode_id] = driver
-
-                dy += 0.2*0.1
-
-
+                ys.append([episode_id, act])
+                info[episode_id] = episode_id
+                driver
             episode_id += 1
     xs = np.array(xs)
     # scaler = preprocessing.StandardScaler().fit(xs[:, 2:])
