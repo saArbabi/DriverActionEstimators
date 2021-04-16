@@ -100,8 +100,8 @@ def data_generator():
             m_step_init = np.random.choice(range(0, episode_steps_n))
             m_x = np.random.choice(range(70, l_x))
             alpha = 0
-            dy = 0
-            m_v = f_v
+            # dy = 0
+            m_v = l_v
             m_vlat = 0
 
             for time_step in range(episode_steps_n):
@@ -117,22 +117,28 @@ def data_generator():
                 mf_dx = m_x-f_x
                 fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
                 m_x = m_x + m_v * 0.1
-                if time_step > m_step_init and dy > -3.7:
-                    m_vlat = -1
-                elif dy < -3.7:
-                    m_vlat = 0
-                dy += m_vlat*0.1
+                # if time_step > m_step_init and dy > -3.7:
+                #     m_vlat = -1
+                # elif dy < -3.7:
+                #     m_vlat = 0
+                # dy += m_vlat*0.1
 
                 # follower
                 # alpha = 0
-                alpha = get_alpha(dy)
-                act = (1-alpha)*fl_act + (alpha)*fm_act
+                # alpha = get_alpha(dy)
+                # act = (1-alpha)*fl_act + (alpha)*fm_act
+                if time_step < m_step_init:
+                    act = fl_act
+                else:
+                    act = fm_act
+                # act = fm_act
+
                 f_v = f_v + act * 0.1
                 f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
 
                 xs.append([episode_id, f_v,
                                     l_v, fl_dv, lf_dx, \
-                                    m_v, fm_dv, mf_dx, dy])
+                                    m_v, fm_dv, mf_dx, fl_act, fm_act])
 
                 ys.append([episode_id, act])
                 info[episode_id] = episode_id

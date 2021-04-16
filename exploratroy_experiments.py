@@ -12,16 +12,16 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 5000
+training_samples_n = 6000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
-training_data[1].shape
+training_data[0].shape
 np.array([1]).tolist()[0]
 # %%
-dy_p = training_data[1][100, :, -1]
-training_data[1][0:250, 0, -1].mean()
-plt.plot(dy_p)
+state = training_data[1][90, :, 1]
+# training_data[1][0:250, 0, -1].mean()
+plt.plot(state)
 # %%
 feature = training_data[0][0:10000, 0, -1]
 feature
@@ -76,7 +76,7 @@ class Trainer():
             self.model = VAEIDM(config, model_use='training')
 
     def train(self, training_data, epochs):
-        train_indx = int(len(training_data[0])*0.8)
+        train_indx = int(len(training_data[0])*0.7)
         if self.model_type == 'dnn':
             xs_c, ys_c = training_data
             train_input = [xs_c[0:train_indx, 1:], ys_c[0:train_indx, 1:]]
@@ -146,9 +146,10 @@ model_trainer = Trainer(model_type='lstm_seq_idm')
 # plt.xlabel('epochs')
 # plt.ylabel('loss (KL)')
 # plt.title('KL')
+loss_view_lim = 0
 model_trainer.train(training_data, epochs=5)
-plt.plot(model_trainer.valid_loss)
-plt.plot(model_trainer.train_loss)
+plt.plot(model_trainer.valid_loss[loss_view_lim:])
+plt.plot(model_trainer.train_loss[loss_view_lim:])
 
 plt.legend(['val', 'train'])
 plt.grid()
@@ -290,28 +291,33 @@ for _ in range(20):
     plt.grid()
     plt.legend(['pred', 'true'])
 # %%
-shape, scale = 1., 0.3  # mean=4, std=2*sqrt(2)
-s = np.random.gamma(shççapeç, scale, 1000)
-s[s>1]=1
-import matplotlib.pyplot as plt
-import scipy.special as sps
-x = np.linspace(0, 1, 1000)
-y = x**(shape-1)*(np.exp(-x/scale) /
-                     (sps.gamma(shape)*scale**shape))
-plt.plot(x+1, y, linewidth=2, color='r')
-plt.show()
-n
-s =
-np.random.normal(0, 1, 1000)
-# %%
-np.arange(1.85, 0, -0.1)
-ass = []
-dys = []
-np.clip(3, -1, 1)
-for dy in np.arange(1.85, 0, -0.1):
-    mean = dy/1.85
-    alpha = np.random.normal(mean, 0.1, 1)
-    ass.append(np.clip(alpha, 0, 1))
-    dys.append(dy)
+def get_idm_params(driver_type):
+    if driver_type == 'normal':
+        idm_param = normal_idm
+    if driver_type == 'timid':
+        idm_param = timid_idm
+    if driver_type == 'aggressive':
+        idm_param = aggressive_idm
 
-plt.plot(dys, ass)
+    desired_v = idm_param['desired_v']
+    desired_tgap = idm_param['desired_tgap']
+    min_jamx = idm_param['min_jamx']
+    max_act = idm_param['max_act']
+    min_act = idm_param['min_act']
+
+    return [desired_v, desired_tgap, min_jamx, max_act, min_act]
+
+idm_params = get_idm_params('normal')
+dx = 80
+actions = []
+for i in range(100):
+    if i % 10 == 0:
+        dx -= 5
+
+    act = idm_act(17, 0, dx, idm_params)
+    actions.append(act)
+
+plt.plot(actions)
+# %%
+import tensorflow as tf
+tf.greater_equal(0.2, 0.5).numpy()

@@ -20,12 +20,16 @@ class Encoder(AbstractModel):
         self.neu_min_jamx = Dense(1)
         self.neu_max_act = Dense(1, activation=K.exp)
         self.neu_min_act = Dense(1, activation=K.exp)
-        self.neu_attention_1 = Dense(40)
-        self.neu_attention_2 = Dense(1, K.sigmoid)
+        self.neu_attention_1 = Dense(100, activation=K.relu)
+        self.neu_attention_2 = Dense(100, activation=K.relu)
+        self.neu_attention_3 = Dense(40, activation=K.relu)
+        self.neu_attention_4 = Dense(1, K.sigmoid)
         # self.neu_attention = TimeDistributed(Dense(1, K.softmax))
-    def attention(self, dy):
-        x = self.neu_attention_1(dy)
-        return self.neu_attention_2(x)
+    def attention(self, context):
+        x = self.neu_attention_1(context)
+        x = self.neu_attention_2(x)
+        x = self.neu_attention_3(x)
+        return self.neu_attention_4(x)
 
     def param_activation(self, batch_size, x, min_val, max_val):
         activation_function = tf.tanh(x)
@@ -59,30 +63,42 @@ class Encoder(AbstractModel):
         act = tf.multiply(max_act, subtract_2)
         return act
 
+    # def apply_alphas(self, act_fl_seq, act_fm_seq, alphas):
+    #     great_bool = tf.cast(tf.math.greater_equal(alphas, 0.5), dtype='float')
+    #     less_bool = tf.cast(tf.math.less(alphas, 0.5), dtype='float')
+    #     act_seq = tf.math.add(tf.multiply(great_bool, act_fl_seq), tf.multiply(less_bool, act_fm_seq))
+    #     return act_seq
+
+    def apply_alphas(self, act_fl_seq, act_fm_seq, alphas):
+        # great_bool = tf.cast(tf.math.greater_equal(alphas, 0.5), dtype='float')
+        # less_bool = tf.cast(tf.math.less(alphas, 0.5), dtype='float')
+        act_seq = tf.math.add(tf.multiply(alphas, act_fl_seq), tf.multiply((1-alphas), act_fm_seq))
+        return act_seq
+
     def idm_sim(self, state, h_t):
         # state: [v, dv, dx]
         batch_size = tf.shape(state)[0]
         idm_param = self.compute_idm_param(h_t, batch_size)
 
+        # alpha = tf.fill([batch_size, 1], 0.6)
+        # alphas = tf.reshape(alpha, [batch_size, 1, 1])
+        # tf.print(tf.reduce_min(alpha))
+        # tf.print(tf.slice(alpha, [0, 0], [1, 1]))
+        # tf.print(h_t)
         if self.model_use == 'training' or self.model_use == 'debug':
-            act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            act_fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            act_fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
             for step in tf.range(20):
-                # tf.autograph.experimental.set_loop_options(shape_invariants=[
-                #                 (act_seq, tf.TensorShape([None,None,None])),
-                #                 (dy, tf.TensorShape([None,None,None])),
-                #                  (alpha, tf.TensorShape([None,None,None]))])
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
-                                (act_seq, tf.TensorShape([None,None,None]))])
+                                (act_fl_seq, tf.TensorShape([None,None,None])),
+                                (act_fm_seq, tf.TensorShape([None,None,None])),
+                                 (alphas, tf.TensorShape([None,None,None]))])
 
-                dy = tf.slice(state, [0, step, 7], [batch_size, 1, 1])
                 vel = tf.slice(state, [0, step, 0], [batch_size, 1, 1])
                 dv = tf.slice(state, [0, step, 2], [batch_size, 1, 1])
                 dx = tf.slice(state, [0, step, 3], [batch_size, 1, 1])
-
-                # alpha = 0.5
-
-                dy = tf.reshape(dy, [batch_size, 1])
                 vel = tf.reshape(vel, [batch_size, 1])
                 dv = tf.reshape(dv, [batch_size, 1])
                 dx = tf.reshape(dx, [batch_size, 1])
@@ -94,16 +110,29 @@ class Encoder(AbstractModel):
                 dx = tf.reshape(dx, [batch_size, 1])
                 fm_act = self.idm(vel, dv, dx, idm_param)
 
-                # alpha = self.attention(dy)
-                alpha = self.attention(tf.concat([dy, h_t], axis=1))
+                # fl_act_true = tf.slice(state, [0, step, 7], [batch_size, 1, 1])
+                # fm_act_true = tf.slice(state, [0, step, 8], [batch_size, 1, 1])
+                # fl_act_true = tf.reshape(fl_act_true, [batch_size, 1])
+                # fm_act_true = tf.reshape(fm_act_true, [batch_size, 1])
+                # alpha = self.attention(tf.fill([batch_size, 1], 0.7))
+                # alpha = tf.fill([batch_size, 1], 0.3)
+                context = tf.slice(state, [0, step, 0], [batch_size, 1, 8])
+                context = tf.reshape(context, [batch_size, 8])
+
+                alpha = self.attention(tf.concat([h_t, context], axis=1))
+                # alpha = self.attention(h_t)
 
                 # alpha = 1
                 # alpha = tf.reshape(alpha, [batch_size, 1])
-                act = (1-alpha)*fl_act + (alpha)*fm_act
-                act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
+                # act = (1-alpha)*fl_act + (alpha)*fm_act
+                act_fl_seq = tf.concat([act_fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
+                act_fm_seq = tf.concat([act_fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+                alphas = tf.concat([alphas, tf.reshape(alpha, [batch_size, 1, 1])], axis=1)
                 #
                 # tf.print(alpha)
                 # tf.print(dy)
+
+            act_seq = self.apply_alphas(act_fl_seq, act_fm_seq, alphas)
             return act_seq
             # return act_seq, idm_param
 
