@@ -124,8 +124,8 @@ def data_generator():
                 dy += m_vlat*0.1
 
                 # follower
-                alpha = 0
-                # alpha = get_alpha(dy)
+                # alpha = 0
+                alpha = get_alpha(dy)
                 act = (1-alpha)*fl_act + (alpha)*fm_act
                 f_v = f_v + act * 0.1
                 f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2

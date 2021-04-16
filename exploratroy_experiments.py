@@ -26,8 +26,8 @@ plt.plot(dy_p)
 feature = training_data[0][0:10000, 0, -1]
 feature
 _ = plt.hist(feature, bins=150)
-(training_data[0][0:10000, 0, -1]==0).sum()
-training_data[0][0:10000, 0, -1].shape
+(training_data[1][0:10000, 0, -1]==0).sum()
+# training_data[0][0:10000, 0, -1].shape
 # %%
 class Trainer():
     def __init__(self, model_type):

@@ -20,8 +20,12 @@ class Encoder(AbstractModel):
         self.neu_min_jamx = Dense(1)
         self.neu_max_act = Dense(1, activation=K.exp)
         self.neu_min_act = Dense(1, activation=K.exp)
-        self.neu_attention = Dense(1, K.sigmoid)
+        self.neu_attention_1 = Dense(40)
+        self.neu_attention_2 = Dense(1, K.sigmoid)
         # self.neu_attention = TimeDistributed(Dense(1, K.softmax))
+    def attention(self, dy):
+        x = self.neu_attention_1(dy)
+        return self.neu_attention_2(x)
 
     def param_activation(self, batch_size, x, min_val, max_val):
         activation_function = tf.tanh(x)
@@ -90,8 +94,8 @@ class Encoder(AbstractModel):
                 dx = tf.reshape(dx, [batch_size, 1])
                 fm_act = self.idm(vel, dv, dx, idm_param)
 
-                alpha = self.neu_attention(dy)
-                # alpha = self.neu_attention(tf.concat([dy, h_t], axis=1))
+                # alpha = self.attention(dy)
+                alpha = self.attention(tf.concat([dy, h_t], axis=1))
 
                 # alpha = 1
                 # alpha = tf.reshape(alpha, [batch_size, 1])
@@ -99,6 +103,7 @@ class Encoder(AbstractModel):
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
                 #
                 # tf.print(alpha)
+                # tf.print(dy)
             return act_seq
             # return act_seq, idm_param
 
