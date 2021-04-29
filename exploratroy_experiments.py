@@ -70,6 +70,12 @@ class Trainer():
             from models.core.vae import  VAEIDM
             self.model = VAEIDM(config, model_use='training')
 
+        elif self.model_type == 'driver_model':
+            from models.core import driver_model
+            reload(driver_model)
+            from models.core.driver_model import  Encoder
+            self.model = Encoder(config, model_use='training')
+
     def train(self, training_data, epochs):
         train_indx = int(len(training_data[0])*0.8)
         if self.model_type == 'dnn':
@@ -89,7 +95,8 @@ class Trainer():
             val_input = [xs_h[train_indx:, :, 1:], xs_c[train_indx:, 1:], \
                                             ys_c[train_indx:, 1:]]
 
-        elif self.model_type == 'lstm_seq_idm' or self.model_type == 'vae_idm':
+        elif self.model_type == 'lstm_seq_idm' or self.model_type == 'vae_idm'\
+                                         or self.model_type == 'driver_model':
             xs_h, xs_f, ys_f = training_data
             train_input = [xs_h[0:train_indx, :, 1:], xs_f[0:train_indx, :, 1:], \
                                             ys_f[0:train_indx, :, 1:]]
@@ -119,31 +126,73 @@ class Trainer():
 # model_trainer = Trainer(model_type='lstm')
 # model_trainer = Trainer(model_type='lstm_idm')
 # model_trainer = Trainer(model_type='lstm_seq_idm')
-model_trainer = Trainer(model_type='vae_idm')
+# model_trainer = Trainer(model_type='vae_idm')
+model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
+# model_trainer.train(training_data, epochs=5)
+# plt.figure()
+# plt.plot(model_trainer.valid_mseloss)
+# plt.plot(model_trainer.train_mseloss)
+# plt.legend(['val', 'train'])
+# plt.grid()
+# plt.xlabel('epochs')
+# plt.ylabel('loss (MSE)')
+# plt.title('MSE')
+#
+# plt.figure()
+# plt.plot(model_trainer.valid_klloss)
+# plt.plot(model_trainer.train_klloss)
+# plt.legend(['val', 'train'])
+# plt.grid()
+# plt.xlabel('epochs')
+# plt.ylabel('loss (KL)')
+# plt.title('KL')
+loss_view_lim = 0
 model_trainer.train(training_data, epochs=5)
-plt.figure()
-plt.plot(model_trainer.valid_mseloss)
-plt.plot(model_trainer.train_mseloss)
+plt.plot(model_trainer.valid_loss[loss_view_lim:])
+plt.plot(model_trainer.train_loss[loss_view_lim:])
+
 plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
-plt.title('MSE')
-
-plt.figure()
-plt.plot(model_trainer.valid_klloss)
-plt.plot(model_trainer.train_klloss)
-plt.legend(['val', 'train'])
-plt.grid()
-plt.xlabel('epochs')
-plt.ylabel('loss (KL)')
-plt.title('KL')
-
+print(model_trainer.valid_loss[-1])
 # %%
+idm_param = {
+                'desired_v':25, # m/s
+                'desired_tgap':1.5, # s
+                'min_jamx':2, # m
+                'max_act':1.4, # m/s^2
+                'min_act':2, # m/s^2
+                }
 
+desired_v = idm_param['desired_v']
+desired_tgap = idm_param['desired_tgap']
+min_jamx = idm_param['min_jamx']
+max_act = idm_param['max_act']
+min_act = idm_param['min_act']
+follower_v = 20
+lead_v = 20
+dx = 20
+dv = 0.1
+
+des_options = np.linspace(0.5, 3, 100)
+actions = []
+for des in des_options:
+    min_act = des
+    desired_gap = min_jamx + desired_tgap*follower_v+(follower_v*dv)/ \
+                                    (2*np.sqrt(max_act*min_act))
+
+    acc = max_act*(1-(follower_v/desired_v)**4-\
+                                        (desired_gap/dx)**2)
+
+    actions.append(acc)
+plt.grid()
+plt.xlabel('Param range (min_act)')
+plt.ylabel('Action value')
+plt.plot(des_options, actions)
 
 # %%
 # %%
@@ -153,7 +202,7 @@ model_trainer.save_model(model_name ='lstm_seq2s_idm')
 exp_dir = './models/experiments/lstm_seq_idm/model'
 exp_dir = './models/experiments/dnn/model'
 
-
+tf.divide(0,2)
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
