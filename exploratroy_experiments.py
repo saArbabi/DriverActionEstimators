@@ -12,7 +12,7 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 5000
+training_samples_n = 6000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
@@ -125,9 +125,9 @@ class Trainer():
 # model_trainer = Trainer(model_type='dnn')
 # model_trainer = Trainer(model_type='lstm')
 # model_trainer = Trainer(model_type='lstm_idm')
-# model_trainer = Trainer(model_type='lstm_seq_idm')
+model_trainer = Trainer(model_type='lstm_seq_idm')
 # model_trainer = Trainer(model_type='vae_idm')
-model_trainer = Trainer(model_type='driver_model')
+# model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
@@ -196,13 +196,14 @@ plt.plot(des_options, actions)
 
 # %%
 # %%
-model_trainer.save_model(model_name ='lstm_seq2s_idm')
+model_name ='lstm_seq2s_idm'
+# model_name ='driver_model'
+model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
-exp_dir = './models/experiments/lstm_seq_idm/model'
-exp_dir = './models/experiments/dnn/model'
-
-tf.divide(0,2)
+exp_dir = './models/experiments/driver_model/model'
+# exp_dir = './models/experiments/dnn/model'
+#
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)

@@ -49,7 +49,7 @@ class Encoder(AbstractModel):
 
     def get_min_jamx(self, h_t):
         input = self.min_jamx_layer(h_t)
-        output = tf.abs(self.min_jamx_neu(input))
+        output = tf.abs(self.min_jamx_neu(input)+1)
         return output
 
     def get_max_act(self, h_t):
@@ -77,11 +77,11 @@ class Encoder(AbstractModel):
         min_act = self.get_min_act(h_t)
 
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
-        tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        tf.print('max_act: ', tf.reduce_mean(max_act))
-        tf.print('min_act: ', tf.reduce_mean(min_act))
+        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        # tf.print('max_act: ', tf.reduce_mean(max_act))
+        # tf.print('min_act: ', tf.reduce_mean(min_act))
 
         if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
@@ -97,28 +97,19 @@ class Encoder(AbstractModel):
                 dv = tf.reshape(dv, [batch_size, 1])
                 dx = tf.reshape(dx, [batch_size, 1])
 
-                desired_v = self.get_des_v(h_t, vel)
-                desired_tgap = self.get_des_tgap(h_t)
-                min_jamx = self.get_min_jamx(h_t)
-                max_act = self.get_max_act(h_t)
-                min_act = self.get_min_act(h_t)
+                # desired_v = self.get_des_v(h_t, vel)
+                # desired_tgap = self.get_des_tgap(h_t)
+                # min_jamx = self.get_min_jamx(h_t)
+                # max_act = self.get_max_act(h_t)
+                # min_act = self.get_min_act(h_t)
 
-                mult_1 = tf.multiply(max_act, min_act)
-                mult_2 = tf.multiply(2., tf.sqrt(mult_1))
-                mult_3 = tf.multiply(vel, dv)
-                div_1 = tf.divide(mult_3, mult_2)
-                mult_4 = tf.multiply(desired_tgap, vel)
+                desired_gap = min_jamx + desired_tgap*vel+(vel*dv)/ \
+                                                (2*tf.sqrt(max_act*min_act))
 
-                desired_gap = tf.add_n([min_jamx, mult_4, div_1])
-                pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
-                pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
-                subtract_1 = tf.add(pow_2, pow_1)
-                subtract_2 = tf.subtract(1., subtract_1)
+                act = max_act*(1-(vel/desired_v)**4-\
+                                                    (desired_gap/dx)**2)
 
-                act = tf.multiply(max_act, subtract_2)
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
-
-
             return act_seq
             # return act_seq, idm_param
 
