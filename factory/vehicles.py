@@ -136,8 +136,8 @@ class LSTMIDMVehicle(NeurVehicle):
         self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
 
         steps = 20
-        # if len(self.obs_history) % steps == 0:
-        if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
+        if len(self.obs_history) % steps == 0:
+        # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
             # x_scaled = self.scaler.transform(x)

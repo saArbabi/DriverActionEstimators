@@ -52,7 +52,25 @@ def get_idm_params(driver_type):
     max_act = idm_param['max_act']
     min_act = idm_param['min_act']
 
-    return desired_v, desired_tgap, min_jamx, max_act, min_act
+    return [desired_v, desired_tgap, min_jamx, max_act, min_act]
+
+def get_alpha(dy):
+    if dy < -1.85:
+        return 1
+    else:
+        mean = abs(dy)/1.85
+        # alpha = np.random.normal(mean, 0.1, 1)
+        return mean
+        # return np.clip(alpha, 0, 1).tolist()[0]
+
+def idm_act(_v, _dv, _dx, idm_params):
+    desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
+    desired_gap = min_jamx + desired_tgap*_v+(_v*_dv)/ \
+                                    (2*np.sqrt(max_act*min_act))
+
+    act = max_act*(1-(_v/desired_v)**4-\
+                                        (desired_gap/_dx)**2)
+    return act
 
 def data_generator():
     xs = []
@@ -67,35 +85,73 @@ def data_generator():
 
     while episode_id < episode_n:
         for driver in drivers:
-            desired_v, desired_tgap, min_jamx, max_act, min_act = get_idm_params(driver)
-
-            follower_x = np.random.choice(range(30, 50))
-            lead_x = 100
-            follower_v = 20 + np.random.choice(range(-3, 3))
-            lead_v = 20 + np.random.choice(range(-3, 3))
-            lead_acc_mag = np.random.uniform(0, 3)
+            idm_params = get_idm_params(driver)
+            # sim initializations
+            # follower
+            f_x = np.random.choice(range(30, 50))
+            f_v = 20 + np.random.choice(range(-3, 3))
+            # leader
+            l_x = 100
+            l_v = 20 + np.random.choice(range(-3, 3))
+            l_act_mag = np.random.uniform(0, 3)
             sin_freq = np.random.uniform(0.02, 0.06)
+            # merger
+            steps_lapse = 0
+            m_step_init = np.random.choice(range(0, episode_steps_n))
+            m_x = np.random.choice(range(70, l_x))
+            alpha = 0
+            # dy = 0
+            m_v = l_v
+            m_vlat = 0
 
             for time_step in range(episode_steps_n):
-                dv = follower_v-lead_v
-                dx = lead_x-follower_x
+                # leader
+                fl_dv = f_v-l_v
+                lf_dx = l_x-f_x
+                fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
+                l_v = l_v + l_act_mag*np.sin(l_x*sin_freq) * 0.1
+                l_x = l_x + l_v * 0.1
 
-                desired_gap = min_jamx + desired_tgap*follower_v+(follower_v*dv)/ \
-                                                (2*np.sqrt(max_act*min_act))
+                # merger
+                fm_dv = f_v-m_v
+                mf_dx = m_x-f_x
+                fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                m_x = m_x + m_v * 0.1
+                # if time_step > m_step_init and dy > -3.7:
+                #     m_vlat = -1
+                # elif dy < -3.7:
+                #     m_vlat = w
+                # dy += m_vlat*0.1
 
-                acc = max_act*(1-(follower_v/desired_v)**4-\
-                                                    (desired_gap/dx)**2)
+                # follower
+                # alpha = 0
+                # alpha = get_alpha(dy)
+                # act = (1-alpha)*fl_act + (alpha)*fm_act
+                if time_step < m_step_init:
+                    act = fl_act
+                else:
+                    act = fm_act
+                # act = fm_act
+                act = fl_act
 
-                follower_v = follower_v + acc * 0.1
-                follower_x = follower_x + follower_v * 0.1 \
-                                            + 0.5 * acc * 0.1 **2
+                f_v = f_v + act * 0.1
+                f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
 
-                lead_v = lead_v + lead_acc_mag*np.sin(lead_x*sin_freq) * 0.1
-                lead_x = lead_x + lead_v * 0.1
-                xs.append([episode_id, follower_v, lead_v, dv, dx])
-                ys.append([episode_id, acc])
-                info[episode_id] = driver
+                # xs.append([episode_id, f_v,
+                #                     l_v, fl_dv, lf_dx, \
+                #                     m_v, fm_dv, mf_dx])
 
+                # ys.append([episode_id, act])
+                #
+                # xs.append([episode_id, f_v,
+                #                     l_v, fl_dv, lf_dx])
+                # xs.append([episode_id, f_v,
+                #                     l_v, fl_dv, lf_dx, \
+                #                     m_v, fm_dv, mf_dx])
+                xs.append([episode_id, f_v, l_v, fl_dv, lf_dx])
+                ys.append([episode_id, act])
+
+                info[episode_id] = episode_id
             episode_id += 1
     xs = np.array(xs)
     # scaler = preprocessing.StandardScaler().fit(xs[:, 2:])
