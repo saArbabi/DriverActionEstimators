@@ -77,8 +77,8 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
     episode_n = 100
@@ -129,10 +129,13 @@ def data_generator():
                 # act = (1-alpha)*fl_act + (alpha)*fm_act
                 if time_step < m_step_init:
                     act = fl_act
+                    attention = 1
                 else:
                     act = fm_act
+                    attention = 0
+
                 # act = fm_act
-                act = fl_act
+                # act = fl_act
 
                 f_v = f_v + act * 0.1
                 f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
@@ -145,10 +148,10 @@ def data_generator():
                 #
                 # xs.append([episode_id, f_v,
                 #                     l_v, fl_dv, lf_dx])
-                # xs.append([episode_id, f_v,
-                #                     l_v, fl_dv, lf_dx, \
-                #                     m_v, fm_dv, mf_dx])
-                xs.append([episode_id, f_v, l_v, fl_dv, lf_dx])
+                xs.append([episode_id, f_v,
+                                    l_v, fl_dv, lf_dx, \
+                                    m_v, fm_dv, mf_dx, attention])
+                # xs.append([episode_id, f_v, l_v, fl_dv, lf_dx])
                 ys.append([episode_id, act])
 
                 info[episode_id] = episode_id

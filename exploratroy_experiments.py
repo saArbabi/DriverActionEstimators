@@ -149,8 +149,9 @@ model_trainer = Trainer(model_type='driver_model')
 # plt.xlabel('epochs')
 # plt.ylabel('loss (KL)')
 # plt.title('KL')
+model_trainer.train(training_data, epochs=5)
 loss_view_lim = 0
-model_trainer.train(training_data, epochs=50)
+
 plt.plot(model_trainer.valid_loss[loss_view_lim:])
 plt.plot(model_trainer.train_loss[loss_view_lim:])
 
