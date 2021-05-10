@@ -16,7 +16,11 @@ class Encoder(AbstractModel):
     def attention_loss(self, fl_alpha, fm_alpha, mse_loss):
         # return tf.reduce_mean(tf.abs(tf.sigmoid(alphas)))
         # loss = mse_loss + tf.reduce_mean(1-(fl_alpha+fm_alpha))
-        return tf.abs(10*tf.reduce_mean(1-(fl_alpha+fm_alpha)))
+        att_loss = -1*(tf.abs(tf.tanh(5*(fl_alpha-0.5))) - 1) + \
+                            -1*(tf.abs(tf.tanh(5*(fm_alpha-0.5))) - 1) + \
+                            tf.abs(tf.reduce_mean(1-(fl_alpha+fm_alpha)))
+
+        return 0.1*att_loss
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -24,8 +28,8 @@ class Encoder(AbstractModel):
             act_pred, fl_alpha, fm_alpha = self(states)
             mse_loss = self.mse(targets, act_pred)
             # loss = mse_loss + tf.reduce_mean(1-(fl_alpha+fm_alpha))
-            # loss = mse_loss + self.attention_loss(fl_alpha, fm_alpha, mse_loss)
-            loss = mse_loss
+            loss = mse_loss + self.attention_loss(fl_alpha, fm_alpha, mse_loss)
+            # loss = mse_loss
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
@@ -37,8 +41,8 @@ class Encoder(AbstractModel):
         act_pred, fl_alpha, fm_alpha = self(states)
         mse_loss = self.mse(targets, act_pred)
         # loss = mse_loss + tf.reduce_mean(1-(fl_alpha+fm_alpha))
-        # loss = mse_loss + self.attention_loss(fl_alpha, fm_alpha, mse_loss)
-        loss = mse_loss
+        loss = mse_loss + self.attention_loss(fl_alpha, fm_alpha, mse_loss)
+        # loss = mse_loss
         self.test_loss.reset_states()
         self.test_loss(loss)
 
