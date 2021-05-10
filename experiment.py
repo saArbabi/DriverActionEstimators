@@ -50,7 +50,7 @@ def set_follower(lane_id, model_type, model_name, driver_type):
         from models.core.driver_model import  Encoder
         model = Encoder(config, model_use='inference')
         model.load_weights(exp_dir).expect_partial()
-        follower = LSTMIDMVehicle(id='neural', lane_id=lane_id, x=40, v=20,
+        follower = NeurIDM(id='neural', lane_id=lane_id, x=40, v=20,
                         driver_type=driver_type, model=model)
     # follower.scaler = scaler
     return follower

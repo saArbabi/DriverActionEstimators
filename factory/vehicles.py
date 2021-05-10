@@ -164,6 +164,45 @@ class LSTMIDMVehicle(NeurVehicle):
         self.action = action
         return action
 
+class NeurIDM(NeurVehicle):
+    def __init__(self, id, lane_id, x, v, driver_type, model):
+        super().__init__(id, lane_id, x, v, driver_type, model)
+        self.elapsed_time = 0
+
+
+    def act(self):
+        self.obs_history.append([self.v, self.lead_vehicle.v, \
+        self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
+
+        steps = 20
+        if len(self.obs_history) % steps == 0:
+        # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
+            self.control_type = 'neural'
+            x = np.array(self.obs_history)
+            # x_scaled = self.scaler.transform(x)
+
+            # x_scaled.shape = (1, steps, 5)
+            x.shape = (1, steps, 4)
+            self.obs_history.pop(0)
+
+            # if round(self.elapsed_time, 1) % 10 == 0:
+            param = self.policy([x, x]).numpy()[0]
+            self.desired_v = param[0]
+            self.desired_tgap = param[1]
+            self.min_jamx = param[2]
+            self.max_act = param[3]
+            self.min_act = param[4]
+                # print(param)
+
+            self.elapsed_time += 0.1
+
+        obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
+        desired_gap = self.get_desired_gap(obs['dv'])
+        action = self.max_act*(1-(self.v/self.desired_v)**4-\
+                                            (desired_gap/obs['dx'])**2)
+        self.action = action
+        return action
+
 class LSTMVehicle(NeurVehicle):
     def __init__(self, id, lane_id, x, v, driver_type, model):
         super().__init__(id, lane_id, x, v, driver_type, model)
