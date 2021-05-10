@@ -77,7 +77,7 @@ class Trainer():
             self.model = Encoder(config, model_use='training')
 
     def train(self, training_data, epochs):
-        train_indx = int(len(training_data[0])*0.8)
+        train_indx = int(len(training_data[0])*0.7)
         if self.model_type == 'dnn':
             xs_c, ys_c = training_data
             train_input = [xs_c[0:train_indx, 1:], ys_c[0:train_indx, 1:]]
@@ -130,7 +130,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-#- %%
+# %%
 # model_trainer.train(training_data, epochs=5)
 # plt.figure()
 # plt.plot(model_trainer.valid_mseloss)
@@ -152,9 +152,10 @@ model_trainer = Trainer(model_type='driver_model')
 model_trainer.train(training_data, epochs=5)
 loss_view_lim = 0
 
-plt.plot(model_trainer.valid_loss[loss_view_lim:])
-plt.plot(model_trainer.train_loss[loss_view_lim:])
-
+train_loss = model_trainer.train_loss[loss_view_lim:]
+valid_loss = model_trainer.valid_loss[loss_view_lim:]
+plt.plot(valid_loss)
+plt.plot(train_loss)
 plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
@@ -162,10 +163,10 @@ plt.ylabel('loss (MSE)')
 print(model_trainer.valid_loss[-1])
 # %%
 from scipy.stats import norm
-x = np.linspace(-1, 1, 1000)
+x = np.linspace(-2, 2, 1000)
 y = -0.1*(abs(np.tanh(5*(x-0.5))) - 1)
 # y = (tf.tanh(x))**2
-# y = x**2
+# y = np.exp(x)
 plt.plot(x, y)
 plt.grid()
 # %%
@@ -335,7 +336,7 @@ for _ in range(20):
     plt.grid()
     plt.legend(['pred', 'true'])
 # %%
-from tensorflow.keras.layers import Dense, LSTM, TimeDistributed
+from tensorflow.keras.layers import Dense, LSTM
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -350,25 +351,32 @@ class Encoder(AbstractModel):
         self.model_use = model_use # can be training or inference
         self.architecture_def()
 
-    def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units, return_state=True)
-        self.neu_desired_v = Dense(1)
-        self.neu_desired_tgap = Dense(1, activation=K.exp)
-        self.neu_min_jamx = Dense(1)
-        self.neu_max_act = Dense(1, activation=K.exp)
-        self.neu_min_act = Dense(1, activation=K.exp)
-        self.attention_lstm = LSTM(100, return_sequences=True, return_state=True)
-        self.neu_attention = TimeDistributed(Dense(1, K.sigmoid))
-        self.neu_attention_1 = TimeDistributed(Dense(100, activation=K.relu))
-        self.neu_attention_2 = TimeDistributed(Dense(100, activation=K.relu))
-        self.neu_attention_3 = TimeDistributed(Dense(40, activation=K.relu))
-        self.neu_attention_4 = TimeDistributed(Dense(1, K.sigmoid))
+    def attention_loss(self, alphas, mse_loss):
+        # return tf.reduce_mean(tf.abs(tf.sigmoid(alphas)))
+        return tf.reduce_mean(-mse_loss*0.1*(tf.abs(tf.tanh(5*(alphas-0.5))) - 1))
 
-    def attention(self, context):
-        x = self.neu_attention_1(context)
-        x = self.neu_attention_2(x)
-        x = self.neu_attention_3(x)
-        return self.neu_attention_4(x)
+    @tf.function(experimental_relax_shapes=True)
+    def train_step(self, states, targets):
+        with tf.GradientTape() as tape:
+            act_pred, alphas = self(states)
+            mse_loss = self.mse(targets, act_pred)
+            loss = mse_loss
+            # loss = mse_loss + self.attention_loss(alphas, mse_loss)
+
+        gradients = tape.gradient(loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+        self.train_loss.reset_states()
+        self.train_loss(loss)
+
+    @tf.function(experimental_relax_shapes=True)
+    def test_step(self, states, targets):
+        act_pred, alphas = self(states)
+        mse_loss = self.mse(targets, act_pred)
+        loss = mse_loss
+        # loss = mse_loss + self.attention_loss(alphas, mse_loss)
+
+        self.test_loss.reset_states()
+        self.test_loss(loss)
 
     def param_activation(self, batch_size, x, min_val, max_val):
         activation_function = tf.tanh(x)
@@ -376,37 +384,69 @@ class Encoder(AbstractModel):
         min_val = tf.fill([batch_size, 1], min_val)
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
-    def compute_idm_param(self, x, batch_size):
-        desired_v = self.param_activation(batch_size, self.neu_desired_v(x), 15., 35.)
-        min_jamx = tf.abs(self.param_activation(batch_size, self.neu_min_jamx(x), -5., 5.))
-        desired_tgap = self.neu_desired_tgap(x)
-        max_act = self.neu_max_act(x)
-        min_act = self.neu_min_act(x)
+    def architecture_def(self):
+        self.histroy_enc = LSTM(self.enc_units, return_state=True)
+        self.future_dec = LSTM(self.enc_units, return_sequences=True, return_state=True)
+
+        self.des_v_layer = Dense(self.enc_units)
+        self.des_v_neu = Dense(1)
+
+        self.des_tgap_layer = Dense(self.enc_units)
+        self.des_tgap_neu = Dense(1)
+
+        self.min_jamx_layer = Dense(self.enc_units)
+        self.min_jamx_neu = Dense(1)
+
+        self.max_act_layer = Dense(self.enc_units)
+        self.max_act_neu = Dense(1)
+
+        self.min_act_layer = Dense(self.enc_units)
+        self.min_act_neu = Dense(1)
+
+        self.attention_layer = Dense(self.enc_units)
+        self.attention_neu = Dense(1, K.sigmoid)
+
+    def compute_idm_param(self, x, current_vel):
+        desired_v = self.get_des_v(x, current_vel)
+        desired_tgap = self.get_des_tgap(x)
+        min_jamx = self.get_min_jamx(x)
+        max_act = self.get_max_act(x)
+        min_act = self.get_min_act(x)
         return [desired_v, desired_tgap, min_jamx, max_act, min_act]
 
-    def idm(self, vel, dv, dx, idm_param):
+    def get_des_v(self, x, current_v):
+        input = self.des_v_layer(x)
+        output = self.des_v_neu(input) + current_v
+        return output
+
+    def get_des_tgap(self, x):
+        input = self.des_tgap_layer(x)
+        output = tf.abs(self.des_tgap_neu(input)) + 1
+        return output
+
+    def get_min_jamx(self, x):
+        input = self.min_jamx_layer(x)
+        output = tf.abs(self.min_jamx_neu(input)+1)
+        return output
+
+    def get_max_act(self, x):
+        input = self.max_act_layer(x)
+        output = tf.abs(self.max_act_neu(input)) + 0.5
+        return output
+
+    def get_min_act(self, x):
+        input = self.min_act_layer(x)
+        output = tf.abs(self.min_act_neu(input)) + 0.5
+        return output
+
+    def idm_driver(self, vel, dv, dx, idm_param):
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
+        desired_gap = min_jamx + desired_tgap*vel+(vel*dv)/ \
+                                        (2*tf.sqrt(max_act*min_act))
 
-        mult_1 = tf.multiply(max_act, min_act)
-        mult_2 = tf.multiply(2., tf.sqrt(mult_1))
-        mult_3 = tf.multiply(vel, dv)
-        div_1 = tf.divide(mult_3, mult_2)
-        mult_4 = tf.multiply(desired_tgap, vel)
-
-        desired_gap = tf.add_n([min_jamx, mult_4, div_1])
-        pow_1 = tf.pow(tf.divide(desired_gap, dx), 2.)
-        pow_2 = tf.pow(tf.divide(vel, desired_v), 4.)
-        subtract_1 = tf.add(pow_2, pow_1)
-        subtract_2 = tf.subtract(1., subtract_1)
-
-        act = tf.multiply(max_act, subtract_2)
+        act = max_act*(1-(vel/desired_v)**4-\
+                                            (desired_gap/dx)**2)
         return act
-
-    # def apply_alphas(self, act_fl_seq, act_fm_seq, alphas):
-    #     great_bool = tf.cast(tf.math.greater_equal(alphas, 0.5), dtype='float')
-    #     less_bool = tf.cast(tf.math.less(alphas, 0.5), dtype='float')
-    #     act_seq = tf.math.add(tf.multiply(great_bool, act_fl_seq), tf.multiply(less_bool, act_fm_seq))
-    #     return act_seq
 
     def apply_alphas(self, act_fl_seq, act_fm_seq, alphas):
         # great_bool = tf.cast(tf.math.greater_equal(alphas, 0.5), dtype='float')
@@ -414,92 +454,118 @@ class Encoder(AbstractModel):
         act_seq = tf.math.add(tf.multiply(alphas, act_fl_seq), tf.multiply((1-alphas), act_fm_seq))
         return act_seq
 
-    def idm_sim(self, state, h_t):
-        # state: [v, dv, dx]
-        batch_size = tf.shape(state)[0]
-        idm_param = self.compute_idm_param(h_t, batch_size)
+    def get_attention(self, x):
+        return self.attention_neu(self.attention_layer(x))
 
-        # alpha = tf.fill([batch_size, 1], 0.6)
-        # alphas = tf.reshape(alpha, [batch_size, 1, 1])
-        # tf.print(tf.reduce_min(alpha))
-        # tf.print(tf.slice(alpha, [0, 0], [1, 1]))
-        # tf.print(h_t)
-        context = tf.slice(state, [0, 0, 0], [batch_size, 1, 8])
-        # context = tf.reshape(context, [batch_size, 8])
-        # outputs, state_h_m, state_c_m = self.attention_lstm(context)
-        h_t = tf.reshape(h_t, [batch_size, 1, self.enc_units]) # encoder hidden state
-        params = tf.reshape(tf.concat(idm_param, axis=1), [batch_size, 1, 5]) # encoder hidden state
+    def idm_sim(self, env_states, encoder_states):
+        # env_states: [v, dv, dx]
+        batch_size = 256
+        # batch_size = tf.shape(env_states)[0]
+        h_t, c_t = encoder_states
+        #
+        # desired_v = self.get_des_v(h_t, env_states[:, 0, 0:1])
+        # desired_tgap = self.get_des_tgap(h_t)
+        # min_jamx = self.get_min_jamx(h_t)
+        # max_act = self.get_max_act(h_t)
+        # min_act = self.get_min_act(h_t)
 
-        # outputs, state_h_m, state_c_m = self.attention_lstm(tf.concat([h_t, context], axis=2))
-        state_h_m, state_c_m = tf.zeros([batch_size, 100]), tf.zeros([batch_size, 100])
-        # tf.print(tf.shape(state_h_m))
-        # tf.print(tf.shape(state_c_m))
+        # idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
+        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        # tf.print('max_act: ', tf.reduce_mean(max_act))
+        # tf.print('min_act: ', tf.reduce_mean(min_act))
+
         if self.model_use == 'training' or self.model_use == 'debug':
-            act_fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            act_fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            # idm_param = tf.zeros([batch_size, 1], dtype=tf.float32)
             alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            desired_v = tf.zeros([batch_size, 1], dtype=tf.float32)
+            desired_tgap = tf.zeros([batch_size, 1], dtype=tf.float32)
+            min_jamx = tf.zeros([batch_size, 1], dtype=tf.float32)
+            max_act = tf.zeros([batch_size, 1], dtype=tf.float32)
+            min_act = tf.zeros([batch_size, 1], dtype=tf.float32)
 
             for step in tf.range(20):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
-                                (act_fl_seq, tf.TensorShape([None,None,None])),
-                                (act_fm_seq, tf.TensorShape([None,None,None])),
-                                 (alphas, tf.TensorShape([None,None,None]))])
+                                # (act_fl_seq, tf.TensorShape([None,None,None])),
+                                # (act_fm_seq, tf.TensorShape([None,None,None])),
+                                (alphas, tf.TensorShape([None,None,None])),
+                                (act_seq, tf.TensorShape([None,None,None]))])
 
-                vel = tf.slice(state, [0, step, 0], [batch_size, 1, 1])
-                dv = tf.slice(state, [0, step, 2], [batch_size, 1, 1])
-                dx = tf.slice(state, [0, step, 3], [batch_size, 1, 1])
+                s = env_states[:, step:step+1, :]
+                vel = tf.slice(env_states, [0, step, 0], [batch_size, 1, 1])
                 vel = tf.reshape(vel, [batch_size, 1])
+                outputs, h_t, c_t = self.future_dec(s, initial_state=[h_t, c_t])
+                # tf.print(tf.shape(outputs))
+                outputs = tf.reshape(outputs, [batch_size, self.enc_units])
+                idm_param = self.compute_idm_param(outputs, vel)
+                desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
+
+
+                dv = tf.slice(env_states, [0, step, 2], [batch_size, 1, 1])
+                dx = tf.slice(env_states, [0, step, 3], [batch_size, 1, 1])
                 dv = tf.reshape(dv, [batch_size, 1])
                 dx = tf.reshape(dx, [batch_size, 1])
-                fl_act = self.idm(vel, dv, dx, idm_param)
+                fl_act = self.idm_driver(vel, dv, dx, idm_param)
 
-                dv = tf.slice(state, [0, step, 5], [batch_size, 1, 1])
-                dx = tf.slice(state, [0, step, 6], [batch_size, 1, 1])
+                dv = tf.slice(env_states, [0, step, 5], [batch_size, 1, 1])
+                dx = tf.slice(env_states, [0, step, 6], [batch_size, 1, 1])
                 dv = tf.reshape(dv, [batch_size, 1])
                 dx = tf.reshape(dx, [batch_size, 1])
-                fm_act = self.idm(vel, dv, dx, idm_param)
+                fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
-                # fl_act_true = tf.slice(state, [0, step, 7], [batch_size, 1, 1])
-                # fm_act_true = tf.slice(state, [0, step, 8], [batch_size, 1, 1])
-                # fl_act_true = tf.reshape(fl_act_true, [batch_size, 1])
-                # fm_act_true = tf.reshape(fm_act_true, [batch_size, 1])
-                # alpha = self.attention(tf.fill([batch_size, 1], 0.7))
-                # alpha = tf.fill([batch_size, 1], 0.3)
-                context = tf.slice(state, [0, step, 0], [batch_size, 1, 8])
-                # context = tf.reshape(context, [batch_size, 8])
+                # alpha = tf.fill([batch_size, 1], 1.)
+                # alpha = self.get_attention(outputs)
+                alpha = self.get_attention(tf.concat([fl_act, fm_act, outputs], axis=1))
 
-                outputs, state_h_m, state_c_m = self.attention_lstm(tf.concat([h_t, context, params], axis=2), \
-                                        initial_state=[state_h_m, state_c_m])
-                # alpha = self.attention(outputs)
-                alpha = self.attention(tf.concat([outputs, context, params], axis=2))
+                act = alpha*fl_act + (1-alpha)*fm_act
+                # tf.math.add(tf.multiply(alphas, fl_act), tf.multiply((1-alphas), fm_act))
+                # act_fl_seq = tf.concat([act_fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
+                # act_fm_seq = tf.concat([act_fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+                alphas = tf.concat([alphas, tf.reshape(alpha, [batch_size, 1, 1])], axis=1)
+                act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
 
-                # alpha = self.neu_attention(outputs)
+            tf.print('######')
+            tf.print('desired_v: ', tf.reduce_mean(desired_v))
+            tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+            tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+            tf.print('max_act: ', tf.reduce_mean(max_act))
+            tf.print('min_act: ', tf.reduce_mean(min_act))
+            tf.print('alphas: ', tf.reduce_min(alphas))
+            tf.print('alphas: ', tf.reduce_max(alphas))
 
-                # alpha = self.attention(h_t)
-
-                # alpha = 1
-                # alpha = tf.reshape(alpha, [batch_size, 1])
-                # act = (1-alpha)*fl_act + (alpha)*fm_act
-                act_fl_seq = tf.concat([act_fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
-                act_fm_seq = tf.concat([act_fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
-                alphas = tf.concat([alphas, alpha], axis=1)
-                #
-                # tf.print(alpha)
-                # tf.print(dy)
-
-            act_seq = self.apply_alphas(act_fl_seq, act_fm_seq, alphas)
-            return act_seq
+            return act_seq, alphas
             # return act_seq, idm_param
 
-        elif self.model_use == 'inference':
-            return idm_param
+        # elif self.model_use == 'inference':
+        #     s = env_states[:, 0:1, :]
+        #     vel = tf.slice(env_states, [0, 0, 0], [batch_size, 1, 1])
+        #     dv = tf.slice(env_states, [0, 0, 2], [batch_size, 1, 1])
+        #     dx = tf.slice(env_states, [0, 0, 3], [batch_size, 1, 1])
+        #     vel = tf.reshape(vel, [batch_size, 1])
+        #     dv = tf.reshape(dv, [batch_size, 1])
+        #     dx = tf.reshape(dx, [batch_size, 1])
+        #
+        #     outputs, h_t, c_t = self.future_dec(s, initial_state=[h_t, c_t])
+        #     # tf.print(tf.shape(outputs))
+        #     outputs = tf.reshape(outputs, [batch_size, self.enc_units])
+        #     desired_v = self.get_des_v(outputs, s[:, 0, 0:1])
+        #     desired_tgap = self.get_des_tgap(outputs)
+        #     min_jamx = self.get_min_jamx(outputs)
+        #     max_act = self.get_max_act(outputs)
+        #     min_act = self.get_min_act(outputs)
+        #
+        #     idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
+        #
+        #     return idm_param
 
     def call(self, inputs):
-        _, h_t, c_t = self.lstm_layer(inputs[0])
+        _, h_t, c_t = self.histroy_enc(inputs[0])
         if self.model_use == 'training' or self.model_use == 'debug':
-            action = self.idm_sim(inputs[1], h_t)
+            action = self.idm_sim(inputs[1], [h_t, c_t])
             return action
 
         elif self.model_use == 'inference':
-            idm_param = self.idm_sim(inputs[1], h_t)
+            idm_param = self.idm_sim(inputs[1], [h_t, c_t])
             return idm_param
