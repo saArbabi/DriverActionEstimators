@@ -130,7 +130,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-# %%
+#- %%
 # model_trainer.train(training_data, epochs=5)
 # plt.figure()
 # plt.plot(model_trainer.valid_mseloss)
@@ -160,6 +160,14 @@ plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 print(model_trainer.valid_loss[-1])
+# %%
+from scipy.stats import norm
+x = np.linspace(-1, 1, 1000)
+y = -0.1*(abs(np.tanh(5*(x-0.5))) - 1)
+# y = (tf.tanh(x))**2
+# y = x**2
+plt.plot(x, y)
+plt.grid()
 # %%
 idm_param = {
                 'desired_v':25, # m/s

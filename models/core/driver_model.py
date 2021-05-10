@@ -13,6 +13,33 @@ class Encoder(AbstractModel):
         self.model_use = model_use # can be training or inference
         self.architecture_def()
 
+    def attention_loss(self, alphas, mse_loss):
+        # return tf.reduce_mean(tf.abs(tf.sigmoid(alphas)))
+        return tf.reduce_mean(-mse_loss*0.1*(tf.abs(tf.tanh(5*(alphas-0.5))) - 1))
+
+    @tf.function(experimental_relax_shapes=True)
+    def train_step(self, states, targets):
+        with tf.GradientTape() as tape:
+            act_pred, alphas = self(states)
+            mse_loss = self.mse(targets, act_pred)
+            loss = mse_loss
+            # loss = mse_loss + self.attention_loss(alphas, mse_loss)
+
+        gradients = tape.gradient(loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+        self.train_loss.reset_states()
+        self.train_loss(loss)
+
+    @tf.function(experimental_relax_shapes=True)
+    def test_step(self, states, targets):
+        act_pred, alphas = self(states)
+        mse_loss = self.mse(targets, act_pred)
+        loss = mse_loss
+        # loss = mse_loss + self.attention_loss(alphas, mse_loss)
+
+        self.test_loss.reset_states()
+        self.test_loss(loss)
+
     def param_activation(self, batch_size, x, min_val, max_val):
         activation_function = tf.tanh(x)
         scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
@@ -170,7 +197,7 @@ class Encoder(AbstractModel):
             tf.print('alphas: ', tf.reduce_min(alphas))
             tf.print('alphas: ', tf.reduce_max(alphas))
 
-            return act_seq
+            return act_seq, alphas
             # return act_seq, idm_param
 
         # elif self.model_use == 'inference':
