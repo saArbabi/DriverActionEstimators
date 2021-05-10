@@ -171,7 +171,7 @@ plt.legend(val_compare.keys())
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 plt.grid()
-
+plt.scatter([1],[1], s=10)
 # %%
 from scipy.stats import norm
 for i in range(1, 10):

@@ -116,6 +116,7 @@ def data_generator():
                 fm_dv = f_v-m_v
                 mf_dx = m_x-f_x
                 fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                m_v = l_v
                 m_x = m_x + m_v * 0.1
                 # if time_step > m_step_init and dy > -3.7:
                 #     m_vlat = -1

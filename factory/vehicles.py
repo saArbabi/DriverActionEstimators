@@ -37,6 +37,14 @@ class LeadVehicle(Vehicle):
         # return 0
         return 1.5*np.sin(self.x*0.04)
 
+class MergeVehicle(Vehicle):
+    def __init__(self, id, lane_id, x, v, idm_param=None):
+        super().__init__(id, lane_id, x, v)
+
+    def act(self):
+        return 0
+        # return 1.5*np.sin(self.x*0.04)
+
 class IDMVehicle(Vehicle):
     def __init__(self, id, lane_id, x, v, driver_type=None):
         super().__init__(id, lane_id, x, v)
@@ -168,13 +176,32 @@ class NeurIDM(NeurVehicle):
     def __init__(self, id, lane_id, x, v, driver_type, model):
         super().__init__(id, lane_id, x, v, driver_type, model)
         self.elapsed_time = 0
+        self.action = 0
+        self.time_switched = 0
+        self.attention_score = 0.5
+        self.attention = 1
 
 
     def act(self):
-        self.obs_history.append([self.v, self.lead_vehicle.v, \
-        self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x])
-
         steps = 20
+        # if self.elapsed_time < 3:
+        #     self.attend_veh = self.lead_vehicle
+        #     self.attention = 1
+        #
+        # else:
+        #     self.attend_veh = self.merge_vehicle
+        #     self.time_switched += 1
+        #     print('switched  #################', self.time_switched)
+        #     self.attention = 0
+
+        self.attend_veh = self.lead_vehicle
+
+        latest_obs = [self.v,
+          self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x,
+          self.merge_vehicle.v, self.v - self.merge_vehicle.v, self.merge_vehicle.x-self.x, self.attention]
+
+        self.obs_history.append(latest_obs)
+
         if len(self.obs_history) % steps == 0:
         # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
@@ -182,21 +209,28 @@ class NeurIDM(NeurVehicle):
             # x_scaled = self.scaler.transform(x)
 
             # x_scaled.shape = (1, steps, 5)
-            x.shape = (1, steps, 4)
+            x.shape = (1, steps, 8)
             self.obs_history.pop(0)
 
             # if round(self.elapsed_time, 1) % 10 == 0:
-            param = self.policy([x, x]).numpy()[0]
-            self.desired_v = param[0]
-            self.desired_tgap = param[1]
-            self.min_jamx = param[2]
-            self.max_act = param[3]
-            self.min_act = param[4]
+            # param = self.policy([x, x]).numpy()[0]
+            idm_param, alpha = self.policy([x, x[:,-1:,:]])
+            self.attention_score = alpha.numpy()[0]
+            print('alpha: ', self.attention_score)
+            for item in idm_param:
+                print(item.numpy()[0])
+
+
+            # self.desired_v = param[0]
+            # self.desired_tgap = param[1]
+            # self.min_jamx = param[2]
+            # self.max_act = param[3]
+            # self.min_act = param[4]
                 # print(param)
 
             self.elapsed_time += 0.1
 
-        obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
+        obs = {'dv':self.v-self.attend_veh.v, 'dx':self.attend_veh.x-self.x}
         desired_gap = self.get_desired_gap(obs['dv'])
         action = self.max_act*(1-(self.v/self.desired_v)**4-\
                                             (desired_gap/obs['dx'])**2)

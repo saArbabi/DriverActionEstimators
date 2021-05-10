@@ -166,7 +166,6 @@ class Encoder(AbstractModel):
 
                 outputs, h_t, c_t = self.future_dec(env_states[:, step:step+1, :], initial_state=[h_t, c_t])
                 outputs = tf.reshape(outputs, [batch_size, self.enc_units])
-
                 alpha = self.get_attention(outputs)
                 # alpha, fm_alpha = self.get_attention(tf.concat([fl_act, fm_act, outputs], axis=1))
 
@@ -192,27 +191,11 @@ class Encoder(AbstractModel):
             return act_seq
             # return act_seq, idm_param
 
-        # elif self.model_use == 'inference':
-        #     s = env_states[:, 0:1, :]
-        #     vel = tf.slice(env_states, [0, 0, 0], [batch_size, 1, 1])
-        #     dv = tf.slice(env_states, [0, 0, 2], [batch_size, 1, 1])
-        #     dx = tf.slice(env_states, [0, 0, 3], [batch_size, 1, 1])
-        #     vel = tf.reshape(vel, [batch_size, 1])
-        #     dv = tf.reshape(dv, [batch_size, 1])
-        #     dx = tf.reshape(dx, [batch_size, 1])
-        #
-        #     outputs, h_t, c_t = self.future_dec(s, initial_state=[h_t, c_t])
-        #     # tf.print(tf.shape(outputs))
-        #     outputs = tf.reshape(outputs, [batch_size, self.enc_units])
-        #     desired_v = self.get_des_v(outputs, s[:, 0, 0:1])
-        #     desired_tgap = self.get_des_tgap(outputs)
-        #     min_jamx = self.get_min_jamx(outputs)
-        #     max_act = self.get_max_act(outputs)
-        #     min_act = self.get_min_act(outputs)
-        #
-        #     idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
-        #
-        #     return idm_param
+        elif self.model_use == 'inference':
+            outputs, h_t, c_t = self.future_dec(env_states[:, 0:1, :], initial_state=[h_t, c_t])
+            outputs = tf.reshape(outputs, [1, self.enc_units])
+            alpha = self.get_attention(outputs)
+            return idm_param, alpha
 
     def call(self, inputs):
         _, h_t, c_t = self.histroy_enc(inputs[0])
