@@ -132,47 +132,27 @@ class Encoder(AbstractModel):
         # batch_size = tf.shape(env_states)[0]
         h_t, c_t = encoder_states
         #
-        # desired_v = self.get_des_v(h_t, env_states[:, 0, 0:1])
-        # desired_tgap = self.get_des_tgap(h_t)
-        # min_jamx = self.get_min_jamx(h_t)
-        # max_act = self.get_max_act(h_t)
-        # min_act = self.get_min_act(h_t)
+        desired_v = self.get_des_v(h_t, env_states[:, 0, 0:1])
+        desired_tgap = self.get_des_tgap(h_t)
+        min_jamx = self.get_min_jamx(h_t)
+        max_act = self.get_max_act(h_t)
+        min_act = self.get_min_act(h_t)
 
-        # idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
-        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        # tf.print('max_act: ', tf.reduce_mean(max_act))
-        # tf.print('min_act: ', tf.reduce_mean(min_act))
+        idm_param = [desired_v, desired_tgap, min_jamx, max_act, min_act]
 
         if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            # idm_param = tf.zeros([batch_size, 1], dtype=tf.float32)
             fl_alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
             fm_alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            desired_v = tf.zeros([batch_size, 1], dtype=tf.float32)
-            desired_tgap = tf.zeros([batch_size, 1], dtype=tf.float32)
-            min_jamx = tf.zeros([batch_size, 1], dtype=tf.float32)
-            max_act = tf.zeros([batch_size, 1], dtype=tf.float32)
-            min_act = tf.zeros([batch_size, 1], dtype=tf.float32)
 
             for step in tf.range(20):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
-                                # (act_fl_seq, tf.TensorShape([None,None,None])),
-                                # (act_fm_seq, tf.TensorShape([None,None,None])),
                                 (fl_alphas, tf.TensorShape([None,None,None])),
                                 (fm_alphas, tf.TensorShape([None,None,None])),
                                 (act_seq, tf.TensorShape([None,None,None]))])
 
-                s = env_states[:, step:step+1, :]
                 vel = tf.slice(env_states, [0, step, 0], [batch_size, 1, 1])
                 vel = tf.reshape(vel, [batch_size, 1])
-                outputs, h_t, c_t = self.future_dec(s, initial_state=[h_t, c_t])
-                # tf.print(tf.shape(outputs))
-                outputs = tf.reshape(outputs, [batch_size, self.enc_units])
-                idm_param = self.compute_idm_param(outputs, vel)
-                desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
-
 
                 dv = tf.slice(env_states, [0, step, 2], [batch_size, 1, 1])
                 dx = tf.slice(env_states, [0, step, 3], [batch_size, 1, 1])
@@ -186,16 +166,14 @@ class Encoder(AbstractModel):
                 dx = tf.reshape(dx, [batch_size, 1])
                 fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
-                # alpha = tf.fill([batch_size, 1], 1.)
-                # alpha = self.get_attention(outputs)
+                outputs, h_t, c_t = self.future_dec(env_states[:, step:step+1, :], initial_state=[h_t, c_t])
+                outputs = tf.reshape(outputs, [batch_size, self.enc_units])
+
                 fl_alpha, fm_alpha = self.get_attention(outputs)
                 # fl_alpha, fm_alpha = self.get_attention(tf.concat([fl_act, fm_act, outputs], axis=1))
 
-                # act = fl_alpha*fl_act + fm_alpha*fm_act
-                act = fl_act
-                # tf.math.add(tf.multiply(alphas, fl_act), tf.multiply((1-alphas), fm_act))
-                # act_fl_seq = tf.concat([act_fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
-                # act_fm_seq = tf.concat([act_fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+                act = fl_alpha*fl_act + fm_alpha*fm_act
+                # act = fl_act
                 fl_alphas = tf.concat([fl_alphas, tf.reshape(fl_alpha, [batch_size, 1, 1])], axis=1)
                 fm_alphas = tf.concat([fm_alphas, tf.reshape(fm_alpha, [batch_size, 1, 1])], axis=1)
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
@@ -211,7 +189,7 @@ class Encoder(AbstractModel):
             tf.print('fl_alpha_min: ', tf.reduce_min(fl_alphas))
             tf.print('fl_alpha_mean: ', tf.reduce_mean(fl_alphas))
             tf.print('fm_alpha_max: ', tf.reduce_max(fm_alphas))
-            tf.print('fl_alpha_min: ', tf.reduce_min(fl_alphas))
+            tf.print('fm_alpha_min: ', tf.reduce_min(fm_alphas))
             tf.print('fm_alpha_mean: ', tf.reduce_mean(fm_alphas))
             # tf.print('fm_alpha: ', tf.reduce_max(fm_alphas))
             tf.print('sum: ', tf.reduce_mean(fl_alphas+fm_alphas))
