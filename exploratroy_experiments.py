@@ -77,7 +77,7 @@ class Trainer():
             self.model = Encoder(config, model_use='training')
 
     def train(self, training_data, epochs):
-        train_indx = int(len(training_data[0])*0.8)
+        train_indx = int(len(training_data[0])*0.7)
         if self.model_type == 'dnn':
             xs_c, ys_c = training_data
             train_input = [xs_c[0:train_indx, 1:], ys_c[0:train_indx, 1:]]
@@ -125,9 +125,9 @@ class Trainer():
 # model_trainer = Trainer(model_type='dnn')
 # model_trainer = Trainer(model_type='lstm')
 # model_trainer = Trainer(model_type='lstm_idm')
-model_trainer = Trainer(model_type='lstm_seq_idm')
+# model_trainer = Trainer(model_type='lstm_seq_idm')
 # model_trainer = Trainer(model_type='vae_idm')
-# model_trainer = Trainer(model_type='driver_model')
+model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
@@ -149,16 +149,42 @@ model_trainer = Trainer(model_type='lstm_seq_idm')
 # plt.xlabel('epochs')
 # plt.ylabel('loss (KL)')
 # plt.title('KL')
+model_trainer.train(training_data, epochs=10)
 loss_view_lim = 0
-model_trainer.train(training_data, epochs=5)
-plt.plot(model_trainer.valid_loss[loss_view_lim:])
-plt.plot(model_trainer.train_loss[loss_view_lim:])
 
+train_loss = model_trainer.train_loss[loss_view_lim:]
+valid_loss = model_trainer.valid_loss[loss_view_lim:]
+plt.plot(valid_loss)
+plt.plot(train_loss)
 plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 print(model_trainer.valid_loss[-1])
+# %%
+# val_compare = {}
+val_compare['sig_fac: 8'] = valid_loss
+# %%
+for f, loss_val in val_compare.items():
+    plt.plot(loss_val)
+plt.legend(val_compare.keys())
+plt.xlabel('epochs')
+plt.ylabel('loss (MSE)')
+plt.grid()
+
+# %%
+from scipy.stats import norm
+for i in range(1, 10):
+    x = np.linspace(-2, 2, 1000)
+    # y = -5*(abs(np.tanh(5*(x-0.5))) - 1)
+    # y = (tf.tanh(x))**2
+    # y = np.exp(x)
+    y = 1/(1+np.exp(-i*x))
+    # y = (x-1)**2
+    # plt.plot(x, y)
+    # y = (x+0)**2
+    plt.plot(x, y)
+plt.grid()
 # %%
 idm_param = {
                 'desired_v':25, # m/s
@@ -196,8 +222,8 @@ plt.plot(des_options, actions)
 
 # %%
 # %%
-model_name ='lstm_seq2s_idm'
-# model_name ='driver_model'
+# model_name ='lstm_seq2s_idm'
+model_name ='driver_model'
 model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
