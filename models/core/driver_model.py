@@ -5,6 +5,7 @@ from models.core import abstract_model
 reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
+tf.random.set_seed(1234)
 
 class Encoder(AbstractModel):
     def __init__(self, config, model_use):
@@ -13,23 +14,24 @@ class Encoder(AbstractModel):
         self.model_use = model_use # can be training or inference
         self.architecture_def()
 
-    def attention_loss(self, fl_alpha, fm_alpha, mse_loss):
+    def attention_loss(self, alpha, fm_alpha, mse_loss):
         # return tf.reduce_mean(tf.abs(tf.sigmoid(alphas)))
-        # loss = mse_loss + tf.reduce_mean(1-(fl_alpha+fm_alpha))
-        att_loss = -1*(tf.abs(tf.tanh(5*(fl_alpha-0.5))) - 1) + \
+        # loss = mse_loss + tf.reduce_mean(1-(alpha+fm_alpha))
+        att_loss = -1*(tf.abs(tf.tanh(5*(alpha-0.5))) - 1) + \
                             -1*(tf.abs(tf.tanh(5*(fm_alpha-0.5))) - 1) + \
-                            tf.abs(tf.reduce_mean(1-(fl_alpha+fm_alpha)))
+                            tf.abs(tf.reduce_mean(1-(alpha+fm_alpha)))
 
         return 0.1*att_loss
+        # return 0
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            act_pred, fl_alpha, fm_alpha = self(states)
+            act_pred = self(states)
             mse_loss = self.mse(targets, act_pred)
-            # loss = mse_loss + tf.reduce_mean(1-(fl_alpha+fm_alpha))
-            loss = mse_loss + self.attention_loss(fl_alpha, fm_alpha, mse_loss)
-            # loss = mse_loss
+            # loss = mse_loss + tf.reduce_mean(1-(alpha+fm_alpha))
+            # loss = mse_loss + self.attention_loss(alpha, fm_alpha, mse_loss)
+            loss = mse_loss
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
@@ -38,19 +40,13 @@ class Encoder(AbstractModel):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        act_pred, fl_alpha, fm_alpha = self(states)
+        act_pred = self(states)
         mse_loss = self.mse(targets, act_pred)
-        # loss = mse_loss + tf.reduce_mean(1-(fl_alpha+fm_alpha))
-        loss = mse_loss + self.attention_loss(fl_alpha, fm_alpha, mse_loss)
-        # loss = mse_loss
+        # loss = mse_loss + tf.reduce_mean(1-(alpha+fm_alpha))
+        # loss = mse_loss + self.attention_loss(alpha, fm_alpha, mse_loss)
+        loss = mse_loss
         self.test_loss.reset_states()
         self.test_loss(loss)
-
-    def param_activation(self, batch_size, val, min_val, max_val):
-        activation_function = tf.tanh(val)
-        scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
-        min_val = tf.fill([batch_size, 1], min_val)
-        return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
     def architecture_def(self):
         self.histroy_enc = LSTM(self.enc_units, return_state=True)
@@ -72,8 +68,14 @@ class Encoder(AbstractModel):
         self.min_act_neu = Dense(1)
 
         self.attention_layer = Dense(self.enc_units)
-        self.fl_attention_neu = Dense(1)
-        self.fm_attention_neu = Dense(1)
+        # self.attention_neu = Dense(1, activation=K.sigmoid)
+        self.attention_neu = Dense(1)
+
+    def param_activation(self, batch_size, val, min_val, max_val):
+        activation_function = tf.tanh(val)
+        scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
+        min_val = tf.fill([batch_size, 1], min_val)
+        return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
     def compute_idm_param(self, x, current_vel):
         desired_v = self.get_des_v(x, current_vel)
@@ -117,18 +119,12 @@ class Encoder(AbstractModel):
                                             (desired_gap/dx)**2)
         return act
 
-    def apply_alphas(self, act_fl_seq, act_fm_seq, alphas):
-        # great_bool = tf.cast(tf.math.greater_equal(alphas, 0.5), dtype='float')
-        # less_bool = tf.cast(tf.math.less(alphas, 0.5), dtype='float')
-        act_seq = tf.math.add(tf.multiply(alphas, act_fl_seq), tf.multiply((1-alphas), act_fm_seq))
-        return act_seq
-
     def get_attention(self, x):
         x = self.attention_layer(x)
-        fl_alpha = self.fl_attention_neu(x)
-        fm_alpha = self.fm_attention_neu(x)
-        return tf.abs(fl_alpha), tf.abs(fm_alpha)
-        # return fl_alpha, fm_alpha
+        x = self.attention_neu(x)
+
+        return 1/(1+tf.exp(-9*x))
+        # return alpha, fm_alpha
 
     def idm_sim(self, env_states, encoder_states):
         # env_states: [v, dv, dx]
@@ -146,13 +142,11 @@ class Encoder(AbstractModel):
 
         if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            fl_alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            fm_alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
             for step in tf.range(20):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
-                                (fl_alphas, tf.TensorShape([None,None,None])),
-                                (fm_alphas, tf.TensorShape([None,None,None])),
+                                (alphas, tf.TensorShape([None,None,None])),
                                 (act_seq, tf.TensorShape([None,None,None]))])
 
                 vel = tf.slice(env_states, [0, step, 0], [batch_size, 1, 1])
@@ -173,13 +167,12 @@ class Encoder(AbstractModel):
                 outputs, h_t, c_t = self.future_dec(env_states[:, step:step+1, :], initial_state=[h_t, c_t])
                 outputs = tf.reshape(outputs, [batch_size, self.enc_units])
 
-                fl_alpha, fm_alpha = self.get_attention(outputs)
-                # fl_alpha, fm_alpha = self.get_attention(tf.concat([fl_act, fm_act, outputs], axis=1))
+                alpha = self.get_attention(outputs)
+                # alpha, fm_alpha = self.get_attention(tf.concat([fl_act, fm_act, outputs], axis=1))
 
-                act = fl_alpha*fl_act + fm_alpha*fm_act
+                act = alpha*fl_act + (1-alpha)*fm_act
                 # act = fl_act
-                fl_alphas = tf.concat([fl_alphas, tf.reshape(fl_alpha, [batch_size, 1, 1])], axis=1)
-                fm_alphas = tf.concat([fm_alphas, tf.reshape(fm_alpha, [batch_size, 1, 1])], axis=1)
+                alphas = tf.concat([alphas, tf.reshape(alpha, [batch_size, 1, 1])], axis=1)
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
 
             tf.print('######')
@@ -189,16 +182,14 @@ class Encoder(AbstractModel):
             tf.print('max_act: ', tf.reduce_mean(max_act))
             tf.print('min_act: ', tf.reduce_mean(min_act))
             tf.print('action_value: ', tf.reduce_mean(act_seq))
-            tf.print('fl_alpha_max: ', tf.reduce_max(fl_alphas))
-            tf.print('fl_alpha_min: ', tf.reduce_min(fl_alphas))
-            tf.print('fl_alpha_mean: ', tf.reduce_mean(fl_alphas))
-            tf.print('fm_alpha_max: ', tf.reduce_max(fm_alphas))
-            tf.print('fm_alpha_min: ', tf.reduce_min(fm_alphas))
-            tf.print('fm_alpha_mean: ', tf.reduce_mean(fm_alphas))
-            # tf.print('fm_alpha: ', tf.reduce_max(fm_alphas))
-            tf.print('sum: ', tf.reduce_mean(fl_alphas+fm_alphas))
+            tf.print('alpha_max: ', tf.reduce_max(alphas))
+            tf.print('alpha_min: ', tf.reduce_min(alphas))
+            tf.print('alpha_mean: ', tf.reduce_mean(alphas))
 
-            return act_seq, fl_alphas, fm_alphas
+            # tf.print('fm_alpha: ', tf.reduce_max(fm_alphas))
+            # tf.print('sum: ', tf.reduce_mean(alphas+fm_alphas))
+
+            return act_seq
             # return act_seq, idm_param
 
         # elif self.model_use == 'inference':

@@ -130,7 +130,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-# -%%
+# %%
 # model_trainer.train(training_data, epochs=5)
 # plt.figure()
 # plt.plot(model_trainer.valid_mseloss)
@@ -149,7 +149,7 @@ model_trainer = Trainer(model_type='driver_model')
 # plt.xlabel('epochs')
 # plt.ylabel('loss (KL)')
 # plt.title('KL')
-model_trainer.train(training_data, epochs=5)
+model_trainer.train(training_data, epochs=10)
 loss_view_lim = 0
 
 train_loss = model_trainer.train_loss[loss_view_lim:]
@@ -162,15 +162,28 @@ plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 print(model_trainer.valid_loss[-1])
 # %%
+# val_compare = {}
+val_compare['sig_fac: 8'] = valid_loss
+# %%
+for f, loss_val in val_compare.items():
+    plt.plot(loss_val)
+plt.legend(val_compare.keys())
+plt.xlabel('epochs')
+plt.ylabel('loss (MSE)')
+plt.grid()
+
+# %%
 from scipy.stats import norm
-x = np.linspace(-2, 2, 1000)
-y = -5*(abs(np.tanh(5*(x-0.5))) - 1)
-# y = (tf.tanh(x))**2
-# y = np.exp(x)
-# y = (x-1)**2
-# plt.plot(x, y)
-# y = (x+0)**2
-plt.plot(x, y)
+for i in range(1, 10):
+    x = np.linspace(-2, 2, 1000)
+    # y = -5*(abs(np.tanh(5*(x-0.5))) - 1)
+    # y = (tf.tanh(x))**2
+    # y = np.exp(x)
+    y = 1/(1+np.exp(-i*x))
+    # y = (x-1)**2
+    # plt.plot(x, y)
+    # y = (x+0)**2
+    plt.plot(x, y)
 plt.grid()
 # %%
 idm_param = {
