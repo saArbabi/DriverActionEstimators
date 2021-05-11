@@ -143,7 +143,7 @@ def data_generator():
 
                 else:
                     m_exists = 0
-                    merger_feature = [19, 1, 55]
+                    merger_feature = [20, 0, 30]
 
 
                 # merger_feature = [19, 1, 55]
@@ -173,32 +173,40 @@ def data_generator():
                 f_v = f_v + act * 0.1
                 f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
 
-                feature = [episode_id, f_v]
+                feature = [episode_id, m_exists, attention, f_v]
                 feature.extend(leader_feature)
                 feature.extend(merger_feature)
-                feature.extend([m_exists, attention])
                 xs.append(feature)
                 ys.append([episode_id, act])
 
                 info[episode_id] = episode_id
             episode_id += 1
     xs = np.array(xs)
-    # scaler = preprocessing.StandardScaler().fit(xs[:, 2:])
-    xs_scaled = xs.copy()
-    # xs_scaled[:, 2:] = scaler.transform(xs[:, 2:]).tolist()
+    # scale_data = False
+    scale_data = True
 
-    return xs, xs_scaled, np.array(ys), info, 'scaler'
+    if scale_data:
+        bool_indx = 3 # these are boolians to be ignored by scaler
+        scaler = preprocessing.StandardScaler().fit(xs[:, 3:])
+        xs_scaled = xs.copy()
+        xs_scaled[:, bool_indx:] = scaler.transform(xs[:, bool_indx:]).tolist()
+
+        return xs, xs_scaled, np.array(ys), info, scaler
+
+    else:
+        return xs, xs, np.array(ys), info, None
 
 def seqseq_sequence(training_states, h_len, f_len):
-    states_h, states_f, actions = training_states
+    scaled_ss, unscaled_ss, actions = training_states
     xs_h = [] # history, scaled
-    xs_f = [] # future, not scaled
+    scaled_xs_f = [] # future, scaled
+    unscaled_xs_f = [] # future, not scaled
     ys_f = [] # future, not scaled
-    episode_steps_n = len(states_h)
+    episode_steps_n = len(scaled_ss)
     xs_h_seq = deque(maxlen=h_len)
 
     for i in range(episode_steps_n):
-        xs_h_seq.append(states_h[i])
+        xs_h_seq.append(scaled_ss[i])
         if len(xs_h_seq) == h_len:
             indx = i + f_len
             if indx > episode_steps_n:
@@ -206,10 +214,11 @@ def seqseq_sequence(training_states, h_len, f_len):
 
             xs_h.append(list(xs_h_seq))
             # xs_h.append(np.array(xs_h_seq))
-            xs_f.append(states_f[i:indx])
+            scaled_xs_f.append(scaled_ss[i:indx])
+            unscaled_xs_f.append(unscaled_ss[i:indx])
             ys_f.append(actions[i:indx])
 
-    return xs_h, xs_f, ys_f
+    return xs_h, scaled_xs_f, unscaled_xs_f, ys_f
 
 def seq_sequence(training_states, h_len):
     states_h, states_c, actions = training_states
@@ -236,39 +245,42 @@ def seq_prep(h_len, training_samples_n):
     xs, xs_scaled, ys, _, scaler = data_generator()
 
     episode_ids = list(np.unique(xs[:, 0]))
-    sequence_xs_h = []
-    sequence_xs_c = []
-    sequence_ys_c = []
+    seq_xs_h = []
+    seq_xs_c = []
+    seq_ys_c = []
     for episode_id in episode_ids:
-        if len(sequence_xs_h) >= training_samples_n:
+        if len(seq_xs_h) >= training_samples_n:
             break
         xs_id = xs[xs[:,0]==episode_id].tolist()
         xs_scaled_id = xs_scaled[xs_scaled[:,0]==episode_id].tolist()
         ys_id = ys[ys[:,0]==episode_id].tolist()
 
         xs_h, xs_c, ys_c = seq_sequence([xs_scaled_id, xs_id, ys_id], h_len)
-        sequence_xs_h.extend(xs_h)
-        sequence_xs_c.extend(xs_c)
-        sequence_ys_c.extend(ys_c)
+        seq_xs_h.extend(xs_h)
+        seq_xs_c.extend(xs_c)
+        seq_ys_c.extend(ys_c)
 
-    return [np.array(sequence_xs_h), np.array(sequence_xs_c), np.array(sequence_ys_c)]
+    return [np.array(seq_xs_h), np.array(seq_xs_c), np.array(seq_ys_c)]
 
 def seqseq_prep(h_len, f_len, training_samples_n):
     xs, xs_scaled, ys, info, scaler = data_generator()
     episode_ids = list(np.unique(xs[:, 0]))
-    sequence_xs_h = []
-    sequence_xs_f = []
-    sequence_ys_f = []
+    seq_xs_h = []
+    scaled_seq_xs_f = []
+    unscaled_seq_xs_f = []
+    seq_ys_f = []
 
     for episode_id in episode_ids:
-        if len(sequence_xs_h) >= training_samples_n:
+        if len(seq_xs_h) >= training_samples_n:
             break
         xs_id = xs[xs[:,0]==episode_id].tolist()
         xs_scaled_id = xs_scaled[xs_scaled[:,0]==episode_id].tolist()
         ys_id = ys[ys[:,0]==episode_id].tolist()
-        xs_h, xs_f, ys_f = seqseq_sequence([xs_scaled_id, xs_id, ys_id], h_len, f_len)
-        sequence_xs_h.extend(xs_h)
-        sequence_xs_f.extend(xs_f)
-        sequence_ys_f.extend(ys_f)
+        xs_h, scaled_xs_f, unscaled_xs_f, ys_f = seqseq_sequence([xs_scaled_id, xs_id, ys_id], h_len, f_len)
+        seq_xs_h.extend(xs_h)
+        scaled_seq_xs_f.extend(scaled_xs_f)
+        unscaled_seq_xs_f.extend(unscaled_xs_f)
+        seq_ys_f.extend(ys_f)
 
-    return [np.array(sequence_xs_h), np.array(sequence_xs_f), np.array(sequence_ys_f)], info, 'scaler'
+    return [np.array(seq_xs_h), np.array(scaled_seq_xs_f), np.array(unscaled_seq_xs_f), \
+                                                np.array(seq_ys_f)], info, scaler
