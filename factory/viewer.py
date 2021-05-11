@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, model_type, env_config):
         self.env_config  = env_config
-        self.fig = plt.figure(figsize=(10, 5))
+        self.fig = plt.figure(figsize=(10, 4))
         self.env_ax = self.fig.add_subplot(211)
         self.att_ax = self.fig.add_subplot(212)
         self.model_type = model_type
@@ -31,7 +31,7 @@ class Viewer():
                                 percept_origin + self.env_config['percept_range'])
 
         ax.set_yticks([])
-        plt.title('#Elapsed time:'+str(round(elapsed_time, 1))+\
+        ax.set_title('#Elapsed time:'+str(round(elapsed_time, 1))+\
         's  #model: '+self.model_type)
 
     def draw_vehicles(self, ax, vehicles):
@@ -83,6 +83,7 @@ class Viewer():
 
         ax.plot(self.elapsed_time_steps, self.true_attention_scores)
         ax.plot(self.elapsed_time_steps, self.pred_attention_scores)
+        ax.legend(['True attention', 'Predicted attention'])
 
     def update_plots(self, vehicles, elapsed_time):
         self.draw_env(self.env_ax, vehicles, elapsed_time)

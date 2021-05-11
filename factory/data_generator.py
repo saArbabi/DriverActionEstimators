@@ -72,6 +72,22 @@ def idm_act(_v, _dv, _dx, idm_params):
                                         (desired_gap/_dx)**2)
     return act
 
+def get_relative_states(front_x, front_v, rear_x, rear_v):
+    """
+    front vehicle and rear vehicle
+    """
+    dx = front_x - rear_x
+    dv = rear_v - front_v
+    if dx < 0.5:
+        return 0, 0.5
+    return dv, dx
+
+def get_random_vals(mean_vel):
+    init_v = 20 + np.random.choice(range(-3, 3))
+    action_magnitute = np.random.uniform(0, 3)
+    action_freq = np.random.uniform(0.02, 0.06)
+    return init_v, action_magnitute, action_freq
+
 def data_generator():
     xs = []
     ys = []
@@ -83,42 +99,55 @@ def data_generator():
     episode_id = 0
     episode_n = 100
 
+
     while episode_id < episode_n:
         for driver in drivers:
             idm_params = get_idm_params(driver)
+            mean_vel = 20
+            att_switch_step = np.random.choice(range(0, episode_steps_n))
             # sim initializations
             # follower
             f_x = np.random.choice(range(30, 50))
-            f_v = 20 + np.random.choice(range(-3, 3))
+            f_v = mean_vel + np.random.choice(range(-3, 3))
             # leader
             l_x = 100
-            l_v = 20 + np.random.choice(range(-3, 3))
-            l_act_mag = np.random.uniform(0, 3)
-            sin_freq = np.random.uniform(0.02, 0.06)
+            l_v, l_act_mag, l_sin_freq = get_random_vals(mean_vel)
             # merger
-            steps_lapse = 0
-            m_step_init = np.random.choice(range(0, episode_steps_n))
-            m_x = np.random.choice(range(70, l_x))
-            alpha = 0
+            m_x = np.random.choice(range(40, l_x))
+            m_v, m_act_mag, m_sin_freq = get_random_vals(mean_vel)
+
             # dy = 0
-            m_v = l_v
             m_vlat = 0
 
             for time_step in range(episode_steps_n):
                 # leader
-                fl_dv = f_v-l_v
-                lf_dx = l_x-f_x
-                fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
-                l_v = l_v + l_act_mag*np.sin(l_x*sin_freq) * 0.1
-                l_x = l_x + l_v * 0.1
+                fl_dv, lf_dx = get_relative_states(l_x, l_v, f_x, f_v)
+                if lf_dx != 0.5:
+                    fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
+                    l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * 0.1
+                    l_x = l_x + l_v * 0.1
+                    leader_feature = [l_v, fl_dv, lf_dx]
+
+                else:
+                    print("Collosion with lead vehicle")
+                    break
 
                 # merger
-                fm_dv = f_v-m_v
-                mf_dx = m_x-f_x
-                fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
-                m_v = l_v
-                m_x = m_x + m_v * 0.1
-                # if time_step > m_step_init and dy > -3.7:
+                fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
+                if mf_dx != 0.5 and m_x < l_x:
+                    fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                    m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * 0.1
+                    m_x = m_x + m_v * 0.1
+                    m_exists = 1
+                    merger_feature = [m_v, fm_dv, mf_dx]
+
+                else:
+                    m_exists = 0
+                    merger_feature = [19, 1, 55]
+
+
+                # merger_feature = [19, 1, 55]
+                # if time_step > att_switch_step and dy > -3.7:
                 #     m_vlat = -1
                 # elif dy < -3.7:
                 #     m_vlat = w
@@ -128,31 +157,27 @@ def data_generator():
                 # alpha = 0
                 # alpha = get_alpha(dy)
                 # act = (1-alpha)*fl_act + (alpha)*fm_act
-                if time_step < m_step_init:
-                    act = fl_act
-                    attention = 1
-                else:
+                if m_exists == 1 and abs(fm_act) < 3:
                     act = fm_act
                     attention = 0
 
-                # act = fm_act
+                else:
+                    act = fl_act
+                    attention = 1
                 # act = fl_act
+                # attention = 1
+                if abs(act) > 3.5:
+                    print("Bad state - action_value: ", act)
+                    break
 
                 f_v = f_v + act * 0.1
                 f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
 
-                # xs.append([episode_id, f_v,
-                #                     l_v, fl_dv, lf_dx, \
-                #                     m_v, fm_dv, mf_dx])
-
-                # ys.append([episode_id, act])
-                #
-                # xs.append([episode_id, f_v,
-                #                     l_v, fl_dv, lf_dx])
-                xs.append([episode_id, f_v,
-                                    l_v, fl_dv, lf_dx, \
-                                    m_v, fm_dv, mf_dx, attention])
-                # xs.append([episode_id, f_v, l_v, fl_dv, lf_dx])
+                feature = [episode_id, f_v]
+                feature.extend(leader_feature)
+                feature.extend(merger_feature)
+                feature.extend([m_exists, attention])
+                xs.append(feature)
                 ys.append([episode_id, act])
 
                 info[episode_id] = episode_id

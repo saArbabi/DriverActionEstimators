@@ -42,8 +42,8 @@ class MergeVehicle(Vehicle):
         super().__init__(id, lane_id, x, v)
 
     def act(self):
-        return 0
-        # return 1.5*np.sin(self.x*0.04)
+        # return 0
+        return 1.5*np.sin(self.x*0.04)
 
 class IDMVehicle(Vehicle):
     def __init__(self, id, lane_id, x, v, driver_type=None):
@@ -181,25 +181,52 @@ class NeurIDM(NeurVehicle):
         self.attention_score = 0.5
         self.attention = 1
 
+    def observe(self):
+        obs = [self.v]
+        lf_dx = self.lead_vehicle.x-self.x
+        mf_dx = self.merge_vehicle.x-self.x
+        # mf_dx = lf_dx - 5
+        fl_dv = self.v - self.lead_vehicle.v
+        fm_dv = self.v - self.merge_vehicle.v
+        leader_feature = [self.lead_vehicle.v, fl_dv, lf_dx]
+        print('lf_dx: ', lf_dx)
+        print('mf_dx: ', mf_dx)
+        merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
+        # merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
+        m_exists = 1
+        #
+        # if mf_dx < lf_dx:
+        #     merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
+        #     m_exists = 1
+        # else:
+        #     merger_feature = [19, 1, 55]
+        #     m_exists = 0
+
+        attention = 1
+        obs.extend(leader_feature)
+        obs.extend(merger_feature)
+        obs.extend([m_exists, attention])
+
+        return obs
 
     def act(self):
         steps = 20
-        # if self.elapsed_time < 3:
-        #     self.attend_veh = self.lead_vehicle
-        #     self.attention = 1
-        #
-        # else:
-        #     self.attend_veh = self.merge_vehicle
-        #     self.time_switched += 1
-        #     print('switched  #################', self.time_switched)
-        #     self.attention = 0
+        if self.elapsed_time < 3:
+            self.attend_veh = self.lead_vehicle
+            self.attention = 1
 
-        self.attend_veh = self.lead_vehicle
+        elif self.elapsed_time < 6:
+            self.attend_veh = self.merge_vehicle
+            self.time_switched += 1
+            print('switched  #################', self.time_switched)
+            self.attention = 0
 
-        latest_obs = [self.v,
-          self.lead_vehicle.v, self.v - self.lead_vehicle.v, self.lead_vehicle.x-self.x,
-          self.merge_vehicle.v, self.v - self.merge_vehicle.v, self.merge_vehicle.x-self.x, self.attention]
-
+        elif self.elapsed_time > 9:
+            self.attend_veh = self.lead_vehicle
+            self.attention = 1
+            
+        # self.attend_veh = self.lead_vehicle
+        latest_obs = self.observe()
         self.obs_history.append(latest_obs)
 
         if len(self.obs_history) % steps == 0:
@@ -209,7 +236,7 @@ class NeurIDM(NeurVehicle):
             # x_scaled = self.scaler.transform(x)
 
             # x_scaled.shape = (1, steps, 5)
-            x.shape = (1, steps, 8)
+            x.shape = (1, steps, 9)
             self.obs_history.pop(0)
 
             # if round(self.elapsed_time, 1) % 10 == 0:
@@ -217,8 +244,9 @@ class NeurIDM(NeurVehicle):
             idm_param, alpha = self.policy([x, x[:,-1:,:]])
             self.attention_score = alpha.numpy()[0]
             print('alpha: ', self.attention_score)
-            for item in idm_param:
-                print(item.numpy()[0])
+            # for item in idm_param:
+            #     print(item.numpy()[0])
+            # print(latest_obs)
 
 
             # self.desired_v = param[0]
@@ -235,6 +263,7 @@ class NeurIDM(NeurVehicle):
         action = self.max_act*(1-(self.v/self.desired_v)**4-\
                                             (desired_gap/obs['dx'])**2)
         self.action = action
+
         return action
 
 class LSTMVehicle(NeurVehicle):
