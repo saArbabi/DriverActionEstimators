@@ -3,9 +3,13 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, model_type, env_config):
         self.env_config  = env_config
-        self.fig = plt.figure(figsize=(10, 3))
+        self.fig = plt.figure(figsize=(10, 4))
         self.env_ax = self.fig.add_subplot(211)
+        self.att_ax = self.fig.add_subplot(212)
         self.model_type = model_type
+        self.true_attention_scores = []
+        self.pred_attention_scores = []
+        self.elapsed_time_steps = []
 
     def draw_road(self, ax, percept_origin, elapsed_time):
         lane_cor = self.env_config['lane_width']*self.env_config['lane_count']
@@ -27,7 +31,7 @@ class Viewer():
                                 percept_origin + self.env_config['percept_range'])
 
         ax.set_yticks([])
-        plt.title('#Elapsed time:'+str(round(elapsed_time, 1))+\
+        ax.set_title('#Elapsed time:'+str(round(elapsed_time, 1))+\
         's  #model: '+self.model_type)
 
     def draw_vehicles(self, ax, vehicles):
@@ -43,7 +47,7 @@ class Viewer():
                 if veh.control_type == 'neural':
                     edgecolors = 'green'
                     ax.annotate('e', (veh.x, veh.y+0.3))
-    
+
             if veh.id == 'normal_idm':
                 vehicle_color = 'orange'
             if veh.id == 'timid_idm':
@@ -57,12 +61,32 @@ class Viewer():
             # ax.annotate(round(veh.v, 1), (veh.x, veh.y+0.1))
             # ax.annotate(round(veh.v, 1), (veh.x, veh.y+0.1))
 
+    def draw_attention_line(self, ax, vehicles):
+        x1 = vehicles[0].x
+        y1 = vehicles[0].y
+        x2 = vehicles[0].attend_veh.x
+        y2 = vehicles[0].attend_veh.y
+        ax.plot([x1, x2],[y1, y2])
+        ax.scatter([x1, x2],[y1, y2], s=10)
+
     def draw_env(self, ax, vehicles, elapsed_time):
         ax.clear()
         self.draw_road(ax, percept_origin = vehicles[0].x, elapsed_time=elapsed_time)
         self.draw_vehicles(ax, vehicles)
+        self.draw_attention_line(ax, vehicles)
+
+    def draw_att_plot(self, ax, vehicles):
+        ax.clear()
+        self.true_attention_scores.append(vehicles[0].attention)
+        self.pred_attention_scores.append(vehicles[0].attention_score)
+        self.elapsed_time_steps.append(vehicles[0].elapsed_time)
+
+        ax.plot(self.elapsed_time_steps, self.true_attention_scores)
+        ax.plot(self.elapsed_time_steps, self.pred_attention_scores)
+        ax.legend(['True attention', 'Predicted attention'])
 
     def update_plots(self, vehicles, elapsed_time):
         self.draw_env(self.env_ax, vehicles, elapsed_time)
+        self.draw_att_plot(self.att_ax, vehicles)
         plt.pause(0.00000000000000000000001)
         # plt.show()

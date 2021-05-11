@@ -12,17 +12,25 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 6000
+training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 training_data[1].shape
 
 # %%
-feature = training_data[0][0:10000, -1]
-feature
+feature = training_data[0][0:10000, -1, -1]
+feature.max()
 _ = plt.hist(feature, bins=150)
-
+# %%
+# feat = training_data[0][0:10000, -1, :]
+to_plot = feat[feat[:, -2] == 1][:, -1]
+_ = plt.hist(to_plot, bins=150)
+# %%
+to_plot = feat[feat[:, -2] == 1][:, -7]
+_ = plt.hist(to_plot, bins=150)
+plt.xlabel('Hist')
+plt.ylabel('Relative x - merger car')
 # %%
 class Trainer():
     def __init__(self, model_type):
@@ -77,7 +85,7 @@ class Trainer():
             self.model = Encoder(config, model_use='training')
 
     def train(self, training_data, epochs):
-        train_indx = int(len(training_data[0])*0.7)
+        train_indx = int(len(training_data[0])*0.8)
         if self.model_type == 'dnn':
             xs_c, ys_c = training_data
             train_input = [xs_c[0:train_indx, 1:], ys_c[0:train_indx, 1:]]
@@ -149,7 +157,7 @@ model_trainer = Trainer(model_type='driver_model')
 # plt.xlabel('epochs')
 # plt.ylabel('loss (KL)')
 # plt.title('KL')
-model_trainer.train(training_data, epochs=10)
+model_trainer.train(training_data, epochs=5)
 loss_view_lim = 0
 
 train_loss = model_trainer.train_loss[loss_view_lim:]
@@ -162,6 +170,10 @@ plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 print(model_trainer.valid_loss[-1])
 # %%
+t = tf.constant([[-10., -1., 0.], [0.5, 2., 10.]])
+t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
+t2.numpy()
+# %%
 # val_compare = {}
 val_compare['sig_fac: 8'] = valid_loss
 # %%
@@ -171,7 +183,7 @@ plt.legend(val_compare.keys())
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 plt.grid()
-
+plt.scatter([1],[1], s=10)
 # %%
 from scipy.stats import norm
 for i in range(1, 10):

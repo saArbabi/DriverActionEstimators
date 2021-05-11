@@ -117,7 +117,7 @@ class Encoder(AbstractModel):
 
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        return act
+        return self.action_clip(act)
 
     def get_attention(self, x):
         x = self.attention_layer(x)
@@ -125,6 +125,10 @@ class Encoder(AbstractModel):
 
         return 1/(1+tf.exp(-9*x))
         # return alpha, fm_alpha
+
+    def action_clip(self, action):
+        "this helps with avoiding vanishing gradients"
+        return tf.clip_by_value(action, clip_value_min=-5, clip_value_max=5)
 
     def idm_sim(self, env_states, encoder_states):
         # env_states: [v, dv, dx]
@@ -142,12 +146,17 @@ class Encoder(AbstractModel):
 
         if self.model_use == 'training' or self.model_use == 'debug':
             act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+            fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
             alphas = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
             for step in tf.range(20):
                 tf.autograph.experimental.set_loop_options(shape_invariants=[
                                 (alphas, tf.TensorShape([None,None,None])),
-                                (act_seq, tf.TensorShape([None,None,None]))])
+                                (fl_seq, tf.TensorShape([None,None,None])),
+                                (fm_seq, tf.TensorShape([None,None,None])),
+                                (act_seq, tf.TensorShape([None,None,None]))
+                                 ])
 
                 vel = tf.slice(env_states, [0, step, 0], [batch_size, 1, 1])
                 vel = tf.reshape(vel, [batch_size, 1])
@@ -166,14 +175,17 @@ class Encoder(AbstractModel):
 
                 outputs, h_t, c_t = self.future_dec(env_states[:, step:step+1, :], initial_state=[h_t, c_t])
                 outputs = tf.reshape(outputs, [batch_size, self.enc_units])
-
                 alpha = self.get_attention(outputs)
                 # alpha, fm_alpha = self.get_attention(tf.concat([fl_act, fm_act, outputs], axis=1))
 
                 act = alpha*fl_act + (1-alpha)*fm_act
+                # act = alpha*fl_act + (1-alpha)*fm_act
+                # act = alpha*fl_act
                 # act = fl_act
                 alphas = tf.concat([alphas, tf.reshape(alpha, [batch_size, 1, 1])], axis=1)
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
+                fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
+                fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
             tf.print('######')
             tf.print('desired_v: ', tf.reduce_mean(desired_v))
@@ -181,7 +193,8 @@ class Encoder(AbstractModel):
             tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
             tf.print('max_act: ', tf.reduce_mean(max_act))
             tf.print('min_act: ', tf.reduce_mean(min_act))
-            tf.print('action_value: ', tf.reduce_mean(act_seq))
+            tf.print('fl_seq: ', tf.reduce_mean(fl_seq))
+            tf.print('fm_seq: ', tf.reduce_mean(fm_seq))
             tf.print('alpha_max: ', tf.reduce_max(alphas))
             tf.print('alpha_min: ', tf.reduce_min(alphas))
             tf.print('alpha_mean: ', tf.reduce_mean(alphas))
@@ -192,27 +205,11 @@ class Encoder(AbstractModel):
             return act_seq
             # return act_seq, idm_param
 
-        # elif self.model_use == 'inference':
-        #     s = env_states[:, 0:1, :]
-        #     vel = tf.slice(env_states, [0, 0, 0], [batch_size, 1, 1])
-        #     dv = tf.slice(env_states, [0, 0, 2], [batch_size, 1, 1])
-        #     dx = tf.slice(env_states, [0, 0, 3], [batch_size, 1, 1])
-        #     vel = tf.reshape(vel, [batch_size, 1])
-        #     dv = tf.reshape(dv, [batch_size, 1])
-        #     dx = tf.reshape(dx, [batch_size, 1])
-        #
-        #     outputs, h_t, c_t = self.future_dec(s, initial_state=[h_t, c_t])
-        #     # tf.print(tf.shape(outputs))
-        #     outputs = tf.reshape(outputs, [batch_size, self.enc_units])
-        #     desired_v = self.get_des_v(outputs, s[:, 0, 0:1])
-        #     desired_tgap = self.get_des_tgap(outputs)
-        #     min_jamx = self.get_min_jamx(outputs)
-        #     max_act = self.get_max_act(outputs)
-        #     min_act = self.get_min_act(outputs)
-        #
-        #     idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=1)
-        #
-        #     return idm_param
+        elif self.model_use == 'inference':
+            outputs, h_t, c_t = self.future_dec(env_states[:, 0:1, :], initial_state=[h_t, c_t])
+            outputs = tf.reshape(outputs, [1, self.enc_units])
+            alpha = self.get_attention(outputs)
+            return idm_param, alpha
 
     def call(self, inputs):
         _, h_t, c_t = self.histroy_enc(inputs[0])
