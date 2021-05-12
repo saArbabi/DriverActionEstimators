@@ -200,7 +200,7 @@ t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
 t2.numpy()
 # %%
 # val_compare = {}
-val_compare['with flag'] = valid_loss
+val_compare['2'] = valid_loss
 #- %%
 for f, loss_val in val_compare.items():
     plt.plot(loss_val)
