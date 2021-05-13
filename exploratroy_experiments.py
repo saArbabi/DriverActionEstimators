@@ -209,7 +209,7 @@ t2.numpy()
 # %%
 # val_compare = {}
 # val_compare['2'] = valid_loss
-val_compare['sigmoid arbiter-temp:5'] = valid_loss
+val_compare['good'] = valid_loss
 
 #- %%
 for f, loss_val in val_compare.items():

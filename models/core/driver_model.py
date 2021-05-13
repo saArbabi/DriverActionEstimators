@@ -91,7 +91,7 @@ class Encoder(AbstractModel):
 
     def get_min_jamx(self, x):
         input = self.min_jamx_layer(x)
-        output = tf.exp(self.min_jamx_neu(input)+1)
+        output = tf.exp(self.min_jamx_neu(input)) + 1
         return output
 
     def get_max_act(self, x):
@@ -117,7 +117,7 @@ class Encoder(AbstractModel):
         x = self.attention_layer(x)
         x = self.attention_neu(x)
 
-        return 1/(1+tf.exp(-10*x))
+        return 1/(1+tf.exp(-5*x))
 
     def action_clip(self, action):
         "this helps with avoiding vanishing gradients"
@@ -180,15 +180,15 @@ class Encoder(AbstractModel):
                 fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
                 fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
-            # tf.print('######')
-            # tf.print('desired_v: ', tf.reduce_mean(desired_v))
-            # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-            # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-            # tf.print('max_act: ', tf.reduce_mean(max_act))
-            # tf.print('min_act: ', tf.reduce_mean(min_act))
-            # tf.print('alpha_max: ', tf.reduce_max(alphas))
-            # tf.print('alpha_min: ', tf.reduce_min(alphas))
-            # tf.print('alpha_mean: ', tf.reduce_mean(alphas))
+            tf.print('######')
+            tf.print('desired_v: ', tf.reduce_mean(desired_v))
+            tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+            tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+            tf.print('max_act: ', tf.reduce_mean(max_act))
+            tf.print('min_act: ', tf.reduce_mean(min_act))
+            tf.print('alpha_max: ', tf.reduce_max(alphas))
+            tf.print('alpha_min: ', tf.reduce_min(alphas))
+            tf.print('alpha_mean: ', tf.reduce_mean(alphas))
 
             # tf.print('fm_alpha: ', tf.reduce_max(fm_alphas))
             # tf.print('sum: ', tf.reduce_mean(alphas+fm_alphas))
