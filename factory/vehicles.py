@@ -181,87 +181,80 @@ class NeurIDM(NeurVehicle):
         self.attention_score = 0.5
         self.attention = 1
 
-    def observe(self):
-        obs = [self.v]
+    def observe(self, attention):
         lf_dx = self.lead_vehicle.x-self.x
         mf_dx = self.merge_vehicle.x-self.x
         # mf_dx = lf_dx - 5
         fl_dv = self.v - self.lead_vehicle.v
         fm_dv = self.v - self.merge_vehicle.v
         leader_feature = [self.lead_vehicle.v, fl_dv, lf_dx]
-        print('lf_dx: ', lf_dx)
-        print('mf_dx: ', mf_dx)
+        # print('lf_dx: ', lf_dx)
+        # print('mf_dx: ', mf_dx)
         merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
         # merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
         m_exists = 1
-        #
-        # if mf_dx < lf_dx:
-        #     merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
-        #     m_exists = 1
-        # else:
-        #     merger_feature = [19, 1, 55]
-        #     m_exists = 0
-
-        attention = 1
+        obs = [m_exists, attention, self.v]
         obs.extend(leader_feature)
         obs.extend(merger_feature)
-        obs.extend([m_exists, attention])
+        # print('OBS:  ', obs)
 
         return obs
 
     def act(self):
         steps = 20
-        if self.elapsed_time < 3:
-            self.attend_veh = self.lead_vehicle
-            self.attention = 1
-
-        elif self.elapsed_time < 6:
-            self.attend_veh = self.merge_vehicle
-            self.time_switched += 1
-            print('switched  #################', self.time_switched)
-            self.attention = 0
-
-        elif self.elapsed_time > 9:
-            self.attend_veh = self.lead_vehicle
-            self.attention = 1
-            
-        # self.attend_veh = self.lead_vehicle
-        latest_obs = self.observe()
+        latest_obs = self.observe(self.attention)
         self.obs_history.append(latest_obs)
 
         if len(self.obs_history) % steps == 0:
         # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
             self.control_type = 'neural'
             x = np.array(self.obs_history)
-            # x_scaled = self.scaler.transform(x)
-
-            # x_scaled.shape = (1, steps, 5)
+            x_scaled = x.copy()
+            x_scaled[:, 2:] = self.scaler.transform(x[:, 2:])
+            x_scaled.shape = (1, steps, 9)
             x.shape = (1, steps, 9)
             self.obs_history.pop(0)
 
             # if round(self.elapsed_time, 1) % 10 == 0:
             # param = self.policy([x, x]).numpy()[0]
-            idm_param, alpha = self.policy([x, x[:,-1:,:]])
-            self.attention_score = alpha.numpy()[0]
+            param, alpha = self.policy([x_scaled, x_scaled[:,-1:,:], x])
+
+            self.attention_score = alpha.numpy()[0][0]
             print('alpha: ', self.attention_score)
-            # for item in idm_param:
-            #     print(item.numpy()[0])
-            # print(latest_obs)
+            # # for item in param:
+            # #     print(item.numpy()[0])
+            # # print(latest_obs)
+            param = [item.numpy()[0][0] for item in param]
+            #
+            self.desired_v = param[0]
+            self.desired_tgap = param[1]
+            self.min_jamx = param[2]
+            self.max_act = param[3]
+            self.min_act = param[4]
+            #     # print(param)
+            #
+            #
+            obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
+            desired_gap = self.get_desired_gap(obs['dv'])
+            fl_act = self.max_act*(1-(self.v/self.desired_v)**4-\
+                                                (desired_gap/obs['dx'])**2)
+
+            obs = {'dv':self.v-self.merge_vehicle.v, 'dx':self.merge_vehicle.x-self.x}
+            desired_gap = self.get_desired_gap(obs['dv'])
+            fm_act = self.max_act*(1-(self.v/self.desired_v)**4-\
+                                                (desired_gap/obs['dx'])**2)
 
 
-            # self.desired_v = param[0]
-            # self.desired_tgap = param[1]
-            # self.min_jamx = param[2]
-            # self.max_act = param[3]
-            # self.min_act = param[4]
-                # print(param)
+            self.action = fl_act*self.attention_score + fm_act*(1-self.attention_score)
 
             self.elapsed_time += 0.1
+            return self.action
 
         obs = {'dv':self.v-self.attend_veh.v, 'dx':self.attend_veh.x-self.x}
         desired_gap = self.get_desired_gap(obs['dv'])
         action = self.max_act*(1-(self.v/self.desired_v)**4-\
                                             (desired_gap/obs['dx'])**2)
+
         self.action = action
 
         return action

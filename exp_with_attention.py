@@ -5,6 +5,7 @@ from factory.environment import Env
 from factory.vehicles import *
 
 def set_follower(lane_id, model_type, model_name, driver_type):
+
     config = {
              "model_config": {
                  "learning_rate": 1e-3,
@@ -22,7 +23,10 @@ def set_follower(lane_id, model_type, model_name, driver_type):
         follower = NeurIDM(id='neural', lane_id=lane_id, x=50, v=20,
                         driver_type=driver_type, model=model)
 
-    # follower.scaler = scaler
+    with open('./models/experiments/scaler.pickle', 'rb') as handle:
+        scaler = pickle.load(handle)
+    follower.scaler = scaler
+
     return follower
 
 
@@ -54,9 +58,19 @@ env.vehicles = [
                 merger]
 
 env.render(model_type)
+
+def attention_logic(env):
+    if env.elapsed_time > 10:
+        env.vehicles[0].attention = 0
+        env.vehicles[0].attend_veh = env.vehicles[0].merge_vehicle
+        env.vehicles[1].lead_vehicle = env.vehicles[-1]
+
 for i in range(5000):
+
     env.step()
     env.render()
+    attention_logic(env)
+
     if env.elapsed_time > 0 and  round(env.elapsed_time, 1) % 10 == 0:
         answer = input('Continue?')
         if answer == 'n':
