@@ -14,6 +14,7 @@ class NeurIDMModel(AbstractModel):
         self.decoder = Decoder(config)
         self.idm_sim = IDMForwardSim()
         self.idm_layer = IDMLayer()
+        self.model_use = model_use
         # mse_loss = 0
         # self.kl_loss = 0
 
@@ -88,9 +89,15 @@ class NeurIDMModel(AbstractModel):
         z = self.sample([mean, logvar])
         decoder_output = self.decoder(z)
         idm_param = self.idm_layer([decoder_output, current_v])
-        act_seq = self.idm_sim.rollout([inputs[1:], idm_param, encoder_states])
-        # act_seq, attention_score = self.idm_rollout([input[1:], idm_param, [h_t, c_t]])
-        return act_seq, mean, logvar
+
+        if self.model_use == 'training':
+            act_seq = self.idm_sim.rollout([inputs[1:], idm_param, encoder_states])
+            return act_seq, mean, logvar
+
+        elif self.model_use == 'inference':
+            h_t, c_t = encoder_states
+            att_score, _, _ = self.idm_sim.arbiter([inputs[1][:, 0:1, :], h_t, c_t])
+            return idm_param, att_score
 
 class Encoder(tf.keras.Model):
     def __init__(self):
@@ -115,19 +122,9 @@ class Encoder(tf.keras.Model):
         z_log_sigma = self.z_log_sigma(h_t)
         return z_mean, z_log_sigma, [h_t, c_t]
 
-        # if self.model_use == 'training' or self.model_use == 'debug':
-        #     action = self.idm_sim(inputs[1], h_t)
-        #     return action
-        #
-        # elif self.model_use == 'inference':
-        #     idm_param = self.idm_sim(inputs[1], h_t)
-        #     return idm_param
-
-
 class Decoder(tf.keras.Model):
     def __init__(self, config):
         super(Decoder, self).__init__(name="Decoder")
-        self.model_use = 'training'
         self.architecture_def()
 
     def architecture_def(self):
@@ -145,7 +142,6 @@ class Decoder(tf.keras.Model):
 class Arbiter(tf.keras.Model):
     def __init__(self):
         super(Arbiter, self).__init__(name="Arbiter")
-        self.model_use = 'training'
         self.enc_units = 50
         self.architecture_def()
 
@@ -157,17 +153,16 @@ class Arbiter(tf.keras.Model):
     def call(self, inputs):
         scaled_s, h_t, c_t = inputs
         outputs, h_t, c_t = self.future_dec(scaled_s, initial_state=[h_t, c_t])
-        outputs = tf.reshape(outputs, [256, self.enc_units])
+        outputs = tf.reshape(outputs, [1, self.enc_units])
         x = self.attention_layer(outputs)
         x = self.attention_neu(x)
 
-        return 1/(1+tf.exp(-5*x)), h_t, c_t
+        return 1/(1+tf.exp(-15*x)), h_t, c_t
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.arbiter = Arbiter()
-        self.model_use = 'training'
 
     def idm_driver(self, vel, dv, dx, idm_param):
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
@@ -190,88 +185,63 @@ class IDMForwardSim(tf.keras.Model):
         h_t, c_t = encoder_states
         scaled_s, unscaled_s = env_states
 
-        if self.model_use == 'training' or self.model_use == 'debug':
-            act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-            att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+        act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+        fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+        fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+        att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
 
-            for step in tf.range(20):
-                tf.autograph.experimental.set_loop_options(shape_invariants=[
-                                (att_scores, tf.TensorShape([None,None,None])),
-                                (fl_seq, tf.TensorShape([None,None,None])),
-                                (fm_seq, tf.TensorShape([None,None,None])),
-                                (act_seq, tf.TensorShape([None,None,None]))
-                                 ])
-
-
-                # att_score, fm_att_score = self.get_att_score(tf.concat([fl_act, fm_act, outputs], axis=1))
-                vel = tf.slice(unscaled_s, [0, step, 2], [batch_size, 1, 1])
-                vel = tf.reshape(vel, [batch_size, 1])
-
-                dv = tf.slice(unscaled_s, [0, step, 4], [batch_size, 1, 1])
-                dx = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
-                dv = tf.reshape(dv, [batch_size, 1])
-                dx = tf.reshape(dx, [batch_size, 1])
-                fl_act = self.idm_driver(vel, dv, dx, idm_param)
-
-                dv = tf.slice(unscaled_s, [0, step, 7], [batch_size, 1, 1])
-                dx = tf.slice(unscaled_s, [0, step, 8], [batch_size, 1, 1])
-                dv = tf.reshape(dv, [batch_size, 1])
-                dx = tf.reshape(dx, [batch_size, 1])
-                fm_act = self.idm_driver(vel, dv, dx, idm_param)
+        for step in tf.range(20):
+            tf.autograph.experimental.set_loop_options(shape_invariants=[
+                            (att_scores, tf.TensorShape([None,None,None])),
+                            (fl_seq, tf.TensorShape([None,None,None])),
+                            (fm_seq, tf.TensorShape([None,None,None])),
+                            (act_seq, tf.TensorShape([None,None,None]))
+                             ])
 
 
-                att_score, h_t, c_t = self.arbiter([scaled_s[:, step:step+1, :], h_t, c_t, ])
+            # att_score, fm_att_score = self.get_att_score(tf.concat([fl_act, fm_act, outputs], axis=1))
+            vel = tf.slice(unscaled_s, [0, step, 2], [batch_size, 1, 1])
+            vel = tf.reshape(vel, [batch_size, 1])
 
-                act = att_score*fl_act + (1-att_score)*fm_act
-                # act = att_score*fl_act + (1-att_score)*fm_act
-                # act = att_score*fl_act
-                # act = fl_act
-                att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
-                act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
-                fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
-                fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+            dv = tf.slice(unscaled_s, [0, step, 4], [batch_size, 1, 1])
+            dx = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+            dv = tf.reshape(dv, [batch_size, 1])
+            dx = tf.reshape(dx, [batch_size, 1])
+            fl_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            tf.print('######')
-            tf.print('desired_v: ', tf.reduce_mean(desired_v))
-            tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-            tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-            tf.print('max_act: ', tf.reduce_mean(max_act))
-            tf.print('min_act: ', tf.reduce_mean(min_act))
-            tf.print('att_score_max: ', tf.reduce_max(att_scores))
-            tf.print('att_score_min: ', tf.reduce_min(att_scores))
-            tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+            dv = tf.slice(unscaled_s, [0, step, 7], [batch_size, 1, 1])
+            dx = tf.slice(unscaled_s, [0, step, 8], [batch_size, 1, 1])
+            dv = tf.reshape(dv, [batch_size, 1])
+            dx = tf.reshape(dx, [batch_size, 1])
+            fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            # tf.print('fm_att_score: ', tf.reduce_max(fm_att_scores))
-            # tf.print('sum: ', tf.reduce_mean(att_scores+fm_att_scores))
 
-            return act_seq
-            # return act_seq, idm_param
+            att_score, h_t, c_t = self.arbiter([scaled_s[:, step:step+1, :], h_t, c_t, ])
 
-        # elif self.model_use == 'inference':
-        #     outputs, h_t, c_t = self.future_dec(scaled_s[:, 0:1, :], initial_state=[h_t, c_t])
-        #     outputs = tf.reshape(outputs, [1, self.enc_units])
-        #     att_score = self.get_att_score(outputs)
-        #     return idm_param, att_score
-    #
-    # def call(self, inputs):
-    #     act_seq = self.idm_sim(inputs)
-        # return act_seq
-        # _, h_t, c_t = self.histroy_enc(inputs[0])
-        # if self.model_use == 'training' or self.model_use == 'debug':
-        #     action = self.idm_sim(inputs)
-        #     return action
-        #
-        # elif self.model_use == 'inference':
-        #     idm_param = self.idm_sim(inputs[1:], [h_t, c_t])
-        #     return idm_param
-        #
+            act = att_score*fl_act + (1-att_score)*fm_act
+            # act = att_score*fl_act + (1-att_score)*fm_act
+            # act = att_score*fl_act
+            # act = fl_act
+            att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
+            act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
+            fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
+            fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+
+        tf.print('######')
+        tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        tf.print('max_act: ', tf.reduce_mean(max_act))
+        tf.print('min_act: ', tf.reduce_mean(min_act))
+        tf.print('att_score_max: ', tf.reduce_max(att_scores))
+        tf.print('att_score_min: ', tf.reduce_min(att_scores))
+        tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+
+        return act_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
-        self.model_use = 'training'
         self.architecture_def()
 
     def architecture_def(self):
