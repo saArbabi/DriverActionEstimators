@@ -93,11 +93,11 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 3
+    episode_n = 100 * 1
 
 
     while episode_id < episode_n:
@@ -146,17 +146,17 @@ def data_generator():
                     merger_feature = [20, 0, 30]
 
 
-                # merger_feature = [19, 1, 55]
-                # if time_step > att_switch_step and dy > -3.7:
-                #     m_vlat = -1
-                # elif dy < -3.7:
-                #     m_vlat = w
-                # dy += m_vlat*0.1
+                merger_feature = [19, 1, 55]
+                if time_step > att_switch_step and dy > -3.7:
+                    m_vlat = -1
+                elif dy < -3.7:
+                    m_vlat = w
+                dy += m_vlat*0.1
 
-                # follower
-                # alpha = 0
-                # alpha = get_alpha(dy)
-                # act = (1-alpha)*fl_act + (alpha)*fm_act
+                follower
+                alpha = 0
+                alpha = get_alpha(dy)
+                act = (1-alpha)*fl_act + (alpha)*fm_act
                 if m_exists == 1 and abs(fm_act) < 3:
                     act = fm_act
                     attention = 0
