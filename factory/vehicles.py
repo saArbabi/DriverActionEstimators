@@ -196,7 +196,7 @@ class NeurIDM(NeurVehicle):
         obs = [m_exists, attention, self.v]
         obs.extend(leader_feature)
         obs.extend(merger_feature)
-        # print('OBS:  ', obs)
+        print('OBS:  ', obs)
 
         return obs
 
@@ -215,7 +215,6 @@ class NeurIDM(NeurVehicle):
             x.shape = (1, steps, 9)
             self.obs_history.pop(0)
 
-            # if round(self.elapsed_time, 1) % 10 == 0:
             # param = self.policy([x, x]).numpy()[0]
             param, alpha = self.policy([x_scaled, x_scaled[:,-1:,:], x])
 
@@ -226,14 +225,20 @@ class NeurIDM(NeurVehicle):
             # # print(latest_obs)
             param = [item.numpy()[0][0] for item in param]
             #
-            self.desired_v = param[0]
-            self.desired_tgap = param[1]
-            self.min_jamx = param[2]
-            self.max_act = param[3]
-            self.min_act = param[4]
-            #     # print(param)
-            #
-            #
+            if round(self.elapsed_time, 1) % 1 == 0:
+                print('self.elapsed_time: ', round(self.elapsed_time, 1))
+                self.desired_v = param[0]
+                self.desired_tgap = param[1]
+                self.min_jamx = param[2]
+                self.max_act = param[3]
+                self.min_act = param[4]
+
+            print('desired_v: ', self.desired_v)
+            print('desired_tgap: ', self.desired_tgap)
+            print('min_jamx: ', self.min_jamx)
+            print('max_act: ', self.max_act)
+            print('min_act: ', self.min_act)
+
             obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
             desired_gap = self.get_desired_gap(obs['dv'])
             fl_act = self.max_act*(1-(self.v/self.desired_v)**4-\

@@ -93,11 +93,11 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    # drivers = ['normal', 'timid', 'aggressive']
-    drivers = ['normal']
+    drivers = ['normal', 'timid', 'aggressive']
+    # drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100
+    episode_n = 100 * 3
 
 
     while episode_id < episode_n:

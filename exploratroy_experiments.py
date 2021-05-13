@@ -12,17 +12,25 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 5000
+training_samples_n = 15000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
-training_data[1].shape
+print(training_data[1].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
 
-training_data[3][0, -1, :]
+# training_data[3][0, -1, :]
 # %%
+
+for i in range(1, 10):
+    plt.figure()
+    feature = training_data[2][0:100000, -1, i]
+    feature.max()
+    _ = plt.hist(feature, bins=150)
+# %%
+
 for i in range(1, 10):
     plt.figure()
     feature = training_data[0][0:10000, -1, i]
