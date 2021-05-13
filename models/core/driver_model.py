@@ -163,8 +163,9 @@ class Arbiter(tf.keras.Model):
 
         return 1/(1+tf.exp(-5*x)), h_t, c_t
 
-class IDMForwardSim():
+class IDMForwardSim(tf.keras.Model):
     def __init__(self):
+        super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.arbiter = Arbiter()
         self.model_use = 'training'
 
