@@ -86,22 +86,22 @@ class Encoder(AbstractModel):
 
     def get_des_tgap(self, x):
         input = self.des_tgap_layer(x)
-        output = tf.abs(self.des_tgap_neu(input)) + 1
+        output = tf.exp(self.des_tgap_neu(input)) + 1
         return output
 
     def get_min_jamx(self, x):
         input = self.min_jamx_layer(x)
-        output = tf.abs(self.min_jamx_neu(input)+1)
+        output = tf.exp(self.min_jamx_neu(input)+1)
         return output
 
     def get_max_act(self, x):
         input = self.max_act_layer(x)
-        output = tf.abs(self.max_act_neu(input)) + 0.5
+        output = tf.exp(self.max_act_neu(input)) + 0.5
         return output
 
     def get_min_act(self, x):
         input = self.min_act_layer(x)
-        output = tf.abs(self.min_act_neu(input)) + 0.5
+        output = tf.exp(self.min_act_neu(input)) + 0.5
         return output
 
     def idm_driver(self, vel, dv, dx, idm_param):
@@ -117,7 +117,7 @@ class Encoder(AbstractModel):
         x = self.attention_layer(x)
         x = self.attention_neu(x)
 
-        return 1/(1+tf.exp(-1*x))
+        return 1/(1+tf.exp(-5*x))
 
     def action_clip(self, action):
         "this helps with avoiding vanishing gradients"
