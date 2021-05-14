@@ -9,9 +9,9 @@ class Viewer():
         self.model_type = model_type
         self.true_attention_scores = []
         self.pred_attention_scores = []
-        self.elapsed_time_steps = []
+        self.elapsed_steps = []
 
-    def draw_road(self, ax, percept_origin, elapsed_time):
+    def draw_road(self, ax, percept_origin):
         lane_cor = self.env_config['lane_width']*self.env_config['lane_count']
         ax.hlines(0, 0, self.env_config['lane_length'], colors='k', linestyles='solid')
         ax.hlines(lane_cor, 0, self.env_config['lane_length'],
@@ -24,14 +24,14 @@ class Viewer():
                                                         colors='k', linestyles='--')
                 lane_cor += self.env_config['lane_width']
 
-        if percept_origin < self.env_config['percept_range']:
-            ax.set_xlim(0, self.env_config['percept_range']*2)
-        else:
-            ax.set_xlim(percept_origin - self.env_config['percept_range'],
-                                percept_origin + self.env_config['percept_range'])
-
-        ax.set_yticks([])
-        ax.set_title('#Elapsed time:'+str(round(elapsed_time, 1))+\
+        # if percept_origin < self.env_config['percept_range']:
+        #     ax.set_xlim(0, self.env_config['percept_range']*2)
+        # else:
+        #     ax.set_xlim(percept_origin - self.env_config['percept_range'],
+        #                         percept_origin + self.env_config['percept_range'])
+        #
+        # ax.set_yticks([])
+        ax.set_title('#Elapsed steps: '+str(self.env_clock)+\
         's  #model: '+self.model_type)
 
     def draw_vehicles(self, ax, vehicles):
@@ -43,10 +43,12 @@ class Viewer():
 
             if veh.id == 'neural':
                 vehicle_color = 'none'
+                # print(veh.x)
+                # print(veh.y.shape)
 
-                if veh.control_type == 'neural':
-                    edgecolors = 'green'
-                    ax.annotate('e', (veh.x, veh.y+0.3))
+                # if veh.control_type == 'neural':
+                #     edgecolors = 'green'
+                #     ax.annotate('e', (veh.x, veh.y+0.3))
 
             if veh.id == 'normal_idm':
                 vehicle_color = 'orange'
@@ -69,24 +71,24 @@ class Viewer():
         ax.plot([x1, x2],[y1, y2])
         ax.scatter([x1, x2],[y1, y2], s=10)
 
-    def draw_env(self, ax, vehicles, elapsed_time):
+    def draw_env(self, ax, vehicles):
         ax.clear()
-        self.draw_road(ax, percept_origin = vehicles[0].x, elapsed_time=elapsed_time)
+        self.draw_road(ax, percept_origin = vehicles[0].x)
         self.draw_vehicles(ax, vehicles)
-        self.draw_attention_line(ax, vehicles)
+        # self.draw_attention_line(ax, vehicles)
 
     def draw_att_plot(self, ax, vehicles):
         ax.clear()
         self.true_attention_scores.append(vehicles[0].attention)
         self.pred_attention_scores.append(vehicles[0].attention_score)
-        self.elapsed_time_steps.append(vehicles[0].elapsed_time)
+        self.elapsed_steps.append(self.env_clock)
 
-        ax.plot(self.elapsed_time_steps, self.true_attention_scores)
-        ax.plot(self.elapsed_time_steps, self.pred_attention_scores)
+        ax.plot(self.elapsed_steps, self.true_attention_scores)
+        ax.plot(self.elapsed_steps, self.pred_attention_scores)
         ax.legend(['True attention', 'Predicted attention'])
 
-    def update_plots(self, vehicles, elapsed_time):
-        self.draw_env(self.env_ax, vehicles, elapsed_time)
-        self.draw_att_plot(self.att_ax, vehicles)
+    def update_plots(self, vehicles):
+        self.draw_env(self.env_ax, vehicles)
+        # self.draw_att_plot(self.att_ax, vehicles)
         plt.pause(0.00000000000000000000001)
         # plt.show()

@@ -2,7 +2,12 @@ import os
 import pickle
 import sys
 from factory.environment import Env
-from factory.vehicles import *
+# from factory.vehicles import NeurIDM
+from importlib import reload
+
+from factory import vehicles
+reload(vehicles)
+from factory.vehicles import  *
 
 def set_follower(lane_id, model_type, model_name, driver_type):
 
@@ -60,18 +65,22 @@ env.vehicles = [
 env.render(model_type)
 
 def attention_logic(env):
-    if env.elapsed_time > 10:
+    if env.env_clock > 40:
         env.vehicles[0].attention = 0
         env.vehicles[0].attend_veh = env.vehicles[0].merge_vehicle
         env.vehicles[1].lead_vehicle = env.vehicles[-1]
 
-for i in range(5000):
+def run_sim():
+    for i in range(5000):
 
-    env.step()
-    env.render()
-    attention_logic(env)
+        env.render()
+        attention_logic(env)
 
-    if env.elapsed_time > 0 and  round(env.elapsed_time, 1) % 10 == 0:
-        answer = input('Continue?')
-        if answer == 'n':
-            sys.exit()
+        if env.env_clock > 0 and  round(env.env_clock, 1) % 1 == 0:
+            answer = input('Continue?')
+            if answer == 'n':
+                sys.exit()
+
+        env.step()
+
+run_sim()

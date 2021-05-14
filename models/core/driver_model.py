@@ -153,11 +153,11 @@ class Arbiter(tf.keras.Model):
     def call(self, inputs):
         scaled_s, h_t, c_t = inputs
         outputs, h_t, c_t = self.future_dec(scaled_s, initial_state=[h_t, c_t])
-        outputs = tf.reshape(outputs, [1, self.enc_units])
+        outputs = tf.reshape(outputs, [20, self.enc_units])
         x = self.attention_layer(outputs)
         x = self.attention_neu(x)
 
-        return 1/(1+tf.exp(-15*x)), h_t, c_t
+        return 1/(1+tf.exp(-5*x)), h_t, c_t
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
