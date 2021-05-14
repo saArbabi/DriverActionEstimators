@@ -10,7 +10,7 @@ class Env():
     def default_config(self):
         self.config = {'lane_count':3,
                         'lane_width':3.7, # m
-                        'lane_length':500, # m
+                        'lane_length':5000, # m
                         'percept_range':200, # m, front and back
                         }
 

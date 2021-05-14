@@ -247,15 +247,15 @@ class NeurIDM(NeurVehicle):
             print('param-shape  ', param[0].numpy().shape)
             param = [item.numpy() for item in param]
             #
-            # if env_clock % 1 == 0:
+            if self.env_clock % 10 == 0:
                 # print('self.elapsed_time: ', round(self.elapsed_time, 1))
-            self.desired_v = param[0]
-            self.desired_tgap = param[1]
-            self.min_jamx = param[2]
-            self.max_act = param[3]
-            self.min_act = param[4]
+                self.desired_v = param[0]
+                self.desired_tgap = param[1]
+                self.min_jamx = param[2]
+                self.max_act = param[3]
+                self.min_act = param[4]
 
-            print('desired_v: ', self.desired_v.mean())
+            print('desired_v: ', self.desired_v)
             # print('desired_tgap: ', self.desired_tgap)
             # print('min_jamx: ', self.min_jamx)
             # print('max_act: ', self.max_act)
@@ -276,9 +276,9 @@ class NeurIDM(NeurVehicle):
             # print('act-shapefl  ', fl_act.shape)
             # print('act-shape  ', self.action.shape)
             # print(self.action)
-            print(self.attention_score.mean())
-            print('1', fl_act.mean())
-            print('2', fm_act.mean())
+            # print(self.attention_score)
+            # print('1', fl_act.mean())
+            # print('2', fm_act.mean())
             # print(self.obs)
             # self.elapsed_time += 0.1
             return self.action

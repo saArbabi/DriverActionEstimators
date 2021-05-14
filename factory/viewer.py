@@ -24,14 +24,14 @@ class Viewer():
                                                         colors='k', linestyles='--')
                 lane_cor += self.env_config['lane_width']
 
-        # if percept_origin < self.env_config['percept_range']:
-        #     ax.set_xlim(0, self.env_config['percept_range']*2)
-        # else:
-        #     ax.set_xlim(percept_origin - self.env_config['percept_range'],
-        #                         percept_origin + self.env_config['percept_range'])
-        #
-        # ax.set_yticks([])
-        ax.set_title('#Elapsed steps: '+str(self.env_clock)+\
+        if percept_origin < self.env_config['percept_range']:
+            ax.set_xlim(0, self.env_config['percept_range']*2)
+        else:
+            ax.set_xlim(percept_origin - self.env_config['percept_range'],
+                                percept_origin + self.env_config['percept_range'])
+
+        ax.set_yticks([])
+        ax.set_title('#Elapsed steps: '+str(self.env_clock/10)+\
         's  #model: '+self.model_type)
 
     def draw_vehicles(self, ax, vehicles):
@@ -73,7 +73,7 @@ class Viewer():
 
     def draw_env(self, ax, vehicles):
         ax.clear()
-        self.draw_road(ax, percept_origin = vehicles[0].x)
+        self.draw_road(ax, percept_origin=vehicles[0].x.mean())
         self.draw_vehicles(ax, vehicles)
         # self.draw_attention_line(ax, vehicles)
 

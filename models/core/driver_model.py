@@ -63,7 +63,7 @@ class NeurIDMModel(AbstractModel):
     def sample(self, args):
         z_mean, z_log_sigma = args
         epsilon = K.random_normal(shape=(tf.shape(z_mean)[0], self.encoder.latent_dim),
-                                  mean=0., stddev=0.1)
+                                  mean=0., stddev=1)
         return z_mean + K.exp(z_log_sigma) * epsilon
 
     def get_actions(self):
@@ -152,8 +152,9 @@ class Arbiter(tf.keras.Model):
 
     def call(self, inputs):
         scaled_s, h_t, c_t = inputs
+        batch_size = tf.shape(scaled_s)[0]
         outputs, h_t, c_t = self.future_dec(scaled_s, initial_state=[h_t, c_t])
-        outputs = tf.reshape(outputs, [20, self.enc_units])
+        outputs = tf.reshape(outputs, [batch_size, self.enc_units])
         x = self.attention_layer(outputs)
         x = self.attention_neu(x)
 
@@ -181,9 +182,9 @@ class IDMForwardSim(tf.keras.Model):
         env_states, idm_param, encoder_states = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
-        batch_size = 256
         h_t, c_t = encoder_states
         scaled_s, unscaled_s = env_states
+        batch_size = tf.shape(scaled_s)[0]
 
         act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
@@ -227,15 +228,15 @@ class IDMForwardSim(tf.keras.Model):
             fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
             fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
-        tf.print('######')
-        tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        tf.print('max_act: ', tf.reduce_mean(max_act))
-        tf.print('min_act: ', tf.reduce_mean(min_act))
-        tf.print('att_score_max: ', tf.reduce_max(att_scores))
-        tf.print('att_score_min: ', tf.reduce_min(att_scores))
-        tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+        # tf.print('######')
+        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        # tf.print('max_act: ', tf.reduce_mean(max_act))
+        # tf.print('min_act: ', tf.reduce_mean(min_act))
+        # tf.print('att_score_max: ', tf.reduce_max(att_scores))
+        # tf.print('att_score_min: ', tf.reduce_min(att_scores))
+        # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
 
         return act_seq
 
