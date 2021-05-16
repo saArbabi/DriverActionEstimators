@@ -180,6 +180,15 @@ class NeurIDM(NeurVehicle):
         self.time_switched = 0
         self.attention_score = 0.5
         self.attention = 1
+        self.samples_n = 20
+        self.steps_n = 20
+        self.s_unscaled = np.zeros([self.samples_n, self.steps_n, 9])
+        self.s_scaled = np.zeros([self.samples_n, self.steps_n, 9])
+        self.obs = np.zeros([self.samples_n, 9])
+        self.env_clock = 0
+        self.y = np.ones([self.samples_n, 1])*self.y
+        self.x = np.ones([self.samples_n, 1])*self.x
+        self.v = np.ones([self.samples_n, 1])*self.v
 
     def observe(self, attention):
         lf_dx = self.lead_vehicle.x-self.x
@@ -193,40 +202,53 @@ class NeurIDM(NeurVehicle):
         merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
         # merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
         m_exists = 1
-        obs = [m_exists, attention, self.v]
-        obs.extend(leader_feature)
-        obs.extend(merger_feature)
-        print('OBS:  ', obs)
+        self.obs[:, 0:2] = [m_exists, attention]
+        collection = [self.v]
+        collection.extend(leader_feature)
+        collection.extend(merger_feature)
+        # print(self.x)
 
-        return obs
+        for i in range(7):
+            # print(i)
+            self.obs[:, 2+i:3+i] = collection[i]
+
+
+        # print('OBS:  ', self.obs)
+
+        # return obs
 
     def act(self):
-        steps = 20
-        latest_obs = self.observe(self.attention)
-        self.obs_history.append(latest_obs)
+        self.observe(self.attention)
+        # self.obs_history.append(latest_obs)
+        # if self.elapsed_time == 0:
 
-        if len(self.obs_history) % steps == 0:
-        # if len(self.obs_history) % steps == 0 and self.control_type == 'idm':
+        self.s_unscaled[:, :-1, :] = self.s_unscaled[:, 1:, :]
+        self.s_unscaled[:, -1, :] = self.obs[:, :]
+        # print(self.obs_history)
+
+        self.s_scaled[:, :-1, :] = self.s_scaled[:, 1:, :]
+        scaled_obs = self.obs.copy()
+        scaled_obs[:, 2:] = self.scaler.transform(scaled_obs[:, 2:])
+        self.s_scaled[:, -1, :] = scaled_obs[:, :]
+        print(scaled_obs)
+        self.env_clock += 1
+
+        if self.env_clock > 20:
             self.control_type = 'neural'
-            x = np.array(self.obs_history)
-            x_scaled = x.copy()
-            x_scaled[:, 2:] = self.scaler.transform(x[:, 2:])
-            x_scaled.shape = (1, steps, 9)
-            x.shape = (1, steps, 9)
-            self.obs_history.pop(0)
+            x_scaled = self.s_unscaled.copy()
+            print(x_scaled.shape)
+            param, alpha = self.policy([self.s_scaled, self.s_scaled[:,-1:,:], self.s_unscaled])
 
-            # param = self.policy([x, x]).numpy()[0]
-            param, alpha = self.policy([x_scaled, x_scaled[:,-1:,:], x])
-
-            self.attention_score = alpha.numpy()[0][0]
-            print('alpha: ', self.attention_score)
+            self.attention_score = alpha.numpy()
+            print('alpha-shape: ', self.attention_score.shape)
             # # for item in param:
             # #     print(item.numpy()[0])
             # # print(latest_obs)
-            param = [item.numpy()[0][0] for item in param]
+            print('param-shape  ', param[0].numpy().shape)
+            param = [item.numpy() for item in param]
             #
-            if round(self.elapsed_time, 1) % 1 == 0:
-                print('self.elapsed_time: ', round(self.elapsed_time, 1))
+            if self.env_clock % 10 == 0:
+                # print('self.elapsed_time: ', round(self.elapsed_time, 1))
                 self.desired_v = param[0]
                 self.desired_tgap = param[1]
                 self.min_jamx = param[2]
@@ -234,10 +256,10 @@ class NeurIDM(NeurVehicle):
                 self.min_act = param[4]
 
             print('desired_v: ', self.desired_v)
-            print('desired_tgap: ', self.desired_tgap)
-            print('min_jamx: ', self.min_jamx)
-            print('max_act: ', self.max_act)
-            print('min_act: ', self.min_act)
+            # print('desired_tgap: ', self.desired_tgap)
+            # print('min_jamx: ', self.min_jamx)
+            # print('max_act: ', self.max_act)
+            # print('min_act: ', self.min_act)
 
             obs = {'dv':self.v-self.lead_vehicle.v, 'dx':self.lead_vehicle.x-self.x}
             desired_gap = self.get_desired_gap(obs['dv'])
@@ -251,8 +273,14 @@ class NeurIDM(NeurVehicle):
 
 
             self.action = fl_act*self.attention_score + fm_act*(1-self.attention_score)
-
-            self.elapsed_time += 0.1
+            # print('act-shapefl  ', fl_act.shape)
+            # print('act-shape  ', self.action.shape)
+            # print(self.action)
+            # print(self.attention_score)
+            # print('1', fl_act.mean())
+            # print('2', fm_act.mean())
+            # print(self.obs)
+            # self.elapsed_time += 0.1
             return self.action
 
         obs = {'dv':self.v-self.attend_veh.v, 'dx':self.attend_veh.x-self.x}
@@ -262,6 +290,7 @@ class NeurIDM(NeurVehicle):
 
         self.action = action
 
+        # print(action)
         return action
 
 class LSTMVehicle(NeurVehicle):

@@ -22,6 +22,7 @@ print(training_data[1].shape)
 # dir(scaler)
 
 # training_data[3][0, -1, :]
+2-np.ones([20, 1])
 # %%
 
 for i in range(1, 10):
@@ -100,8 +101,8 @@ class Trainer():
         elif self.model_type == 'driver_model':
             from models.core import driver_model
             reload(driver_model)
-            from models.core.driver_model import  Encoder
-            self.model = Encoder(config, model_use='training')
+            from models.core.driver_model import  NeurIDMModel
+            self.model = NeurIDMModel(config, model_use='training')
 
     def train(self, training_data, epochs):
         train_indx = int(len(training_data[0])*0.8)
@@ -147,7 +148,7 @@ class Trainer():
         for epoch in range(epochs):
             self.model.train_loop(train_input)
             self.model.test_loop(val_input, epoch)
-            if self.model_type == 'vae_idm':
+            if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
                 self.valid_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
@@ -171,37 +172,37 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-# model_trainer.train(training_data, epochs=5)
-# plt.figure()
-# plt.plot(model_trainer.valid_mseloss)
-# plt.plot(model_trainer.train_mseloss)
-# plt.legend(['val', 'train'])
-# plt.grid()
-# plt.xlabel('epochs')
-# plt.ylabel('loss (MSE)')
-# plt.title('MSE')
-#
-# plt.figure()
-# plt.plot(model_trainer.valid_klloss)
-# plt.plot(model_trainer.train_klloss)
-# plt.legend(['val', 'train'])
-# plt.grid()
-# plt.xlabel('epochs')
-# plt.ylabel('loss (KL)')
-# plt.title('KL')
-model_trainer.train(training_data, epochs=10)
-loss_view_lim = 0
-
-train_loss = model_trainer.train_loss[loss_view_lim:]
-valid_loss = model_trainer.valid_loss[loss_view_lim:]
-plt.plot(valid_loss)
-plt.plot(train_loss)
+model_trainer.train(training_data, epochs=5)
+plt.figure()
+plt.plot(model_trainer.valid_mseloss)
+plt.plot(model_trainer.train_mseloss)
 plt.legend(['val', 'train'])
 plt.grid()
 plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
-# model_trainer.model.sigma
-print(model_trainer.valid_loss[-1])
+plt.title('MSE')
+
+plt.figure()
+plt.plot(model_trainer.valid_klloss)
+plt.plot(model_trainer.train_klloss)
+plt.legend(['val', 'train'])
+plt.grid()
+plt.xlabel('epochs')
+plt.ylabel('loss (KL)')
+plt.title('KL')
+# model_trainer.train(training_data, epochs=10)
+# loss_view_lim = 0
+#
+# train_loss = model_trainer.train_loss[loss_view_lim:]
+# valid_loss = model_trainer.valid_loss[loss_view_lim:]
+# plt.plot(valid_loss)
+# plt.plot(train_loss)
+# plt.legend(['val', 'train'])
+# plt.grid()
+# plt.xlabel('epochs')
+# plt.ylabel('loss (MSE)')
+# # model_trainer.model.sigma
+# print(model_trainer.valid_loss[-1])
 # %%
 t = tf.constant([[-10., -1., 0.], [0.5, 2., 10.]])
 t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
@@ -273,9 +274,7 @@ model_name ='driver_model'
 model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
-exp_dir = './models/experiments/driver_model/model'
-# exp_dir = './models/experiments/dnn/model'
-#
+ 
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
