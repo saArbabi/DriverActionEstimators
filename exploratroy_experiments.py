@@ -12,20 +12,21 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 15000
+training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
-print(training_data[1].shape)
+print(training_data[3].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
 
 # training_data[3][0, -1, :]
-2-np.ones([20, 1])
+training_data[1][50, 1, :]
+
 # %%
 
-for i in range(1, 10):
+for i in range(1, 9):
     plt.figure()
     feature = training_data[2][0:100000, -1, i]
     feature.max()
@@ -52,6 +53,15 @@ _ = plt.hist(to_plot, bins=150)
 plt.xlabel('Hist')
 plt.ylabel('Relative x - merger car')
 # %%
+config = {
+ "model_config": {
+     "learning_rate": 1e-3,
+    "batch_size": 256,
+    },
+    "exp_id": "NA",
+    "Note": ""
+}
+
 class Trainer():
     def __init__(self, model_type):
         self.model = None
@@ -274,7 +284,7 @@ model_name ='driver_model'
 model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
- 
+
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)

@@ -201,17 +201,17 @@ class IDMForwardSim(tf.keras.Model):
 
 
             # att_score, fm_att_score = self.get_att_score(tf.concat([fl_act, fm_act, outputs], axis=1))
-            vel = tf.slice(unscaled_s, [0, step, 2], [batch_size, 1, 1])
+            vel = tf.slice(unscaled_s, [0, step, 0], [batch_size, 1, 1])
             vel = tf.reshape(vel, [batch_size, 1])
 
-            dv = tf.slice(unscaled_s, [0, step, 4], [batch_size, 1, 1])
-            dx = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+            dv = tf.slice(unscaled_s, [0, step, 2], [batch_size, 1, 1])
+            dx = tf.slice(unscaled_s, [0, step, 3], [batch_size, 1, 1])
             dv = tf.reshape(dv, [batch_size, 1])
             dx = tf.reshape(dx, [batch_size, 1])
             fl_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            dv = tf.slice(unscaled_s, [0, step, 7], [batch_size, 1, 1])
-            dx = tf.slice(unscaled_s, [0, step, 8], [batch_size, 1, 1])
+            dv = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+            dx = tf.slice(unscaled_s, [0, step, 6], [batch_size, 1, 1])
             dv = tf.reshape(dv, [batch_size, 1])
             dx = tf.reshape(dx, [batch_size, 1])
             fm_act = self.idm_driver(vel, dv, dx, idm_param)

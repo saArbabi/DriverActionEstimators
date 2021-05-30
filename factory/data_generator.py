@@ -26,15 +26,6 @@ aggressive_idm = {
                 'min_act':3, # m/s^2
                 }
 
-config = {
- "model_config": {
-     "learning_rate": 1e-3,
-    "batch_size": 256,
-    },
-    "exp_id": "NA",
-    "Note": ""
-}
-
 """
 Synthetic data generation
 """
@@ -53,15 +44,6 @@ def get_idm_params(driver_type):
     min_act = idm_param['min_act']
 
     return [desired_v, desired_tgap, min_jamx, max_act, min_act]
-
-def get_alpha(dy):
-    if dy < -1.85:
-        return 1
-    else:
-        mean = abs(dy)/1.85
-        # alpha = np.random.normal(mean, 0.1, 1)
-        return mean
-        # return np.clip(alpha, 0, 1).tolist()[0]
 
 def idm_act(_v, _dv, _dx, idm_params):
     desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
@@ -93,39 +75,41 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
     episode_n = 100
+    step_size = 0.1 #s
 
 
     while episode_id < episode_n:
         for driver in drivers:
             idm_params = get_idm_params(driver)
             mean_vel = 20
-            att_switch_step = np.random.choice(range(0, episode_steps_n))
+            att_switch_step = np.random.choice(range(20, episode_steps_n))
             # sim initializations
             # follower
             f_x = np.random.choice(range(30, 50))
             f_v = mean_vel + np.random.choice(range(-3, 3))
+            f_att = 'leader'
             # leader
             l_x = 100
             l_v, l_act_mag, l_sin_freq = get_random_vals(mean_vel)
             # merger
             m_x = np.random.choice(range(40, l_x))
+            m_y = 0 # lane relative
             m_v, m_act_mag, m_sin_freq = get_random_vals(mean_vel)
-
-            # dy = 0
             m_vlat = 0
+            lane_id = 1
 
             for time_step in range(episode_steps_n):
                 # leader
                 fl_dv, lf_dx = get_relative_states(l_x, l_v, f_x, f_v)
                 if lf_dx != 0.5:
                     fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
-                    l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * 0.1
-                    l_x = l_x + l_v * 0.1
+                    l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * step_size
+                    l_x = l_x + l_v * step_size
                     leader_feature = [l_v, fl_dv, lf_dx]
 
                 else:
@@ -135,45 +119,45 @@ def data_generator():
                 # merger
                 fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
                 if mf_dx != 0.5 and m_x < l_x:
+                    if time_step == att_switch_step and f_att == 'leader':
+                        m_vlat = -0.7
+
+                    # if f_att == 'merger':
+                    if lane_id == 1 and m_y < -1.85:
+                        lane_id = 0
+                        m_y = 1.85
+                    elif lane_id == 0 and m_y < 0:
+                        m_vlat = 0.
+
+                    if lane_id == 0:
+                        f_att = 'merger'
+
                     fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
-                    m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * 0.1
-                    m_x = m_x + m_v * 0.1
-                    m_exists = 1
-                    merger_feature = [m_v, fm_dv, mf_dx]
+                    m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
+                    m_x = m_x + m_v * step_size
+                    m_y = m_y + m_vlat * step_size
+
+                    merger_feature = [m_v, fm_dv, mf_dx, m_y]
 
                 else:
-                    m_exists = 0
-                    merger_feature = [20, 0, 30]
+                    break
 
-
-                # merger_feature = [19, 1, 55]
-                # if time_step > att_switch_step and dy > -3.7:
-                #     m_vlat = -1
-                # elif dy < -3.7:
-                #     m_vlat = w
-                # dy += m_vlat*0.1
-
-                # follower
-                # alpha = 0
-                # alpha = get_alpha(dy)
-                # act = (1-alpha)*fl_act + (alpha)*fm_act
-                if m_exists == 1 and abs(fm_act) < 3:
-                    act = fm_act
-                    attention = 0
-
-                else:
+                if f_att == 'leader':
                     act = fl_act
-                    attention = 1
+                else:
+                    act = fm_act
+
                 # act = fl_act
-                # attention = 1
+                # f_att = 1
+
                 if abs(act) > 3.5:
                     print("Bad state - action_value: ", act)
                     break
 
-                f_v = f_v + act * 0.1
-                f_x = f_x + f_v * 0.1 + 0.5 * act * 0.1 **2
+                f_v = f_v + act * step_size
+                f_x = f_x + f_v * step_size + 0.5 * act * step_size **2
 
-                feature = [episode_id, m_exists, attention, f_v]
+                feature = [episode_id, f_v]
                 feature.extend(leader_feature)
                 feature.extend(merger_feature)
                 xs.append(feature)
@@ -186,8 +170,8 @@ def data_generator():
     scale_data = True
 
     if scale_data:
-        bool_indx = 3 # these are boolians to be ignored by scaler
-        scaler = preprocessing.StandardScaler().fit(xs[:, 3:])
+        bool_indx = 1 # these are values not to be scaled
+        scaler = preprocessing.StandardScaler().fit(xs[:, bool_indx:])
         xs_scaled = xs.copy()
         xs_scaled[:, bool_indx:] = scaler.transform(xs[:, bool_indx:]).tolist()
 
