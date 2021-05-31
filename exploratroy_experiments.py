@@ -22,7 +22,7 @@ print(training_data[3].shape)
 # dir(scaler)
 
 # training_data[3][0, -1, :]
-training_data[1][50, 1, :]
+training_data[2][50, 1, :]
 
 # %%
 
@@ -181,7 +181,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-# %%
+#m %%
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)

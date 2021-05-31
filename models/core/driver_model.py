@@ -84,7 +84,7 @@ class NeurIDMModel(AbstractModel):
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f]
-        current_v = inputs[2][:, 0, 2:3]
+        current_v = inputs[2][:, 0, 0:1]
         mean, logvar, encoder_states = self.encoder(inputs[0])
         z = self.sample([mean, logvar])
         decoder_output = self.decoder(z)
@@ -228,15 +228,15 @@ class IDMForwardSim(tf.keras.Model):
             fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
             fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
-        # tf.print('######')
-        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        # tf.print('max_act: ', tf.reduce_mean(max_act))
-        # tf.print('min_act: ', tf.reduce_mean(min_act))
-        # tf.print('att_score_max: ', tf.reduce_max(att_scores))
-        # tf.print('att_score_min: ', tf.reduce_min(att_scores))
-        # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+        tf.print('######')
+        tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        tf.print('max_act: ', tf.reduce_mean(max_act))
+        tf.print('min_act: ', tf.reduce_mean(min_act))
+        tf.print('att_score_max: ', tf.reduce_max(att_scores))
+        tf.print('att_score_min: ', tf.reduce_min(att_scores))
+        tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
 
         return act_seq
 
