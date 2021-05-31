@@ -75,8 +75,8 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    # drivers = ['normal', 'timid', 'aggressive']
-    drivers = ['normal']
+    drivers = ['normal', 'timid', 'aggressive']
+    # drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
     episode_n = 100
@@ -163,11 +163,11 @@ def data_generator():
                 xs.append(feature)
                 ys.append([episode_id, act])
 
-                info[episode_id] = episode_id
+                info[episode_id] = driver
             episode_id += 1
     xs = np.array(xs)
-    # scale_data = False
-    scale_data = True
+    scale_data = False
+    # scale_data = True
 
     if scale_data:
         bool_indx = 1 # these are values not to be scaled

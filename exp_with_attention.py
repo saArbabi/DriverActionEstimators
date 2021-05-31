@@ -28,9 +28,9 @@ def set_follower(lane_id, model_type, model_name, driver_type):
         follower = NeurIDM(id='neural', lane_id=lane_id, x=50, v=20,
                         driver_type=driver_type, model=model)
 
-    with open('./models/experiments/scaler.pickle', 'rb') as handle:
-        scaler = pickle.load(handle)
-    follower.scaler = scaler
+    # with open('./models/experiments/scaler.pickle', 'rb') as handle:
+    #     scaler = pickle.load(handle)
+    # follower.scaler = scaler
 
     return follower
 
@@ -38,12 +38,29 @@ def set_follower(lane_id, model_type, model_name, driver_type):
 env = Env()
 
 model_type='driver_model'
-model_name='driver_model'
+model_name='testing_car'
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
-merger = MergeVehicle(id='merger', lane_id=2, x=70, v=20)
+merger = SDVehicle(id='merger', lane_id=2, x=70, v=20)
 
-neural_IDM = set_follower(lane_id=1, model_type=model_type, model_name=model_name,\
-                                                            driver_type='normal_idm')
+
+
+exp_dir = './models/experiments/'+model_name+'/model'
+config = {
+         "model_config": {
+             "learning_rate": 1e-3,
+            "batch_size": 50,
+            },
+            "exp_id": "NA",
+            "Note": ""}
+
+from models.core.driver_model import  NeurIDMModel
+model = NeurIDMModel(config, model_use='inference')
+model.load_weights(exp_dir).expect_partial()
+merger.encoder = model.encoder
+merger.belief_estimator = model.belief_estimator
+
+# neural_IDM = set_follower(lane_id=1, model_type=model_type, model_name=model_name,\
+#                                                             driver_type='normal_idm')
 
 # follower_IDM1 = IDMVehicle(id='aggressive_idm', lane_id=3, x=40, v=20, driver_type='aggressive_idm')
 follower_IDM = IDMVehicle(id='normal_idm', lane_id=1, x=50, v=20, driver_type='normal_idm')
@@ -51,16 +68,20 @@ follower_IDM = IDMVehicle(id='normal_idm', lane_id=1, x=50, v=20, driver_type='n
 
 # follower_IDM.lead_vehicle = leader1
 
-neural_IDM.lead_vehicle = leader
-neural_IDM.attend_veh = leader
-neural_IDM.merge_vehicle = merger
+# neural_IDM.lead_vehicle = leader
+# neural_IDM.attend_veh = leader
+# neural_IDM.merge_vehicle = merger
 follower_IDM.lead_vehicle = leader
 
+merger.lead_vehicle = leader
+merger.follower_vehicle = follower_IDM
+
 env.vehicles = [
-                neural_IDM,
+                # neural_IDM,
+                merger,
                 follower_IDM,
-                leader,
-                merger]
+                leader
+                ]
 
 env.render(model_type)
 
@@ -74,7 +95,7 @@ def run_sim():
     for i in range(5000):
 
         env.render()
-        attention_logic(env)
+        # attention_logic(env)
 
         if env.env_clock > 0 and  round(env.env_clock, 1) % 1 == 0:
             answer = input('Continue?')

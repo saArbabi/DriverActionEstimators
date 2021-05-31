@@ -16,14 +16,16 @@ training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
-print(training_data[3].shape)
+print(training_data[0].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
 
 # training_data[3][0, -1, :]
-training_data[2][50, 1, :]
+training_data[0][50, 1, :]
 
+# %%
+7 == 7 and not (3 == 3 and 1 == 3)
 # %%
 
 for i in range(1, 9):
@@ -214,6 +216,9 @@ plt.title('KL')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
 # %%
+
+model_trainer.
+
 t = tf.constant([[-10., -1., 0.], [0.5, 2., 10.]])
 t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
 t2.numpy()
@@ -280,7 +285,7 @@ plt.plot(des_options, actions)
 # %%
 # %%
 # model_name ='lstm_seq2s_idm'
-model_name ='driver_model'
+model_name ='testing_car'
 model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
@@ -292,13 +297,24 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 """visualse latent vector.
 """
-model_trainer.model.model_use = 'debug'
+model_trainer.model.model_use = 'inference'
 
-xs_h, xs_f, ys_f = training_data
+xs_h, xs_f, xs_f, ys_f = training_data
 train_indx = int(len(xs_h)*0.8)
+
+# %%
+import tensorflow as tf
+xs_h[i:i+1, 0:1, 0:1].shape
+for i in indxs[0:10]:
+    encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 0:1])
+    z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
+    tf.print(np.exp(z_log_sigma.numpy()))
+encoder_states[0].shape
+# %%
 
 xs_h = xs_h[train_indx:, :, :]
 xs_f = xs_f[train_indx:, :, :]
+# xs_f = xs_f[train_indx:, :, :]
 ys_f = ys_f[train_indx:, :, :]
 
 indxs = np.random.choice(range(len(xs_h)), 500, replace=False)
@@ -322,7 +338,11 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 def latent_samples(model_trainer, indx):
     a_, mean, logvar = model_trainer.model([xs_h[indx, :, 1:], \
                                 xs_f[indx, :, 1:]])
+
+    encoder_states = model_trainer.model.encoder(xs_h[indx, :, :])
+    z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
     samples = model_trainer.model.sample([mean, logvar]).numpy()
+
     return samples
 
 samples = latent_samples(model_trainer, agg)

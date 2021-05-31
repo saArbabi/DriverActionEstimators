@@ -7,13 +7,16 @@ from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 tf.random.set_seed(1234)
 
+
+
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
         self.encoder = Encoder()
+        self.belief_estimator = BeliefModel()
         self.decoder = Decoder(config)
-        self.idm_sim = IDMForwardSim()
         self.idm_layer = IDMLayer()
+        self.idm_sim = IDMForwardSim()
         self.model_use = model_use
         # mse_loss = 0
         # self.kl_loss = 0
@@ -60,10 +63,10 @@ class NeurIDMModel(AbstractModel):
         self.test_mseloss(mse_loss)
         self.test_klloss(kl_loss)
     # @tf.function
-    def sample(self, args):
+    def sample_z(self, args):
         z_mean, z_log_sigma = args
-        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0], self.encoder.latent_dim),
-                                  mean=0., stddev=1)
+        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
+                                 self.belief_estimator.latent_dim), mean=0., stddev=1)
         return z_mean + K.exp(z_log_sigma) * epsilon
 
     def get_actions(self):
@@ -85,8 +88,9 @@ class NeurIDMModel(AbstractModel):
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f]
         current_v = inputs[2][:, 0, 0:1]
-        mean, logvar, encoder_states = self.encoder(inputs[0])
-        z = self.sample([mean, logvar])
+        encoder_states = self.encoder(inputs[0])
+        mean, logvar = self.belief_estimator(encoder_states[0])
+        z = self.sample_z([mean, logvar])
         decoder_output = self.decoder(z)
         idm_param = self.idm_layer([decoder_output, current_v])
 
@@ -99,28 +103,38 @@ class NeurIDMModel(AbstractModel):
             att_score, _, _ = self.idm_sim.arbiter([inputs[1][:, 0:1, :], h_t, c_t])
             return idm_param, att_score
 
-class Encoder(tf.keras.Model):
+class BeliefModel(tf.keras.Model):
     def __init__(self):
-        super(Encoder, self).__init__(name="Encoder")
-        self.enc_units = 50
+        super(BeliefModel, self).__init__(name="BeliefModel")
         self.latent_dim = 2
         # TODO: FULL cov distribution
         # self.prior = tfd.Normal(loc=0., scale=3.)
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units, return_state=True)
         self.z_mean = Dense(self.latent_dim)
         self.z_log_sigma = Dense(self.latent_dim)
         #
         # tfpl.MultivariateNormalTriL(self.latent_dim,
         #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),
 
-    def call(self, inputs):
-        _, h_t, c_t = self.lstm_layer(inputs)
+    def call(self, h_t):
         z_mean = self.z_mean(h_t)
         z_log_sigma = self.z_log_sigma(h_t)
-        return z_mean, z_log_sigma, [h_t, c_t]
+        return z_mean, z_log_sigma
+
+class Encoder(tf.keras.Model):
+    def __init__(self):
+        super(Encoder, self).__init__(name="Encoder")
+        self.enc_units = 50
+        self.architecture_def()
+
+    def architecture_def(self):
+        self.lstm_layer = LSTM(self.enc_units, return_state=True)
+
+    def call(self, inputs):
+        _, h_t, c_t = self.lstm_layer(inputs)
+        return [h_t, c_t]
 
 class Decoder(tf.keras.Model):
     def __init__(self, config):
