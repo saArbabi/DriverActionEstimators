@@ -223,11 +223,22 @@ class SDVehicle(Vehicle):
 
 
     def act(self):
-
-        self.observe()
         encoder_states = self.encoder(self.obs)
         mean, logvar = self.belief_estimator(encoder_states[0])
+        z = self.belief_estimator.sample_z([mean, logvar])
+        decoder_output = self.decoder(z)
+        idm_param = self.idm_layer([decoder_output, float(self.v)])
+        # print('param-shape  ', param[0].numpy().shape)
+        h_t, c_t = encoder_states
+        att_score, _, _ = self.arbiter([self.obs[:, -1:, :], h_t, c_t])
+        print('att_score', att_score.numpy())
+        param = [item.numpy() for item in idm_param]
+        desired_v = param[0]
+
+
         print('logvar: ', np.exp(logvar.numpy()))
+        print('desired_v: ', desired_v)
+        self.observe()
 
         self.env_clock += 1
         print('env_clock: ', self.env_clock)

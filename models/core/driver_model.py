@@ -62,19 +62,6 @@ class NeurIDMModel(AbstractModel):
         self.test_mseloss.reset_states()
         self.test_mseloss(mse_loss)
         self.test_klloss(kl_loss)
-    # @tf.function
-    def sample_z(self, args):
-        z_mean, z_log_sigma = args
-        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
-                                 self.belief_estimator.latent_dim), mean=0., stddev=1)
-        return z_mean + K.exp(z_log_sigma) * epsilon
-
-    def get_actions(self):
-        mean, logvar = self.encoder(x)
-        z = self.reparameterize(mean, logvar)
-        desired_v = self.decoder(z)
-        a_ = self.idm(desired_v)
-        return  a_
 
     def kl_loss(self, z_mean, z_log_sigma):
         kl_loss = 1 + z_log_sigma - K.square(z_mean) - K.exp(z_log_sigma)
@@ -90,7 +77,7 @@ class NeurIDMModel(AbstractModel):
         current_v = inputs[2][:, 0, 0:1]
         encoder_states = self.encoder(inputs[0])
         mean, logvar = self.belief_estimator(encoder_states[0])
-        z = self.sample_z([mean, logvar])
+        z = self.belief_estimator.sample_z([mean, logvar])
         decoder_output = self.decoder(z)
         idm_param = self.idm_layer([decoder_output, current_v])
 
@@ -117,6 +104,11 @@ class BeliefModel(tf.keras.Model):
         #
         # tfpl.MultivariateNormalTriL(self.latent_dim,
         #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),
+    def sample_z(self, args):
+        z_mean, z_log_sigma = args
+        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
+                                 self.latent_dim), mean=0., stddev=1)
+        return z_mean + K.exp(z_log_sigma) * epsilon
 
     def call(self, h_t):
         z_mean = self.z_mean(h_t)

@@ -58,6 +58,9 @@ model = NeurIDMModel(config, model_use='inference')
 model.load_weights(exp_dir).expect_partial()
 merger.encoder = model.encoder
 merger.belief_estimator = model.belief_estimator
+merger.decoder = model.decoder
+merger.idm_layer = model.idm_layer
+merger.arbiter = model.idm_sim.arbiter
 
 # neural_IDM = set_follower(lane_id=1, model_type=model_type, model_name=model_name,\
 #                                                             driver_type='normal_idm')
@@ -72,7 +75,6 @@ follower_IDM = IDMVehicle(id='normal_idm', lane_id=1, x=50, v=20, driver_type='n
 # neural_IDM.attend_veh = leader
 # neural_IDM.merge_vehicle = merger
 follower_IDM.lead_vehicle = leader
-
 merger.lead_vehicle = leader
 merger.follower_vehicle = follower_IDM
 

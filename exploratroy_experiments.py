@@ -216,7 +216,11 @@ plt.title('KL')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
 # %%
-
+# model_name ='lstm_seq2s_idm'
+model_name ='testing_car'
+model_trainer.save_model(model_name =model_name)
+# model_trainer.save_model(model_name = model_trainer.model_type)
+# %%
 model_trainer.
 
 t = tf.constant([[-10., -1., 0.], [0.5, 2., 10.]])
@@ -283,12 +287,7 @@ plt.ylabel('Action value')
 plt.plot(des_options, actions)
 
 # %%
-# %%
-# model_name ='lstm_seq2s_idm'
-model_name ='testing_car'
-model_trainer.save_model(model_name =model_name)
-# model_trainer.save_model(model_name = model_trainer.model_type)
-# %%
+
 
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
@@ -305,8 +304,8 @@ train_indx = int(len(xs_h)*0.8)
 # %%
 import tensorflow as tf
 for i in indxs[0:10]:
-    encoder_states = model_trainer.model.encoder(np.zeros([1, 1, 1:]))
-    # encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
+    # encoder_states = model_trainer.model.encoder(np.zeros([1, :, 1:]))
+    encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
     z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
     tf.print(np.exp(z_log_sigma.numpy()))
 encoder_states[0].shape
