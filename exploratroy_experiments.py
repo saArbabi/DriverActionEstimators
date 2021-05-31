@@ -181,7 +181,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-#m %%
+# %%
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
