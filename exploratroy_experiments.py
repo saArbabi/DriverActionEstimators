@@ -12,7 +12,7 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 15000
+training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
@@ -22,7 +22,7 @@ print(training_data[1].shape)
 # dir(scaler)
 
 # training_data[3][0, -1, :]
-2-np.ones([20, 1])
+
 # %%
 
 for i in range(1, 10):
@@ -274,7 +274,7 @@ model_name ='driver_model'
 model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
- 
+
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
