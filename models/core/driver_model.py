@@ -83,7 +83,7 @@ class NeurIDMModel(AbstractModel):
         return tf.reduce_mean(kl_loss)
 
     def vae_loss(self, mse_loss, kl_loss):
-        return  kl_loss +  mse_loss
+        return  0.01*kl_loss +  mse_loss
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f]
