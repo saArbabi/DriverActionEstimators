@@ -5,14 +5,15 @@ from models.core import abstract_model
 reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
+import tensorflow_probability as tfp
+tfd = tfp.distributions
 tf.random.set_seed(1234)
-
-
 
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
         self.encoder = Encoder()
+        # self.history_enc = Encoder()
         self.belief_estimator = BeliefModel()
         self.decoder = Decoder(config)
         self.idm_layer = IDMLayer()
@@ -64,10 +65,9 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss(kl_loss)
 
     def kl_loss(self, z_mean, z_log_sigma):
-        kl_loss = 1 + z_log_sigma - K.square(z_mean) - K.exp(z_log_sigma)
-        kl_loss = K.sum(kl_loss, axis=-1)
-        kl_loss *= -0.5
-        return tf.reduce_mean(kl_loss)
+        posterior = tfd.Normal(loc=z_mean, scale=tf.exp(z_log_sigma))
+        prior = tfd.Normal(loc=tf.zeros(shape=(tf.shape(z_mean)[0], 2), dtype=tf.dtypes.float32), scale=1.)
+        return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
     def vae_loss(self, mse_loss, kl_loss):
         return  0.01*kl_loss +  mse_loss

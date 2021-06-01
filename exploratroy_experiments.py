@@ -216,6 +216,13 @@ plt.title('KL')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
 # %%
+import tensorflow_probability as tfp
+tfd = tfp.distributions
+norm1 = tfd.Normal(loc=2., scale=3.)
+norm2 = tfd.Normal(loc=0., scale=-1)
+tfp.distributions.kl_divergence(norm1, norm2)
+
+# %%
 # model_name ='lstm_seq2s_idm'
 model_name ='testing_car'
 model_trainer.save_model(model_name =model_name)
