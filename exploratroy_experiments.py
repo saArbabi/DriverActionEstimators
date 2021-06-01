@@ -338,7 +338,7 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 def latent_samples(model_trainer, indx):
     encoder_states = model_trainer.model.encoder(xs_h[indx, :, 1:])
     mean, logvar = model_trainer.model.belief_estimator(encoder_states[0])
-    samples = model_trainer.model.sample_z([mean, logvar]).numpy()
+    samples = model_trainer.model.belief_estimator.sample_z([mean, logvar]).numpy()
 
     return samples
 
