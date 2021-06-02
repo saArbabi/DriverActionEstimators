@@ -147,7 +147,7 @@ def data_generator():
                 else:
                     act = fm_act
 
-                # act = fm_act
+                act = fl_act
                 # f_att = 1
 
                 if abs(act) > 3.5:
@@ -159,7 +159,7 @@ def data_generator():
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
-                merger_feature.append(0 if f_att == 'merger' else 1)
+                # merger_feature.append(0 if f_att == 'merger' else 1)
                 feature.extend(merger_feature)
                 xs.append(feature)
                 ys.append([episode_id, act])
