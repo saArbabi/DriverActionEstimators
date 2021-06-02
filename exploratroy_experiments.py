@@ -183,7 +183,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-# %%
+# j%%
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -303,7 +303,6 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 """visualse latent vector.
 """
-# model_trainer.model.model_use = 'inference'
 
 xs_h, xs_f, xs_f, ys_f = training_data
 train_indx = int(len(xs_h)*0.8)
@@ -342,10 +341,12 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 #     if info[epis]
 
 # %%
+model_trainer.model.model_use = 'inference'
+
 def latent_samples(model_trainer, indx):
-    encoder_states = model_trainer.model.encoder(xs_h[indx, :, 1:])
-    mean, logvar = model_trainer.model.belief_estimator(encoder_states[0])
-    samples = model_trainer.model.belief_estimator.sample_z([mean, logvar]).numpy()
+    encoder_states = model_trainer.model.history_enc(xs_h[indx, :, 1:])
+    prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
+    samples = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
     return samples
 

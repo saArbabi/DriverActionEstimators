@@ -12,8 +12,8 @@ tf.random.set_seed(1234)
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
-        self.encoder = Encoder()
-        # self.history_enc = Encoder()
+        self.future_enc = Encoder()
+        self.history_enc = Encoder()
         self.belief_estimator = BeliefModel()
         self.decoder = Decoder(config)
         self.idm_layer = IDMLayer()
@@ -41,9 +41,9 @@ class NeurIDMModel(AbstractModel):
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            act_pred, mean, logvar = self(states)
+            act_pred, prior_param, posterior_param = self(states)
             mse_loss = self.mse(targets, act_pred)
-            kl_loss = self.kl_loss(mean, logvar)
+            kl_loss = self.kl_loss(prior_param, posterior_param)
             loss = self.vae_loss(mse_loss, kl_loss)
 
         gradients = tape.gradient(loss, self.trainable_variables)
@@ -55,38 +55,44 @@ class NeurIDMModel(AbstractModel):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        act_pred, mean, logvar = self(states)
+        act_pred, prior_param, posterior_param = self(states)
         mse_loss = self.mse(targets, act_pred)
-        kl_loss = self.kl_loss(mean, logvar)
+        kl_loss = self.kl_loss(prior_param, posterior_param)
         loss = self.vae_loss(mse_loss, kl_loss)
         self.test_klloss.reset_states()
         self.test_mseloss.reset_states()
         self.test_mseloss(mse_loss)
         self.test_klloss(kl_loss)
 
-    def kl_loss(self, z_mean, z_log_sigma):
-        posterior = tfd.Normal(loc=z_mean, scale=tf.exp(z_log_sigma))
-        prior = tfd.Normal(loc=tf.zeros(shape=(tf.shape(z_mean)[0], 2), dtype=tf.dtypes.float32), scale=1.)
+    def kl_loss(self, prior_param, posterior_param):
+        prior = tfd.Normal(loc=prior_param[0], scale=tf.exp(prior_param[1]))
+        posterior = tfd.Normal(loc=posterior_param[0], scale=tf.exp(posterior_param[1]))
         return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
     def vae_loss(self, mse_loss, kl_loss):
-        return  0.01*kl_loss +  mse_loss
+        return  0.00001*kl_loss +  mse_loss
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f]
         current_v = inputs[2][:, 0, 0:1]
-        encoder_states = self.encoder(inputs[0])
-        mean, logvar = self.belief_estimator(encoder_states[0])
-        z = self.belief_estimator.sample_z([mean, logvar])
-        decoder_output = self.decoder(z)
-        idm_param = self.idm_layer([decoder_output, current_v])
+        h_enc_state = self.history_enc(inputs[0]) # history lstm state
 
         if self.model_use == 'training':
-            act_seq = self.idm_sim.rollout([inputs[1:], idm_param, encoder_states])
-            return act_seq, mean, logvar
+            f_enc_state = self.future_enc(inputs[1])
+            prior_param, posterior_param = self.belief_estimator(\
+                                    [h_enc_state[0], f_enc_state[0]], dis_type='both')
+            z = self.belief_estimator.sample_z(posterior_param)
+            decoder_output = self.decoder(z)
+            idm_param = self.idm_layer([decoder_output, current_v])
+            act_seq = self.idm_sim.rollout([inputs[1:], idm_param, h_enc_state])
+            return act_seq, prior_param, posterior_param
 
         elif self.model_use == 'inference':
-            h_t, c_t = encoder_states
+            prior_param = self.belief_estimator(h_enc_state, dis_type='prior')
+            z = self.belief_estimator.sample_z(prior_param)
+            decoder_output = self.decoder(z)
+            idm_param = self.idm_layer([decoder_output, current_v])
+            h_t, c_t = h_enc_state
             att_score, _, _ = self.idm_sim.arbiter([inputs[1][:, 0:1, :], h_t, c_t])
             return idm_param, att_score
 
@@ -99,21 +105,36 @@ class BeliefModel(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.z_mean = Dense(self.latent_dim)
-        self.z_log_sigma = Dense(self.latent_dim)
-        #
+        self.pri_mean = Dense(self.latent_dim)
+        self.pri_logvar = Dense(self.latent_dim)
+        self.pos_mean = Dense(self.latent_dim)
+        self.pos_logvar = Dense(self.latent_dim)
+        self.linear_layer = Dense(100)
+
         # tfpl.MultivariateNormalTriL(self.latent_dim,
         #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),
-    def sample_z(self, args):
-        z_mean, z_log_sigma = args
+    def sample_z(self, dis_params):
+        z_mean, z_logvar = dis_params
         epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
-        return z_mean + K.exp(z_log_sigma) * epsilon
+        return z_mean + K.exp(z_logvar) * epsilon
 
-    def call(self, h_t):
-        z_mean = self.z_mean(h_t)
-        z_log_sigma = self.z_log_sigma(h_t)
-        return z_mean, z_log_sigma
+    def call(self, inputs, dis_type):
+        if dis_type == 'both':
+            ht_history, ht_future = inputs
+            # prior
+            pri_mean = self.pri_mean(ht_history)
+            pri_logvar = self.pri_logvar(ht_history)
+            # posterior
+            context = self.linear_layer(tf.concat([ht_history, ht_future], axis=-1))
+            pos_mean = self.pos_mean(context)
+            pos_logvar = self.pos_logvar(context)
+            return [pri_mean, pri_logvar], [pos_mean, pos_logvar]
+
+        elif dis_type == 'prior':
+            pri_mean = self.pri_mean(inputs)
+            pri_logvar = self.pri_logvar(inputs)
+            return [pri_mean, pri_logvar]
 
 class Encoder(tf.keras.Model):
     def __init__(self):
