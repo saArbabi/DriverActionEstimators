@@ -82,7 +82,9 @@ class NeurIDMModel(AbstractModel):
             prior_param, posterior_param = self.belief_estimator(\
                                     [h_enc_state[0], f_enc_state[0]], dis_type='both')
             z = self.belief_estimator.sample_z(posterior_param)
-            decoder_output = self.decoder(z)
+            context = tf.concat([z, h_enc_state[0]], axis=1)
+
+            decoder_output = self.decoder(context)
             idm_param = self.idm_layer([decoder_output, current_v])
             act_seq = self.idm_sim.rollout([inputs[1:], idm_param, h_enc_state])
             return act_seq, prior_param, posterior_param
@@ -186,6 +188,7 @@ class Arbiter(tf.keras.Model):
         x = self.attention_neu(x)
 
         return 1/(1+tf.exp(-5*x)), h_t, c_t
+        # return 1/(1+tf.exp(-5*x)), h_t, c_t
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):

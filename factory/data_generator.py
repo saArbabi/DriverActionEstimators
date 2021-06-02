@@ -75,8 +75,8 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
     episode_n = 100
@@ -87,7 +87,7 @@ def data_generator():
         for driver in drivers:
             idm_params = get_idm_params(driver)
             mean_vel = 20
-            att_switch_step = np.random.choice(range(20, episode_steps_n))
+            att_switch_step = np.random.choice(range(0, episode_steps_n))
             # sim initializations
             # follower
             f_x = np.random.choice(range(30, 50))
@@ -127,9 +127,9 @@ def data_generator():
                         lane_id = 0
                         m_y = 1.85
                     elif lane_id == 0 and m_y < 0:
-                        m_vlat = 0.
+                        break
 
-                    if lane_id == 0:
+                    if m_vlat != 0:
                         f_att = 'merger'
 
                     fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
@@ -147,7 +147,7 @@ def data_generator():
                 else:
                     act = fm_act
 
-                # act = fl_act
+                # act = fm_act
                 # f_att = 1
 
                 if abs(act) > 3.5:
@@ -159,6 +159,7 @@ def data_generator():
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
+                merger_feature.append(0 if f_att == 'merger' else 1)
                 feature.extend(merger_feature)
                 xs.append(feature)
                 ys.append([episode_id, act])

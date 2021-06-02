@@ -23,23 +23,39 @@ print(training_data[0].shape)
 
 # training_data[3][0, -1, :]
 training_data[0][50, 1, :]
-
-# %%
-7 == 7 and not (3 == 3 and 1 == 3)
-# %%
-
-for i in range(1, 9):
-    plt.figure()
-    feature = training_data[2][0:100000, -1, i]
-    feature.max()
-    _ = plt.hist(feature, bins=150)
 # %%
 
 for i in range(1, 10):
     plt.figure()
-    feature = training_data[0][0:10000, -1, i]
+    feature = training_data[2][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
+
+
+
+att_l = np.sum(training_data[1][:, 0:10, -1] == 1)
+att_m = np.sum(training_data[1][:, 0:10, -1]  == 0)
+plt.bar([1, 2], [att_l, att_m])
+
+# %%
+balanced_training_data = []
+axis_0, axis_1 = np.where(training_data[0][:, :, -1] == 0)
+lc_samples = np.unique(axis_0).astype(int)
+ratios = []
+
+for set in training_data:
+    set = np.append(set, np.repeat(set[lc_samples, :, :], 1, axis=0), axis=0)
+    balanced_training_data.append(set)
+# balanced_training_data.append(training_data[-1])
+balanced_training_data[-1].shape
+# %%
+
+# for i in range(1, 10):
+plt.figure()
+# feature = training_data[0][:, -1, -1]
+feature = balanced_training_data[1][0:10000, -1, i]
+feature.max()
+_ = plt.hist(feature, bins=150)
 
 # %%
 feature = training_data[0][0:10000, -1, -3]
@@ -183,7 +199,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
-# j%%
+# %%
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -215,6 +231,7 @@ plt.title('KL')
 # plt.ylabel('loss (MSE)')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
+
 # %%
 import tensorflow_probability as tfp
 tfd = tfp.distributions
@@ -259,6 +276,12 @@ for i in [0.5, 1, 2, 5]:
     plt.plot(x, y)
 plt.grid()
 # %%
+x = np.linspace(-5, 5, 1000)
+y = 1/(1+np.exp(-10*x))
+plt.plot(x, y)
+
+# %%
+
 idm_param = {
                 'desired_v':25, # m/s
                 'desired_tgap':1.5, # s
