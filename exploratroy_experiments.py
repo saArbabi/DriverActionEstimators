@@ -12,17 +12,16 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 5000
+training_samples_n = 15000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
-print(training_data[0].shape)
+print(training_data[1].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
 
-# training_data[3][0, -1, :]
-training_data[0][50, 1, :]
+# training_data[3][0, , :]
 # %%
 
 for i in range(1, 10):
@@ -30,32 +29,13 @@ for i in range(1, 10):
     feature = training_data[2][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
-
-
-
-att_l = np.sum(training_data[1][:, 0:10, -1] == 1)
-att_m = np.sum(training_data[1][:, 0:10, -1]  == 0)
-plt.bar([1, 2], [att_l, att_m])
-
-# %%
-balanced_training_data = []
-axis_0, axis_1 = np.where(training_data[0][:, :, -1] == 0)
-lc_samples = np.unique(axis_0).astype(int)
-ratios = []
-
-for set in training_data:
-    set = np.append(set, np.repeat(set[lc_samples, :, :], 1, axis=0), axis=0)
-    balanced_training_data.append(set)
-# balanced_training_data.append(training_data[-1])
-balanced_training_data[-1].shape
 # %%
 
-# for i in range(1, 10):
-plt.figure()
-# feature = training_data[0][:, -1, -1]
-feature = balanced_training_data[1][0:10000, -1, i]
-feature.max()
-_ = plt.hist(feature, bins=150)
+for i in range(1, 10):
+    plt.figure()
+    feature = training_data[0][0:10000, -1, i]
+    feature.max()
+    _ = plt.hist(feature, bins=150)
 
 # %%
 feature = training_data[0][0:10000, -1, -3]
@@ -71,15 +51,6 @@ _ = plt.hist(to_plot, bins=150)
 plt.xlabel('Hist')
 plt.ylabel('Relative x - merger car')
 # %%
-config = {
- "model_config": {
-     "learning_rate": 1e-3,
-    "batch_size": 256,
-    },
-    "exp_id": "NA",
-    "Note": ""
-}
-
 class Trainer():
     def __init__(self, model_type):
         self.model = None
@@ -129,8 +100,8 @@ class Trainer():
         elif self.model_type == 'driver_model':
             from models.core import driver_model
             reload(driver_model)
-            from models.core.driver_model import  NeurIDMModel
-            self.model = NeurIDMModel(config, model_use='training')
+            from models.core.driver_model import  Encoder
+            self.model = Encoder(config, model_use='training')
 
     def train(self, training_data, epochs):
         train_indx = int(len(training_data[0])*0.8)
@@ -176,7 +147,7 @@ class Trainer():
         for epoch in range(epochs):
             self.model.train_loop(train_input)
             self.model.test_loop(val_input, epoch)
-            if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
+            if self.model_type == 'vae_idm':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
                 self.valid_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
@@ -200,53 +171,38 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.train(training_data, epochs=5)
-plt.figure()
-plt.plot(model_trainer.valid_mseloss)
-plt.plot(model_trainer.train_mseloss)
-plt.legend(['val', 'train'])
-plt.grid()
-plt.xlabel('epochs')
-plt.ylabel('loss (MSE)')
-plt.title('MSE')
-
-plt.figure()
-plt.plot(model_trainer.valid_klloss)
-plt.plot(model_trainer.train_klloss)
-plt.legend(['val', 'train'])
-plt.grid()
-plt.xlabel('epochs')
-plt.ylabel('loss (KL)')
-plt.title('KL')
-# model_trainer.train(training_data, epochs=10)
-# loss_view_lim = 0
-#
-# train_loss = model_trainer.train_loss[loss_view_lim:]
-# valid_loss = model_trainer.valid_loss[loss_view_lim:]
-# plt.plot(valid_loss)
-# plt.plot(train_loss)
+# model_trainer.train(training_data, epochs=5)
+# plt.figure()
+# plt.plot(model_trainer.valid_mseloss)
+# plt.plot(model_trainer.train_mseloss)
 # plt.legend(['val', 'train'])
 # plt.grid()
 # plt.xlabel('epochs')
 # plt.ylabel('loss (MSE)')
-# # model_trainer.model.sigma
-# print(model_trainer.valid_loss[-1])
+# plt.title('MSE')
+#
+# plt.figure()
+# plt.plot(model_trainer.valid_klloss)
+# plt.plot(model_trainer.train_klloss)
+# plt.legend(['val', 'train'])
+# plt.grid()
+# plt.xlabel('epochs')
+# plt.ylabel('loss (KL)')
+# plt.title('KL')
+model_trainer.train(training_data, epochs=5)
+loss_view_lim = 0
 
+train_loss = model_trainer.train_loss[loss_view_lim:]
+valid_loss = model_trainer.valid_loss[loss_view_lim:]
+plt.plot(valid_loss)
+plt.plot(train_loss)
+plt.legend(['val', 'train'])
+plt.grid()
+plt.xlabel('epochs')
+plt.ylabel('loss (MSE)')
+# model_trainer.model.sigma
+print(model_trainer.valid_loss[-1])
 # %%
-import tensorflow_probability as tfp
-tfd = tfp.distributions
-norm1 = tfd.Normal(loc=2., scale=3.)
-norm2 = tfd.Normal(loc=0., scale=-1)
-tfp.distributions.kl_divergence(norm1, norm2)
-
-# %%
-# model_name ='lstm_seq2s_idm'
-model_name ='testing_car'
-model_trainer.save_model(model_name =model_name)
-# model_trainer.save_model(model_name = model_trainer.model_type)
-# %%
-model_trainer.
-
 t = tf.constant([[-10., -1., 0.], [0.5, 2., 10.]])
 t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
 t2.numpy()
@@ -276,12 +232,6 @@ for i in [0.5, 1, 2, 5]:
     plt.plot(x, y)
 plt.grid()
 # %%
-x = np.linspace(-5, 5, 1000)
-y = 1/(1+np.exp(-10*x))
-plt.plot(x, y)
-
-# %%
-
 idm_param = {
                 'desired_v':25, # m/s
                 'desired_tgap':1.5, # s
@@ -317,8 +267,15 @@ plt.ylabel('Action value')
 plt.plot(des_options, actions)
 
 # %%
-
-
+# %%
+# model_name ='lstm_seq2s_idm'
+model_name ='driver_model'
+model_trainer.save_model(model_name =model_name)
+# model_trainer.save_model(model_name = model_trainer.model_type)
+# %%
+exp_dir = './models/experiments/driver_model/model'
+# exp_dir = './models/experiments/dnn/model'
+#
 # %%
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
@@ -326,24 +283,13 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 """visualse latent vector.
 """
+model_trainer.model.model_use = 'debug'
 
-xs_h, xs_f, xs_f, ys_f = training_data
+xs_h, xs_f, ys_f = training_data
 train_indx = int(len(xs_h)*0.8)
-
-# %%
-import tensorflow as tf
-for i in indxs[0:10]:
-    # encoder_states = model_trainer.model.encoder(np.zeros([1, :, 1:]))
-    encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
-    z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
-    tf.print(np.exp(z_log_sigma.numpy()))
-encoder_states[0].shape
-
-# %%
 
 xs_h = xs_h[train_indx:, :, :]
 xs_f = xs_f[train_indx:, :, :]
-# xs_f = xs_f[train_indx:, :, :]
 ys_f = ys_f[train_indx:, :, :]
 
 indxs = np.random.choice(range(len(xs_h)), 500, replace=False)
@@ -364,13 +310,10 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 #     if info[epis]
 
 # %%
-model_trainer.model.model_use = 'inference'
-
 def latent_samples(model_trainer, indx):
-    encoder_states = model_trainer.model.history_enc(xs_h[indx, :, 1:])
-    prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
-    samples = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
-
+    a_, mean, logvar = model_trainer.model([xs_h[indx, :, 1:], \
+                                xs_f[indx, :, 1:]])
+    samples = model_trainer.model.sample([mean, logvar]).numpy()
     return samples
 
 samples = latent_samples(model_trainer, agg)
