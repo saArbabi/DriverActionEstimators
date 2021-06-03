@@ -79,7 +79,7 @@ def data_generator():
     # drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 3
+    episode_n = 100
     step_size = 0.1 #s
 
 

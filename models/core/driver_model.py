@@ -91,7 +91,7 @@ class Encoder(AbstractModel):
 
     def get_min_jamx(self, x):
         input = self.min_jamx_layer(x)
-        output = tf.exp(self.min_jamx_neu(input))
+        output = tf.abs(self.min_jamx_neu(input))
         return output
 
     def get_max_act(self, x):
