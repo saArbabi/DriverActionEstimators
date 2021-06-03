@@ -86,22 +86,22 @@ class Encoder(AbstractModel):
 
     def get_des_tgap(self, x):
         input = self.des_tgap_layer(x)
-        output = tf.exp(self.des_tgap_neu(input)) + 1
+        output = tf.abs(self.des_tgap_neu(input)) + 1
         return output
 
     def get_min_jamx(self, x):
         input = self.min_jamx_layer(x)
-        output = tf.exp(self.min_jamx_neu(input)) + 1
+        output = tf.abs(self.min_jamx_neu(input))
         return output
 
     def get_max_act(self, x):
         input = self.max_act_layer(x)
-        output = tf.exp(self.max_act_neu(input)) + 0.5
+        output = tf.abs(self.max_act_neu(input)) + 0.5
         return output
 
     def get_min_act(self, x):
         input = self.min_act_layer(x)
-        output = tf.exp(self.min_act_neu(input)) + 0.5
+        output = tf.abs(self.min_act_neu(input)) + 0.5
         return output
 
     def idm_driver(self, vel, dv, dx, idm_param):
@@ -124,9 +124,9 @@ class Encoder(AbstractModel):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def idm_sim(self, env_states, encoder_states):
-        batch_size = 256
         h_t, c_t = encoder_states
         scaled_s, unscaled_s = env_states
+        batch_size = tf.shape(scaled_s)[0]
         #
         desired_v = self.get_des_v(h_t, unscaled_s[:, 0, 0:1])
         desired_tgap = self.get_des_tgap(h_t)
@@ -161,11 +161,11 @@ class Encoder(AbstractModel):
                 dx = tf.reshape(dx, [batch_size, 1])
                 fl_act = self.idm_driver(vel, dv, dx, idm_param)
 
-                dv = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
-                dx = tf.slice(unscaled_s, [0, step, 6], [batch_size, 1, 1])
-                dv = tf.reshape(dv, [batch_size, 1])
-                dx = tf.reshape(dx, [batch_size, 1])
-                fm_act = self.idm_driver(vel, dv, dx, idm_param)
+                # dv = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+                # dx = tf.slice(unscaled_s, [0, step, 6], [batch_size, 1, 1])
+                # dv = tf.reshape(dv, [batch_size, 1])
+                # dx = tf.reshape(dx, [batch_size, 1])
+                # fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
                 # outputs, h_t, c_t = self.future_dec(scaled_s[:, step:step+1, :], initial_state=[h_t, c_t])
                 # outputs = tf.reshape(outputs, [batch_size, self.enc_units])
@@ -178,7 +178,7 @@ class Encoder(AbstractModel):
                 # alphas = tf.concat([alphas, tf.reshape(alpha, [batch_size, 1, 1])], axis=1)
                 act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
                 fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
-                fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+                # fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
             tf.print('######')
             tf.print('desired_v: ', tf.reduce_mean(desired_v))

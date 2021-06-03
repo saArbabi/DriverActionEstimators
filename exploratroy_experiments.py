@@ -20,7 +20,11 @@ print(training_data[1].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
-
+# a = [1,2,3,4]
+# a.insert(1, 7)
+# len(training_data)
+# training_data.insert(1, training_data[1])
+a
 # training_data[3][0, , :]
 # %%
 
@@ -208,8 +212,8 @@ t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
 t2.numpy()
 # %%
 # val_compare = {}
-# val_compare['2'] = valid_loss
-val_compare['good'] = valid_loss
+val_compare['4 abs'] = valid_loss
+# val_compare['good'] = valid_loss
 
 #- %%
 for f, loss_val in val_compare.items():
@@ -281,11 +285,9 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 
 # %%
-"""visualse latent vector.
+"""visualse trajs.
 """
-model_trainer.model.model_use = 'debug'
-
-xs_h, xs_f, ys_f = training_data
+xs_h, xs_f, xs_f, ys_f = training_data
 train_indx = int(len(xs_h)*0.8)
 
 xs_h = xs_h[train_indx:, :, :]
@@ -310,22 +312,21 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 #     if info[epis]
 
 # %%
-def latent_samples(model_trainer, indx):
-    a_, mean, logvar = model_trainer.model([xs_h[indx, :, 1:], \
-                                xs_f[indx, :, 1:]])
-    samples = model_trainer.model.sample([mean, logvar]).numpy()
-    return samples
+"""
+see why the mismatc, and if it matters at all? take a look at params/dataset size etc.
+Dataset size could be the culpret here.
+"""
+for indx in norm[0: 10]:
+    indx = [indx]
+    plt.figure()
+    xs_h = np.float32(xs_h)
+    xs_f = np.float32(xs_f)
+    data_sample_h = xs_h[indx, :, 1:]
+    data_sample_f = xs_f[indx, :, 1:]
 
-samples = latent_samples(model_trainer, agg)
-plt.scatter(samples[:, 0], samples[:, 1], color='red')
-samples = latent_samples(model_trainer, tim)
-plt.scatter(samples[:, 0], samples[:, 1], color='green')
-samples = latent_samples(model_trainer, norm)
-plt.scatter(samples[:, 0], samples[:, 1], color='orange')
-plt.ylabel('$z_1$')
-plt.xlabel('$z_2$')
-
-
+    act_seq = model_trainer.model([data_sample_h, data_sample_f, data_sample_f]).numpy()
+    plt.plot(act_seq.flatten(), color='grey')
+    plt.plot(ys_f[indx, :, 1].flatten(), color='red')
 # %%
 a = np.array([1,2,3,4])
 a[[1,2]]
