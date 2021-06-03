@@ -298,7 +298,7 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x, current_v):
         x = self.des_v_layer(x)
-        output = self.des_v_neu(x) + current_v
+        output = self.des_v_neu(x) + 20
         return output
 
     def get_des_tgap(self, x):
