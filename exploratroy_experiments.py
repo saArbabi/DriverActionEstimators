@@ -20,7 +20,11 @@ print(training_data[1].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
-
+# a = [1,2,3,4]
+# a.insert(1, 7)
+# len(training_data)
+# training_data.insert(1, training_data[1])
+a
 # training_data[3][0, , :]
 # %%
 
