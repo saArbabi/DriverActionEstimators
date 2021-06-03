@@ -86,7 +86,7 @@ class Encoder(AbstractModel):
 
     def get_des_tgap(self, x):
         input = self.des_tgap_layer(x)
-        output = tf.exp(self.des_tgap_neu(input))
+        output = tf.abs(self.des_tgap_neu(input)) + 1
         return output
 
     def get_min_jamx(self, x):
@@ -96,12 +96,12 @@ class Encoder(AbstractModel):
 
     def get_max_act(self, x):
         input = self.max_act_layer(x)
-        output = tf.exp(self.max_act_neu(input))
+        output = tf.abs(self.max_act_neu(input)) + 0.5
         return output
 
     def get_min_act(self, x):
         input = self.min_act_layer(x)
-        output = tf.exp(self.min_act_neu(input))
+        output = tf.abs(self.min_act_neu(input)) + 0.5
         return output
 
     def idm_driver(self, vel, dv, dx, idm_param):
