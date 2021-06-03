@@ -289,7 +289,7 @@ plt.xlabel('$z_2$')
 
 # %%
 
-for indx in norm[0: 20]:
+for indx in agg[0: 20]:
     indx = [indx]
     plt.figure()
 
@@ -330,7 +330,7 @@ for indx in norm[0: 20]:
 
     desired_tgaps = idm_param[1].numpy().flatten()
     plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
-    plt.scatter(25, 1.5, color='red')
-    plt.xlim(15, 35)
-    plt.ylim(1, 3)
+    plt.scatter(30, 1., color='red')
+    plt.xlim(20, 40)
+    plt.ylim(0, 3)
     plt.title(indx)
