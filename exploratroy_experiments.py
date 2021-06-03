@@ -309,38 +309,43 @@ plt.xlabel('$z_2$')
 # latent_samples(model_trainer, agg[0:1])
 #
 # tf.constant([[2],[2]])*tf.constant([4])
-indx = [norm[50]]
+for indx in norm[0: 10]:
+    indx = [indx]
+    plt.figure()
 
-xs_h, xs_f, xs_f, ys_f = training_data
-xs_h = np.float32(xs_h)
-xs_f = np.float32(xs_f)
-xs_h.dtype
-data_sample_h = np.repeat(xs_h[indx, :, 1:], 5, axis=0)
-data_sample_f = np.repeat(xs_f[indx, :, 1:], 5, axis=0)
+    xs_h = np.float32(xs_h)
+    xs_f = np.float32(xs_f)
+    data_sample_h = np.repeat(xs_h[indx, :, 1:], 30, axis=0)
+    data_sample_f = np.repeat(xs_f[indx, :, 1:], 30, axis=0)
 
-train_indx = int(len(xs_h)*0.8)
-encoder_states = model_trainer.model.history_enc(data_sample_h)
-prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
-z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+    train_indx = int(len(xs_h)*0.8)
+    encoder_states = model_trainer.model.history_enc(data_sample_h)
+    prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
+    z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-context = tf.concat([z, encoder_states[0]], axis=1)
-decoder_output = model_trainer.model.decoder(context)
-current_v = data_sample_h[:, -1, 1:2]
-idm_param = model_trainer.model.idm_layer([decoder_output, current_v])
+    context = tf.concat([z, encoder_states[0]], axis=1)
+    decoder_output = model_trainer.model.decoder(context)
+    current_v = data_sample_h[:, -1, 1:2]
+    idm_param = model_trainer.model.idm_layer([decoder_output, current_v])
 
-# idm_param[0]
+    env_states = [data_sample_f, data_sample_f]
+    data_sample_f.shape
+    act_seq = model_trainer.model.idm_sim.rollout([env_states, idm_param, [_, _]]).numpy()
+    act_seq.shape
+    for sample_trace_i in range(5):
+        plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+    plt.plot(ys_f[indx, :, -1].flatten(), color='red')
+    plt.title(indx)
+    ##########
+    plt.figure()
 
-#m %%
-# idm_param = [tf.reshape(param, [1,1,1]) for param in idm_param]
-# idm_param = [tf.cast(param, tf.float64) for param in idm_param]
-# idm_param = [param.numpy() for param in idm_param]
-env_states = [data_sample_f, data_sample_f]
-data_sample_f.shape
-act_seq = model_trainer.model.idm_sim.rollout([env_states, idm_param, [_, _]]).numpy()
-act_seq.shape
-for sample_trace_i in range(5):
-    plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(ys_f[indx, :, -1].flatten(), color='red')
+    desired_vs = idm_param[0].numpy().flatten()
+    desired_tgaps = idm_param[1].numpy().flatten()
+    plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+    plt.scatter(25, 1.5, color='red')
+    plt.xlim(15, 35)
+    plt.ylim(1, 3)
+    plt.title(indx)
 
 
 # %%

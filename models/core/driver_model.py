@@ -108,19 +108,19 @@ class BeliefModel(tf.keras.Model):
 
     def architecture_def(self):
         self.pri_mean = Dense(self.latent_dim)
-        self.pri_logvar = Dense(self.latent_dim)
+        self.pri_logsigma = Dense(self.latent_dim)
         self.pri_linear_layer = Dense(50)
         self.pos_mean = Dense(self.latent_dim)
-        self.pos_logvar = Dense(self.latent_dim)
+        self.pos_logsigma = Dense(self.latent_dim)
         self.pos_linear_layer = Dense(100)
 
         # tfpl.MultivariateNormalTriL(self.latent_dim,
         #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),
     def sample_z(self, dis_params):
-        z_mean, z_logvar = dis_params
+        z_mean, z_logsigma = dis_params
         epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
-        return z_mean + K.exp(z_logvar) * epsilon
+        return z_mean + K.exp(z_logsigma) * epsilon
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -128,17 +128,18 @@ class BeliefModel(tf.keras.Model):
             # prior
             context = self.pri_linear_layer(ht_history)
             pri_mean = self.pri_mean(context)
-            pri_logvar = self.pri_logvar(context)
+            pri_logsigma = self.pri_logsigma(context)
             # posterior
             context = self.pos_linear_layer(tf.concat([ht_history, ht_future], axis=-1))
             pos_mean = self.pos_mean(context)
-            pos_logvar = self.pos_logvar(context)
-            return [pri_mean, pri_logvar], [pos_mean, pos_logvar]
+            pos_logsigma = self.pos_logsigma(context)
+            return [pri_mean, pri_logsigma], [pos_mean, pos_logsigma]
 
         elif dis_type == 'prior':
-            pri_mean = self.pri_mean(inputs)
-            pri_logvar = self.pri_logvar(inputs)
-            return [pri_mean, pri_logvar]
+            context = self.pri_linear_layer(inputs)
+            pri_mean = self.pri_mean(context)
+            pri_logsigma = self.pri_logsigma(context)
+            return [pri_mean, pri_logsigma]
 
 class Encoder(tf.keras.Model):
     def __init__(self):
@@ -260,7 +261,9 @@ class IDMForwardSim(tf.keras.Model):
             # fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
         tf.print('######')
-        tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        tf.print('desired_v_mean: ', tf.reduce_mean(desired_v))
+        tf.print('desired_v_max: ', tf.reduce_max(desired_v))
+        tf.print('desired_v_min: ', tf.reduce_min(desired_v))
         tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
         tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
         tf.print('max_act: ', tf.reduce_mean(max_act))
