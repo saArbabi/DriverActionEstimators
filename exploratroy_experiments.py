@@ -16,16 +16,19 @@ training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
-print(training_data[1].shape)
+print(training_data[0].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
 
 # training_data[3][0, -1, :]
+training_data[0][50, 1, :]
 
 # %%
+7 == 7 and not (3 == 3 and 1 == 3)
+# %%
 
-for i in range(1, 10):
+for i in range(1, 9):
     plt.figure()
     feature = training_data[2][0:100000, -1, i]
     feature.max()
@@ -52,6 +55,15 @@ _ = plt.hist(to_plot, bins=150)
 plt.xlabel('Hist')
 plt.ylabel('Relative x - merger car')
 # %%
+config = {
+ "model_config": {
+     "learning_rate": 1e-3,
+    "batch_size": 256,
+    },
+    "exp_id": "NA",
+    "Note": ""
+}
+
 class Trainer():
     def __init__(self, model_type):
         self.model = None
@@ -204,73 +216,15 @@ plt.title('KL')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
 # %%
-t = tf.constant([[-10., -1., 0.], [0.5, 2., 10.]])
-t2 = tf.clip_by_value(t, clip_value_min=-1, clip_value_max=1)
-t2.numpy()
-# %%
-# val_compare = {}
-# val_compare['2'] = valid_loss
-val_compare['good'] = valid_loss
+import tensorflow_probability as tfp
+tfd = tfp.distributions
+norm1 = tfd.Normal(loc=2., scale=3.)
+norm2 = tfd.Normal(loc=0., scale=-1)
+tfp.distributions.kl_divergence(norm1, norm2)
 
-#- %%
-for f, loss_val in val_compare.items():
-    plt.plot(loss_val)
-plt.legend(val_compare.keys())
-plt.xlabel('epochs')
-plt.ylabel('loss (MSE)')
-plt.grid()
-# %%
-from scipy.stats import norm
-for i in [0.5, 1, 2, 5]:
-    x = np.linspace(-5, 5, 1000)
-    # y = -5*(abs(np.tanh(5*(x-0.5))) - 1)
-    # y = (tf.tanh(x))**2
-    # y = np.exp(x)
-    y = 1/(1+np.exp(-i*x))
-    # y = (x-1)**2
-    # plt.plot(x, y)
-    # y = (x+0)**2
-    plt.plot(x, y)
-plt.grid()
-# %%
-idm_param = {
-                'desired_v':25, # m/s
-                'desired_tgap':1.5, # s
-                'min_jamx':2, # m
-                'max_act':1.4, # m/s^2
-                'min_act':2, # m/s^2
-                }
-
-desired_v = idm_param['desired_v']
-desired_tgap = idm_param['desired_tgap']
-min_jamx = idm_param['min_jamx']
-max_act = idm_param['max_act']
-min_act = idm_param['min_act']
-follower_v = 20
-lead_v = 20
-dx = 20
-dv = 0.1
-
-des_options = np.linspace(0.5, 3, 100)
-actions = []
-for des in des_options:
-    min_act = des
-    desired_gap = min_jamx + desired_tgap*follower_v+(follower_v*dv)/ \
-                                    (2*np.sqrt(max_act*min_act))
-
-    acc = max_act*(1-(follower_v/desired_v)**4-\
-                                        (desired_gap/dx)**2)
-
-    actions.append(acc)
-plt.grid()
-plt.xlabel('Param range (min_act)')
-plt.ylabel('Action value')
-plt.plot(des_options, actions)
-
-# %%
 # %%
 # model_name ='lstm_seq2s_idm'
-model_name ='driver_model'
+model_name ='testing_car'
 model_trainer.save_model(model_name =model_name)
 # model_trainer.save_model(model_name = model_trainer.model_type)
 # %%
@@ -280,19 +234,29 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 
 # %%
+
+# %%
+import tensorflow as tf
+for i in indxs[0:10]:
+    # encoder_states = model_trainer.model.encoder(np.zeros([1, :, 1:]))
+    encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
+    z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
+    tf.print(np.exp(z_log_sigma.numpy()))
+encoder_states[0].shape
+
+# %%
 """visualse latent vector.
 """
-model_trainer.model.model_use = 'debug'
-
-xs_h, xs_f, ys_f = training_data
+xs_h, xs_f, xs_f, ys_f = training_data
 train_indx = int(len(xs_h)*0.8)
-
 xs_h = xs_h[train_indx:, :, :]
 xs_f = xs_f[train_indx:, :, :]
+# xs_f = xs_f[train_indx:, :, :]
 ys_f = ys_f[train_indx:, :, :]
 
 indxs = np.random.choice(range(len(xs_h)), 500, replace=False)
 episodes = xs_h[indxs, 0, 0]
+# np.unique(indxs).shape
 tim = []
 norm = []
 agg = []
@@ -304,15 +268,13 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
         norm.append(indx)
     elif info[epis] == 'aggressive':
         agg.append(indx)
-#
-# for epis in episodes:
-#     if info[epis]
 
 # %%
 def latent_samples(model_trainer, indx):
-    a_, mean, logvar = model_trainer.model([xs_h[indx, :, 1:], \
-                                xs_f[indx, :, 1:]])
-    samples = model_trainer.model.sample([mean, logvar]).numpy()
+    encoder_states = model_trainer.model.history_enc(xs_h[indx, :, 1:])
+    prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
+    samples = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+
     return samples
 
 samples = latent_samples(model_trainer, agg)
@@ -326,74 +288,49 @@ plt.xlabel('$z_2$')
 
 
 # %%
-a = np.array([1,2,3,4])
-a[[1,2]]
-for _ in range(20):
+
+for indx in norm[0: 20]:
+    indx = [indx]
     plt.figure()
-    episode_id = np.random.choice(episode_ids)
-    driver_type = info[episode_id]
-    xs_h_epis = xs_h[xs_h[:, 0, 0] == episode_id]
-    xs_f_epis = xs_f[xs_f[:, 0, 0] == episode_id]
-    ys_f_epis = ys_f[ys_f[:, 0, 0] == episode_id]
-    i_choices = range(len(xs_h_epis))
-    i = np.random.choice(i_choices)
-    xs_h_i = xs_h_epis[i:i+1, :, 1:]
-    xs_f_i = xs_f_epis[i:i+1, :, 1:]
-    ys_f_i = ys_f_epis[i:i+1, :, 1:]
 
-    actions, param = model_trainer.model([xs_h_i, xs_f_i])
-    actions, param = actions.numpy()[0], param.numpy()[0]
-    # print('true: ', ys_f[i])
-    plt.title(str(param)+' '+driver_type)
-    plt.plot(range(99, 199), actions, color='grey')
-    plt.plot(range(99, 199), ys_f_i[0, :, -1], color='red')
-    plt.plot(xs_h_i[0, :, -1], color='purple')
-    plt.ylim(-3, 3)
-    plt.grid()
-    plt.legend(['pred', 'true'])
-# %%
-normal_idm = {
-                'desired_v':25, # m/s
-                'desired_tgap':1.5, # s
-                'min_jamx':2, # m
-                'max_act':1.4, # m/s^2
-                'min_act':2, # m/s^2
-                }
+    xs_h = np.float32(xs_h)
+    xs_f = np.float32(xs_f)
+    data_sample_h = np.repeat(xs_h[indx, :, 1:], 30, axis=0)
+    data_sample_f = np.repeat(xs_f[indx, :, 1:], 30, axis=0)
 
-model_trainer.model.model_use = 'inference'
+    train_indx = int(len(xs_h)*0.8)
+    encoder_states = model_trainer.model.history_enc(data_sample_h)
+    prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
+    z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-# %%
-model_trainer.model.model_use = 'debug'
+    context = tf.concat([z, encoder_states[0]], axis=1)
+    decoder_output = model_trainer.model.decoder(context)
+    current_v = data_sample_h[:, -1, 1:2]
+    idm_param = model_trainer.model.idm_layer([decoder_output, current_v])
 
-xs_h, xs_f, ys_f = training_data
-train_indx = int(len(xs_h)*0.8)
-episode_ids = np.unique(xs_h[train_indx:, 0, 0])
-
-xs_h = xs_h[train_indx:, :, :]
-xs_f = xs_f[train_indx:, :, :]
-ys_f = ys_f[train_indx:, :, :]
-
-for _ in range(20):
+    env_states = [data_sample_f, data_sample_f]
+    data_sample_f.shape
+    act_seq = model_trainer.model.idm_sim.rollout([env_states, idm_param, [_, _]]).numpy()
+    act_seq.shape
+    for sample_trace_i in range(5):
+        plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+    plt.plot(ys_f[indx, :, -1].flatten(), color='red')
+    plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
+    ys_f[indx, :, -1]
+    act_seq.mean()
+    plt.title(indx)
+    ##########
     plt.figure()
-    episode_id = np.random.choice(episode_ids)
-    driver_type = info[episode_id]
-    xs_h_epis = xs_h[xs_h[:, 0, 0] == episode_id]
-    xs_f_epis = xs_f[xs_f[:, 0, 0] == episode_id]
-    ys_f_epis = ys_f[ys_f[:, 0, 0] == episode_id]
-    i_choices = range(len(xs_h_epis))
-    i = np.random.choice(i_choices)
-    xs_h_i = xs_h_epis[i:i+1, :, 1:]
-    xs_f_i = xs_f_epis[i:i+1, :, 1:]
-    ys_f_i = ys_f_epis[i:i+1, :, 1:]
 
-    actions, param = model_trainer.model([xs_h_i, xs_f_i])
-    actions, param = actions.numpy()[0], param.numpy()[0]
-    # print('true: ', ys_f[i])
-    plt.title(str(param)+' '+driver_type)
-    plt.plot(range(99, 199), actions, color='grey')
-    plt.plot(range(99, 199), ys_f_i[0, :, -1], color='red')
-    plt.plot(xs_h_i[0, :, -1], color='purple')
-    plt.ylim(-3, 3)
-    plt.grid()
-    plt.legend(['pred', 'true'])
-# %%
+    desired_vs = idm_param[0].numpy().flatten()
+    # plt.plot(desired_vs)
+    # plt.grid()
+    # plt.plot(desired_tgaps)
+    # plt.grid()
+
+    desired_tgaps = idm_param[1].numpy().flatten()
+    plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+    plt.scatter(25, 1.5, color='red')
+    plt.xlim(15, 35)
+    plt.ylim(1, 3)
+    plt.title(indx)

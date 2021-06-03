@@ -73,7 +73,7 @@ class Viewer():
 
     def draw_env(self, ax, vehicles):
         ax.clear()
-        self.draw_road(ax, percept_origin=vehicles[0].x.mean())
+        self.draw_road(ax, percept_origin=vehicles[0].x)
         self.draw_vehicles(ax, vehicles)
         # self.draw_attention_line(ax, vehicles)
 

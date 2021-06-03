@@ -5,18 +5,20 @@ from models.core import abstract_model
 reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
+import tensorflow_probability as tfp
+tfd = tfp.distributions
 tf.random.set_seed(1234)
 
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
-        self.encoder = Encoder()
+        self.future_enc = Encoder()
+        self.history_enc = Encoder()
+        self.belief_estimator = BeliefModel()
         self.decoder = Decoder(config)
-        self.idm_sim = IDMForwardSim()
         self.idm_layer = IDMLayer()
+        self.idm_sim = IDMForwardSim()
         self.model_use = model_use
-        # mse_loss = 0
-        # self.kl_loss = 0
 
     def callback_def(self):
         self.train_klloss = tf.keras.metrics.Mean(name='train_loss')
@@ -37,9 +39,9 @@ class NeurIDMModel(AbstractModel):
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            act_pred, mean, logvar = self(states)
+            act_pred, prior_param, posterior_param = self(states)
             mse_loss = self.mse(targets, act_pred)
-            kl_loss = self.kl_loss(mean, logvar)
+            kl_loss = self.kl_loss(prior_param, posterior_param)
             loss = self.vae_loss(mse_loss, kl_loss)
 
         gradients = tape.gradient(loss, self.trainable_variables)
@@ -51,76 +53,100 @@ class NeurIDMModel(AbstractModel):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        act_pred, mean, logvar = self(states)
+        act_pred, prior_param, posterior_param = self(states)
         mse_loss = self.mse(targets, act_pred)
-        kl_loss = self.kl_loss(mean, logvar)
+        kl_loss = self.kl_loss(prior_param, posterior_param)
         loss = self.vae_loss(mse_loss, kl_loss)
         self.test_klloss.reset_states()
         self.test_mseloss.reset_states()
         self.test_mseloss(mse_loss)
         self.test_klloss(kl_loss)
-    # @tf.function
-    def sample(self, args):
-        z_mean, z_log_sigma = args
-        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0], self.encoder.latent_dim),
-                                  mean=0., stddev=1)
-        return z_mean + K.exp(z_log_sigma) * epsilon
 
-    def get_actions(self):
-        mean, logvar = self.encoder(x)
-        z = self.reparameterize(mean, logvar)
-        desired_v = self.decoder(z)
-        a_ = self.idm(desired_v)
-        return  a_
-
-    def kl_loss(self, z_mean, z_log_sigma):
-        kl_loss = 1 + z_log_sigma - K.square(z_mean) - K.exp(z_log_sigma)
-        kl_loss = K.sum(kl_loss, axis=-1)
-        kl_loss *= -0.5
-        return tf.reduce_mean(kl_loss)
+    def kl_loss(self, prior_param, posterior_param):
+        prior = tfd.Normal(loc=prior_param[0], scale=tf.exp(prior_param[1]))
+        posterior = tfd.Normal(loc=posterior_param[0], scale=tf.exp(posterior_param[1]))
+        return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
     def vae_loss(self, mse_loss, kl_loss):
-        return  kl_loss +  mse_loss
+        return  0.1*kl_loss +  mse_loss
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f]
-        current_v = inputs[2][:, 0, 2:3]
-        mean, logvar, encoder_states = self.encoder(inputs[0])
-        z = self.sample([mean, logvar])
-        decoder_output = self.decoder(z)
-        idm_param = self.idm_layer([decoder_output, current_v])
+        current_v = inputs[2][:, 0, 0:1]
+        h_enc_state = self.history_enc(inputs[0]) # history lstm state
 
         if self.model_use == 'training':
-            act_seq = self.idm_sim.rollout([inputs[1:], idm_param, encoder_states])
-            return act_seq, mean, logvar
+            f_enc_state = self.future_enc(inputs[1])
+            prior_param, posterior_param = self.belief_estimator(\
+                                    [h_enc_state[0], f_enc_state[0]], dis_type='both')
+            z = self.belief_estimator.sample_z(posterior_param)
+            context = tf.concat([z, h_enc_state[0]], axis=1)
+            decoder_output = self.decoder(context)
+            idm_param = self.idm_layer([decoder_output, current_v])
+            act_seq = self.idm_sim.rollout([inputs[1:], idm_param, h_enc_state])
+            return act_seq, prior_param, posterior_param
 
         elif self.model_use == 'inference':
-            h_t, c_t = encoder_states
-            att_score, _, _ = self.idm_sim.arbiter([inputs[1][:, 0:1, :], h_t, c_t])
-            return idm_param, att_score
+            h_t, c_t = h_enc_state
+            prior_param = self.belief_estimator(h_t, dis_type='prior')
+            z = self.belief_estimator.sample_z(prior_param)
+            decoder_output = self.decoder(z)
+            idm_param = self.idm_layer([decoder_output, current_v])
+            # att_score, _, _ = self.idm_sim.arbiter([inputs[1][:, 0:1, :], h_t, c_t])
+            return idm_param
+            # return idm_param, att_score
+
+class BeliefModel(tf.keras.Model):
+    def __init__(self):
+        super(BeliefModel, self).__init__(name="BeliefModel")
+        self.latent_dim = 2
+        self.architecture_def()
+
+    def architecture_def(self):
+        self.pri_mean = Dense(self.latent_dim)
+        self.pri_logsigma = Dense(self.latent_dim)
+        self.pri_linear_layer = Dense(50)
+        self.pos_mean = Dense(self.latent_dim)
+        self.pos_logsigma = Dense(self.latent_dim)
+        self.pos_linear_layer = Dense(100)
+
+    def sample_z(self, dis_params):
+        z_mean, z_logsigma = dis_params
+        epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
+                                 self.latent_dim), mean=0., stddev=1)
+        return z_mean + K.exp(z_logsigma) * epsilon
+
+    def call(self, inputs, dis_type):
+        if dis_type == 'both':
+            ht_history, ht_future = inputs
+            # prior
+            context = self.pri_linear_layer(ht_history)
+            pri_mean = self.pri_mean(context)
+            pri_logsigma = self.pri_logsigma(context)
+            # posterior
+            context = self.pos_linear_layer(tf.concat([ht_history, ht_future], axis=-1))
+            pos_mean = self.pos_mean(context)
+            pos_logsigma = self.pos_logsigma(context)
+            return [pri_mean, pri_logsigma], [pos_mean, pos_logsigma]
+
+        elif dis_type == 'prior':
+            context = self.pri_linear_layer(inputs)
+            pri_mean = self.pri_mean(context)
+            pri_logsigma = self.pri_logsigma(context)
+            return [pri_mean, pri_logsigma]
 
 class Encoder(tf.keras.Model):
     def __init__(self):
         super(Encoder, self).__init__(name="Encoder")
         self.enc_units = 50
-        self.latent_dim = 2
-        # TODO: FULL cov distribution
-        # self.prior = tfd.Normal(loc=0., scale=3.)
         self.architecture_def()
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units, return_state=True)
-        self.z_mean = Dense(self.latent_dim)
-        self.z_log_sigma = Dense(self.latent_dim)
-        #
-        # tfpl.MultivariateNormalTriL(self.latent_dim,
-        #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),
 
     def call(self, inputs):
         _, h_t, c_t = self.lstm_layer(inputs)
-        z_mean = self.z_mean(h_t)
-        z_log_sigma = self.z_log_sigma(h_t)
-        return z_mean, z_log_sigma, [h_t, c_t]
+        return [h_t, c_t]
 
 class Decoder(tf.keras.Model):
     def __init__(self, config):
@@ -201,39 +227,41 @@ class IDMForwardSim(tf.keras.Model):
 
 
             # att_score, fm_att_score = self.get_att_score(tf.concat([fl_act, fm_act, outputs], axis=1))
-            vel = tf.slice(unscaled_s, [0, step, 2], [batch_size, 1, 1])
+            vel = tf.slice(unscaled_s, [0, step, 0], [batch_size, 1, 1])
             vel = tf.reshape(vel, [batch_size, 1])
 
-            dv = tf.slice(unscaled_s, [0, step, 4], [batch_size, 1, 1])
-            dx = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+            dv = tf.slice(unscaled_s, [0, step, 2], [batch_size, 1, 1])
+            dx = tf.slice(unscaled_s, [0, step, 3], [batch_size, 1, 1])
             dv = tf.reshape(dv, [batch_size, 1])
             dx = tf.reshape(dx, [batch_size, 1])
             fl_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            dv = tf.slice(unscaled_s, [0, step, 7], [batch_size, 1, 1])
-            dx = tf.slice(unscaled_s, [0, step, 8], [batch_size, 1, 1])
-            dv = tf.reshape(dv, [batch_size, 1])
-            dx = tf.reshape(dx, [batch_size, 1])
-            fm_act = self.idm_driver(vel, dv, dx, idm_param)
+            # dv = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+            # dx = tf.slice(unscaled_s, [0, step, 6], [batch_size, 1, 1])
+            # dv = tf.reshape(dv, [batch_size, 1])
+            # dx = tf.reshape(dx, [batch_size, 1])
+            # fm_act = self.idm_driver(vel, dv, dx, idm_param)
+            #
 
+            # att_score, h_t, c_t = self.arbiter([scaled_s[:, step:step+1, :], h_t, c_t, ])
 
-            att_score, h_t, c_t = self.arbiter([scaled_s[:, step:step+1, :], h_t, c_t, ])
-
-            act = att_score*fl_act + (1-att_score)*fm_act
+            # act = att_score*fl_act + (1-att_score)*fm_act
             # act = att_score*fl_act + (1-att_score)*fm_act
             # act = att_score*fl_act
-            # act = fl_act
-            att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
+            act = fl_act
+            # att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
             act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
             fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
-            fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+            # fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
-        # tf.print('######')
-        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        # tf.print('max_act: ', tf.reduce_mean(max_act))
-        # tf.print('min_act: ', tf.reduce_mean(min_act))
+        tf.print('######')
+        tf.print('desired_v_mean: ', tf.reduce_mean(desired_v))
+        tf.print('desired_v_max: ', tf.reduce_max(desired_v))
+        tf.print('desired_v_min: ', tf.reduce_min(desired_v))
+        tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        tf.print('max_act: ', tf.reduce_mean(max_act))
+        tf.print('min_act: ', tf.reduce_mean(min_act))
         # tf.print('att_score_max: ', tf.reduce_max(att_scores))
         # tf.print('att_score_min: ', tf.reduce_min(att_scores))
         # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
@@ -243,38 +271,48 @@ class IDMForwardSim(tf.keras.Model):
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
+        self.enc_units = 50
         self.architecture_def()
 
     def architecture_def(self):
+        self.des_v_layer = Dense(self.enc_units)
         self.des_v_neu = Dense(1)
+
+        self.des_tgap_layer = Dense(self.enc_units)
         self.des_tgap_neu = Dense(1)
+
+        self.min_jamx_layer = Dense(self.enc_units)
         self.min_jamx_neu = Dense(1)
+
+        self.max_act_layer = Dense(self.enc_units)
         self.max_act_neu = Dense(1)
+
+        self.min_act_layer = Dense(self.enc_units)
         self.min_act_neu = Dense(1)
 
     def get_des_v(self, x, current_v):
-        # input = self.des_v_layer(x)
-        output = self.des_v_neu(x) + current_v
+        x = self.des_v_layer(x)
+        output = self.des_v_neu(x) + 20
         return output
 
     def get_des_tgap(self, x):
-        # input = self.des_tgap_layer(x)
-        output = tf.exp(self.des_tgap_neu(x)) + 1
+        x = self.des_tgap_layer(x)
+        output = tf.abs(self.des_tgap_neu(x)) + 1
         return output
 
     def get_min_jamx(self, x):
-        # input = self.min_jamx_layer(x)
-        output = tf.exp(self.min_jamx_neu(x)) + 1
+        x = self.min_jamx_layer(x)
+        output = tf.abs(self.min_jamx_neu(x))
         return output
 
     def get_max_act(self, x):
-        # input = self.max_act_layer(x)
-        output = tf.exp(self.max_act_neu(x)) + 0.5
+        x = self.max_act_layer(x)
+        output = tf.abs(self.max_act_neu(x)) + 0.5
         return output
 
     def get_min_act(self, x):
-        # input = self.min_act_layer(x)
-        output = tf.exp(self.min_act_neu(x)) + 0.5
+        x = self.min_act_layer(x)
+        output = tf.abs(self.min_act_neu(x)) + 0.5
         return output
 
     def call(self, inputs):

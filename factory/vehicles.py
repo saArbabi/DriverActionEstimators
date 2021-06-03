@@ -6,7 +6,7 @@ class Vehicle(object):
     def __init__(self, id, lane_id, x, v):
         self.v = v # longitudinal speed [m/s]
         self.lane_id = lane_id # inner most right is 1
-        self.y = 0 # lane relative
+        self.y_lane = 0 # lane relative
         self.x = x # global coordinate
         self.id = id # 'sdv' or any other integer
         self.y = 2*lane_id*1.85-1.85
@@ -28,6 +28,7 @@ class Vehicle(object):
                                     + 0.5 * action * self.STEP_SIZE **2
 
         self.v = self.v + action * self.STEP_SIZE
+
 
 class LeadVehicle(Vehicle):
     def __init__(self, id, lane_id, x, v, idm_param=None):
@@ -171,6 +172,86 @@ class LSTMIDMVehicle(NeurVehicle):
                                             (desired_gap/obs['dx'])**2)
         self.action = action
         return action
+
+class SDVehicle(Vehicle):
+    def __init__(self, id, lane_id, x, v, idm_param=None):
+        super().__init__(id, lane_id, x, v)
+        self.env_clock = 0
+        states_dim = 8
+        self.steps_n = 20
+        self.samples_n = 1
+        # self.s_unscaled = np.zeros([self.samples_n, self.steps_n, 9])
+        # self.s_scaled = np.zeros([self.samples_n, self.steps_n, 9])
+        self.obs = np.zeros([self.samples_n, self.steps_n, states_dim])
+
+    def observe(self):
+        lf_dx = self.lead_vehicle.x-self.follower_vehicle.x
+        mf_dx = self.x-self.follower_vehicle.x
+        fl_dv = self.follower_vehicle.v - self.lead_vehicle.v
+        fm_dv = self.follower_vehicle.v - self.v
+        leader_feature = [self.lead_vehicle.v, fl_dv, lf_dx]
+        # print('lf_dx: ', lf_dx)
+        # print('mf_dx: ', mf_dx)
+        merger_feature = [self.v, fm_dv, mf_dx, self.y_lane]
+        # merger_feature = [self.merge_vehicle.v, fm_dv, mf_dx]
+        o_t = [self.follower_vehicle.v]
+        o_t.extend(leader_feature)
+        o_t.extend(merger_feature)
+        # print(self.x)
+
+        # for i in range(7):
+            # print(i)
+
+        self.obs[:, :-1, :] = self.obs[:, 1:, :]
+        self.obs[:, -1, :] = o_t
+
+
+    def step(self, action):
+        # longitudinal
+        self.x = self.x + self.v * self.STEP_SIZE \
+                                    + 0.5 * action[0] * self.STEP_SIZE **2
+
+        self.v = self.v + action[0] * self.STEP_SIZE
+
+        # Lateral
+        if action[1] != 0: # let this be a decision checker
+            if self.lane_id == 2 and self.y_lane < -1.85:
+                self.lane_id = 1
+                self.y_lane = 3.8 + self.y_lane
+            self.y = self.y + action[1] * self.STEP_SIZE
+            self.y_lane = self.y_lane + action[1] * self.STEP_SIZE
+
+
+    def act(self):
+        encoder_states = self.encoder(self.obs)
+        mean, logvar = self.belief_estimator(encoder_states[0])
+        z = self.belief_estimator.sample_z([mean, logvar])
+        decoder_output = self.decoder(z)
+        idm_param = self.idm_layer([decoder_output, float(self.v)])
+        # print('param-shape  ', param[0].numpy().shape)
+        h_t, c_t = encoder_states
+        att_score, _, _ = self.arbiter([self.obs[:, -1:, :], h_t, c_t])
+        print('att_score', att_score.numpy())
+        param = [item.numpy() for item in idm_param]
+        desired_v = param[0]
+
+
+        print('logvar: ', np.exp(logvar.numpy()))
+        print('desired_v: ', desired_v)
+        self.observe()
+
+        self.env_clock += 1
+        print('env_clock: ', self.env_clock)
+        print('obs: ', np.round(self.obs, 1))
+        # print('lat_y: ', self.y)
+        # print('lat_y_LANE: ', self.y_lane)
+        # print('lane_id: ', self.lane_id)
+        if self.env_clock > 30 and not (self.lane_id == 1 and self.y_lane < 0):
+            vlat = -0.7 #ms-1
+        else:
+            vlat = 0. #ms-1
+
+        return [0, vlat]
 
 class NeurIDM(NeurVehicle):
     def __init__(self, id, lane_id, x, v, driver_type, model):
