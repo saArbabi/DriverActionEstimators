@@ -289,7 +289,7 @@ plt.xlabel('$z_2$')
 
 # %%
 
-for indx in norm[0: 30]:
+for indx in norm[0: 20]:
     indx = [indx]
     plt.figure()
 
@@ -315,6 +315,9 @@ for indx in norm[0: 30]:
     for sample_trace_i in range(5):
         plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
     plt.plot(ys_f[indx, :, -1].flatten(), color='red')
+    plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
+    ys_f[indx, :, -1]
+    act_seq.mean()
     plt.title(indx)
     ##########
     plt.figure()
