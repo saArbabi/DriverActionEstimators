@@ -23,14 +23,26 @@ print(training_data[0].shape)
 
 # training_data[3][0, -1, :]
 training_data[0][50, 1, :]
+# %%
+"""
+Data imbalance
+"""
+att_l = 0
+att_m = 0
+for set in training_data[0:-1]:
+    att_l += np.sum(set[:, 0:10, -1] == 1)
+    att_m += np.sum(set[:, 0:10, -1]  == 0)
+
+plt.bar([1, 2], [att_l, att_m])
+att_l/(att_l+att_m)
 
 # %%
 7 == 7 and not (3 == 3 and 1 == 3)
 # %%
 
-for i in range(1, 9):
+for i in range(1, 10):
     plt.figure()
-    feature = training_data[2][0:100000, -1, i]
+    feature = training_data[1][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
 # %%
@@ -289,7 +301,7 @@ plt.xlabel('$z_2$')
 
 # %%
 
-for indx in agg[0: 20]:
+for indx in norm[50: 60]:
     indx = [indx]
     plt.figure()
 
@@ -309,9 +321,7 @@ for indx in agg[0: 20]:
     idm_param = model_trainer.model.idm_layer([decoder_output, current_v])
 
     env_states = [data_sample_f, data_sample_f]
-    data_sample_f.shape
-    act_seq = model_trainer.model.idm_sim.rollout([env_states, idm_param, [_, _]]).numpy()
-    act_seq.shape
+    act_seq = model_trainer.model.idm_sim.rollout([env_states, z, idm_param, encoder_states]).numpy()
     for sample_trace_i in range(5):
         plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
     plt.plot(ys_f[indx, :, -1].flatten(), color='red')

@@ -83,7 +83,7 @@ class NeurIDMModel(AbstractModel):
             context = tf.concat([z, h_enc_state[0]], axis=1)
             decoder_output = self.decoder(context)
             idm_param = self.idm_layer([decoder_output, current_v])
-            act_seq = self.idm_sim.rollout([inputs[1:], idm_param, h_enc_state])
+            act_seq = self.idm_sim.rollout([inputs[1:], z, idm_param, h_enc_state])
             return act_seq, prior_param, posterior_param
 
         elif self.model_use == 'inference':
@@ -205,7 +205,7 @@ class IDMForwardSim(tf.keras.Model):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def rollout(self, inputs):
-        env_states, idm_param, encoder_states = inputs
+        env_states, z, idm_param, encoder_states = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
         h_t, c_t = encoder_states
@@ -236,23 +236,24 @@ class IDMForwardSim(tf.keras.Model):
             dx = tf.reshape(dx, [batch_size, 1])
             fl_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            # dv = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
-            # dx = tf.slice(unscaled_s, [0, step, 6], [batch_size, 1, 1])
-            # dv = tf.reshape(dv, [batch_size, 1])
-            # dx = tf.reshape(dx, [batch_size, 1])
-            # fm_act = self.idm_driver(vel, dv, dx, idm_param)
-            #
+            dv = tf.slice(unscaled_s, [0, step, 5], [batch_size, 1, 1])
+            dx = tf.slice(unscaled_s, [0, step, 6], [batch_size, 1, 1])
+            dv = tf.reshape(dv, [batch_size, 1])
+            dx = tf.reshape(dx, [batch_size, 1])
+            fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            # att_score, h_t, c_t = self.arbiter([scaled_s[:, step:step+1, :], h_t, c_t, ])
 
-            # act = att_score*fl_act + (1-att_score)*fm_act
+            context = tf.concat([tf.reshape(z, [batch_size, 1, 2]), scaled_s[:, step:step+1, :]], axis=-1)
+            att_score, h_t, c_t = self.arbiter([context, h_t, c_t])
+
+            act = att_score*fl_act + (1-att_score)*fm_act
             # act = att_score*fl_act + (1-att_score)*fm_act
             # act = att_score*fl_act
-            act = fl_act
-            # att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
+            # act = fl_act
+            att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
             act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
             fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
-            # fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
+            fm_seq = tf.concat([fm_seq, tf.reshape(fm_act, [batch_size, 1, 1])], axis=1)
 
         tf.print('######')
         tf.print('desired_v_mean: ', tf.reduce_mean(desired_v))
@@ -262,9 +263,9 @@ class IDMForwardSim(tf.keras.Model):
         tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
         tf.print('max_act: ', tf.reduce_mean(max_act))
         tf.print('min_act: ', tf.reduce_mean(min_act))
-        # tf.print('att_score_max: ', tf.reduce_max(att_scores))
-        # tf.print('att_score_min: ', tf.reduce_min(att_scores))
-        # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+        tf.print('att_score_max: ', tf.reduce_max(att_scores))
+        tf.print('att_score_min: ', tf.reduce_min(att_scores))
+        tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
 
         return act_seq
 

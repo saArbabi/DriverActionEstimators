@@ -75,11 +75,11 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100
+    episode_n = 100 * 2
     step_size = 0.1 #s
 
 
@@ -116,38 +116,37 @@ def data_generator():
                     print("Collosion with lead vehicle")
                     break
 
-                # # merger
-                # fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
-                # if mf_dx != 0.5 and m_x < l_x:
-                #     if time_step == att_switch_step and f_att == 'leader':
-                #         m_vlat = -0.7
-                #
-                #     # if f_att == 'merger':
-                #     if lane_id == 1 and m_y < -1.85:
-                #         lane_id = 0
-                #         m_y = 1.85
-                #     elif lane_id == 0 and m_y < 0:
-                #         break
-                #
-                #     if m_vlat != 0:
-                #         f_att = 'merger'
-                #
-                #     fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
-                #     m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
-                #     m_x = m_x + m_v * step_size
-                #     m_y = m_y + m_vlat * step_size
-                #
-                #     merger_feature = [m_v, fm_dv, mf_dx, m_y]
-                #
-                # else:
-                #     break
-                #
-                # if f_att == 'leader':
-                #     act = fl_act
-                # else:
-                #     act = fm_act
+                # merger
+                fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
+                if mf_dx != 0.5 and m_x < l_x:
+                    fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                    if time_step > att_switch_step and f_att == 'leader' \
+                                                        and abs(fm_act) < 3.5:
+                        m_vlat = -0.7
+                        f_att = 'merger'
 
-                act = fl_act
+                    # if f_att == 'merger':
+                    if lane_id == 1 and m_y < -1.85:
+                        lane_id = 0
+                        m_y = 1.85
+                    elif lane_id == 0 and m_y < 0:
+                        break
+
+                    m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
+                    m_x = m_x + m_v * step_size
+                    m_y = m_y + m_vlat * step_size
+
+                    merger_feature = [m_v, fm_dv, mf_dx, m_y]
+
+                else:
+                    break
+
+                if f_att == 'leader':
+                    act = fl_act
+                else:
+                    act = fm_act
+
+                # act = fl_act
                 # f_att = 1
 
                 if abs(act) > 3.5:
@@ -159,8 +158,8 @@ def data_generator():
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
-                # merger_feature.append(0 if f_att == 'merger' else 1)
-                # feature.extend(merger_feature)
+                merger_feature.append(0 if f_att == 'merger' else 1)
+                feature.extend(merger_feature)
                 xs.append(feature)
                 ys.append([episode_id, act])
 
