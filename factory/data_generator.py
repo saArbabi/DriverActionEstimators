@@ -75,11 +75,11 @@ def data_generator():
     ys = []
     info = {}
     episode_steps_n = 100
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 2
+    episode_n = 100
     step_size = 0.1 #s
 
 
