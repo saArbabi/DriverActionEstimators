@@ -273,7 +273,7 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 #     if info[epis]
 
 # %%
-model_trainer.model.model_use = 'inference'
+# model_trainer.model.model_use = 'inference'
 
 def latent_samples(model_trainer, indx):
     encoder_states = model_trainer.model.history_enc(xs_h[indx, :, 1:])
@@ -281,6 +281,12 @@ def latent_samples(model_trainer, indx):
     samples = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
     return samples
+
+# data_sample_indx = norm[0:100]
+# samples = latent_samples(model_trainer, data_sample_indx)
+# plt.scatter(samples[:, 0], samples[:, 1], color='red')
+#
+# plt.plot()
 
 samples = latent_samples(model_trainer, agg)
 plt.scatter(samples[:, 0], samples[:, 1], color='red')
@@ -309,7 +315,7 @@ plt.xlabel('$z_2$')
 # latent_samples(model_trainer, agg[0:1])
 #
 # tf.constant([[2],[2]])*tf.constant([4])
-for indx in norm[0: 10]:
+for indx in norm[0: 30]:
     indx = [indx]
     plt.figure()
 
@@ -340,6 +346,11 @@ for indx in norm[0: 10]:
     plt.figure()
 
     desired_vs = idm_param[0].numpy().flatten()
+    # plt.plot(desired_vs)
+    # plt.grid()
+    # plt.plot(desired_tgaps)
+    # plt.grid()
+
     desired_tgaps = idm_param[1].numpy().flatten()
     plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
     plt.scatter(25, 1.5, color='red')

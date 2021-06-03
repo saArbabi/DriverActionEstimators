@@ -80,7 +80,7 @@ class NeurIDMModel(AbstractModel):
         if self.model_use == 'training':
             f_enc_state = self.future_enc(inputs[1])
             prior_param, posterior_param = self.belief_estimator(\
-                                    [h_enc_state[0], f_enc_state[0]], dis_type='both')
+                                    [h_enc_state[0], h_enc_state[0]], dis_type='both')
             z = self.belief_estimator.sample_z(posterior_param)
             context = tf.concat([z, h_enc_state[0]], axis=1)
             decoder_output = self.decoder(context)
