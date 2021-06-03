@@ -19,8 +19,6 @@ class NeurIDMModel(AbstractModel):
         self.idm_layer = IDMLayer()
         self.idm_sim = IDMForwardSim()
         self.model_use = model_use
-        # mse_loss = 0
-        # self.kl_loss = 0
 
     def callback_def(self):
         self.train_klloss = tf.keras.metrics.Mean(name='train_loss')
@@ -102,8 +100,6 @@ class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
         self.latent_dim = 2
-        # TODO: FULL cov distribution
-        # self.prior = tfd.Normal(loc=0., scale=3.)
         self.architecture_def()
 
     def architecture_def(self):
@@ -114,8 +110,6 @@ class BeliefModel(tf.keras.Model):
         self.pos_logsigma = Dense(self.latent_dim)
         self.pos_linear_layer = Dense(100)
 
-        # tfpl.MultivariateNormalTriL(self.latent_dim,
-        #     activity_regularizer=tfpl.KLDivergenceRegularizer(prior, weight=1.0)),
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
         epsilon = K.random_normal(shape=(tf.shape(z_mean)[0],
