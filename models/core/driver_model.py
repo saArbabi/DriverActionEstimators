@@ -124,9 +124,9 @@ class Encoder(AbstractModel):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def idm_sim(self, env_states, encoder_states):
-        batch_size = 256
         h_t, c_t = encoder_states
         scaled_s, unscaled_s = env_states
+        batch_size = tf.shape(scaled_s)[0]
         #
         desired_v = self.get_des_v(h_t, unscaled_s[:, 0, 0:1])
         desired_tgap = self.get_des_tgap(h_t)
