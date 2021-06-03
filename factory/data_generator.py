@@ -29,6 +29,24 @@ aggressive_idm = {
 """
 Synthetic data generation
 """
+def flip(p):
+    return 'merger' if np.random.random() < p else 'leader'
+
+def get_att_vehicle(attentiveness, m_y, lane_width):
+    """coin flip to decide who the follower is attending to.
+    """
+    if abs(m_y) >= lane_width:
+        return 'merger'
+    att_prob =  (np.exp(attentiveness*abs(m_y))-1)/(np.exp(attentiveness*lane_width)-1)
+    if att_prob != 0:
+        print('p: ', att_prob)
+        print('my: ', m_y)
+
+    f_att = flip(att_prob)
+    if f_att == 'merger':
+        print('gotcha')
+    return f_att
+
 def get_idm_params(driver_type):
     if driver_type == 'normal':
         idm_param = normal_idm
@@ -81,10 +99,13 @@ def data_generator():
     episode_id = 0
     episode_n = 100 * 2
     step_size = 0.1 #s
+    lane_width = 1.85
+    attentiveness = {'timid': 0.1, 'normal': 1.5, 'aggressive': 6} # attention probabilities
 
 
     while episode_id < episode_n:
         for driver in drivers:
+            print(driver)
             idm_params = get_idm_params(driver)
             mean_vel = 20
             att_switch_step = np.random.choice(range(0, episode_steps_n))
@@ -122,8 +143,9 @@ def data_generator():
                     fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
                     if time_step > att_switch_step and f_att == 'leader' \
                                                         and abs(fm_act) < 3.5:
+
                         m_vlat = -0.7
-                        f_att = 'merger'
+                        f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
 
                     # if f_att == 'merger':
                     if lane_id == 1 and m_y < -1.85:
@@ -139,6 +161,7 @@ def data_generator():
                     merger_feature = [m_v, fm_dv, mf_dx, m_y]
 
                 else:
+                    print("Bad state")
                     break
 
                 if f_att == 'leader':
@@ -158,7 +181,7 @@ def data_generator():
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
-                merger_feature.append(0 if f_att == 'merger' else 1)
+                # merger_feature.append(0 if f_att == 'merger' else 1)
                 feature.extend(merger_feature)
                 xs.append(feature)
                 ys.append([episode_id, act])

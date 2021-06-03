@@ -325,9 +325,7 @@ for indx in norm[50: 60]:
     for sample_trace_i in range(5):
         plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
     plt.plot(ys_f[indx, :, -1].flatten(), color='red')
-    plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
-    ys_f[indx, :, -1]
-    act_seq.mean()
+    # plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
     plt.title(indx)
     ##########
     plt.figure()
