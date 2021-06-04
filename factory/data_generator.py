@@ -1,7 +1,7 @@
 from collections import deque
 from sklearn import preprocessing
 import numpy as np
-
+np.random.seed(2020)
 normal_idm = {
                 'desired_v':25, # m/s
                 'desired_tgap':1.5, # s
@@ -73,6 +73,7 @@ def get_random_vals(mean_vel):
 def data_generator():
     xs = []
     ys = []
+    merger_xas = []
     info = {}
     episode_steps_n = 100
     # drivers = ['normal', 'timid', 'aggressive']
@@ -158,33 +159,36 @@ def data_generator():
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
-                merger_feature.append(0 if f_att == 'merger' else 1)
+                # merger_feature.append(0 if f_att == 'merger' else 1)
+                merger_feature.append(act)
                 feature.extend(merger_feature)
                 xs.append(feature)
+                merger_xas.append([episode_id, m_y, m_vlat])
                 ys.append([episode_id, act])
 
                 info[episode_id] = driver
             episode_id += 1
     xs = np.array(xs)
-    scale_data = False
+    scale_data = True
     # scale_data = True
 
     if scale_data:
         bool_indx = 1 # these are values not to be scaled
-        scaler = preprocessing.StandardScaler().fit(xs[:, bool_indx:])
+        scaler = preprocessing.StandardScaler().fit(xs[:, bool_indx:-3])
         xs_scaled = xs.copy()
-        xs_scaled[:, bool_indx:] = scaler.transform(xs[:, bool_indx:]).tolist()
+        xs_scaled[:, bool_indx:-3] = scaler.transform(xs[:, bool_indx:-3]).tolist()
 
-        return xs, xs_scaled, np.array(ys), info, scaler
+        return xs, xs_scaled, np.array(merger_xas), np.array(ys), info, scaler
 
     else:
         return xs, xs, np.array(ys), info, None
 
 def seqseq_sequence(training_states, h_len, f_len):
-    scaled_ss, unscaled_ss, actions = training_states
+    scaled_ss, unscaled_ss, merger_xas, actions = training_states
     xs_h = [] # history, scaled
     scaled_xs_f = [] # future, scaled
     unscaled_xs_f = [] # future, not scaled
+    merger_xas_f = []
     ys_f = [] # future, not scaled
     episode_steps_n = len(scaled_ss)
     xs_h_seq = deque(maxlen=h_len)
@@ -200,9 +204,10 @@ def seqseq_sequence(training_states, h_len, f_len):
             # xs_h.append(np.array(xs_h_seq))
             scaled_xs_f.append(scaled_ss[i:indx])
             unscaled_xs_f.append(unscaled_ss[i:indx])
+            merger_xas_f.append(merger_xas[i:indx])
             ys_f.append(actions[i:indx])
 
-    return xs_h, scaled_xs_f, unscaled_xs_f, ys_f
+    return xs_h, scaled_xs_f, unscaled_xs_f, merger_xas_f, ys_f
 
 def seq_sequence(training_states, h_len):
     states_h, states_c, actions = training_states
@@ -247,11 +252,12 @@ def seq_prep(h_len, training_samples_n):
     return [np.array(seq_xs_h), np.array(seq_xs_c), np.array(seq_ys_c)]
 
 def seqseq_prep(h_len, f_len, training_samples_n):
-    xs, xs_scaled, ys, info, scaler = data_generator()
+    xs, xs_scaled, merger_xas, ys, info, scaler = data_generator()
     episode_ids = list(np.unique(xs[:, 0]))
     seq_xs_h = []
     scaled_seq_xs_f = []
     unscaled_seq_xs_f = []
+    seq_merger_xas = []
     seq_ys_f = []
 
     for episode_id in episode_ids:
@@ -259,12 +265,14 @@ def seqseq_prep(h_len, f_len, training_samples_n):
             break
         xs_id = xs[xs[:,0]==episode_id].tolist()
         xs_scaled_id = xs_scaled[xs_scaled[:,0]==episode_id].tolist()
+        merger_xas_id = merger_xas[merger_xas[:,0]==episode_id].tolist()
         ys_id = ys[ys[:,0]==episode_id].tolist()
-        xs_h, scaled_xs_f, unscaled_xs_f, ys_f = seqseq_sequence([xs_scaled_id, xs_id, ys_id], h_len, f_len)
+        xs_h, scaled_xs_f, unscaled_xs_f, merger_xas_f, ys_f = seqseq_sequence([xs_scaled_id, xs_id, merger_xas_id, ys_id], h_len, f_len)
         seq_xs_h.extend(xs_h)
         scaled_seq_xs_f.extend(scaled_xs_f)
         unscaled_seq_xs_f.extend(unscaled_xs_f)
+        seq_merger_xas.extend(merger_xas_f)
         seq_ys_f.extend(ys_f)
 
     return [np.array(seq_xs_h), np.array(scaled_seq_xs_f), np.array(unscaled_seq_xs_f), \
-                                                np.array(seq_ys_f)], info, scaler
+                                np.array(seq_merger_xas), np.array(seq_ys_f)], info, scaler
