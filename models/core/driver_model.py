@@ -12,8 +12,9 @@ tf.random.set_seed(1234)
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
-        self.future_enc = Encoder()
-        self.history_enc = Encoder()
+        self.future_state_enc = Encoder()
+        self.history_state_enc = Encoder()
+        self.future_action_enc = Encoder() # sdv's future action
         self.belief_estimator = BeliefModel()
         self.decoder = Decoder(config)
         self.idm_layer = IDMLayer()
@@ -28,13 +29,13 @@ class NeurIDMModel(AbstractModel):
 
     def train_loop(self, data_objs):
         train_ds = self.batch_data(data_objs)
-        for xs_h, scaled_xs_f, unscaled_xs_f, ys_f in train_ds:
-            self.train_step([xs_h, scaled_xs_f, unscaled_xs_f], ys_f)
+        for xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f in train_ds:
+            self.train_step([xs_h, scaled_xs_f, unscaled_xs_f, merger_xas], ys_f)
 
     def test_loop(self, data_objs, epoch):
         train_ds = self.batch_data(data_objs)
-        for xs_h, scaled_xs_f, unscaled_xs_f, ys_f in train_ds:
-            self.test_step([xs_h, scaled_xs_f, unscaled_xs_f], ys_f)
+        for xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f in train_ds:
+            self.test_step([xs_h, scaled_xs_f, unscaled_xs_f, merger_xas], ys_f)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -71,19 +72,19 @@ class NeurIDMModel(AbstractModel):
         return  0.1*kl_loss +  mse_loss
 
     def call(self, inputs):
-        # inputs: [xs_h, scaled_xs_f, unscaled_xs_f]
-        current_v = inputs[2][:, 0, 0:1]
-        h_enc_state = self.history_enc(inputs[0]) # history lstm state
+        # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]
+        h_enc_state = self.history_state_enc(inputs[0]) # history lstm state
+        f_enc_action = self.future_action_enc(inputs[-1])
 
         if self.model_use == 'training':
-            f_enc_state = self.future_enc(inputs[1])
+            f_enc_state = self.future_state_enc(inputs[1])
             prior_param, posterior_param = self.belief_estimator(\
-                                    [h_enc_state[0], f_enc_state[0]], dis_type='both')
+                                    [h_enc_state[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
             z = self.belief_estimator.sample_z(posterior_param)
             context = tf.concat([z, h_enc_state[0]], axis=1)
             decoder_output = self.decoder(context)
-            idm_param = self.idm_layer([decoder_output, current_v])
-            act_seq = self.idm_sim.rollout([inputs[1:], z, idm_param, h_enc_state])
+            idm_param = self.idm_layer(decoder_output)
+            act_seq, _ = self.idm_sim.rollout([inputs[2], z, idm_param, h_enc_state])
             return act_seq, prior_param, posterior_param
 
         elif self.model_use == 'inference':
@@ -118,19 +119,20 @@ class BeliefModel(tf.keras.Model):
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
-            ht_history, ht_future = inputs
+            ht_history, ht_future, ht_action = inputs
             # prior
-            context = self.pri_linear_layer(ht_history)
+            context = self.pri_linear_layer(tf.concat([ht_history, ht_action], axis=-1))
             pri_mean = self.pri_mean(context)
             pri_logsigma = self.pri_logsigma(context)
             # posterior
-            context = self.pos_linear_layer(tf.concat([ht_history, ht_future], axis=-1))
+            context = self.pos_linear_layer(tf.concat([ht_history, ht_future, ht_action], axis=-1))
             pos_mean = self.pos_mean(context)
             pos_logsigma = self.pos_logsigma(context)
             return [pri_mean, pri_logsigma], [pos_mean, pos_logsigma]
 
         elif dis_type == 'prior':
-            context = self.pri_linear_layer(inputs)
+            ht_history, ht_action = inputs
+            context = self.pri_linear_layer(tf.concat([ht_history, ht_action], axis=-1))
             pri_mean = self.pri_mean(context)
             pri_logsigma = self.pri_logsigma(context)
             return [pri_mean, pri_logsigma]
@@ -169,6 +171,7 @@ class Arbiter(tf.keras.Model):
     def __init__(self):
         super(Arbiter, self).__init__(name="Arbiter")
         self.enc_units = 50
+        self.attention_temp = 5 # the higher, the sharper the attention
         self.architecture_def()
 
     def architecture_def(self):
@@ -184,7 +187,7 @@ class Arbiter(tf.keras.Model):
         x = self.attention_layer(outputs)
         x = self.attention_neu(x)
 
-        return 1/(1+tf.exp(-5*x)), h_t, c_t
+        return 1/(1+tf.exp(-self.attention_temp*x)), h_t, c_t
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
@@ -205,12 +208,11 @@ class IDMForwardSim(tf.keras.Model):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def rollout(self, inputs):
-        env_states, z, idm_param, encoder_states = inputs
+        unscaled_s, z, idm_param, encoder_states = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
         h_t, c_t = encoder_states
-        scaled_s, unscaled_s = env_states
-        batch_size = tf.shape(scaled_s)[0]
+        batch_size = tf.shape(unscaled_s)[0]
 
         act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
@@ -226,7 +228,6 @@ class IDMForwardSim(tf.keras.Model):
                              ])
 
 
-            # att_score, fm_att_score = self.get_att_score(tf.concat([fl_act, fm_act, outputs], axis=1))
             vel = tf.slice(unscaled_s, [0, step, 0], [batch_size, 1, 1])
             vel = tf.reshape(vel, [batch_size, 1])
 
@@ -242,14 +243,9 @@ class IDMForwardSim(tf.keras.Model):
             dx = tf.reshape(dx, [batch_size, 1])
             fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
-
-            context = tf.concat([tf.reshape(z, [batch_size, 1, 2]), scaled_s[:, step:step+1, :]], axis=-1)
-            att_score, h_t, c_t = self.arbiter([context, h_t, c_t])
-
+            att_score, h_t, c_t = self.arbiter([tf.reshape(z, [batch_size, 1, 2]), h_t, c_t])
             act = att_score*fl_act + (1-att_score)*fm_act
-            # act = att_score*fl_act + (1-att_score)*fm_act
-            # act = att_score*fl_act
-            # act = fl_act
+
             att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)
             act_seq = tf.concat([act_seq, tf.reshape(act, [batch_size, 1, 1])], axis=1)
             fl_seq = tf.concat([fl_seq, tf.reshape(fl_act, [batch_size, 1, 1])], axis=1)
@@ -267,7 +263,7 @@ class IDMForwardSim(tf.keras.Model):
         tf.print('att_score_min: ', tf.reduce_min(att_scores))
         tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
 
-        return act_seq
+        return act_seq, att_scores
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
@@ -291,7 +287,7 @@ class IDMLayer(tf.keras.Model):
         self.min_act_layer = Dense(self.enc_units)
         self.min_act_neu = Dense(1)
 
-    def get_des_v(self, x, current_v):
+    def get_des_v(self, x):
         x = self.des_v_layer(x)
         output = self.des_v_neu(x) + 20
         return output
@@ -318,8 +314,8 @@ class IDMLayer(tf.keras.Model):
 
     def call(self, inputs):
         # _, h_t, c_t = self.histroy_enc(inputs[0])
-        decoder_output, current_v = inputs
-        desired_v = self.get_des_v(decoder_output, current_v)
+        decoder_output = inputs
+        desired_v = self.get_des_v(decoder_output)
         desired_tgap = self.get_des_tgap(decoder_output)
         min_jamx = self.get_min_jamx(decoder_output)
         max_act = self.get_max_act(decoder_output)
