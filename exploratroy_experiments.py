@@ -326,7 +326,7 @@ while Example_pred < 20:
     avg_att_h = abs(data_sample_h[:, :, -2]).mean()
     avg_att_f = abs(data_sample_f[:, :, -2]).mean()
     # if avg_att == 1 or avg_att == 0:
-    if avg_att_h == 0 and avg_att_f == 0:
+    if avg_att_h == 0 and avg_att_f != 0:
         print(avg_att_h)
         print(avg_att_f)
         encoder_states = model_trainer.model.history_state_enc(data_sample_h)
@@ -337,10 +337,10 @@ while Example_pred < 20:
         context = tf.concat([z, encoder_states[0]], axis=1)
         decoder_output = model_trainer.model.decoder(context)
         current_v = data_sample_h[:, -1, 1:2]
-        idm_param = model_trainer.model.idm_layer([decoder_output, current_v])
+        idm_param = model_trainer.model.idm_layer(decoder_output)
 
-        env_states = [data_sample_f_scaled, data_sample_f]
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([env_states, z, idm_param, encoder_states])
+
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
         plt.figure()
         for sample_trace_i in range(traces_n):
@@ -401,10 +401,10 @@ z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 context = tf.concat([z, encoder_states[0]], axis=1)
 decoder_output = model_trainer.model.decoder(context)
 current_v = data_sample_h[:, -1, 1:2]
-idm_param = model_trainer.model.idm_layer([decoder_output, current_v])
+idm_param = model_trainer.model.idm_layer(decoder_output)
 
-env_states = [data_sample_f_scaled, data_sample_f]
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([env_states, z, idm_param, encoder_states])
+
+act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
@@ -432,4 +432,3 @@ plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
 plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
 plt.grid()
 # %%
- 
