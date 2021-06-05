@@ -59,7 +59,47 @@ plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
 
 # %%
-7 == 7 and not (3 == 3 and 1 == 3)
+""" Addressing data imbalance
+"""
+train_indx = int(len(training_data[0])*0.8)
+xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f = training_data
+train_input = [xs_h[0:train_indx, :, 1:],
+            scaled_xs_f[0:train_indx, :, 1:],
+            unscaled_xs_f[0:train_indx, :, 1:],
+            merger_xas[0:train_indx, :, 1:],
+            ys_f[0:train_indx, :, 1:]]
+
+# %%
+
+att_l = 0
+att_m = 0
+# for set in train_input[0:2]:
+for set in balanced_training_data[0:2]:
+    att_l += np.sum(set[:, 0:10, -1] == 1)
+    att_m += np.sum(set[:, 0:10, -1]  == 0)
+
+plt.bar([1, 2], [att_l, att_m])
+att_l/(att_l+att_m)
+# %%
+balanced_training_data = []
+axis_0, axis_1 = np.where(train_input[0][:, :, -1] == 0)
+lc_samples = np.unique(axis_0).astype(int)
+
+for set in train_input:
+    set = np.append(set, np.repeat(set[lc_samples, :, :], 15, axis=0), axis=0)
+    balanced_training_data.append(set)
+# balanced_training_data.append(training_data[-1])
+balanced_training_data[-1].shape
+
+# %%
+
+# for i in range(1, 10):
+plt.figure()
+# feature = training_data[0][:, -1, -1]
+feature = balanced_training_data[1][0:10000, -1, i]
+feature.max()
+_ = plt.hist(feature, bins=150)
+
 # %%
 
 for i in range(1, 11):
@@ -169,11 +209,39 @@ class Trainer():
 
         elif self.model_type == 'driver_model':
             xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f = training_data
-            train_input = [xs_h[0:train_indx, :, 1:-1],
-                        scaled_xs_f[0:train_indx, :, 1:-1],
-                        unscaled_xs_f[0:train_indx, :, 1:-1],
-                        merger_xas[0:train_indx, :, 1:],
-                        ys_f[0:train_indx, :, 1:]]
+            balance_data = False
+
+            if balance_data:
+                train_input = [xs_h[0:train_indx, :, 1:],
+                            scaled_xs_f[0:train_indx, :, 1:],
+                            unscaled_xs_f[0:train_indx, :, 1:],
+                            merger_xas[0:train_indx, :, 1:],
+                            ys_f[0:train_indx, :, 1:]]
+
+                balanced_training_data = []
+                axis_0, axis_1 = np.where(train_input[0][:, :, -1] == 0)
+                lc_samples = np.unique(axis_0).astype(int)
+
+                set_i = 0
+                for set in train_input:
+                    if set_i >= 3:
+                        set_ = set[:, :, :]
+                    else:
+                        set_ = set[:, :, :-1]
+
+                    set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 15, axis=0), axis=0)
+                    balanced_training_data.append(set_)
+                    set_i += 1
+
+                train_input = balanced_training_data
+
+            else:
+
+                train_input = [xs_h[0:train_indx, :, 1:-1],
+                            scaled_xs_f[0:train_indx, :, 1:-1],
+                            unscaled_xs_f[0:train_indx, :, 1:-1],
+                            merger_xas[0:train_indx, :, 1:],
+                            ys_f[0:train_indx, :, 1:]]
 
             val_input = [xs_h[train_indx:, :, 1:-1],
                         scaled_xs_f[train_indx:, :, 1:-1],
@@ -323,6 +391,7 @@ plt.xlabel('$z_2$')
 Example_pred = 0
 traces_n = 10
 i = 0
+covered_episodes = []
 while Example_pred < 20:
     indx = [norm[i]]
     i += 1
@@ -333,10 +402,13 @@ while Example_pred < 20:
     # avg_att_h = abs(data_sample_h[:, :, -2]).min()
     # avg_att_f = abs(data_sample_f[:, :, -2]).min()
     # avg_att_1 = xs_h[indx, :, -1].mean()
-    avg_att_1 =  xs_f_scaled[indx, 0:10, -1].mean()
-    avg_att_2 = xs_f_scaled[indx, 10:, -1].mean()
+    avg_att_1 =  xs_h[indx, :, -1].mean()
+    avg_att_2 = xs_f_scaled[indx, 5:, -1].mean()
     # if avg_att == 1 or avg_att == 0:
-    if avg_att_1 == 1 and avg_att_2 != 1:
+    # if avg_att_1 == 1 and avg_att_2 != 1:
+    episode = xs_h[indx, :, 0][0][0]
+    if episode not in covered_episodes and avg_att_1 == 1 and avg_att_2 != 1:
+        covered_episodes.append(episode)
         encoder_states = model_trainer.model.history_state_enc(data_sample_h)
         f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
         prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
@@ -346,7 +418,8 @@ while Example_pred < 20:
         decoder_output = model_trainer.model.decoder(context)
         current_v = data_sample_h[:, -1, 1:2]
         idm_param = model_trainer.model.idm_layer(decoder_output)
-
+        # ones = np.ones([traces_n, 1], dtype='float32')
+        # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
         act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
@@ -400,8 +473,8 @@ while Example_pred < 20:
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [86]
-model_trainer.model.idm_sim.arbiter.attention_temp = 20
+indx = [748]
+model_trainer.model.idm_sim.arbiter.attention_temp = 5
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
@@ -415,11 +488,14 @@ z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 context = tf.concat([z, encoder_states[0]], axis=1)
 decoder_output = model_trainer.model.decoder(context)
 current_v = data_sample_h[:, -1, 1:2]
-idm_param = model_trainer.model.idm_layer(decoder_output)
+# idm_param = model_trainer.model.idm_layer(decoder_output)
+ones = np.ones([traces_n, 1], dtype='float32')
+idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
 
 act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+act_seq = act_seq/att_scores
 plt.figure()
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
@@ -445,16 +521,16 @@ plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
 plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
 plt.grid()
 ############
-
-plt.figure()
-desired_vs = idm_param[0].numpy().flatten()
-desired_tgaps = idm_param[1].numpy().flatten()
-plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
-plt.scatter(25, 1.4, color='red')
-plt.xlim(20, 30)
-plt.ylim(0, 3)
-plt.title(indx)
-plt.grid()
+#
+# plt.figure()
+# desired_vs = idm_param[0].numpy().flatten()
+# desired_tgaps = idm_param[1].numpy().flatten()
+# plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+# plt.scatter(25, 1.4, color='red')
+# plt.xlim(20, 30)
+# plt.ylim(0, 3)
+# plt.title(indx)
+# plt.grid()
 
 
 
