@@ -38,13 +38,7 @@ def get_att_vehicle(attentiveness, m_y, lane_width):
     if abs(m_y) >= lane_width:
         return 'merger'
     att_prob =  (np.exp(attentiveness*abs(m_y))-1)/(np.exp(attentiveness*lane_width)-1)
-    if att_prob != 0:
-        print('p: ', att_prob)
-        print('my: ', m_y)
-
     f_att = flip(att_prob)
-    if f_att == 'merger':
-        print('gotcha')
     return f_att
 
 def get_idm_params(driver_type):
@@ -146,8 +140,8 @@ def data_generator():
                                                         and abs(fm_act) < 3.5:
 
                         m_vlat = -0.7
-                        f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
-
+                        f_att = 'merger'
+                        # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
                     # if f_att == 'merger':
                     if lane_id == 1 and m_y < -1.85:
                         lane_id = 0
@@ -182,14 +176,15 @@ def data_generator():
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
-                # merger_feature.append(0 if f_att == 'merger' else 1)
                 merger_feature.append(act)
+                merger_feature.append(0 if f_att == 'merger' else 1)
+
                 feature.extend(merger_feature)
                 xs.append(feature)
                 merger_xas.append([episode_id, m_y, m_vlat])
                 ys.append([episode_id, act])
 
-                info[episode_id] = driver
+            info[episode_id] = driver
             episode_id += 1
     xs = np.array(xs)
     scale_data = True

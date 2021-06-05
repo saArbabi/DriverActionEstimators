@@ -16,15 +16,34 @@ training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
+
+
+
 print(training_data[-1].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
-
+# len(info)
 # training_data[3][0, -1, :]
-training_data[-1][50, 1, :]
-plt.plot(training_data[0][50, :, -1])
-plt.plot(range(19, 39), training_data[-1][50, :, -1])
+# %%
+def get_episode_data(training_data, episode_id):
+    eps_data = []
+    for set in training_data:
+        set_ = set[set[:, 0, 0] == episode_id]
+        eps_data.append(set_)
+    return eps_data
+# training_data[0][:, :, 0:1]
+eps_data = get_episode_data(training_data, 1)
+eps_data[-2].shape
+
+set = training_data[0]
+set[set[:, 0, 0] == 1]
+set[set[:, 0, 0] == 1].shape
+
+# %%
+
+plt.plot(set[0][,: , -1])
+plt.plot(range(19, 39), set[0][:, -1])
 # %%
 """
 Data imbalance
@@ -32,8 +51,8 @@ Data imbalance
 att_l = 0
 att_m = 0
 for set in training_data[0:-1]:
-    att_l += np.sum(set[:, 0:10, -2] == 1)
-    att_m += np.sum(set[:, 0:10, -2]  == 0)
+    att_l += np.sum(set[:, 0:10, -1] == 1)
+    att_m += np.sum(set[:, 0:10, -1]  == 0)
 
 plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
@@ -42,9 +61,9 @@ att_l/(att_l+att_m)
 7 == 7 and not (3 == 3 and 1 == 3)
 # %%
 
-for i in range(1, 10):
+for i in range(1, 11):
     plt.figure()
-    feature = training_data[2][0:100000, -1, i]
+    feature = training_data[1][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
 # %%
@@ -56,18 +75,7 @@ for i in range(1, 10):
     _ = plt.hist(feature, bins=150)
 
 # %%
-feature = training_data[0][0:10000, -1, -3]
-feature.max()
-_ = plt.hist(feature, bins=150)
-# %%
-# feat = training_data[0][0:10000, -1, :]
-to_plot = feat[feat[:, -2] == 1][:, -1]
-_ = plt.hist(to_plot, bins=150)
-# %%
-to_plot = feat[feat[:, -2] == 1][:, -7]
-_ = plt.hist(to_plot, bins=150)
-plt.xlabel('Hist')
-plt.ylabel('Relative x - merger car')
+
 # %%
 config = {
  "model_config": {
@@ -160,16 +168,16 @@ class Trainer():
 
         elif self.model_type == 'driver_model':
             xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f = training_data
-            train_input = [xs_h[0:train_indx, :, 1:],
-                        scaled_xs_f[0:train_indx, :, 1:],
-                        unscaled_xs_f[0:train_indx, :, 1:],
-                        merger_xas[0:train_indx, :, 1:],
+            train_input = [xs_h[0:train_indx, :, 1:-1],
+                        scaled_xs_f[0:train_indx, :, 1:-1],
+                        unscaled_xs_f[0:train_indx, :, 1:-1],
+                        merger_xas[0:train_indx, :, 1:-1],
                         ys_f[0:train_indx, :, 1:]]
 
-            val_input = [xs_h[train_indx:, :, 1:],
-                        scaled_xs_f[train_indx:, :, 1:],
-                        unscaled_xs_f[train_indx:, :, 1:],
-                        merger_xas[train_indx:, :, 1:],
+            val_input = [xs_h[train_indx:, :, 1:-1],
+                        scaled_xs_f[train_indx:, :, 1:-1],
+                        unscaled_xs_f[train_indx:, :, 1:-1],
+                        merger_xas[train_indx:, :, 1:-1],
                         ys_f[train_indx:, :, 1:]]
 
 
@@ -292,7 +300,7 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
 xs_f.shape
 # %%
 def latent_samples(model_trainer, indx):
-    encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:])
+    encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
     prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
     samples = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
@@ -309,7 +317,7 @@ plt.xlabel('$z_2$')
 
 # %%
 
-# data_sample_f = np.repeat(xs_f[indx, :, 1:], 30, axis=0)
+# data_sample_f = np.repeat(xs_f[indx, :, 1:-1], 30, axis=0)
 # xs_f[:, :, -1].mean()
 Example_pred = 0
 traces_n = 10
@@ -317,16 +325,16 @@ i = 0
 while Example_pred < 20:
     indx = [norm[i]]
     i += 1
-    data_sample_h = np.repeat(xs_h[indx, :, 1:], traces_n, axis=0)
-    data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:], traces_n, axis=0)
-    data_sample_f = np.repeat(xs_f[indx, :, 1:], traces_n, axis=0)
-    data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
+    data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
+    data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
+    data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
+    data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:-1], traces_n, axis=0)
     # avg_att_h = abs(data_sample_h[:, :, -2]).min()
     # avg_att_f = abs(data_sample_f[:, :, -2]).min()
-    avg_att_h = abs(data_sample_h[:, :, -2]).mean()
-    avg_att_f = abs(data_sample_f[:, :, -2]).mean()
+    avg_att_h = xs_h[indx, :, -1].mean()
+    avg_att_f = xs_f_scaled[indx, :, -1].mean()
     # if avg_att == 1 or avg_att == 0:
-    if avg_att_h == 0 and avg_att_f != 0:
+    if avg_att_h == 1 and avg_att_f != 1:
         print(avg_att_h)
         print(avg_att_f)
         encoder_states = model_trainer.model.history_state_enc(data_sample_h)
@@ -346,7 +354,7 @@ while Example_pred < 20:
         for sample_trace_i in range(traces_n):
             plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
         plt.plot(range(19, 39), ys_f[indx, :, -1].flatten(), color='red')
-        plt.plot(xs_h[indx, :, -1].flatten(), color='red')
+        plt.plot(xs_h[indx, :, -2].flatten(), color='red')
         # plt.plot(att_scores[0, :, :].flatten())
         # plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
         # ys_f[indx, :, -1]
@@ -355,12 +363,11 @@ while Example_pred < 20:
         plt.grid()
 
         plt.figure()
-        att_true = abs((data_sample_h[0, :, -2] != 0).astype(int)-1).tolist()[0:-1]
-        att_true.extend(abs((data_sample_f[0, :, -2] != 0).astype(int)-1).tolist())
+        plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red')
+        plt.plot(xs_h[indx, :, -1].flatten(), color='red')
 
         for sample_trace_i in range(traces_n):
             plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
-        plt.plot(att_true, color='red')
         plt.ylim(-0.1, 1.1)
         plt.title(indx)
         plt.grid()
@@ -386,12 +393,12 @@ while Example_pred < 20:
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [271]
+indx = [783]
 model_trainer.model.idm_sim.arbiter.attention_temp = 5
-data_sample_h = np.repeat(xs_h[indx, :, 1:], traces_n, axis=0)
-data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:], traces_n, axis=0)
-data_sample_f = np.repeat(xs_f[indx, :, 1:], traces_n, axis=0)
-data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
+data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
+data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
+data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
+data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:-1], traces_n, axis=0)
 
 encoder_states = model_trainer.model.history_state_enc(data_sample_h)
 f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
@@ -409,18 +416,17 @@ act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red')
-plt.plot(xs_h[indx, :, -1].flatten(), color='red')
+plt.plot(range(19, 39), xs_f_scaled[indx, :, -2].flatten(), color='red')
+plt.plot(xs_h[indx, :, -2].flatten(), color='red')
 plt.grid()
 
 ##########
 plt.figure()
-att_true = abs((data_sample_h[0, :, -2] != 0).astype(int)-1).tolist()
-att_true.extend(abs((data_sample_f[0, :, -2] != 0).astype(int)-1).tolist())
+plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red')
+plt.plot(xs_h[indx, :, -1].flatten(), color='red')
 
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(att_true, color='red')
 plt.ylim(-0.1, 1.1)
 plt.title(indx)
 plt.grid()
@@ -432,3 +438,56 @@ plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
 plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
 plt.grid()
 # %%
+k = 0.3
+w = 1.85
+x = np.linspace(0, w, 100)
+color = ['green', 'orange', 'red']
+driver_types = ['Timid', 'Normal', 'Aggressive']
+i=0
+for k in [0.1, 1.5, 6]:
+    y = (np.exp(k*x)-1)/(np.exp(k*w)-1)
+    plt.plot(x, y, color=color[i])
+    i+=1
+plt.legend(driver_types)
+plt.xlabel('Lateral position (m)')
+plt.ylabel('Attention probability (%)')
+# %%
+count = 0
+counts = []
+p = 0
+for i in range(2000):
+    if np.random.random() < p or p >= 1:
+        counts.append(count)
+        count = 0
+        p = 0
+
+    count += 1
+    p += .04
+
+counts
+# _ = plt.hist(counts, bins=200)
+# %%
+
+from scipy.stats import beta, gamma
+x = np.linspace(0, 1, 100)
+p = beta.pdf(x, 30, 4)
+plt.plot(x, p)
+p = beta.pdf(x, 4, 30)
+plt.plot(x, p)
+p = beta.pdf(x,  20, 20)
+plt.plot(x, p)
+
+# %%
+
+samples = np.random.beta(20, 20, 100)
+plt.scatter(samples*4, [0]*len(samples))
+plt.scatter(samples, [0]*len(samples))
+# %%
+x = np.linspace(0, 10, 100)
+y = np.random.gamma()
+
+rv = binom(n, p)
+ax.vlines(x, 0, rv.pmf(x), colors='k', linestyles='-', lw=1,
+        label='frozen pmf')
+ax.legend(loc='best', frameon=False)
+plt.show()

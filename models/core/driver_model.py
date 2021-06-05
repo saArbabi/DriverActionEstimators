@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, LSTM
+from tensorflow.keras.layers import Dense, LSTM, Bidirectional
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -12,9 +12,9 @@ tf.random.set_seed(1234)
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
-        self.future_state_enc = Encoder()
-        self.history_state_enc = Encoder()
-        self.future_action_enc = Encoder() # sdv's future action
+        self.future_state_enc = FutureEncoder()
+        self.history_state_enc = HistoryEncoder()
+        self.future_action_enc = FutureEncoder() # sdv's future action
         self.belief_estimator = BeliefModel()
         self.decoder = Decoder(config)
         self.idm_layer = IDMLayer()
@@ -137,9 +137,9 @@ class BeliefModel(tf.keras.Model):
             pri_logsigma = self.pri_logsigma(context)
             return [pri_mean, pri_logsigma]
 
-class Encoder(tf.keras.Model):
+class HistoryEncoder(tf.keras.Model):
     def __init__(self):
-        super(Encoder, self).__init__(name="Encoder")
+        super(HistoryEncoder, self).__init__(name="HistoryEncoder")
         self.enc_units = 50
         self.architecture_def()
 
@@ -149,6 +149,19 @@ class Encoder(tf.keras.Model):
     def call(self, inputs):
         _, h_t, c_t = self.lstm_layer(inputs)
         return [h_t, c_t]
+
+class FutureEncoder(tf.keras.Model):
+    def __init__(self):
+        super(FutureEncoder, self).__init__(name="FutureEncoder")
+        self.enc_units = 50
+        self.architecture_def()
+
+    def architecture_def(self):
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units))
+
+    def call(self, inputs):
+        h_t = self.lstm_layer(inputs)
+        return [h_t, 0]
 
 class Decoder(tf.keras.Model):
     def __init__(self, config):
