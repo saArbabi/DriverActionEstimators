@@ -73,8 +73,8 @@ train_input = [xs_h[0:train_indx, :, 1:],
 
 att_l = 0
 att_m = 0
-# for set in train_input[0:2]:
-for set in balanced_training_data[0:2]:
+for set in train_input[0:2]:
+# for set in balanced_training_data[0:2]:
     att_l += np.sum(set[:, 0:10, -1] == 1)
     att_m += np.sum(set[:, 0:10, -1]  == 0)
 
@@ -416,7 +416,7 @@ while Example_pred < 20:
 
         context = tf.concat([z, encoder_states[0]], axis=1)
         decoder_output = model_trainer.model.decoder(context)
-        current_v = data_sample_h[:, -1, 1:2]
+
         idm_param = model_trainer.model.idm_layer(decoder_output)
         # ones = np.ones([traces_n, 1], dtype='float32')
         # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
@@ -473,8 +473,8 @@ while Example_pred < 20:
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [748]
-model_trainer.model.idm_sim.arbiter.attention_temp = 5
+indx = [446]
+model_trainer.model.idm_sim.arbiter.attention_temp = 30
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
@@ -487,15 +487,14 @@ z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
 context = tf.concat([z, encoder_states[0]], axis=1)
 decoder_output = model_trainer.model.decoder(context)
-current_v = data_sample_h[:, -1, 1:2]
-# idm_param = model_trainer.model.idm_layer(decoder_output)
-ones = np.ones([traces_n, 1], dtype='float32')
-idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
+
+idm_param = model_trainer.model.idm_layer(decoder_output)
+# ones = np.ones([traces_n, 1], dtype='float32')
+# idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
 
 act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-act_seq = act_seq/att_scores
 plt.figure()
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')

@@ -141,7 +141,7 @@ def data_generator():
                                                         and abs(fm_act) < 3.5:
 
                         m_vlat = -0.7
-                        if abs(m_y) > being_noticed_my:
+                        if abs(m_y) >= 0.5:
                             f_att = 'merger'
                         # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
                     # if f_att == 'merger':
