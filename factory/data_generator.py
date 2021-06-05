@@ -29,17 +29,6 @@ aggressive_idm = {
 """
 Synthetic data generation
 """
-def flip(p):
-    return 'merger' if np.random.random() < p else 'leader'
-
-def get_att_vehicle(attentiveness, m_y, lane_width):
-    """coin flip to decide who the follower is attending to.
-    """
-    if abs(m_y) >= lane_width:
-        return 'merger'
-    att_prob =  (np.exp(attentiveness*abs(m_y))-1)/(np.exp(attentiveness*lane_width)-1)
-    f_att = flip(att_prob)
-    return f_att
 
 def get_idm_params(driver_type):
     if driver_type == 'normal':
@@ -87,34 +76,35 @@ def data_generator():
     ys = []
     merger_xas = []
     info = {}
-    episode_steps_n = 100
-    # drivers = ['normal', 'timid', 'aggressive']
-    drivers = ['normal']
+    episode_steps_n = 50
+    drivers = ['normal', 'timid', 'aggressive']
+    # drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 2
+    episode_n = 100 * 10
     step_size = 0.1 #s
     lane_width = 1.85
-    attentiveness = {'timid': 0.1, 'normal': 1.5, 'aggressive': 6} # attention probabilities
-
+    attentiveness = {'timid': [4, 30], 'normal': [45, 45], 'aggressive': [30, 4]} # attention probabilities
 
     while episode_id < episode_n:
         for driver in drivers:
-            print(driver)
             idm_params = get_idm_params(driver)
             mean_vel = 20
             try_lane_change_step = np.random.choice(range(0, episode_steps_n))
-            being_noticed_my = lane_width*np.random.beta(20, 20, 1)[0]
+            a = attentiveness[driver][0]
+            b = attentiveness[driver][1]
+            being_noticed_my = lane_width*np.random.beta(a, b, 1)[0]
             # sim initializations
             # follower
-            f_x = np.random.choice(range(30, 50))
+
+            f_x = np.random.choice(range(0, 30))
             f_v = mean_vel + np.random.choice(range(-3, 3))
             f_att = 'leader'
             # leader
-            l_x = 100
+            l_x = np.random.choice(range(70, 100))
             l_v, l_act_mag, l_sin_freq = get_random_vals(mean_vel)
             # merger
-            m_x = np.random.choice(range(40, l_x))
+            m_x = np.random.choice(range(40, 70))
             m_y = 0 # lane relative
             m_v, m_act_mag, m_sin_freq = get_random_vals(mean_vel)
             m_vlat = 0
@@ -123,43 +113,33 @@ def data_generator():
             for time_step in range(episode_steps_n):
                 # leader
                 fl_dv, lf_dx = get_relative_states(l_x, l_v, f_x, f_v)
-                if lf_dx != 0.5:
-                    fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
-                    l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * step_size
-                    l_x = l_x + l_v * step_size
-                    leader_feature = [l_v, fl_dv, lf_dx]
-
-                else:
-                    print("Collosion with lead vehicle")
-                    break
+                fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
+                l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * step_size
+                l_x = l_x + l_v * step_size
+                leader_feature = [l_v, fl_dv, lf_dx]
 
                 # merger
                 fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
-                if mf_dx != 0.5 and m_x < l_x:
-                    fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
-                    if time_step > try_lane_change_step and f_att == 'leader' \
-                                                        and abs(fm_act) < 3.5:
+                fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
+                if time_step > try_lane_change_step and f_att == 'leader' \
+                                                    and abs(fm_act) < 3.5:
 
-                        m_vlat = -0.7
-                        if abs(m_y) >= 0.5:
-                            f_att = 'merger'
-                        # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
-                    # if f_att == 'merger':
-                    if lane_id == 1 and m_y < -1.85:
-                        lane_id = 0
-                        m_y = 1.85
-                    elif lane_id == 0 and m_y < 0:
-                        break
-
-                    m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
-                    m_x = m_x + m_v * step_size
-                    m_y = m_y + m_vlat * step_size
-
-                    merger_feature = [m_v, fm_dv, mf_dx, m_y]
-
-                else:
-                    print("Bad state")
+                    m_vlat = -0.7
+                    if abs(m_y) >= being_noticed_my:
+                        f_att = 'merger'
+                    # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
+                # if f_att == 'merger':
+                if lane_id == 1 and m_y < -lane_width:
+                    lane_id = 0
+                    m_y = lane_width
+                elif lane_id == 0 and m_y < 0:
                     break
+
+                m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
+                m_x = m_x + m_v * step_size
+                m_y = m_y + m_vlat * step_size
+
+                merger_feature = [m_v, fm_dv, mf_dx, m_y]
 
                 if f_att == 'leader':
                     act = fl_act
@@ -169,19 +149,14 @@ def data_generator():
                 # act = fl_act
                 # f_att = 1
 
-                if abs(act) > 3.5:
-                    print("Bad state - action_value: ", act)
-                    break
-
                 f_v = f_v + act * step_size
                 f_x = f_x + f_v * step_size + 0.5 * act * step_size **2
 
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
-                merger_feature.append(act)
-                merger_feature.append(0 if f_att == 'merger' else 1)
-
                 feature.extend(merger_feature)
+                feature.extend([act, 0 if f_att == 'merger' else 1])
+
                 xs.append(feature)
                 merger_xas.append([episode_id, m_y, m_vlat])
                 ys.append([episode_id, act])
