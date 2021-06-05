@@ -69,7 +69,7 @@ class NeurIDMModel(AbstractModel):
         return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
     def vae_loss(self, mse_loss, kl_loss):
-        return  0.1*kl_loss +  mse_loss
+        return  0.01*kl_loss +  mse_loss
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]
@@ -224,13 +224,16 @@ class IDMForwardSim(tf.keras.Model):
         unscaled_s, z, idm_param, encoder_states = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
-        h_t, c_t = encoder_states
+        hist_h_t, hist_c_t = encoder_states
+        h_t, c_t = hist_h_t, hist_c_t
         batch_size = tf.shape(unscaled_s)[0]
 
         act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+
+        att_context = tf.concat([tf.reshape(hist_h_t, [batch_size, 1, 50]), tf.reshape(z, [batch_size, 1, 2])], axis=-1)
 
         for step in tf.range(20):
             tf.autograph.experimental.set_loop_options(shape_invariants=[
@@ -256,7 +259,7 @@ class IDMForwardSim(tf.keras.Model):
             dx = tf.reshape(dx, [batch_size, 1])
             fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
-            att_score, h_t, c_t = self.arbiter([tf.reshape(z, [batch_size, 1, 2]), h_t, c_t])
+            att_score, h_t, c_t = self.arbiter([att_context, h_t, c_t])
             act = att_score*fl_act + (1-att_score)*fm_act
 
             att_scores = tf.concat([att_scores, tf.reshape(att_score, [batch_size, 1, 1])], axis=1)

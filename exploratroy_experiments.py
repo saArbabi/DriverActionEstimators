@@ -24,7 +24,8 @@ print(training_data[-1].shape)
 # scaler.var_
 # dir(scaler)
 # len(info)
-# training_data[3][0, -1, :]
+training_data[0][0, -1, :]
+training_data[-1][0, 0, :]
 # %%
 def get_episode_data(training_data, episode_id):
     eps_data = []
@@ -50,7 +51,7 @@ Data imbalance
 """
 att_l = 0
 att_m = 0
-for set in training_data[0:-1]:
+for set in training_data[0:2]:
     att_l += np.sum(set[:, 0:10, -1] == 1)
     att_m += np.sum(set[:, 0:10, -1]  == 0)
 
@@ -171,13 +172,13 @@ class Trainer():
             train_input = [xs_h[0:train_indx, :, 1:-1],
                         scaled_xs_f[0:train_indx, :, 1:-1],
                         unscaled_xs_f[0:train_indx, :, 1:-1],
-                        merger_xas[0:train_indx, :, 1:-1],
+                        merger_xas[0:train_indx, :, 1:],
                         ys_f[0:train_indx, :, 1:]]
 
             val_input = [xs_h[train_indx:, :, 1:-1],
                         scaled_xs_f[train_indx:, :, 1:-1],
                         unscaled_xs_f[train_indx:, :, 1:-1],
-                        merger_xas[train_indx:, :, 1:-1],
+                        merger_xas[train_indx:, :, 1:],
                         ys_f[train_indx:, :, 1:]]
 
 
@@ -328,15 +329,14 @@ while Example_pred < 20:
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
-    data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:-1], traces_n, axis=0)
+    data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
     # avg_att_h = abs(data_sample_h[:, :, -2]).min()
     # avg_att_f = abs(data_sample_f[:, :, -2]).min()
-    avg_att_h = xs_h[indx, :, -1].mean()
-    avg_att_f = xs_f_scaled[indx, :, -1].mean()
+    # avg_att_1 = xs_h[indx, :, -1].mean()
+    avg_att_1 =  xs_f_scaled[indx, 0:10, -1].mean()
+    avg_att_2 = xs_f_scaled[indx, 10:, -1].mean()
     # if avg_att == 1 or avg_att == 0:
-    if avg_att_h == 1 and avg_att_f != 1:
-        print(avg_att_h)
-        print(avg_att_f)
+    if avg_att_1 == 1 and avg_att_2 != 1:
         encoder_states = model_trainer.model.history_state_enc(data_sample_h)
         f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
         prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
@@ -353,8 +353,8 @@ while Example_pred < 20:
         plt.figure()
         for sample_trace_i in range(traces_n):
             plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-        plt.plot(range(19, 39), ys_f[indx, :, -1].flatten(), color='red')
-        plt.plot(xs_h[indx, :, -2].flatten(), color='red')
+        plt.plot(range(19, 39), ys_f[indx, :, -1].flatten(), color='red', linestyle='--')
+        plt.plot(xs_h[indx, :, -2].flatten(), color='black', linestyle='--')
         # plt.plot(att_scores[0, :, :].flatten())
         # plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
         # ys_f[indx, :, -1]
@@ -390,15 +390,22 @@ while Example_pred < 20:
         plt.grid()
 
         ##########
+        state_indx = -3
+        plt.figure()
+        plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
+        plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
+        plt.grid()
+        ############
+
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [783]
-model_trainer.model.idm_sim.arbiter.attention_temp = 5
+indx = [86]
+model_trainer.model.idm_sim.arbiter.attention_temp = 20
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
-data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:-1], traces_n, axis=0)
+data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
 
 encoder_states = model_trainer.model.history_state_enc(data_sample_h)
 f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
@@ -437,6 +444,23 @@ plt.figure()
 plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
 plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
 plt.grid()
+############
+
+plt.figure()
+desired_vs = idm_param[0].numpy().flatten()
+desired_tgaps = idm_param[1].numpy().flatten()
+plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+plt.scatter(25, 1.4, color='red')
+plt.xlim(20, 30)
+plt.ylim(0, 3)
+plt.title(indx)
+plt.grid()
+
+
+
+
+
+
 # %%
 k = 0.3
 w = 1.85
@@ -480,8 +504,8 @@ plt.plot(x, p)
 # %%
 
 samples = np.random.beta(20, 20, 100)
-plt.scatter(samples*4, [0]*len(samples))
-plt.scatter(samples, [0]*len(samples))
+plt.scatter(samples*1.7, [0]*len(samples))
+# plt.scatter(samples, [0]*len(samples))
 # %%
 x = np.linspace(0, 10, 100)
 y = np.random.gamma()
@@ -491,3 +515,12 @@ ax.vlines(x, 0, rv.pmf(x), colors='k', linestyles='-', lw=1,
         label='frozen pmf')
 ax.legend(loc='best', frameon=False)
 plt.show()
+
+
+# %%
+x = np.linspace(-5, 5, 1000)
+
+for i in [5, 10, 20]:
+    y = 1/(1+np.exp(-i*x))
+    plt.plot(x, y)
+plt.grid()

@@ -103,7 +103,8 @@ def data_generator():
             print(driver)
             idm_params = get_idm_params(driver)
             mean_vel = 20
-            att_switch_step = np.random.choice(range(0, episode_steps_n))
+            try_lane_change_step = np.random.choice(range(0, episode_steps_n))
+            being_noticed_my = lane_width*np.random.beta(20, 20, 1)[0]
             # sim initializations
             # follower
             f_x = np.random.choice(range(30, 50))
@@ -136,11 +137,12 @@ def data_generator():
                 fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
                 if mf_dx != 0.5 and m_x < l_x:
                     fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
-                    if time_step > att_switch_step and f_att == 'leader' \
+                    if time_step > try_lane_change_step and f_att == 'leader' \
                                                         and abs(fm_act) < 3.5:
 
                         m_vlat = -0.7
-                        f_att = 'merger'
+                        if abs(m_y) > being_noticed_my:
+                            f_att = 'merger'
                         # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
                     # if f_att == 'merger':
                     if lane_id == 1 and m_y < -1.85:
@@ -187,8 +189,8 @@ def data_generator():
             info[episode_id] = driver
             episode_id += 1
     xs = np.array(xs)
+    # scale_data = False
     scale_data = True
-    # scale_data = True
 
     if scale_data:
         bool_indx = 1 # these are values not to be scaled
@@ -199,7 +201,7 @@ def data_generator():
         return xs, xs_scaled, np.array(merger_xas), np.array(ys), info, scaler
 
     else:
-        return xs, xs, np.array(ys), info, None
+        return xs, xs, np.array(merger_xas), np.array(ys), info, None
 
 def seqseq_sequence(training_states, h_len, f_len):
     scaled_ss, unscaled_ss, merger_xas, actions = training_states
