@@ -394,6 +394,8 @@ traces_n = 10
 i = 0
 covered_episodes = []
 while Example_pred < 10:
+    # indx = [tim[i]]
+    # indx = [norm[i]]
     indx = [agg[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
@@ -457,9 +459,19 @@ while Example_pred < 10:
         desired_vs = idm_param[0].numpy().flatten()
         desired_tgaps = idm_param[1].numpy().flatten()
         plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+
+        # plt.scatter(19.4, 2, color='red')
+        # plt.xlim(15, 25)
+        # plt.ylim(1, 3)
+
+        # plt.scatter(25, 1.4, color='red')
+        # plt.xlim(20, 30)
+        # plt.ylim(0, 3)
+
         plt.scatter(30, 1, color='red')
         plt.xlim(25, 35)
         plt.ylim(0, 2)
+
         plt.title(indx)
         plt.grid()
 
@@ -474,8 +486,8 @@ while Example_pred < 10:
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [1531]
-model_trainer.model.idm_sim.arbiter.attention_temp = 30
+indx = [181]
+model_trainer.model.idm_sim.arbiter.attention_temp = 5
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
@@ -489,9 +501,9 @@ z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 context = tf.concat([z, encoder_states[0]], axis=1)
 decoder_output = model_trainer.model.decoder(context)
 
-idm_param = model_trainer.model.idm_layer(decoder_output)
-# ones = np.ones([traces_n, 1], dtype='float32')
-# idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
+# idm_param = model_trainer.model.idm_layer(decoder_output)
+ones = np.ones([traces_n, 1], dtype='float32')
+idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
 
 act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
