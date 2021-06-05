@@ -29,17 +29,6 @@ aggressive_idm = {
 """
 Synthetic data generation
 """
-def flip(p):
-    return 'merger' if np.random.random() < p else 'leader'
-
-def get_att_vehicle(attentiveness, m_y, lane_width):
-    """coin flip to decide who the follower is attending to.
-    """
-    if abs(m_y) >= lane_width:
-        return 'merger'
-    att_prob =  (np.exp(attentiveness*abs(m_y))-1)/(np.exp(attentiveness*lane_width)-1)
-    f_att = flip(att_prob)
-    return f_att
 
 def get_idm_params(driver_type):
     if driver_type == 'normal':
@@ -88,15 +77,14 @@ def data_generator():
     merger_xas = []
     info = {}
     episode_steps_n = 100
-    # drivers = ['normal', 'timid', 'aggressive']
-    drivers = ['normal']
+    drivers = ['normal', 'timid', 'aggressive']
+    # drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 2
+    episode_n = 100 * 3
     step_size = 0.1 #s
     lane_width = 1.85
-    attentiveness = {'timid': 0.1, 'normal': 1.5, 'aggressive': 6} # attention probabilities
-
+    attentiveness = {'timid': [4, 30], 'normal': [45, 45], 'aggressive': [30, 4]} # attention probabilities
 
     while episode_id < episode_n:
         for driver in drivers:
@@ -104,9 +92,12 @@ def data_generator():
             idm_params = get_idm_params(driver)
             mean_vel = 20
             try_lane_change_step = np.random.choice(range(0, episode_steps_n))
-            being_noticed_my = lane_width*np.random.beta(20, 20, 1)[0]
+            a = attentiveness[driver][0]
+            b = attentiveness[driver][1]
+            being_noticed_my = lane_width*np.random.beta(a, b, 1)[0]
             # sim initializations
             # follower
+
             f_x = np.random.choice(range(30, 50))
             f_v = mean_vel + np.random.choice(range(-3, 3))
             f_att = 'leader'
@@ -141,7 +132,7 @@ def data_generator():
                                                         and abs(fm_act) < 3.5:
 
                         m_vlat = -0.7
-                        if abs(m_y) >= 0.5:
+                        if abs(m_y) >= being_noticed_my:
                             f_att = 'merger'
                         # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
                     # if f_att == 'merger':

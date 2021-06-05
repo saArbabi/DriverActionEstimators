@@ -12,7 +12,7 @@ from factory import data_generator
 reload(data_generator)
 from factory.data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 5000
+training_samples_n = 15000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
@@ -370,10 +370,11 @@ xs_f.shape
 # %%
 def latent_samples(model_trainer, indx):
     encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
-    prior_param = model_trainer.model.belief_estimator(encoder_states[0], dis_type='prior')
-    samples = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+    f_enc_action = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
+    prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
+    z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-    return samples
+    return z
 
 samples = latent_samples(model_trainer, agg)
 plt.scatter(samples[:, 0], samples[:, 1], color='red')
@@ -392,8 +393,8 @@ Example_pred = 0
 traces_n = 10
 i = 0
 covered_episodes = []
-while Example_pred < 20:
-    indx = [norm[i]]
+while Example_pred < 10:
+    indx = [agg[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -436,8 +437,8 @@ while Example_pred < 20:
         plt.grid()
 
         plt.figure()
-        plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red')
-        plt.plot(xs_h[indx, :, -1].flatten(), color='red')
+        plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red', linestyle='--')
+        plt.plot(xs_h[indx, :, -1].flatten(), color='black', linestyle='--')
 
         for sample_trace_i in range(traces_n):
             plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
@@ -456,24 +457,24 @@ while Example_pred < 20:
         desired_vs = idm_param[0].numpy().flatten()
         desired_tgaps = idm_param[1].numpy().flatten()
         plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
-        plt.scatter(25, 1.4, color='red')
-        plt.xlim(20, 30)
-        plt.ylim(0, 3)
+        plt.scatter(30, 1, color='red')
+        plt.xlim(25, 35)
+        plt.ylim(0, 2)
         plt.title(indx)
         plt.grid()
 
         ##########
         state_indx = -3
         plt.figure()
-        plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
-        plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
+        plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red', linestyle='--')
+        plt.plot(xs_h[indx, :, state_indx].flatten(), color='black', linestyle='--')
         plt.grid()
         ############
 
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [446]
+indx = [1531]
 model_trainer.model.idm_sim.arbiter.attention_temp = 30
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -498,14 +499,14 @@ act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(range(19, 39), xs_f_scaled[indx, :, -2].flatten(), color='red')
-plt.plot(xs_h[indx, :, -2].flatten(), color='red')
+plt.plot(range(19, 39), xs_f_scaled[indx, :, -2].flatten(), color='red', linestyle='--')
+plt.plot(xs_h[indx, :, -2].flatten(), color='black', linestyle='--')
 plt.grid()
 
 ##########
 plt.figure()
-plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red')
-plt.plot(xs_h[indx, :, -1].flatten(), color='red')
+plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red', linestyle='--')
+plt.plot(xs_h[indx, :, -1].flatten(), color='black', linestyle='--')
 
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
@@ -516,8 +517,8 @@ plt.grid()
 ############
 state_indx = -3
 plt.figure()
-plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red')
-plt.plot(xs_h[indx, :, state_indx].flatten(), color='red')
+plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red', linestyle='--')
+plt.plot(xs_h[indx, :, state_indx].flatten(), color='red', linestyle='--')
 plt.grid()
 ############
 #
@@ -570,10 +571,10 @@ counts
 from scipy.stats import beta, gamma
 x = np.linspace(0, 1, 100)
 p = beta.pdf(x, 30, 4)
-plt.plot(x, p)
+plt.plot(x, p, color='red')
 p = beta.pdf(x, 4, 30)
-plt.plot(x, p)
-p = beta.pdf(x,  20, 20)
+plt.plot(x, p, color='green')
+p = beta.pdf(x,  45, 45)
 plt.plot(x, p)
 
 # %%
