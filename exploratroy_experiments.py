@@ -19,7 +19,7 @@ training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n
 
 
 
-print(training_data[-1].shape)
+print(training_data[-2].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
@@ -101,10 +101,9 @@ feature.max()
 _ = plt.hist(feature, bins=150)
 
 # %%
-
 for i in range(1, 11):
     plt.figure()
-    feature = training_data[1][0:100000, -1, i]
+    feature = training_data[2][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
 # %%
@@ -367,6 +366,9 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
     elif info[epis] == 'aggressive':
         agg.append(indx)
 xs_f.shape
+len(tim)
+len(norm)
+len(agg)
 # %%
 def latent_samples(model_trainer, indx):
     encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
@@ -386,17 +388,15 @@ plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
 
 # %%
-
-# data_sample_f = np.repeat(xs_f[indx, :, 1:-1], 30, axis=0)
-# xs_f[:, :, -1].mean()
+model_trainer.model.idm_sim.arbiter.attention_temp = 5
 Example_pred = 0
 traces_n = 10
 i = 0
 covered_episodes = []
-while Example_pred < 10:
+while Example_pred < 20:
     # indx = [tim[i]]
-    # indx = [norm[i]]
-    indx = [agg[i]]
+    indx = [norm[i]]
+    # indx = [agg[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -464,13 +464,13 @@ while Example_pred < 10:
         # plt.xlim(15, 25)
         # plt.ylim(1, 3)
 
-        # plt.scatter(25, 1.4, color='red')
-        # plt.xlim(20, 30)
-        # plt.ylim(0, 3)
+        plt.scatter(25, 1.4, color='red')
+        plt.xlim(20, 30)
+        plt.ylim(0, 3)
 
-        plt.scatter(30, 1, color='red')
-        plt.xlim(25, 35)
-        plt.ylim(0, 2)
+        # plt.scatter(30, 1, color='red')
+        # plt.xlim(25, 35)
+        # plt.ylim(0, 2)
 
         plt.title(indx)
         plt.grid()
@@ -486,7 +486,7 @@ while Example_pred < 10:
         Example_pred += 1
 # %%
 # indx = [667]
-indx = [181]
+indx = [1081]
 model_trainer.model.idm_sim.arbiter.attention_temp = 5
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -501,9 +501,9 @@ z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 context = tf.concat([z, encoder_states[0]], axis=1)
 decoder_output = model_trainer.model.decoder(context)
 
-# idm_param = model_trainer.model.idm_layer(decoder_output)
-ones = np.ones([traces_n, 1], dtype='float32')
-idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
+idm_param = model_trainer.model.idm_layer(decoder_output)
+# ones = np.ones([traces_n, 1], dtype='float32')
+# idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
 
 act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
@@ -518,7 +518,7 @@ plt.grid()
 ##########
 plt.figure()
 plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red', linestyle='--')
-plt.plot(xs_h[indx, :, -1].flatten(), color='black', linestyle='--')
+plt.plot(xs_h[indx, :, -4].flatten(), color='black', linestyle='--')
 
 for sample_trace_i in range(traces_n):
     plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
@@ -591,8 +591,8 @@ plt.plot(x, p)
 
 # %%
 
-samples = np.random.beta(20, 20, 100)
-plt.scatter(samples*1.7, [0]*len(samples))
+samples = np.random.beta(45, 45, 10000)
+plt.scatter(samples*1.85, [0]*len(samples))
 # plt.scatter(samples, [0]*len(samples))
 # %%
 x = np.linspace(0, 10, 100)

@@ -61,9 +61,10 @@ def get_relative_states(front_x, front_v, rear_x, rear_v):
     """
     dx = front_x - rear_x
     dv = rear_v - front_v
-    if dx < 0.5:
-        return 0, 0.5
-    return dv, dx
+    head_way = dx/rear_v
+    if head_way < .5:
+        return dv, dx, 'unsafe'
+    return dv, dx, 'safe'
 
 def get_random_vals(mean_vel):
     init_v = 20 + np.random.choice(range(-3, 3))
@@ -76,12 +77,13 @@ def data_generator():
     ys = []
     merger_xas = []
     info = {}
-    episode_steps_n = 50
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    episode_steps_n = 100
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 10
+    episode_n = 100 * 2
+    # episode_n = 100 * 4
     step_size = 0.1 #s
     lane_width = 1.85
     attentiveness = {'timid': [4, 30], 'normal': [45, 45], 'aggressive': [30, 4]} # attention probabilities
@@ -112,28 +114,33 @@ def data_generator():
 
             for time_step in range(episode_steps_n):
                 # leader
-                fl_dv, lf_dx = get_relative_states(l_x, l_v, f_x, f_v)
+                fl_dv, lf_dx, safety_situation = get_relative_states(l_x, l_v, f_x, f_v)
+                if safety_situation == 'unsafe':
+                    break
                 fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
                 l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * step_size
                 l_x = l_x + l_v * step_size
                 leader_feature = [l_v, fl_dv, lf_dx]
 
                 # merger
-                fm_dv, mf_dx = get_relative_states(m_x, m_v, f_x, f_v)
+                fm_dv, mf_dx, safety_situation= get_relative_states(m_x, m_v, f_x, f_v)
+                if mf_dx < 1:
+                    break
                 fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
                 if time_step > try_lane_change_step and f_att == 'leader' \
-                                                    and abs(fm_act) < 3.5:
+                                                and abs(fm_act) < 3 or m_vlat !=0:
 
                     m_vlat = -0.7
-                    if abs(m_y) >= being_noticed_my:
+                    if abs(m_y) >= being_noticed_my or lane_id == 0:
                         f_att = 'merger'
                     # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
                 # if f_att == 'merger':
-                if lane_id == 1 and m_y < -lane_width:
+                if lane_id == 1 and m_y <= -lane_width:
                     lane_id = 0
                     m_y = lane_width
-                elif lane_id == 0 and m_y < 0:
-                    break
+                elif lane_id == 0 and m_y <= 0:
+                    m_y = 0
+                    m_vlat = 0
 
                 m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
                 m_x = m_x + m_v * step_size
