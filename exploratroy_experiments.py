@@ -18,13 +18,17 @@ training_samples_n = 15000
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 
 
-
-print(training_data[-2].shape)
+print(training_data[2].shape)
 # scaler.mean_
 # scaler.var_
 # dir(scaler)
 # len(info)
-training_data[0][0, -1, :]
+plt.plot(training_data[0][0, :, -2])
+plt.plot(training_data[1][0, :, -2])
+
+
+training_data[2][0, 0, :]
+
 training_data[-1][0, 0, :]
 # %%
 def get_episode_data(training_data, episode_id):
