@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, LSTM, Bidirectional
+from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -84,7 +84,7 @@ class NeurIDMModel(AbstractModel):
             context = tf.concat([z, h_enc_state[0]], axis=1)
             decoder_output = self.decoder(context)
             idm_param = self.idm_layer(decoder_output)
-            act_seq, _ = self.idm_sim.rollout([inputs[2], z, idm_param, h_enc_state])
+            act_seq, _ = self.idm_sim.rollout([inputs[2], z, idm_param, h_enc_state, f_enc_action[0]])
             return act_seq, prior_param, posterior_param
 
         elif self.model_use == 'inference':
@@ -169,7 +169,7 @@ class Decoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(10, activation=K.relu)
+        self.layer_1 = Dense(50, activation=K.relu)
         self.layer_2 = Dense(60, activation=K.relu)
         self.layer_3 = Dense(60, activation=K.relu)
         self.layer_4 = Dense(10, activation=K.relu)
@@ -189,13 +189,15 @@ class Arbiter(tf.keras.Model):
 
     def architecture_def(self):
         self.future_dec = LSTM(self.enc_units, return_sequences=True, return_state=True)
-        self.attention_layer = Dense(self.enc_units)
+        self.context_layer = TimeDistributed(Dense(100))
+        self.attention_layer = Dense(50)
         self.attention_neu = Dense(1)
 
     def call(self, inputs):
-        scaled_s, h_t, c_t = inputs
-        batch_size = tf.shape(scaled_s)[0]
-        outputs, h_t, c_t = self.future_dec(scaled_s, initial_state=[h_t, c_t])
+        att_context, h_t, c_t = inputs
+        batch_size = tf.shape(att_context)[0]
+        att_context = self.context_layer(att_context)
+        outputs, h_t, c_t = self.future_dec(att_context, initial_state=[h_t, c_t])
         outputs = tf.reshape(outputs, [batch_size, self.enc_units])
         x = self.attention_layer(outputs)
         x = self.attention_neu(x)
@@ -221,7 +223,7 @@ class IDMForwardSim(tf.keras.Model):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def rollout(self, inputs):
-        unscaled_s, z, idm_param, encoder_states = inputs
+        unscaled_s, z, idm_param, encoder_states, h_f_ego = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
         hist_h_t, hist_c_t = encoder_states
@@ -232,10 +234,13 @@ class IDMForwardSim(tf.keras.Model):
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-
-        att_context = tf.concat([tf.reshape(hist_h_t, [batch_size, 1, 50]), tf.reshape(z, [batch_size, 1, 2])], axis=-1)
-
-        for step in tf.range(20):
+        #
+        att_context = tf.concat([
+                                tf.reshape(hist_h_t, [batch_size, 1, 50]),
+                                tf.reshape(h_f_ego, [batch_size, 1, 100]),
+                                tf.reshape(z, [batch_size, 1, 2])], axis=-1)
+        # att_context = tf.reshape(hist_h_t, [batch_size, 1, 50])
+        for step in tf.range(40):
             tf.autograph.experimental.set_loop_options(shape_invariants=[
                             (att_scores, tf.TensorShape([None,None,None])),
                             (fl_seq, tf.TensorShape([None,None,None])),
