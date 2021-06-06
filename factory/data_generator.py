@@ -69,8 +69,8 @@ def get_relative_states(front_x, front_v, rear_x, rear_v):
     return dv, dx, 'safe'
 
 def get_random_vals(mean_vel):
-    init_v = 20 + np.random.choice(range(-3, 3))
-    action_magnitute = np.random.uniform(0, 3)
+    init_v = 20 + np.random.choice(range(-5, 5))
+    action_magnitute = np.random.uniform(-3, 3)
     action_freq = np.random.uniform(0.02, 0.06)
     return init_v, action_magnitute, action_freq
 
@@ -80,11 +80,11 @@ def data_generator():
     merger_a = []
     info = {}
     episode_steps_n = 100
-    # drivers = ['normal', 'timid', 'aggressive']
-    drivers = ['normal']
+    drivers = ['normal', 'timid', 'aggressive']
+    # drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 2
+    episode_n = 100 * 3
     # episode_n = 100 * 4
     step_size = 0.1 #s
     lane_width = 1.85
@@ -108,7 +108,7 @@ def data_generator():
             l_x = np.random.choice(range(70, 100))
             l_v, l_act_mag, l_sin_freq = get_random_vals(mean_vel)
             # merger
-            m_x = np.random.choice(range(40, 70))
+            m_x = np.random.choice(range(30, 70))
             m_y = 0 # lane relative
             m_v, m_act_mag, m_sin_freq = get_random_vals(mean_vel)
             m_vlat = 0
@@ -126,7 +126,8 @@ def data_generator():
 
                 # merger
                 fm_dv, mf_dx, safety_situation= get_relative_states(m_x, m_v, f_x, f_v)
-                if mf_dx < 1:
+                if mf_dx < 1 or m_x >= l_x:
+                    print('bad state')
                     break
                 fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
                 if time_step > try_lane_change_step and f_att == 'leader' \
@@ -157,6 +158,9 @@ def data_generator():
 
                 # act = fl_act
                 # f_att = 1
+                if abs(act) > 3.5:
+                    print('bad action')
+                    break
 
                 f_v = f_v + act * step_size
                 f_x = f_x + f_v * step_size + 0.5 * act * step_size **2

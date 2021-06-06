@@ -9,6 +9,7 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 tf.random.set_seed(1234)
 
+
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, model_use):
         super(NeurIDMModel, self).__init__(config)
@@ -20,6 +21,7 @@ class NeurIDMModel(AbstractModel):
         self.idm_layer = IDMLayer()
         self.idm_sim = IDMForwardSim()
         self.model_use = model_use
+        self.vae_loss_weight = 0.01
 
     def callback_def(self):
         self.train_klloss = tf.keras.metrics.Mean(name='train_loss')
@@ -69,7 +71,7 @@ class NeurIDMModel(AbstractModel):
         return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
     def vae_loss(self, mse_loss, kl_loss):
-        return  0.01*kl_loss +  mse_loss
+        return  self.vae_loss_weight*kl_loss + (1-self.vae_loss_weight)*mse_loss
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]
@@ -82,6 +84,7 @@ class NeurIDMModel(AbstractModel):
                                     [h_enc_state[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
             z = self.belief_estimator.sample_z(posterior_param)
             context = tf.concat([z, h_enc_state[0]], axis=1)
+            # context = tf.concat([z, h_enc_state[0]], axis=1)
             decoder_output = self.decoder(context)
             idm_param = self.idm_layer(decoder_output)
             act_seq, _ = self.idm_sim.rollout([inputs[2], z, idm_param, h_enc_state, f_enc_action[0]])
