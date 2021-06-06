@@ -394,7 +394,7 @@ plt.xlabel('$z_2$')
 # %%
 model_trainer.model.idm_sim.arbiter.attention_temp = 5
 Example_pred = 0
-traces_n = 10
+traces_n = 5
 i = 0
 covered_episodes = []
 while Example_pred < 20:
@@ -428,13 +428,15 @@ while Example_pred < 20:
         # ones = np.ones([traces_n, 1], dtype='float32')
         # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states, f_enc_action[0]])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
         plt.figure()
         for sample_trace_i in range(traces_n):
-            plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-        plt.plot(range(19, 39), ys_f[indx, :, -1].flatten(), color='red', linestyle='--')
-        plt.plot(xs_h[indx, :, -2].flatten(), color='black', linestyle='--')
+            plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+        plt.plot(ys_f[indx, :20, -1].flatten(), color='black', linestyle='--')
+        plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
+        # plt.plot(xs_h[indx, :, -2].flatten(), color='black', linestyle='--')
         # plt.plot(att_scores[0, :, :].flatten())
         # plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
         # ys_f[indx, :, -1]
@@ -443,11 +445,11 @@ while Example_pred < 20:
         plt.grid()
 
         plt.figure()
-        plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red', linestyle='--')
-        plt.plot(xs_h[indx, :, -1].flatten(), color='black', linestyle='--')
+        plt.plot(xs_f[indx, :20, -1].flatten(), color='black', linestyle='--')
+        plt.plot(range(19, 40), xs_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
 
         for sample_trace_i in range(traces_n):
-            plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
+            plt.plot(att_scores[sample_trace_i, :, :].flatten(), color='grey')
         plt.ylim(-0.1, 1.1)
         plt.title(indx)
         plt.grid()
@@ -482,16 +484,25 @@ while Example_pred < 20:
         ##########
         state_indx = -3
         plt.figure()
-        plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red', linestyle='--')
-        plt.plot(xs_h[indx, :, state_indx].flatten(), color='black', linestyle='--')
+        plt.plot(xs_f[indx, :20, state_indx].flatten(), color='black', linestyle='--')
+        plt.plot(range(19, 40), xs_f[indx, 19:, state_indx].flatten(), color='red', linestyle='--')
+
         plt.grid()
         ############
 
         Example_pred += 1
 # %%
+
+
+plt.plot(ys_f[indx, :20, -1].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
+
+# %%
+
+
 # indx = [667]
-indx = [1081]
-model_trainer.model.idm_sim.arbiter.attention_temp = 5
+indx = [1972]
+model_trainer.model.idm_sim.arbiter.attention_temp = 20
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
@@ -510,22 +521,22 @@ idm_param = model_trainer.model.idm_layer(decoder_output)
 # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
 
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states])
+act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states, f_enc_action[0]])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
-    plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(range(19, 39), xs_f_scaled[indx, :, -2].flatten(), color='red', linestyle='--')
-plt.plot(xs_h[indx, :, -2].flatten(), color='black', linestyle='--')
+    plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+plt.plot(ys_f[indx, :20, -1].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
 plt.grid()
 
 ##########
 plt.figure()
-plt.plot(range(19, 39), xs_f_scaled[indx, :, -1].flatten(), color='red', linestyle='--')
-plt.plot(xs_h[indx, :, -4].flatten(), color='black', linestyle='--')
+plt.plot(xs_f[indx, :20, -1].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), xs_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
 
 for sample_trace_i in range(traces_n):
-    plt.plot(range(19, 39), att_scores[sample_trace_i, :, :].flatten(), color='grey')
+    plt.plot(att_scores[sample_trace_i, :, :].flatten(), color='grey')
 plt.ylim(-0.1, 1.1)
 plt.title(indx)
 plt.grid()
@@ -533,8 +544,8 @@ plt.grid()
 ############
 state_indx = -3
 plt.figure()
-plt.plot(range(19, 39), xs_f_scaled[indx, :, state_indx].flatten(), color='red', linestyle='--')
-plt.plot(xs_h[indx, :, state_indx].flatten(), color='red', linestyle='--')
+plt.plot(xs_f[indx, :20, state_indx].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), xs_f[indx, 19:, state_indx].flatten(), color='red', linestyle='--')
 plt.grid()
 ############
 #
