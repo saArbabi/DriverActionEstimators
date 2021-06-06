@@ -234,11 +234,12 @@ class IDMForwardSim(tf.keras.Model):
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-
-        att_context = tf.concat([tf.reshape(hist_h_t, [batch_size, 1, 50]),
-                                # tf.reshape(h_f_ego, [batch_size, 1, 100]),
+        #
+        att_context = tf.concat([
+                                tf.reshape(hist_h_t, [batch_size, 1, 50]),
+                                tf.reshape(h_f_ego, [batch_size, 1, 100]),
                                 tf.reshape(z, [batch_size, 1, 2])], axis=-1)
-
+        # att_context = tf.reshape(hist_h_t, [batch_size, 1, 50])
         for step in tf.range(40):
             tf.autograph.experimental.set_loop_options(shape_invariants=[
                             (att_scores, tf.TensorShape([None,None,None])),
