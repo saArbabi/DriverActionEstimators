@@ -358,21 +358,21 @@ merger_xas = np.float32(merger_xas)
 indxs = np.random.choice(range(len(xs_h)), 500, replace=False)
 episodes = xs_h[indxs, 0, 0]
 # np.unique(indxs).shape
-tim = []
-norm = []
-agg = []
+timid_drivers = []
+normal_drivers = []
+aggressive_drivers = []
 
 for indx, epis in zip(indxs.tolist(), episodes.tolist()):
     if info[epis] == 'timid':
-        tim.append(indx)
+        timid_drivers.append(indx)
     elif info[epis] == 'normal':
-        norm.append(indx)
+        normal_drivers.append(indx)
     elif info[epis] == 'aggressive':
-        agg.append(indx)
+        aggressive_drivers.append(indx)
 xs_f.shape
-len(tim)
-len(norm)
-len(agg)
+len(timid_drivers)
+len(normal_drivers)
+len(aggressive_drivers)
 # %%
 def latent_samples(model_trainer, indx):
     encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
@@ -382,11 +382,11 @@ def latent_samples(model_trainer, indx):
 
     return z
 
-samples = latent_samples(model_trainer, agg)
+samples = latent_samples(model_trainer, aggressive_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], color='red')
-samples = latent_samples(model_trainer, tim)
+samples = latent_samples(model_trainer, timid_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], color='green')
-samples = latent_samples(model_trainer, norm)
+samples = latent_samples(model_trainer, normal_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], color='orange')
 plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
@@ -399,8 +399,8 @@ i = 0
 covered_episodes = []
 while Example_pred < 20:
     # indx = [tim[i]]
-    indx = [norm[i]]
-    # indx = [agg[i]]
+    indx = [normal_drivers[i]]
+    # indx = [aggressive_drivers[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -615,7 +615,7 @@ counts
 # _ = plt.hist(counts, bins=200)
 # %%
 
-from scipy.stats import beta, gamma
+from scipy.stats import beta, gamma, norm
 x = np.linspace(0, 1, 100)
 p = beta.pdf(x, 30, 4)
 plt.plot(x, p, color='red')
@@ -624,6 +624,23 @@ plt.plot(x, p, color='green')
 p = beta.pdf(x,  45, 45)
 plt.plot(x, p)
 
+# %%
+x = np.linspace(15, 35, 100)
+scale = 1
+vel_mean = 20
+p = normal_drivers.pdf(x, vel_mean, scale)
+plt.plot(x, p, color='red')
+
+vel_mean = 25
+p = normal_drivers.pdf(x, vel_mean, scale)
+plt.plot(x, p, color='red')
+
+vel_mean = 30
+p = normal_drivers.pdf(x, vel_mean, scale)
+plt.plot(x, p, color='red')
+vel_noise =
+np.random.normal(0, 1)
+np.random.beta(2, 2)
 # %%
 
 samples = np.random.beta(45, 45, 10000)

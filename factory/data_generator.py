@@ -31,6 +31,8 @@ Synthetic data generation
 """
 
 def get_idm_params(driver_type):
+    vel_noise = np.random.normal(0, 1)
+
     if driver_type == 'normal':
         idm_param = normal_idm
     if driver_type == 'timid':
@@ -38,7 +40,7 @@ def get_idm_params(driver_type):
     if driver_type == 'aggressive':
         idm_param = aggressive_idm
 
-    desired_v = idm_param['desired_v']
+    desired_v = idm_param['desired_v'] + vel_noise
     desired_tgap = idm_param['desired_tgap']
     min_jamx = idm_param['min_jamx']
     max_act = idm_param['max_act']
@@ -95,7 +97,7 @@ def data_generator():
             try_lane_change_step = np.random.choice(range(0, episode_steps_n))
             a = attentiveness[driver][0]
             b = attentiveness[driver][1]
-            being_noticed_my = lane_width*np.random.beta(a, b, 1)[0]
+            being_noticed_my = lane_width*np.random.beta(a, b)
             # sim initializations
             # follower
 
