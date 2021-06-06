@@ -83,9 +83,10 @@ class NeurIDMModel(AbstractModel):
             prior_param, posterior_param = self.belief_estimator(\
                                     [h_enc_state[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
             z = self.belief_estimator.sample_z(posterior_param)
-            context = tf.concat([z, h_enc_state[0]], axis=1)
+
             # context = tf.concat([z, h_enc_state[0]], axis=1)
-            decoder_output = self.decoder(context)
+            # context = tf.concat([z, h_enc_state[0]], axis=1)
+            decoder_output = self.decoder(z)
             idm_param = self.idm_layer(decoder_output)
             act_seq, _ = self.idm_sim.rollout([inputs[2], z, idm_param, h_enc_state, f_enc_action[0]])
             return act_seq, prior_param, posterior_param
@@ -160,7 +161,7 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units))
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='mul')
 
     def call(self, inputs):
         h_t = self.lstm_layer(inputs)
@@ -193,7 +194,7 @@ class Arbiter(tf.keras.Model):
     def architecture_def(self):
         self.future_dec = LSTM(self.enc_units, return_sequences=True, return_state=True)
         self.context_layer = TimeDistributed(Dense(100))
-        self.attention_layer = Dense(50)
+        self.attention_layer = Dense(100)
         self.attention_neu = Dense(1)
 
     def call(self, inputs):
@@ -226,7 +227,7 @@ class IDMForwardSim(tf.keras.Model):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def rollout(self, inputs):
-        unscaled_s, z, idm_param, encoder_states, h_f_ego = inputs
+        unscaled_s, z, idm_param, encoder_states, f_enc_action = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
         hist_h_t, hist_c_t = encoder_states
@@ -237,11 +238,11 @@ class IDMForwardSim(tf.keras.Model):
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-        #
-        att_context = tf.concat([
-                                tf.reshape(hist_h_t, [batch_size, 1, 50]),
-                                tf.reshape(h_f_ego, [batch_size, 1, 100]),
-                                tf.reshape(z, [batch_size, 1, 2])], axis=-1)
+        # att_context = tf.reshape(z, [batch_size, 1, 2])
+        # att_context = tf.concat([
+        #                         # tf.reshape(hist_h_t, [batch_size, 1, 50]),
+        #                         # tf.reshape(f_enc_action, [batch_size, 1, 50]),
+        #                         tf.reshape(z, [batch_size, 1, 2])], axis=-1)
         # att_context = tf.reshape(hist_h_t, [batch_size, 1, 50])
         for step in tf.range(40):
             tf.autograph.experimental.set_loop_options(shape_invariants=[
@@ -267,6 +268,9 @@ class IDMForwardSim(tf.keras.Model):
             dx = tf.reshape(dx, [batch_size, 1])
             fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
+            m_y = tf.slice(unscaled_s, [0, step, 7], [batch_size, 1, 1])
+            att_context = tf.concat([m_y,
+                                tf.reshape(z, [batch_size, 1, 2])], axis=-1)
             att_score, h_t, c_t = self.arbiter([att_context, h_t, c_t])
             act = att_score*fl_act + (1-att_score)*fm_act
 
