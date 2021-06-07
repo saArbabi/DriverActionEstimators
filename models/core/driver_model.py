@@ -84,9 +84,9 @@ class NeurIDMModel(AbstractModel):
                                     [h_enc_state[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
             z = self.belief_estimator.sample_z(posterior_param)
 
+            context = tf.concat([z, h_enc_state[0]], axis=1)
             # context = tf.concat([z, h_enc_state[0]], axis=1)
-            # context = tf.concat([z, h_enc_state[0]], axis=1)
-            decoder_output = self.decoder(z)
+            decoder_output = self.decoder(context)
             idm_param = self.idm_layer(decoder_output)
             act_seq, _ = self.idm_sim.rollout([inputs[2], z, idm_param, h_enc_state, f_enc_action[0]])
             return act_seq, prior_param, posterior_param
@@ -238,7 +238,7 @@ class IDMForwardSim(tf.keras.Model):
         fl_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         fm_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
         att_scores = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-        # att_context = tf.reshape(z, [batch_size, 1, 2])
+        att_context = tf.reshape(z, [batch_size, 1, 2])
         # att_context = tf.concat([
         #                         # tf.reshape(hist_h_t, [batch_size, 1, 50]),
         #                         # tf.reshape(f_enc_action, [batch_size, 1, 50]),
@@ -269,8 +269,11 @@ class IDMForwardSim(tf.keras.Model):
             fm_act = self.idm_driver(vel, dv, dx, idm_param)
 
             m_y = tf.slice(unscaled_s, [0, step, 7], [batch_size, 1, 1])
-            att_context = tf.concat([m_y,
-                                tf.reshape(z, [batch_size, 1, 2])], axis=-1)
+            # att_context = tf.concat([m_y,
+            #                     tf.reshape(z, [batch_size, 1, 2]),
+            #                     tf.reshape(hist_h_t, [batch_size, 1, 50])
+            #                     ], axis=-1)
+            #
             att_score, h_t, c_t = self.arbiter([att_context, h_t, c_t])
             act = att_score*fl_act + (1-att_score)*fm_act
 

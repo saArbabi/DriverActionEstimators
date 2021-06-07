@@ -20,6 +20,7 @@ training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n
 
 print(training_data[2].shape)
 # scaler.mean_
+# %%
 # scaler.var_
 # dir(scaler)
 # len(info)
@@ -108,27 +109,6 @@ for set in balanced_training_data[0:2]:
 
 plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
-# %%
-
-att_l = 0
-att_m = 0
-for set in train_input[0:2]:
-# for set in balanced_training_data[0:2]:
-    att_l += np.sum(set[:, 0:10, -1] == 1)
-    att_m += np.sum(set[:, 0:10, -1]  == 0)
-
-plt.bar([1, 2], [att_l, att_m])
-att_l/(att_l+att_m)
-# %%
-balanced_training_data = []
-axis_0, axis_1 = np.where(train_input[0][:, :, -1] == 0)
-lc_samples = np.unique(axis_0).astype(int)
-
-for set in train_input:
-    set = np.append(set, np.repeat(set[lc_samples, :, :], 15, axis=0), axis=0)
-    balanced_training_data.append(set)
-# balanced_training_data.append(training_data[-1])
-balanced_training_data[-1].shape
 
 # %%
 
@@ -424,6 +404,27 @@ samples = latent_samples(model_trainer, timid_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='green')
 samples = latent_samples(model_trainer, normal_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
+plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
+
+plt.ylabel('$z_1$')
+plt.xlabel('$z_2$')
+# %%
+def latent_samples(model_trainer, indx):
+    encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
+    f_enc_state = model_trainer.model.future_state_enc(xs_f_scaled[indx, :, 1:-1])
+
+    f_enc_action = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
+    prior_param, posterior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
+    z = model_trainer.model.belief_estimator.sample_z(posterior_param).numpy()
+
+    return z
+
+samples = latent_samples(model_trainer, aggressive_drivers)
+plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
+samples = latent_samples(model_trainer, timid_drivers)
+plt.scatter(samples[:, 0], samples[:, 1], s=10, color='green')
+samples = latent_samples(model_trainer, normal_drivers)
+plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
 # plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
 
 plt.ylabel('$z_1$')
@@ -436,9 +437,9 @@ traces_n = 20
 i = 0
 covered_episodes = []
 while Example_pred < 20:
-    # indx = [timid_drivers[i]]
+    indx = [timid_drivers[i]]
     # indx = [normal_drivers[i]]
-    indx = [aggressive_drivers[i]]
+    # indx = [aggressive_drivers[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -461,8 +462,8 @@ while Example_pred < 20:
         prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
         z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-        context = z
-        # context = tf.concat([z, encoder_states[0]], axis=1)
+        # context = z
+        context = tf.concat([z, encoder_states[0]], axis=1)
         decoder_output = model_trainer.model.decoder(context)
         # decoder_output[0, :]
 
@@ -544,7 +545,7 @@ plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='-
 
 
 # indx = [667]
-indx = [374]
+indx = [371]
 model_trainer.model.idm_sim.arbiter.attention_temp = 5
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -557,7 +558,9 @@ prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_act
 prior_param[1] = prior_param[1] * [1, 0.03]
 z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 # plt.scatter(z[:,0], z[:,0])
-context = z
+# context = z
+context = tf.concat([z, encoder_states[0]], axis=1)
+
 decoder_output = model_trainer.model.decoder(context)
 idm_param = model_trainer.model.idm_layer(decoder_output)
 
@@ -664,11 +667,11 @@ counts
 
 from scipy.stats import beta, gamma, norm
 x = np.linspace(0, 1, 100)
-p = beta.pdf(x, 30, 4)
+p = beta.pdf(x, 10, 2)
 plt.plot(x, p, color='red')
-p = beta.pdf(x, 4, 30)
+p = beta.pdf(x, 2, 10)
 plt.plot(x, p, color='green')
-p = beta.pdf(x,  45, 45)
+p = beta.pdf(x,  15, 15)
 plt.plot(x, p)
 
 # %%
@@ -690,7 +693,7 @@ np.random.normal(0, 1)
 np.random.beta(2, 2)
 # %%
 
-samples = np.random.beta(4, 30, 50)
+samples = np.random.beta(4, 10, 50)
 plt.scatter(samples*1.85, [0]*len(samples))
 # plt.scatter(samples, [0]*len(samples))
 plt.xlim(0, 1.85)
