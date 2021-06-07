@@ -295,7 +295,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.2
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -321,7 +321,7 @@ plt.title('KL')
 # valid_loss = model_trainer.valid_loss[loss_view_lim:]
 # plt.plot(valid_loss)
 # plt.plot(train_loss)
-# plt.legend(['val', 'train'])=
+# plt.legend(['val', 'train'])
 # plt.grid()
 # plt.xlabel('epochs')
 # plt.ylabel('loss (MSE)')
@@ -404,7 +404,7 @@ samples = latent_samples(model_trainer, timid_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='green')
 samples = latent_samples(model_trainer, normal_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
-plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
+# plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
 
 plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
@@ -463,15 +463,15 @@ while Example_pred < 20:
         z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
         # context = z
-        context = tf.concat([z, encoder_states[0]], axis=1)
-        decoder_output = model_trainer.model.decoder(context)
+        # context = tf.concat([z, encoder_states[0]], axis=1)
+        decoder_output = model_trainer.model.decoder(z)
         # decoder_output[0, :]
 
-        idm_param = model_trainer.model.idm_layer(decoder_output)
+        idm_param = model_trainer.model.idm_layer(encoder_states[0])
         # ones = np.ones([traces_n, 1], dtype='float32')
         # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states, f_enc_action[0]])
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, decoder_output])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
         plt.figure()
         for sample_trace_i in range(traces_n):
@@ -545,8 +545,9 @@ plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='-
 
 
 # indx = [667]
-indx = [371]
-model_trainer.model.idm_sim.arbiter.attention_temp = 5
+indx = [949]
+model_trainer.model.idm_sim.arbiter.attention_temp = 20
+traces_n = 30
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
@@ -555,21 +556,21 @@ data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
 encoder_states = model_trainer.model.history_state_enc(data_sample_h)
 f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
 prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
-prior_param[1] = prior_param[1] * [1, 0.03]
+# prior_param[1] = prior_param[1] * [0.1, .1]
 z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 # plt.scatter(z[:,0], z[:,0])
 # context = z
 context = tf.concat([z, encoder_states[0]], axis=1)
 
-decoder_output = model_trainer.model.decoder(context)
-idm_param = model_trainer.model.idm_layer(decoder_output)
+decoder_output = model_trainer.model.decoder(z)
+idm_param = model_trainer.model.idm_layer(encoder_states[0])
 
 # ones = np.ones([traces_n, 1], dtype='float32')
 # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 # idm_param = [np.random.normal(0, 1, [traces_n, 1]) + ones*19.4, ones*2, ones*4, ones*0.8, ones*1]
 # idm_param = [ones*19.4, ones*2, ones*4, ones*0.8, ones*1]
 
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states, f_enc_action[0]])
+act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, decoder_output])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
@@ -693,7 +694,7 @@ np.random.normal(0, 1)
 np.random.beta(2, 2)
 # %%
 
-samples = np.random.beta(4, 10, 50)
+samples = np.random.beta(10, 2, 50)
 plt.scatter(samples*1.85, [0]*len(samples))
 # plt.scatter(samples, [0]*len(samples))
 plt.xlim(0, 1.85)
