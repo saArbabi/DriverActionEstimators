@@ -295,7 +295,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.2
+model_trainer.model.vae_loss_weight = 0.6
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -385,18 +385,19 @@ for indx, epis in zip(indxs.tolist(), episodes.tolist()):
         normal_drivers.append(indx)
     elif info[epis] == 'aggressive':
         aggressive_drivers.append(indx)
-xs_f.shape
+xs_h.shape
 len(timid_drivers)
 len(normal_drivers)
 len(aggressive_drivers)
 # %%
 def latent_samples(model_trainer, indx):
     enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
+    print(xs_h.shape)
     enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
     prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
     sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-    return z
+    return sampled_z
 
 samples = latent_samples(model_trainer, aggressive_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
@@ -408,16 +409,17 @@ plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
 
 plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
+
 # %%
 def latent_samples(model_trainer, indx):
     enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
     f_enc_state = model_trainer.model.future_state_enc(xs_f_scaled[indx, :, 1:-1])
 
     enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
-    prior_param, posterior_param = model_trainer.model.belief_estimator([enc_h, f_enc_state[0], enc_f_acts[0]], dis_type='both')
+    prior_param, posterior_param = model_trainer.model.belief_estimator([enc_h, f_enc_state, enc_f_acts], dis_type='both')
     sampled_z = model_trainer.model.belief_estimator.sample_z(posterior_param).numpy()
 
-    return z
+    return sampled_z
 
 samples = latent_samples(model_trainer, aggressive_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
@@ -431,7 +433,7 @@ plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
 
 # %%
-model_trainer.model.idm_sim.arbiter.attention_temp = 5
+model_trainer.model.idm_sim.arbiter.attention_temp = 20
 Example_pred = 0
 traces_n = 20
 i = 0
@@ -545,7 +547,7 @@ plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='-
 
 
 # indx = [667]
-indx = [949]
+indx = [1500]
 model_trainer.model.idm_sim.arbiter.attention_temp = 20
 traces_n = 30
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
@@ -560,7 +562,6 @@ prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type
 sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 # plt.scatter(z[:,0], z[:,0])
 # context = z
-context = tf.concat([z, enc_h], axis=1)
 
 decoder_output = model_trainer.model.decoder(sampled_z)
 idm_param = model_trainer.model.idm_layer(enc_h)
@@ -674,7 +675,8 @@ p = beta.pdf(x, 2, 10)
 plt.plot(x, p, color='green')
 p = beta.pdf(x,  15, 15)
 plt.plot(x, p)
-
+mean, var, skew, kurt = beta.stats(2, 10, moments='mvsk')
+mean
 # %%
 x = np.linspace(15, 35, 100)
 scale = 1
@@ -689,9 +691,7 @@ plt.plot(x, p, color='red')
 vel_mean = 30
 p = normal_drivers.pdf(x, vel_mean, scale)
 plt.plot(x, p, color='red')
-vel_noise =
-np.random.normal(0, 1)
-np.random.beta(2, 2)
+
 # %%
 
 samples = np.random.beta(10, 2, 50)
