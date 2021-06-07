@@ -75,19 +75,19 @@ class NeurIDMModel(AbstractModel):
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]
-        h_enc_state = self.history_state_enc(inputs[0]) # history lstm state
-        f_enc_action = self.future_action_enc(inputs[-1])
+        enc_h = self.history_state_enc(inputs[0]) # history lstm state
+        enc_f_acts = self.future_action_enc(inputs[-1])
 
         if self.model_use == 'training':
-            f_enc_state = self.future_state_enc(inputs[1])
+            enc_f = self.future_state_enc(inputs[1])
             prior_param, posterior_param = self.belief_estimator(\
-                                    [h_enc_state[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
-            z = self.belief_estimator.sample_z(posterior_param)
+                                    [enc_h, enc_f_acts, enc_f], dis_type='both')
+            sampled_z = self.belief_estimator.sample_z(posterior_param)
 
             # context = tf.concat([z, h_enc_state[0]], axis=1)
             # context = tf.concat([z, h_enc_state[0]], axis=1)
-            decoder_output = self.decoder(z)
-            idm_param = self.idm_layer(h_enc_state[0])
+            decoder_output = self.decoder(sampled_z)
+            idm_param = self.idm_layer(enc_h)
             act_seq, _ = self.idm_sim.rollout([inputs[2], idm_param, decoder_output])
             return act_seq, prior_param, posterior_param
 
@@ -130,9 +130,9 @@ class BeliefModel(tf.keras.Model):
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
-            ht_history, ht_future, ht_action = inputs
+            enc_h, enc_f_acts, enc_f = inputs
             # prior
-            context = self.pri_encoding_layer_1(tf.concat([ht_history, ht_action], axis=-1))
+            context = self.pri_encoding_layer_1(tf.concat([enc_h, enc_f_acts], axis=-1))
             context = self.pri_encoding_layer_2(context)
             context = self.pri_encoding_layer_3(context)
 
@@ -140,7 +140,7 @@ class BeliefModel(tf.keras.Model):
             pri_logsigma = self.pri_logsigma(context)
 
             # posterior
-            context = self.pos_encoding_layer_1(tf.concat([ht_history, ht_future, ht_action], axis=-1))
+            context = self.pos_encoding_layer_1(tf.concat([enc_h, enc_f_acts, enc_f], axis=-1))
             context = self.pos_encoding_layer_2(context)
             context = self.pos_encoding_layer_3(context)
 
@@ -149,8 +149,8 @@ class BeliefModel(tf.keras.Model):
             return [pri_mean, pri_logsigma], [pos_mean, pos_logsigma]
 
         elif dis_type == 'prior':
-            ht_history, ht_action = inputs
-            context = self.pri_encoding_layer_1(tf.concat([ht_history, ht_action], axis=-1))
+            enc_h, enc_f_acts = inputs
+            context = self.pri_encoding_layer_1(tf.concat([enc_h, enc_f_acts], axis=-1))
             context = self.pri_encoding_layer_2(context)
             context = self.pri_encoding_layer_3(context)
 
@@ -165,11 +165,11 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units, return_state=True)
+        self.lstm_layer = LSTM(self.enc_units)
 
     def call(self, inputs):
-        _, h_t, c_t = self.lstm_layer(inputs)
-        return [h_t, c_t]
+        enc_h = self.lstm_layer(inputs)
+        return enc_h
 
 class FutureEncoder(tf.keras.Model):
     def __init__(self):
@@ -181,8 +181,8 @@ class FutureEncoder(tf.keras.Model):
         self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='mul')
 
     def call(self, inputs):
-        h_t = self.lstm_layer(inputs)
-        return [h_t, 0]
+        enc_f_acts = self.lstm_layer(inputs)
+        return enc_f_acts
 
 class Decoder(tf.keras.Model):
     def __init__(self, config):
@@ -249,7 +249,7 @@ class IDMForwardSim(tf.keras.Model):
         unscaled_s, idm_param, decoder_output = inputs
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
 
-        # hist_h_t, hist_c_t = encoder_states
+        # hist_h_t, hist_c_t = enc_h
         # h_t, c_t = hist_h_t, hist_c_t
         batch_size = tf.shape(unscaled_s)[0]
 
@@ -260,7 +260,7 @@ class IDMForwardSim(tf.keras.Model):
         # att_context = tf.reshape(z, [batch_size, 1, 2])
         # att_context = tf.concat([
         #                         # tf.reshape(hist_h_t, [batch_size, 1, 50]),
-        #                         # tf.reshape(f_enc_action, [batch_size, 1, 50]),
+        #                         # tf.reshape(enc_f_acts, [batch_size, 1, 50]),
         #                         tf.reshape(z, [batch_size, 1, 2])], axis=-1)
         # att_context = tf.reshape(hist_h_t, [batch_size, 1, 50])
         for step in tf.range(40):

@@ -350,11 +350,11 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 import tensorflow as tf
 for i in indxs[0:10]:
-    # encoder_states = model_trainer.model.encoder(np.zeros([1, :, 1:]))
-    encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
-    z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
+    # enc_h = model_trainer.model.encoder(np.zeros([1, :, 1:]))
+    enc_h = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
+    z_mean, z_log_sigma = model_trainer.model.belief_estimator(enc_h)
     tf.print(np.exp(z_log_sigma.numpy()))
-encoder_states[0].shape
+enc_h.shape
 
 # %%
 
@@ -391,10 +391,10 @@ len(normal_drivers)
 len(aggressive_drivers)
 # %%
 def latent_samples(model_trainer, indx):
-    encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
-    f_enc_action = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
-    prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
-    z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+    enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
+    enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
+    prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
+    sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
     return z
 
@@ -410,12 +410,12 @@ plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
 # %%
 def latent_samples(model_trainer, indx):
-    encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
+    enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
     f_enc_state = model_trainer.model.future_state_enc(xs_f_scaled[indx, :, 1:-1])
 
-    f_enc_action = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
-    prior_param, posterior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_state[0], f_enc_action[0]], dis_type='both')
-    z = model_trainer.model.belief_estimator.sample_z(posterior_param).numpy()
+    enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
+    prior_param, posterior_param = model_trainer.model.belief_estimator([enc_h, f_enc_state[0], enc_f_acts[0]], dis_type='both')
+    sampled_z = model_trainer.model.belief_estimator.sample_z(posterior_param).numpy()
 
     return z
 
@@ -457,17 +457,17 @@ while Example_pred < 20:
     if episode not in covered_episodes and avg_att_1 != 1 or avg_att_2 != 1:
     # if episode not in covered_episodes and abs(data_sample_f[:, :, -1]).max() > 1:
         covered_episodes.append(episode)
-        encoder_states = model_trainer.model.history_state_enc(data_sample_h)
-        f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
-        prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
-        z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+        enc_h = model_trainer.model.history_state_enc(data_sample_h)
+        enc_f_acts = model_trainer.model.future_action_enc(data_sample_merger_xas)
+        prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
+        sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
         # context = z
-        # context = tf.concat([z, encoder_states[0]], axis=1)
-        decoder_output = model_trainer.model.decoder(z)
+        # context = tf.concat([z, enc_h], axis=1)
+        decoder_output = model_trainer.model.decoder(sampled_z)
         # decoder_output[0, :]
 
-        idm_param = model_trainer.model.idm_layer(encoder_states[0])
+        idm_param = model_trainer.model.idm_layer(enc_h)
         # ones = np.ones([traces_n, 1], dtype='float32')
         # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
@@ -553,17 +553,17 @@ data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
 data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
 
-encoder_states = model_trainer.model.history_state_enc(data_sample_h)
-f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
-prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
+enc_h = model_trainer.model.history_state_enc(data_sample_h)
+enc_f_acts = model_trainer.model.future_action_enc(data_sample_merger_xas)
+prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
 # prior_param[1] = prior_param[1] * [0.1, .1]
-z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 # plt.scatter(z[:,0], z[:,0])
 # context = z
-context = tf.concat([z, encoder_states[0]], axis=1)
+context = tf.concat([z, enc_h], axis=1)
 
-decoder_output = model_trainer.model.decoder(z)
-idm_param = model_trainer.model.idm_layer(encoder_states[0])
+decoder_output = model_trainer.model.decoder(sampled_z)
+idm_param = model_trainer.model.idm_layer(enc_h)
 
 # ones = np.ones([traces_n, 1], dtype='float32')
 # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
