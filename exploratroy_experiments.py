@@ -20,11 +20,12 @@ training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n
 
 print(training_data[2].shape)
 # scaler.mean_
+# %%
 # scaler.var_
 # dir(scaler)
 # len(info)
 plt.plot(training_data[0][0, :, -2])
-plt.plot(training_data[1][0, :, -2])
+plt.plot(training_data[2][0, :, 8])
 
 
 training_data[2][0, 0, :]
@@ -78,35 +79,36 @@ att_l/(att_l+att_m)
 # %%
 """ Addressing data imbalance
 """
-train_indx = int(len(training_data[0])*0.8)
 xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f = training_data
-train_input = [xs_h[0:train_indx, :, 1:],
-            scaled_xs_f[0:train_indx, :, 1:],
-            unscaled_xs_f[0:train_indx, :, 1:],
-            merger_xas[0:train_indx, :, 1:],
-            ys_f[0:train_indx, :, 1:]]
+balance_data = True
 
-# %%
+if balance_data:
+    train_input = [xs_h[:, :, 1:],
+                scaled_xs_f[:, :, 1:],
+                unscaled_xs_f[:, :, 1:],
+                merger_xas[:, :, 1:],
+                ys_f[:, :, 1:]]
+
+    balanced_training_data = []
+    axis_0, axis_1 = np.where(train_input[0][:, :, -1] == 0)
+    lc_samples = np.unique(axis_0).astype(int)
+
+    set_i = 0
+    for set_ in train_input:
+        set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 4, axis=0), axis=0)
+        balanced_training_data.append(set_)
+        set_i += 1
+
+    train_input = balanced_training_data
 
 att_l = 0
 att_m = 0
-for set in train_input[0:2]:
-# for set in balanced_training_data[0:2]:
+for set in balanced_training_data[0:2]:
     att_l += np.sum(set[:, 0:10, -1] == 1)
     att_m += np.sum(set[:, 0:10, -1]  == 0)
 
 plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
-# %%
-balanced_training_data = []
-axis_0, axis_1 = np.where(train_input[0][:, :, -1] == 0)
-lc_samples = np.unique(axis_0).astype(int)
-
-for set in train_input:
-    set = np.append(set, np.repeat(set[lc_samples, :, :], 15, axis=0), axis=0)
-    balanced_training_data.append(set)
-# balanced_training_data.append(training_data[-1])
-balanced_training_data[-1].shape
 
 # %%
 
@@ -245,7 +247,7 @@ class Trainer():
                     else:
                         set_ = set[:, :, :-1]
 
-                    set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 15, axis=0), axis=0)
+                    set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 4, axis=0), axis=0)
                     balanced_training_data.append(set_)
                     set_i += 1
 
@@ -293,8 +295,8 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
+model_trainer.model.vae_loss_weight = 0.2
 model_trainer.train(training_data, epochs=5)
-model_trainer.model.vae_loss_weight = 0.1
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
 plt.plot(model_trainer.train_mseloss)
@@ -348,11 +350,11 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 import tensorflow as tf
 for i in indxs[0:10]:
-    # encoder_states = model_trainer.model.encoder(np.zeros([1, :, 1:]))
-    encoder_states = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
-    z_mean, z_log_sigma = model_trainer.model.belief_estimator(encoder_states[0])
+    # enc_h = model_trainer.model.encoder(np.zeros([1, :, 1:]))
+    enc_h = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
+    z_mean, z_log_sigma = model_trainer.model.belief_estimator(enc_h)
     tf.print(np.exp(z_log_sigma.numpy()))
-encoder_states[0].shape
+enc_h.shape
 
 # %%
 
@@ -389,10 +391,31 @@ len(normal_drivers)
 len(aggressive_drivers)
 # %%
 def latent_samples(model_trainer, indx):
-    encoder_states = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
-    f_enc_action = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
-    prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
-    z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+    enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
+    enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
+    prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
+    sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+
+    return z
+
+samples = latent_samples(model_trainer, aggressive_drivers)
+plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
+samples = latent_samples(model_trainer, timid_drivers)
+plt.scatter(samples[:, 0], samples[:, 1], s=10, color='green')
+samples = latent_samples(model_trainer, normal_drivers)
+plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
+# plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
+
+plt.ylabel('$z_1$')
+plt.xlabel('$z_2$')
+# %%
+def latent_samples(model_trainer, indx):
+    enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
+    f_enc_state = model_trainer.model.future_state_enc(xs_f_scaled[indx, :, 1:-1])
+
+    enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
+    prior_param, posterior_param = model_trainer.model.belief_estimator([enc_h, f_enc_state[0], enc_f_acts[0]], dis_type='both')
+    sampled_z = model_trainer.model.belief_estimator.sample_z(posterior_param).numpy()
 
     return z
 
@@ -413,10 +436,10 @@ Example_pred = 0
 traces_n = 20
 i = 0
 covered_episodes = []
-while Example_pred < 10:
-    # indx = [timid_drivers[i]]
+while Example_pred < 20:
+    indx = [timid_drivers[i]]
     # indx = [normal_drivers[i]]
-    indx = [aggressive_drivers[i]]
+    # indx = [aggressive_drivers[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
     data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
@@ -431,22 +454,24 @@ while Example_pred < 10:
     # if avg_att_1 == 1 and avg_att_2 != 1:
     episode = xs_h[indx, :, 0][0][0]
     # if episode not in covered_episodes:
-    if episode not in covered_episodes and avg_att_1 == 1 and avg_att_2 != 1:
+    if episode not in covered_episodes and avg_att_1 != 1 or avg_att_2 != 1:
     # if episode not in covered_episodes and abs(data_sample_f[:, :, -1]).max() > 1:
         covered_episodes.append(episode)
-        encoder_states = model_trainer.model.history_state_enc(data_sample_h)
-        f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
-        prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
-        z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+        enc_h = model_trainer.model.history_state_enc(data_sample_h)
+        enc_f_acts = model_trainer.model.future_action_enc(data_sample_merger_xas)
+        prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
+        sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-        context = tf.concat([z, encoder_states[0]], axis=1)
-        decoder_output = model_trainer.model.decoder(context)
+        # context = z
+        # context = tf.concat([z, enc_h], axis=1)
+        decoder_output = model_trainer.model.decoder(sampled_z)
+        # decoder_output[0, :]
 
-        idm_param = model_trainer.model.idm_layer(decoder_output)
+        idm_param = model_trainer.model.idm_layer(enc_h)
         # ones = np.ones([traces_n, 1], dtype='float32')
         # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states, f_enc_action[0]])
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, decoder_output])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
         plt.figure()
         for sample_trace_i in range(traces_n):
@@ -520,28 +545,32 @@ plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='-
 
 
 # indx = [667]
-indx = [1571]
-model_trainer.model.idm_sim.arbiter.attention_temp = 5
+indx = [949]
+model_trainer.model.idm_sim.arbiter.attention_temp = 20
+traces_n = 30
 data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
 data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
 data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
 
-encoder_states = model_trainer.model.history_state_enc(data_sample_h)
-f_enc_action = model_trainer.model.future_action_enc(data_sample_merger_xas)
-prior_param = model_trainer.model.belief_estimator([encoder_states[0], f_enc_action[0]], dis_type='prior')
-z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
-plt.scatter(z[:,0], z[:,0])
-context = tf.concat([z, encoder_states[0]], axis=1)
-decoder_output = model_trainer.model.decoder(context)
+enc_h = model_trainer.model.history_state_enc(data_sample_h)
+enc_f_acts = model_trainer.model.future_action_enc(data_sample_merger_xas)
+prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
+# prior_param[1] = prior_param[1] * [0.1, .1]
+sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+# plt.scatter(z[:,0], z[:,0])
+# context = z
+context = tf.concat([z, enc_h], axis=1)
 
-idm_param = model_trainer.model.idm_layer(decoder_output)
+decoder_output = model_trainer.model.decoder(sampled_z)
+idm_param = model_trainer.model.idm_layer(enc_h)
+
 # ones = np.ones([traces_n, 1], dtype='float32')
 # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 # idm_param = [np.random.normal(0, 1, [traces_n, 1]) + ones*19.4, ones*2, ones*4, ones*0.8, ones*1]
 # idm_param = [ones*19.4, ones*2, ones*4, ones*0.8, ones*1]
 
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, z, idm_param, encoder_states, f_enc_action[0]])
+act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, decoder_output])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
@@ -639,11 +668,11 @@ counts
 
 from scipy.stats import beta, gamma, norm
 x = np.linspace(0, 1, 100)
-p = beta.pdf(x, 30, 4)
+p = beta.pdf(x, 10, 2)
 plt.plot(x, p, color='red')
-p = beta.pdf(x, 4, 30)
+p = beta.pdf(x, 2, 10)
 plt.plot(x, p, color='green')
-p = beta.pdf(x,  45, 45)
+p = beta.pdf(x,  15, 15)
 plt.plot(x, p)
 
 # %%
@@ -665,9 +694,11 @@ np.random.normal(0, 1)
 np.random.beta(2, 2)
 # %%
 
-samples = np.random.beta(4, 30, 50)
+samples = np.random.beta(10, 2, 50)
 plt.scatter(samples*1.85, [0]*len(samples))
 # plt.scatter(samples, [0]*len(samples))
+plt.xlim(0, 1.85)
+
 # %%
 x = np.linspace(0, 10, 100)
 y = np.random.gamma()
