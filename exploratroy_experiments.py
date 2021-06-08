@@ -295,7 +295,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.6
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -439,8 +439,8 @@ traces_n = 20
 i = 0
 covered_episodes = []
 while Example_pred < 20:
-    indx = [timid_drivers[i]]
-    # indx = [normal_drivers[i]]
+    # indx = [timid_drivers[i]]
+    indx = [normal_drivers[i]]
     # indx = [aggressive_drivers[i]]
     i += 1
     data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
@@ -466,14 +466,16 @@ while Example_pred < 20:
 
         # context = z
         # context = tf.concat([z, enc_h], axis=1)
-        decoder_output = model_trainer.model.decoder(sampled_z)
+        # decoder_output = model_trainer.model.decoder(sampled_z)
         # decoder_output[0, :]
 
-        idm_param = model_trainer.model.idm_layer(enc_h)
+        # idm_param = model_trainer.model.idm_layer(enc_h)
+        idm_param = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), traces_n, axis=0)
+
         # ones = np.ones([traces_n, 1], dtype='float32')
         # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
 
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, decoder_output])
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, sampled_z])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
         plt.figure()
         for sample_trace_i in range(traces_n):
@@ -717,3 +719,9 @@ for i in [5, 10, 20]:
     y = 1/(1+np.exp(-i*x))
     plt.plot(x, y)
 plt.grid()
+
+
+
+
+
+################################

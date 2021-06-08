@@ -80,12 +80,12 @@ def data_generator():
     merger_a = []
     info = {}
     episode_steps_n = 50
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
+    # drivers = ['normal', 'timid', 'aggressive']
+    drivers = ['normal']
     # drivers = ['aggressive']
     episode_id = 0
-    episode_n = 100 * 12
-    # episode_n = 100 * 4
+    # episode_n = 100 * 12
+    episode_n = 100 * 4
     step_size = 0.1 #s
     lane_width = 1.85
     attentiveness = {'timid': [2, 10], 'normal': [15, 15], 'aggressive': [10, 2]} # attention probabilities
