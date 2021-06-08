@@ -18,7 +18,7 @@ training_samples_n = 15000
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 
 
-print(training_data[2].shape)
+print(training_data[-1].shape)
 # scaler.mean_
 # %%
 # scaler.var_
@@ -69,9 +69,8 @@ Data imbalance
 """
 att_l = 0
 att_m = 0
-for set in training_data[0:2]:
-    att_l += np.sum(set[:, 0:10, -1] == 1)
-    att_m += np.sum(set[:, 0:10, -1]  == 0)
+att_l += np.sum( training_data[-1][:, :, -2] == 1)
+att_m += np.sum( training_data[-1][:, :, -2]  == 0)
 
 plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
@@ -95,7 +94,7 @@ if balance_data:
 
     set_i = 0
     for set_ in train_input:
-        set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 4, axis=0), axis=0)
+        set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 10, axis=0), axis=0)
         balanced_training_data.append(set_)
         set_i += 1
 
@@ -198,43 +197,43 @@ class Trainer():
             self.model = NeurIDMModel(config, model_use='training')
 
     def train(self, training_data, epochs):
-        train_indx = int(len(training_data[0])*0.8)
+        train_sample_index = int(len(training_data[0])*0.8)
         self.model.epochs_n = epochs
 
         if self.model_type == 'dnn':
             xs_c, ys_c = training_data
-            train_input = [xs_c[0:train_indx, 1:], ys_c[0:train_indx, 1:]]
-            val_input = [xs_c[train_indx:, 1:], ys_c[train_indx:, 1:]]
+            train_input = [xs_c[0:train_sample_index, 1:], ys_c[0:train_sample_index, 1:]]
+            val_input = [xs_c[train_sample_index:, 1:], ys_c[train_sample_index:, 1:]]
 
         elif self.model_type == 'lstm':
             xs_h, _, ys_c = training_data
-            train_input = [xs_h[0:train_indx, :, 1:], ys_c[0:train_indx, 1:]]
-            val_input = [xs_h[train_indx:, :, 1:], ys_c[train_indx:, 1:]]
+            train_input = [xs_h[0:train_sample_index, :, 1:], ys_c[0:train_sample_index, 1:]]
+            val_input = [xs_h[train_sample_index:, :, 1:], ys_c[train_sample_index:, 1:]]
 
         elif self.model_type == 'lstm_idm':
             xs_h, xs_c, ys_c = training_data
-            train_input = [xs_h[0:train_indx, :, 1:], xs_c[0:train_indx, 1:], \
-                                            ys_c[0:train_indx, 1:]]
-            val_input = [xs_h[train_indx:, :, 1:], xs_c[train_indx:, 1:], \
-                                            ys_c[train_indx:, 1:]]
+            train_input = [xs_h[0:train_sample_index, :, 1:], xs_c[0:train_sample_index, 1:], \
+                                            ys_c[0:train_sample_index, 1:]]
+            val_input = [xs_h[train_sample_index:, :, 1:], xs_c[train_sample_index:, 1:], \
+                                            ys_c[train_sample_index:, 1:]]
 
         elif self.model_type == 'lstm_seq_idm' or self.model_type == 'vae_idm':
             xs_h, xs_f, ys_f = training_data
-            train_input = [xs_h[0:train_indx, :, 1:], xs_f[0:train_indx, :, 1:], \
-                                            ys_f[0:train_indx, :, 1:]]
-            val_input = [xs_h[train_indx:, :, 1:], xs_f[train_indx:, :, 1:], \
-                                            ys_f[train_indx:, :, 1:]]
+            train_input = [xs_h[0:train_sample_index, :, 1:], xs_f[0:train_sample_index, :, 1:], \
+                                            ys_f[0:train_sample_index, :, 1:]]
+            val_input = [xs_h[train_sample_index:, :, 1:], xs_f[train_sample_index:, :, 1:], \
+                                            ys_f[train_sample_index:, :, 1:]]
 
         elif self.model_type == 'driver_model':
             xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f = training_data
             balance_data = False
 
             if balance_data:
-                train_input = [xs_h[0:train_indx, :, 1:],
-                            scaled_xs_f[0:train_indx, :, 1:],
-                            unscaled_xs_f[0:train_indx, :, 1:],
-                            merger_xas[0:train_indx, :, 1:],
-                            ys_f[0:train_indx, :, 1:]]
+                train_input = [xs_h[0:train_sample_index, :, 1:],
+                            scaled_xs_f[0:train_sample_index, :, 1:],
+                            unscaled_xs_f[0:train_sample_index, :, 1:],
+                            merger_xas[0:train_sample_index, :, 1:],
+                            ys_f[0:train_sample_index, :, 1:]]
 
                 balanced_training_data = []
                 axis_0, axis_1 = np.where(train_input[0][:, :, -1] == 0)
@@ -247,7 +246,7 @@ class Trainer():
                     else:
                         set_ = set[:, :, :-1]
 
-                    set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 4, axis=0), axis=0)
+                    set_ = np.append(set_, np.repeat(set_[lc_samples, :, :], 10, axis=0), axis=0)
                     balanced_training_data.append(set_)
                     set_i += 1
 
@@ -255,17 +254,17 @@ class Trainer():
 
             else:
 
-                train_input = [xs_h[0:train_indx, :, 1:-1],
-                            scaled_xs_f[0:train_indx, :, 1:-1],
-                            unscaled_xs_f[0:train_indx, :, 1:-1],
-                            merger_xas[0:train_indx, :, 1:],
-                            ys_f[0:train_indx, :, 1:]]
+                train_input = [xs_h[0:train_sample_index, :, 1:],
+                            scaled_xs_f[0:train_sample_index, :, 1:],
+                            unscaled_xs_f[0:train_sample_index, :, 1:],
+                            merger_xas[0:train_sample_index, :, 1:],
+                            ys_f[0:train_sample_index, :, 2:]]
 
-            val_input = [xs_h[train_indx:, :, 1:-1],
-                        scaled_xs_f[train_indx:, :, 1:-1],
-                        unscaled_xs_f[train_indx:, :, 1:-1],
-                        merger_xas[train_indx:, :, 1:],
-                        ys_f[train_indx:, :, 1:]]
+            val_input = [xs_h[train_sample_index:, :, 1:],
+                        scaled_xs_f[train_sample_index:, :, 1:],
+                        unscaled_xs_f[train_sample_index:, :, 1:],
+                        merger_xas[train_sample_index:, :, 1:],
+                        ys_f[train_sample_index:, :, 2:]]
 
 
         for epoch in range(epochs):
@@ -348,56 +347,42 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 # %%
 
 # %%
-import tensorflow as tf
-for i in indxs[0:10]:
-    # enc_h = model_trainer.model.encoder(np.zeros([1, :, 1:]))
-    enc_h = model_trainer.model.encoder(xs_h[i:i+1, 0:1, 1:])
-    z_mean, z_log_sigma = model_trainer.model.belief_estimator(enc_h)
-    tf.print(np.exp(z_log_sigma.numpy()))
-enc_h.shape
-
-# %%
-
 np.random.seed(2020)
+s_h_scaled, s_f_scaled, s_hf_unscaled, merger_act, y_hf = training_data
+train_sample_index = int(len(s_h_scaled)*0.8)
+val_examples = range(train_sample_index, len(s_h_scaled))
 
-xs_h, xs_f_scaled, xs_f, merger_xas, ys_f = training_data
-train_indx = int(len(xs_h)*0.8)
-xs_h = xs_h[train_indx:, :, :]
-xs_f = xs_f[train_indx:, :, :]
-xs_f_scaled = xs_f_scaled[train_indx:, :, :]
-merger_xas = merger_xas[train_indx:, :, :]
-ys_f = ys_f[train_indx:, :, :]
-xs_h = np.float32(xs_h)
-xs_f = np.float32(xs_f)
-merger_xas = np.float32(merger_xas)
 
-indxs = np.random.choice(range(len(xs_h)), 500, replace=False)
-episodes = xs_h[indxs, 0, 0]
-# np.unique(indxs).shape
+s_h_scaled = np.float32(s_h_scaled)
+s_hf_unscaled = np.float32(s_hf_unscaled)
+merger_act = np.float32(merger_act)
+
 timid_drivers = []
 normal_drivers = []
 aggressive_drivers = []
 
-for indx, epis in zip(indxs.tolist(), episodes.tolist()):
+for sample_index in val_examples:
+    epis = s_h_scaled[sample_index, 0, 0]
     if info[epis] == 'timid':
-        timid_drivers.append(indx)
+       timid_drivers.append(sample_index)
     elif info[epis] == 'normal':
-        normal_drivers.append(indx)
+       normal_drivers.append(sample_index)
     elif info[epis] == 'aggressive':
-        aggressive_drivers.append(indx)
-xs_h.shape
+       aggressive_drivers.append(sample_index)
+s_h_scaled.shape
 len(timid_drivers)
 len(normal_drivers)
 len(aggressive_drivers)
-# %%
-def latent_samples(model_trainer, indx):
-    enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
-    print(xs_h.shape)
-    enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
-    prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
-    sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
 
-    return sampled_z
+# %%
+def latent_samples(model_trainer, sample_index):
+   enc_h = model_trainer.model.h_seq_encoder(s_h_scaled[sample_index, :, 1:])
+   print(s_h_scaled.shape)
+   enc_f_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
+   prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
+   sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
+
+   return sampled_z
 
 samples = latent_samples(model_trainer, aggressive_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
@@ -411,15 +396,15 @@ plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
 
 # %%
-def latent_samples(model_trainer, indx):
-    enc_h = model_trainer.model.history_state_enc(xs_h[indx, :, 1:-1])
-    f_enc_state = model_trainer.model.future_state_enc(xs_f_scaled[indx, :, 1:-1])
+def latent_samples(model_trainer, sample_index):
+   enc_h = model_trainer.model.h_seq_encoder(s_h_scaled[sample_index, :, 1:])
+   f_enc_state = model_trainer.model.f_seq_encoder(s_f_scaled[sample_index, :, 1:])
 
-    enc_f_acts = model_trainer.model.future_action_enc(merger_xas[indx, :, 1:])
-    prior_param, posterior_param = model_trainer.model.belief_estimator([enc_h, f_enc_state, enc_f_acts], dis_type='both')
-    sampled_z = model_trainer.model.belief_estimator.sample_z(posterior_param).numpy()
+   enc_f_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
+   prior_param, posterior_param = model_trainer.model.belief_net([enc_h, f_enc_state, enc_f_acts], dis_type='both')
+   sampled_z = model_trainer.model.belief_net.sample_z(posterior_param).numpy()
 
-    return sampled_z
+   return sampled_z
 
 samples = latent_samples(model_trainer, aggressive_drivers)
 plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
@@ -433,135 +418,130 @@ plt.ylabel('$z_1$')
 plt.xlabel('$z_2$')
 
 # %%
-model_trainer.model.idm_sim.arbiter.attention_temp = 20
+"""Anticipation visualisation
+"""
+def vectorise(step_row, traces_n):
+    return np.repeat(step_row, traces_n, axis=0)
+
+# model_trainer.model.idm_sim.arbiter.attention_temp = 20
+model_trainer.model.arbiter.attention_temp = 50
+
 Example_pred = 0
-traces_n = 20
+traces_n = 10
 i = 0
 covered_episodes = []
+
 while Example_pred < 20:
-    # indx = [timid_drivers[i]]
-    indx = [normal_drivers[i]]
-    # indx = [aggressive_drivers[i]]
-    i += 1
-    data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
-    data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
-    data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
-    data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
-    # avg_att_h = abs(data_sample_h[:, :, -2]).min()
-    # avg_att_f = abs(data_sample_f[:, :, -2]).min()
-    # avg_att_1 = xs_h[indx, :, -1].mean()
-    avg_att_1 =  xs_h[indx, :, -1].mean()
-    avg_att_2 = xs_f_scaled[indx, 5:, -1].mean()
-    # if avg_att == 1 or avg_att == 0:
-    # if avg_att_1 == 1 and avg_att_2 != 1:
-    episode = xs_h[indx, :, 0][0][0]
-    # if episode not in covered_episodes:
-    if episode not in covered_episodes and avg_att_1 != 1 or avg_att_2 != 1:
-    # if episode not in covered_episodes and abs(data_sample_f[:, :, -1]).max() > 1:
-        covered_episodes.append(episode)
-        enc_h = model_trainer.model.history_state_enc(data_sample_h)
-        enc_f_acts = model_trainer.model.future_action_enc(data_sample_merger_xas)
-        prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
-        sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+   # sample_index = [timid_drivers[i]]
+   sample_index = [normal_drivers[i]]
+   # sample_index = [aggressive_drivers[i]]
+   i += 1
+   true_attention = y_hf[sample_index, :, -2].flatten()
+   m_y = s_hf_unscaled[sample_index, :, -1].flatten()
+   episode = s_hf_unscaled[sample_index, 0, 0][0]
 
-        # context = z
-        # context = tf.concat([z, enc_h], axis=1)
-        # decoder_output = model_trainer.model.decoder(sampled_z)
-        # decoder_output[0, :]
+   # if episode not in covered_episodes and true_attention[:30].mean() == 1:
+   if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:10].mean() == 1:
+       Example_pred += 1
+       covered_episodes.append(episode)
 
-        # idm_param = model_trainer.model.idm_layer(enc_h)
-        idm_param = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), traces_n, axis=0)
+       true_action = y_hf[sample_index, :, -1].flatten()
 
-        # ones = np.ones([traces_n, 1], dtype='float32')
-        # idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
+       sdv_actions = vectorise(merger_act[sample_index, :, 1:], traces_n)
+       h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
+       hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, :, 1:], traces_n)
+       enc_h = model_trainer.model.h_seq_encoder(h_seq)
+       enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
+       prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
+       sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
+       att_scores =  model_trainer.model.arbiter([sampled_z, enc_h, enc_f_acts])
+       # att_scores =  model_trainer.model.arbiter(sampled_z)
 
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, sampled_z])
-        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-        plt.figure()
-        for sample_trace_i in range(traces_n):
-            plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
-            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-        plt.plot(ys_f[indx, :20, -1].flatten(), color='black', linestyle='--')
-        plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
-        # plt.plot(xs_h[indx, :, -2].flatten(), color='black', linestyle='--')
-        # plt.plot(att_scores[0, :, :].flatten())
-        # plt.ylim(act_seq.mean()-2, act_seq.mean()+2)
-        # ys_f[indx, :, -1]
-        # act_seq.mean()
-        plt.ylim(-3, 3)
-        plt.title(str(indx[0]) + ' -- Action')
-        plt.grid()
+       idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 40, axis=0)
+       idm_params = tf.reshape(idm_params, [1, 40, 5])
+       idm_params = tf.repeat(idm_params, traces_n, axis=0)
 
-        plt.figure()
-        plt.plot(xs_f[indx, :20, -1].flatten(), color='black', linestyle='--')
-        plt.plot(range(19, 40), xs_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
+       act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
+       act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+       plt.figure()
+       for sample_trace_i in range(traces_n):
+           plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+       plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
+       plt.plot(range(19, 40), true_action[19:].flatten(), color='red', linestyle='--')
+       plt.ylim(-3, 3)
+       plt.title(str(sample_index[0]) + ' -- Action')
+       plt.grid()
 
-        for sample_trace_i in range(traces_n):
-            plt.plot(att_scores[sample_trace_i, :, :].flatten(), color='grey')
-        plt.ylim(-0.1, 1.1)
-        plt.title(str(indx[0]) + ' -- Attention')
-        plt.grid()
+       plt.figure()
+       plt.plot(true_attention[:20] , color='black', linestyle='--')
+       plt.plot(range(19, 40), true_attention[19:], color='red', linestyle='--')
 
-        ##########
+       for sample_trace_i in range(traces_n):
+           plt.plot(att_scores[sample_trace_i, :].flatten(), color='grey')
+       plt.ylim(-0.1, 1.1)
+       plt.title(str(sample_index[0]) + ' -- Attention')
+       plt.grid()
 
-        # plt.plot(desired_vs)
-        # plt.grid()
-        # plt.plot(desired_tgaps)
-        # plt.grid()
+       ##########
 
-        plt.figure()
-        desired_vs = idm_param[0].numpy().flatten()
-        desired_tgaps = idm_param[1].numpy().flatten()
-        plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+       # plt.plot(desired_vs)
+       # plt.grid()
+       # plt.plot(desired_tgaps)
+       # plt.grid()
 
-        # plt.scatter(19.4, 2, color='red')
-        # plt.xlim(15, 25)
-        # plt.ylim(1, 3)
+       plt.figure()
+       desired_vs = idm_param[0].numpy().flatten()
+       desired_tgaps = idm_param[1].numpy().flatten()
+       plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
 
-        # plt.scatter(25, 1.4, color='red')
-        # plt.xlim(20, 30)
-        # plt.ylim(0, 3)
-        #
-        plt.scatter(30, 1, color='red')
-        plt.xlim(25, 35)
-        plt.ylim(0, 2)
+       # plt.scatter(19.4, 2, color='red')
+       # plt.xlim(15, 25)
+       # plt.ylim(1, 3)
 
-        plt.title(str(indx[0]) + ' -- Param')
-        plt.grid()
+       # plt.scatter(25, 1.4, color='red')
+       # plt.xlim(20, 30)
+       # plt.ylim(0, 3)
+       #
+       plt.scatter(30, 1, color='red')
+       plt.xlim(25, 35)
+       plt.ylim(0, 2)
 
-        ##########
-        state_indx = -3
-        plt.figure()
-        plt.plot(xs_f[indx, :20, state_indx].flatten(), color='black', linestyle='--')
-        plt.plot(range(19, 40), xs_f[indx, 19:, state_indx].flatten(), color='red', linestyle='--')
-        plt.title(str(indx[0]) + ' -- m_y')
-        plt.grid()
-        ############
+       plt.title(str(sample_index[0]) + ' -- Param')
+       plt.grid()
 
-        Example_pred += 1
-# %%
-
-
-plt.plot(ys_f[indx, :20, -1].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
+       ##########
+       plt.figure()
+       plt.plot(m_y[:20], color='black', linestyle='--')
+       plt.plot(range(19, 40), m_y[19:], color='red', linestyle='--')
+       plt.plot([0, 40], [-1, -1])
+       plt.title(str(sample_index[0]) + ' -- m_y')
+       plt.grid()
+       ############
 
 # %%
 
 
-# indx = [667]
-indx = [1500]
-model_trainer.model.idm_sim.arbiter.attention_temp = 20
+plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), true_action[19:].flatten(), color='red', linestyle='--')
+
+# %%
+
+
+# sample_index = [667]
+sample_index = [1500]
+model_trainer.model.arbiter.attention_temp = 20
 traces_n = 30
-data_sample_h = np.repeat(xs_h[indx, :, 1:-1], traces_n, axis=0)
-data_sample_f_scaled = np.repeat(xs_f_scaled[indx, :, 1:-1], traces_n, axis=0)
-data_sample_f = np.repeat(xs_f[indx, :, 1:-1], traces_n, axis=0)
-data_sample_merger_xas = np.repeat(merger_xas[indx, :, 1:], traces_n, axis=0)
+data_sample_h = np.repeat(s_h_scaled[sample_index, :, 1:], traces_n, axis=0)
+data_sample_f_scaled = np.repeat(s_f_scaled[sample_index, :, 1:], traces_n, axis=0)
+data_sample_f = np.repeat(s_hf_unscaled[sample_index, :, 1:], traces_n, axis=0)
+sdv_actions = np.repeat(merger_act[sample_index, :, 1:], traces_n, axis=0)
 
-enc_h = model_trainer.model.history_state_enc(data_sample_h)
-enc_f_acts = model_trainer.model.future_action_enc(data_sample_merger_xas)
-prior_param = model_trainer.model.belief_estimator([enc_h, enc_f_acts], dis_type='prior')
+enc_h = model_trainer.model.h_seq_encoder(data_sample_h)
+enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
+prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
 # prior_param[1] = prior_param[1] * [0.1, .1]
-sampled_z = model_trainer.model.belief_estimator.sample_z(prior_param).numpy()
+sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
 # plt.scatter(z[:,0], z[:,0])
 # context = z
 
@@ -577,22 +557,22 @@ act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_pa
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
-    plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(ys_f[indx, :20, -1].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), ys_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
+   plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), true_action[19:].flatten(), color='red', linestyle='--')
 plt.ylim(-2, 2)
 
 plt.grid()
 
 ##########
 plt.figure()
-plt.plot(xs_f[indx, :20, -1].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), xs_f[indx, 19:, -1].flatten(), color='red', linestyle='--')
+plt.plot(true_attention[:20] , color='black', linestyle='--')
+plt.plot(range(19, 40), true_attention[19:], color='red', linestyle='--')
 
 for sample_trace_i in range(traces_n):
-    plt.plot(att_scores[sample_trace_i, :, :].flatten(), color='grey')
+   plt.plot(att_scores[sample_trace_i, :].flatten(), color='grey')
 plt.ylim(-0.1, 1.1)
-plt.title(indx)
+plt.title(sample_index)
 plt.grid()
 ##########
 #
@@ -613,13 +593,13 @@ plt.grid()
 # plt.xlim(25, 35)
 # plt.ylim(0, 2)
 
-plt.title(indx)
+plt.title(sample_index)
 plt.grid()
 ############
-state_indx = -3
+state_sample_index = -3
 plt.figure()
-plt.plot(xs_f[indx, :20, state_indx].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), xs_f[indx, 19:, state_indx].flatten(), color='red', linestyle='--')
+plt.plot(s_hf_unscaled[sample_index, :20, state_sample_index].flatten(), color='black', linestyle='--')
+plt.plot(range(19, 40), s_hf_unscaled[sample_index, 19:, state_sample_index].flatten(), color='red', linestyle='--')
 plt.grid()
 ############
 #
@@ -630,7 +610,7 @@ plt.grid()
 # plt.scatter(25, 1.4, color='red')
 # plt.xlim(20, 30)
 # plt.ylim(0, 3)
-# plt.title(indx)
+# plt.title(sample_index)
 # plt.grid()
 
 
@@ -646,9 +626,9 @@ color = ['green', 'orange', 'red']
 driver_types = ['Timid', 'Normal', 'Aggressive']
 i=0
 for k in [0.1, 1.5, 6]:
-    y = (np.exp(k*x)-1)/(np.exp(k*w)-1)
-    plt.plot(x, y, color=color[i])
-    i+=1
+   y = (np.exp(k*x)-1)/(np.exp(k*w)-1)
+   plt.plot(x, y, color=color[i])
+   i+=1
 plt.legend(driver_types)
 plt.xlabel('Lateral position (m)')
 plt.ylabel('Attention probability (%)')
@@ -657,13 +637,13 @@ count = 0
 counts = []
 p = 0
 for i in range(2000):
-    if np.random.random() < p or p >= 1:
-        counts.append(count)
-        count = 0
-        p = 0
+   if np.random.random() < p or p >= 1:
+       counts.append(count)
+       count = 0
+       p = 0
 
-    count += 1
-    p += .04
+   count += 1
+   p += .04
 
 counts
 # _ = plt.hist(counts, bins=200)
@@ -675,7 +655,7 @@ p = beta.pdf(x, 10, 2)
 plt.plot(x, p, color='red')
 p = beta.pdf(x, 2, 10)
 plt.plot(x, p, color='green')
-p = beta.pdf(x,  15, 15)
+p = beta.pdf(x,  3, 3)
 plt.plot(x, p)
 mean, var, skew, kurt = beta.stats(2, 10, moments='mvsk')
 mean
@@ -696,8 +676,8 @@ plt.plot(x, p, color='red')
 
 # %%
 
-samples = np.random.beta(10, 2, 50)
-plt.scatter(samples*1.85, [0]*len(samples))
+samples = np.random.beta(3, 3, 80)
+plt.scatter(samples*1.85, [0]*len(samples), s=5)
 # plt.scatter(samples, [0]*len(samples))
 plt.xlim(0, 1.85)
 
@@ -707,7 +687,7 @@ y = np.random.gamma()
 
 rv = binom(n, p)
 ax.vlines(x, 0, rv.pmf(x), colors='k', linestyles='-', lw=1,
-        label='frozen pmf')
+       label='frozen pmf')
 ax.legend(loc='best', frameon=False)
 plt.show()
 
@@ -716,12 +696,6 @@ plt.show()
 x = np.linspace(-5, 5, 1000)
 
 for i in [5, 10, 20]:
-    y = 1/(1+np.exp(-i*x))
-    plt.plot(x, y)
+   y = 1/(1+np.exp(-i*x))
+   plt.plot(x, y)
 plt.grid()
-
-
-
-
-
-################################

@@ -85,10 +85,10 @@ def data_generator():
     # drivers = ['aggressive']
     episode_id = 0
     # episode_n = 100 * 12
-    episode_n = 100 * 4
+    episode_n = 100 * 8
     step_size = 0.1 #s
     lane_width = 1.85
-    attentiveness = {'timid': [2, 10], 'normal': [15, 15], 'aggressive': [10, 2]} # attention probabilities
+    attentiveness = {'timid': [2, 10], 'normal': [1, 1], 'aggressive': [10, 2]} # attention probabilities
 
     while episode_id < episode_n:
         for driver in drivers:
@@ -168,11 +168,10 @@ def data_generator():
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
                 feature.extend(merger_feature)
-                feature.extend([act, 0 if f_att == 'merger' else 1])
 
                 xs.append(feature)
                 merger_a.append([episode_id, m_y, m_vlat])
-                ys.append([episode_id, act])
+                ys.append([episode_id, 0 if f_att == 'merger' else 1, act])
 
             info[episode_id] = driver
             episode_id += 1
