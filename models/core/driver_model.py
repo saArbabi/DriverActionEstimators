@@ -83,7 +83,7 @@ class NeurIDMModel(AbstractModel):
             prior_param, posterior_param = self.belief_net(\
                                     [enc_h, enc_f_acts, enc_f], dis_type='both')
             sampled_z = self.belief_net.sample_z(posterior_param)
-            att_scores = self.arbiter([sampled_z, enc_h, enc_f_acts])
+            att_scores = self.arbiter(sampled_z)
             # att_scores = self.arbiter(sampled_z)
 
 
@@ -127,12 +127,7 @@ class BeliefModel(tf.keras.Model):
         self.pos_logsigma = Dense(self.latent_dim)
 
         self.pri_encoding_layer_1 = Dense(100)
-        # self.pri_encoding_layer_2 = Dense(100, activation=K.relu)
-        # self.pri_encoding_layer_3 = Dense(100, activation=K.relu)
-
         self.pos_encoding_layer_1 = Dense(100)
-        # self.pos_encoding_layer_2 = Dense(100, activation=K.relu)
-        # self.pos_encoding_layer_3 = Dense(100, activation=K.relu)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -145,17 +140,11 @@ class BeliefModel(tf.keras.Model):
             enc_h, enc_f_acts, enc_f = inputs
             # prior
             context = self.pri_encoding_layer_1(enc_h+enc_f_acts)
-            # context = self.pri_encoding_layer_2(context)
-            # context = self.pri_encoding_layer_3(context)
-
             pri_mean = self.pri_mean(context)
             pri_logsigma = self.pri_logsigma(context)
 
             # posterior
             context = self.pos_encoding_layer_1(enc_h+enc_f_acts+enc_f)
-            # context = self.pos_encoding_layer_2(context)
-            # context = self.pos_encoding_layer_3(context)
-
             pos_mean = self.pos_mean(context)
             pos_logsigma = self.pos_logsigma(context)
             return [pri_mean, pri_logsigma], [pos_mean, pos_logsigma]
@@ -163,8 +152,6 @@ class BeliefModel(tf.keras.Model):
         elif dis_type == 'prior':
             enc_h, enc_f_acts = inputs
             context = self.pri_encoding_layer_1(enc_h+enc_f_acts)
-            # context = self.pri_encoding_layer_2(context)
-            # context = self.pri_encoding_layer_3(context)
 
             pri_mean = self.pri_mean(context)
             pri_logsigma = self.pri_logsigma(context)
@@ -200,12 +187,10 @@ class Arbiter(tf.keras.Model):
     def __init__(self):
         super(Arbiter, self).__init__(name="Arbiter")
         self.enc_units = 50
-        self.attention_temp = 20 # the higher, the sharper the attention
+        self.attention_temp = 5 # the higher, the sharper the attention
         self.architecture_def()
 
     def architecture_def(self):
-        # self.future_dec = LSTM(self.enc_units, return_sequences=True, return_state=True)
-        # self.context_layer = TimeDistributed(Dense(100))
         self.attention_layer_1 = Dense(50, activation=K.relu)
         self.attention_layer_2 = Dense(50, activation=K.relu)
         self.attention_layer_3 = Dense(50, activation=K.relu)
@@ -213,21 +198,11 @@ class Arbiter(tf.keras.Model):
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
-        sampled_z, enc_h, enc_f_acts = inputs
-        # att_context, h_t, c_t = inputs
-        # batch_size = tf.shape(att_context)[0]
-        # att_context = self.context_layer(att_context)
-        # outputs, h_t, c_t = self.future_dec(att_context, initial_state=[h_t, c_t])
-        # outputs = tf.reshape(outputs, [batch_size, self.enc_units])
-        # x = self.attention_layer(outputs)
-
-        x = self.attention_layer_1(sampled_z)
+        x = self.attention_layer_1(inputs)
         x = self.attention_layer_2(x)
         x = self.attention_layer_3(x)
         x = self.attention_layer_4(x)
-        # x = self.attention_layer_2(x+enc_h+enc_f_acts)
         x = self.attention_neu(x)
-        # return x
         return 1/(1+tf.exp(-self.attention_temp*x))
 
 class IDMForwardSim(tf.keras.Model):

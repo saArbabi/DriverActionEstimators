@@ -88,7 +88,7 @@ def data_generator():
     episode_n = 100 * 8
     step_size = 0.1 #s
     lane_width = 1.85
-    attentiveness = {'timid': [2, 10], 'normal': [1, 1], 'aggressive': [10, 2]} # attention probabilities
+    attentiveness = {'timid': [2, 10], 'normal': [3, 3], 'aggressive': [10, 2]} # attention probabilities
 
     while episode_id < episode_n:
         for driver in drivers:

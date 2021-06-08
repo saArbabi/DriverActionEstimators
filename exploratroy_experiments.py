@@ -424,7 +424,7 @@ def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
 
 # model_trainer.model.idm_sim.arbiter.attention_temp = 20
-model_trainer.model.arbiter.attention_temp = 50
+model_trainer.model.arbiter.attention_temp = 20
 
 Example_pred = 0
 traces_n = 10
@@ -454,7 +454,7 @@ while Example_pred < 20:
        enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
        prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
        sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
-       att_scores =  model_trainer.model.arbiter([sampled_z, enc_h, enc_f_acts])
+       att_scores =  model_trainer.model.arbiter(sampled_z)
        # att_scores =  model_trainer.model.arbiter(sampled_z)
 
        idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 40, axis=0)
@@ -676,7 +676,7 @@ plt.plot(x, p, color='red')
 
 # %%
 
-samples = np.random.beta(3, 3, 80)
+samples = np.random.beta(1, 1, 80)
 plt.scatter(samples*1.85, [0]*len(samples), s=5)
 # plt.scatter(samples, [0]*len(samples))
 plt.xlim(0, 1.85)
