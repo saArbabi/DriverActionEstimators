@@ -18,7 +18,7 @@ training_samples_n = 15000
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 
 
-print(training_data[-2].shape)
+print(training_data[0].shape)
 # scaler.mean_
 # %%
 # scaler.var_
@@ -69,8 +69,8 @@ Data imbalance
 """
 att_l = 0
 att_m = 0
-att_l += np.sum( training_data[-1][:, :, -2] == 1)
-att_m += np.sum( training_data[-1][:, :, -2]  == 0)
+att_l += np.sum(training_data[-1][:, :, -2] == 1)
+att_m += np.sum(training_data[-1][:, :, -2]  == 0)
 
 plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
@@ -109,26 +109,19 @@ for set in balanced_training_data[0:2]:
 plt.bar([1, 2], [att_l, att_m])
 att_l/(att_l+att_m)
 
-# %%
 
-# for i in range(1, 10):
-plt.figure()
-# feature = training_data[0][:, -1, -1]
-feature = balanced_training_data[1][0:10000, -1, i]
-feature.max()
-_ = plt.hist(feature, bins=150)
 
 # %%
-for i in range(1, 11):
+for i in range(1, 10):
     plt.figure()
-    feature = training_data[2][0:100000, -1, i]
+    feature = training_data[0][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
 # %%
 
 for i in range(1, 10):
     plt.figure()
-    feature = training_data[0][0:10000, -1, i]
+    feature = training_data[2][0:10000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
 
@@ -437,7 +430,7 @@ while Example_pred < 20:
    # sample_index = [aggressive_drivers[i]]
    i += 1
    true_attention = y_hf[sample_index, :, -2].flatten()
-   m_y = s_hf_unscaled[sample_index, :, -1].flatten()
+   m_y = s_hf_unscaled[sample_index, :, -2].flatten()
    episode = s_hf_unscaled[sample_index, 0, 0][0]
 
    # if episode not in covered_episodes and true_attention[:30].mean() == 1:

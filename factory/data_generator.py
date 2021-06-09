@@ -168,7 +168,7 @@ def data_generator():
                 feature = [episode_id, f_v]
                 feature.extend(leader_feature)
                 feature.extend(merger_feature)
-
+                feature.append(act)
                 xs.append(feature)
                 merger_a.append([episode_id, m_y, m_vlat])
                 ys.append([episode_id, 0 if f_att == 'merger' else 1, act])
@@ -180,10 +180,9 @@ def data_generator():
     scale_data = True
 
     if scale_data:
-        bool_indx = 1 # these are values not to be scaled
-        scaler = preprocessing.StandardScaler().fit(xs[:, bool_indx:-3])
+        scaler = preprocessing.StandardScaler().fit(xs[:, 1:-2])
         xs_scaled = xs.copy()
-        xs_scaled[:, bool_indx:-3] = scaler.transform(xs[:, bool_indx:-3]).tolist()
+        xs_scaled[:, 1:-2] = scaler.transform(xs[:, 1:-2]).tolist()
 
         return xs, xs_scaled, np.array(merger_a), np.array(ys), info, scaler
 
@@ -195,30 +194,33 @@ def seqseq_sequence(training_states, h_len, f_len):
     scaled_s_h = [] # history, scaled
     scaled_s_f = [] # future, scaled
     unscaled_s_hf = [] # history and future, not scaled
-    merger_a_f = []
+    merger_a_hf = []
     ys_hf = [] # future, not scaled
     episode_steps_n = len(scaled_s)
-    scaled_s_h_seq = deque(maxlen=h_len)
-    unscaled_s_h_seq = deque(maxlen=h_len)
-    ys_h_seq = deque(maxlen=h_len)
+
+    scaled_s_seq = deque(maxlen=h_len)
+    unscaled_s_seq = deque(maxlen=h_len)
+    merge_a_seq = deque(maxlen=h_len)
+    ys_seq = deque(maxlen=h_len)
 
     for i in range(episode_steps_n):
-        scaled_s_h_seq.append(scaled_s[i])
-        unscaled_s_h_seq.append(unscaled_s[i])
-        ys_h_seq.append(actions[i])
-        if len(scaled_s_h_seq) == h_len:
+        scaled_s_seq.append(scaled_s[i])
+        unscaled_s_seq.append(unscaled_s[i])
+        merge_a_seq.append(merger_a[i])
+        ys_seq.append(actions[i])
+        if len(scaled_s_seq) == h_len:
             indx = i + f_len
             if indx + 1 > episode_steps_n:
                 break
 
-            scaled_s_h.append(list(scaled_s_h_seq))
-            # scaled_s_h.append(np.array(scaled_s_h_seq))
+            scaled_s_h.append(list(scaled_s_seq))
+            # scaled_s_h.append(np.array(scaled_s_seq))
             scaled_s_f.append(scaled_s[i+1:indx+1])
-            unscaled_s_hf.append(list(unscaled_s_h_seq)+unscaled_s[i+1:indx+1])
-            merger_a_f.append(merger_a[i+1:indx+1])
-            ys_hf.append(list(ys_h_seq)+actions[i+1:indx+1])
+            unscaled_s_hf.append(list(unscaled_s_seq)+unscaled_s[i+1:indx+1])
+            merger_a_hf.append(list(merge_a_seq)+merger_a[i+1:indx+1])
+            ys_hf.append(list(ys_seq)+actions[i+1:indx+1])
 
-    return scaled_s_h, scaled_s_f, unscaled_s_hf, merger_a_f, ys_hf
+    return scaled_s_h, scaled_s_f, unscaled_s_hf, merger_a_hf, ys_hf
 
 def seq_sequence(training_states, h_len):
     states_h, states_c, actions = training_states
@@ -226,12 +228,12 @@ def seq_sequence(training_states, h_len):
     xs_c = []
     ys_c = []
     episode_steps_n = len(states_h)
-    scaled_s_h_seq = deque(maxlen=h_len)
+    scaled_s_seq = deque(maxlen=h_len)
 
     for i in range(episode_steps_n):
-        scaled_s_h_seq.append(states_h[i])
-        if len(scaled_s_h_seq) == h_len:
-            scaled_s_h.append(list(scaled_s_h_seq))
+        scaled_s_seq.append(states_h[i])
+        if len(scaled_s_seq) == h_len:
+            scaled_s_h.append(list(scaled_s_seq))
             xs_c.append(states_c[i])
             ys_c.append(actions[i])
 
@@ -278,11 +280,11 @@ def seqseq_prep(h_len, f_len, training_samples_n):
         xs_scaled_id = xs_scaled[xs_scaled[:,0]==episode_id].tolist()
         merger_a_id = merger_a[merger_a[:,0]==episode_id].tolist()
         ys_id = ys[ys[:,0]==episode_id].tolist()
-        scaled_s_h, scaled_s_f, unscaled_s_f, merger_a_f, ys_f = seqseq_sequence([xs_scaled_id, xs_id, merger_a_id, ys_id], h_len, f_len)
+        scaled_s_h, scaled_s_f, unscaled_s_f, merger_a_hf, ys_f = seqseq_sequence([xs_scaled_id, xs_id, merger_a_id, ys_id], h_len, f_len)
         seq_scaled_s_h.extend(scaled_s_h)
         scaled_seq_xs_f.extend(scaled_s_f)
         unscaled_seq_xs_f.extend(unscaled_s_f)
-        seq_merger_a.extend(merger_a_f)
+        seq_merger_a.extend(merger_a_hf)
         seq_ys_f.extend(ys_f)
 
     return [np.array(seq_scaled_s_h), np.array(scaled_seq_xs_f), np.array(unscaled_seq_xs_f), \
