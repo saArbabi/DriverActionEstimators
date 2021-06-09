@@ -457,9 +457,9 @@ while Example_pred < 20:
        att_scores =  model_trainer.model.arbiter(sampled_z)
        # att_scores =  model_trainer.model.arbiter(sampled_z)
 
-       idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 20, axis=0)
-       idm_params = tf.reshape(idm_params, [1, 20, 5])
-       idm_params = tf.repeat(idm_params, traces_n, axis=0)
+       idm_params = model_trainer.model.idm_layer(enc_h)
+       idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
+       idm_params = tf.repeat(idm_params, 20, axis=1)
 
        act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
@@ -491,21 +491,18 @@ while Example_pred < 20:
        # plt.grid()
 
        plt.figure()
-       desired_vs = idm_param[0].numpy().flatten()
-       desired_tgaps = idm_param[1].numpy().flatten()
-       plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+       desired_vs = idm_params.numpy()[:, 0, 0]
+       desired_tgaps = idm_params.numpy()[:, 0, 1]
+       plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-       # plt.scatter(19.4, 2, color='red')
-       # plt.xlim(15, 25)
-       # plt.ylim(1, 3)
-
-       # plt.scatter(25, 1.4, color='red')
-       # plt.xlim(20, 30)
-       # plt.ylim(0, 3)
+       plt.scatter(25, 1.4, color='red')
+       # plt.scatter(30, 1.4, color='red')
+       plt.xlim(15, 40)
+       plt.ylim(0, 3)
        #
-       plt.scatter(30, 1, color='red')
-       plt.xlim(25, 35)
-       plt.ylim(0, 2)
+       # plt.scatter(30, 1, color='red')
+       # plt.xlim(25, 35)
+       # plt.ylim(0, 2)
 
        plt.title(str(sample_index[0]) + ' -- Param')
        plt.grid()
