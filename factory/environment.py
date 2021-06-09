@@ -14,11 +14,21 @@ class Env():
                         'percept_range':200, # m, front and back
                         }
 
-    def step(self, decision=None):
-        # low-level actions currently not obs dependant
-        for vehicle in self.vehicles:#
-            action = vehicle.act()
-            vehicle.step(action)
+    def step(self, action):
+        # sdv_obs = self.sdv.observe(self.vehicles)
+        # sdv_action = self.sdv.act(action, None)
+
+        # while self.sdv.time_budget >= 0:
+        self.sdv.step(action)
+
+            # for vehicle in self.vehicles:#
+            #     if vehicle.id == 'sdv':
+            #         vehicle.step(sdv_action)
+            #     else:
+            #         action = vehicle.act()
+            #         vehicle.step(action)
+
+            # self.sdv.time_budget -= 0.1
 
         self.env_clock += 1
 
