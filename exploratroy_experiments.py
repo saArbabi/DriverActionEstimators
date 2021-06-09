@@ -294,7 +294,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.7
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -521,66 +521,68 @@ while Example_pred < 20:
 
 # %%
 
-
-plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-plt.plot(range(20, 40), true_action[19:].flatten(), color='red', linestyle='--')
-
 # %%
-
-
-# sample_index = [667]
-sample_index = [1500]
+"""Single sample Anticipation visualisation
+"""
 model_trainer.model.arbiter.attention_temp = 20
-traces_n = 30
-data_sample_h = np.repeat(s_h_scaled[sample_index, :, 1:], traces_n, axis=0)
-data_sample_f_scaled = np.repeat(s_f_scaled[sample_index, :, 1:], traces_n, axis=0)
-data_sample_f = np.repeat(s_hf_unscaled[sample_index, :, 1:], traces_n, axis=0)
-sdv_actions = np.repeat(merger_act[sample_index, :, 1:], traces_n, axis=0)
+traces_n = 20
+sample_index = [5741]
 
-enc_h = model_trainer.model.h_seq_encoder(data_sample_h)
+true_attention = y_hf[sample_index, :, -2].flatten()
+m_y = s_hf_unscaled[sample_index, :, -1].flatten()
+episode = s_hf_unscaled[sample_index, 0, 0][0]
+
+
+true_action = y_hf[sample_index, :, -1].flatten()
+
+sdv_actions = vectorise(merger_act[sample_index, :, 1:], traces_n)
+h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
+hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
+enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
-# prior_param[1] = prior_param[1] * [0.1, .1]
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
-# plt.scatter(z[:,0], z[:,0])
-# context = z
+att_scores =  model_trainer.model.arbiter(sampled_z)
+# att_scores =  model_trainer.model.arbiter(sampled_z)
 
-decoder_output = model_trainer.model.decoder(sampled_z)
-idm_param = model_trainer.model.idm_layer(enc_h)
+idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 20, axis=0)
+idm_params = tf.reshape(idm_params, [1, 20, 5])
+idm_params = tf.repeat(idm_params, traces_n, axis=0)
 
-# ones = np.ones([traces_n, 1], dtype='float32')
-# idm_param = [ones*25, ones*1.5, ones*2, ones*1.4, ones*2]
-# idm_param = [np.random.normal(0, 1, [traces_n, 1]) + ones*19.4, ones*2, ones*4, ones*0.8, ones*1]
-# idm_param = [ones*19.4, ones*2, ones*4, ones*0.8, ones*1]
-
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([data_sample_f, idm_param, decoder_output])
+act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
-   plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+   plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+   # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-plt.plot(range(20, 40), true_action[19:].flatten(), color='red', linestyle='--')
-plt.ylim(-2, 2)
-
+plt.plot(range(20, 40), true_action[20:].flatten(), color='red', linestyle='--')
+plt.ylim(-3, 3)
+plt.title(str(sample_index[0]) + ' -- Action')
 plt.grid()
 
-##########
 plt.figure()
 plt.plot(true_attention[:20] , color='black', linestyle='--')
-plt.plot(range(20, 40), true_attention[19:], color='red', linestyle='--')
+plt.plot(range(20, 40), true_attention[20:], color='red', linestyle='--')
 
 for sample_trace_i in range(traces_n):
-   plt.plot(att_scores[sample_trace_i, :].flatten(), color='grey')
+   plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
 plt.ylim(-0.1, 1.1)
-plt.title(sample_index)
+plt.title(str(sample_index[0]) + ' -- Attention')
 plt.grid()
+
 ##########
-#
-# plt.figure()
-# desired_vs = idm_param[0].numpy().flatten()
-# desired_tgaps = idm_param[1].numpy().flatten()
-# plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
-#
+
+# plt.plot(desired_vs)
+# plt.grid()
+# plt.plot(desired_tgaps)
+# plt.grid()
+
+plt.figure()
+desired_vs = idm_param[0].numpy().flatten()
+desired_tgaps = idm_param[1].numpy().flatten()
+plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
+
 # plt.scatter(19.4, 2, color='red')
 # plt.xlim(15, 25)
 # plt.ylim(1, 3)
@@ -588,34 +590,22 @@ plt.grid()
 # plt.scatter(25, 1.4, color='red')
 # plt.xlim(20, 30)
 # plt.ylim(0, 3)
-
-# plt.scatter(30, 1, color='red')
-# plt.xlim(25, 35)
-# plt.ylim(0, 2)
-
-plt.title(sample_index)
-plt.grid()
-############
-state_sample_index = -3
-plt.figure()
-plt.plot(s_hf_unscaled[sample_index, :20, state_sample_index].flatten(), color='black', linestyle='--')
-plt.plot(range(20, 40), s_hf_unscaled[sample_index, 19:, state_sample_index].flatten(), color='red', linestyle='--')
-plt.grid()
-############
 #
-# plt.figure()
-# desired_vs = idm_param[0].numpy().flatten()
-# desired_tgaps = idm_param[1].numpy().flatten()
-# plt.scatter(desired_vs, desired_tgaps, color='grey', s=3)
-# plt.scatter(25, 1.4, color='red')
-# plt.xlim(20, 30)
-# plt.ylim(0, 3)
-# plt.title(sample_index)
-# plt.grid()
+plt.scatter(30, 1, color='red')
+plt.xlim(25, 35)
+plt.ylim(0, 2)
 
+plt.title(str(sample_index[0]) + ' -- Param')
+plt.grid()
 
-
-
+##########
+plt.figure()
+plt.plot(m_y[:20], color='black', linestyle='--')
+plt.plot(range(20, 40), m_y[20:], color='red', linestyle='--')
+plt.plot([0, 40], [-1, -1])
+plt.title(str(sample_index[0]) + ' -- m_y')
+plt.grid()
+############
 
 
 # %%
