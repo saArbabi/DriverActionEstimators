@@ -457,7 +457,7 @@ while Example_pred < 20:
        att_scores = model_trainer.model.arbiter(sampled_att_z)
        # att_scores =  model_trainer.model.arbiter(sampled_z)
 
-       idm_params = model_trainer.model.idm_layer(sampled_idm_z)
+       idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
        idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
        idm_params = tf.repeat(idm_params, 20, axis=1)
 
@@ -695,5 +695,5 @@ scale = 10
 min = 10
 y = np.tanh(x)*scale + 10 + scale
 plt.plot(x, y)
-plt.plot([-3, 3], [29, 29])
+plt.plot([-3, 3], [29.5, 29.5])
 plt.grid()

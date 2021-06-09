@@ -97,7 +97,7 @@ class NeurIDMModel(AbstractModel):
             # att_scores = self.arbiter(sampled_z)
 
 
-            idm_params = self.idm_layer(sampled_idm_z)
+            idm_params = self.idm_layer([sampled_idm_z, enc_h])
             idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
             idm_params = tf.repeat(idm_params, 20, axis=1)
             # idm_params = tf.reshape(idm_params, [batch_size, 20, 5])
@@ -220,17 +220,17 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(50, activation=K.relu)
-        self.layer_2 = Dense(50, activation=K.relu)
-        self.layer_3 = Dense(50, activation=K.relu)
-        self.layer_4 = Dense(50, activation=K.relu)
+        self.layer_1 = Dense(100)
+        # self.layer_2 = Dense(100, activation=K.relu)
+        # self.layer_3 = Dense(100, activation=K.relu)
+        # self.layer_4 = Dense(100, activation=K.relu)
         self.attention_neu = Dense(20)
 
     def call(self, inputs):
         x = self.layer_1(inputs)
-        x = self.layer_2(x)
-        x = self.layer_3(x)
-        x = self.layer_4(x)
+        # x = self.layer_2(x)
+        # x = self.layer_3(x)
+        # x = self.layer_4(x)
         x = self.attention_neu(x)
         return 1/(1+tf.exp(-self.attention_temp*x))
 
@@ -292,10 +292,10 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(50, activation=K.relu)
-        self.layer_2 = Dense(50, activation=K.relu)
-        self.layer_3 = Dense(50, activation=K.relu)
-        self.layer_4 = Dense(50, activation=K.relu)
+        self.layer_1 = Dense(50)
+        # self.layer_2 = Dense(50, activation=K.relu)
+        # self.layer_3 = Dense(50, activation=K.relu)
+        # self.layer_4 = Dense(50, activation=K.relu)
 
         self.des_v_layer = Dense(self.enc_units)
         self.des_v_neu = Dense(1)
@@ -344,12 +344,19 @@ class IDMLayer(tf.keras.Model):
         return self.param_activation(output, 0.5, 4., batch_size)
 
     def call(self, inputs):
-        batch_size = tf.shape(inputs)[0]
+        sampled_idm_z, enc_h = inputs
+        batch_size = tf.shape(sampled_idm_z)[0]
 
-        x = self.layer_1(inputs)
-        x = self.layer_2(x)
-        x = self.layer_3(x)
-        x = self.layer_4(x)
+        x = self.layer_1(sampled_idm_z)
+        # x = self.layer_2(x)
+        # x = self.layer_3(x)
+        # x = self.layer_4(x)
+        # x = self.attention_neu(x+enc_h)
+
+        x = x+enc_h
+        # x = self.layer_2(x)
+        # x = self.layer_3(x)
+        # x = self.layer_4(x)
 
 
         desired_v = self.get_des_v(x, batch_size)
