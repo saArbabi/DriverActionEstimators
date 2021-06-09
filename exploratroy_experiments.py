@@ -294,7 +294,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.5
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -685,4 +685,15 @@ x = np.linspace(-5, 5, 1000)
 for i in [5, 10, 20]:
    y = 1/(1+np.exp(-i*x))
    plt.plot(x, y)
+plt.grid()
+
+
+# %%
+
+x = np.linspace(-3, 3 , 100)
+scale = 10
+min = 10
+y = np.tanh(x)*scale + 10 + scale
+plt.plot(x, y)
+plt.plot([-3, 3], [29, 29])
 plt.grid()

@@ -220,7 +220,7 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(100, activation=K.relu)
+        self.layer_1 = Dense(100)
         # self.layer_2 = Dense(50, activation=K.relu)
         # self.layer_3 = Dense(50, activation=K.relu)
         # self.layer_4 = Dense(50, activation=K.relu)
@@ -347,9 +347,7 @@ class IDMLayer(tf.keras.Model):
         batch_size = tf.shape(inputs)[0]
 
         x = self.layer_1(inputs)
-        # x = self.layer_2(x)
-        # x = self.layer_3(x)
-        # x = self.layer_4(x)
+
 
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)
