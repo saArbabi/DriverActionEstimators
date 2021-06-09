@@ -284,7 +284,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.7
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -374,12 +374,12 @@ def latent_samples(model_trainer, sample_index):
 
    return sampled_z
 
-samples = latent_samples(model_trainer, aggressive_drivers)
-plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
-samples = latent_samples(model_trainer, timid_drivers)
-plt.scatter(samples[:, 0], samples[:, 1], s=10, color='green')
-samples = latent_samples(model_trainer, normal_drivers)
-plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
+plt.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='red')
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
+plt.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='green')
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, normal_drivers)
+plt.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='orange')
 # plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
 
 plt.ylabel('$z_1$')
@@ -387,25 +387,36 @@ plt.xlabel('$z_2$')
 
 # %%
 def latent_samples(model_trainer, sample_index):
-   enc_h = model_trainer.model.h_seq_encoder(s_h_scaled[sample_index, :, 1:])
-   f_enc_state = model_trainer.model.f_seq_encoder(s_f_scaled[sample_index, :, 1:])
+    sdv_actions = merger_act[sample_index, :, 1:]
+    h_seq = s_h_scaled[sample_index, :, 1:]
+    enc_h = model_trainer.model.h_seq_encoder(h_seq)
+    enc_acts = model_trainer.model.act_encoder(sdv_actions)
+    prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+    sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+    return sampled_att_z, sampled_idm_z
 
-   enc_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
-   prior_param, posterior_param = model_trainer.model.belief_net([enc_h, f_enc_state, enc_acts], dis_type='both')
-   sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(posterior_param).numpy()
 
-   return sampled_z
 
-samples = latent_samples(model_trainer, aggressive_drivers)
-plt.scatter(samples[:, 0], samples[:, 1], s=10, color='red')
-samples = latent_samples(model_trainer, timid_drivers)
-plt.scatter(samples[:, 0], samples[:, 1], s=10, color='green')
-samples = latent_samples(model_trainer, normal_drivers)
-plt.scatter(samples[:, 0], samples[:, 1], s=10, color='orange')
-# plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
+fig = plt.figure(figsize=(7, 7))
+att_axis = fig.add_subplot(211)
+idm_axs = fig.add_subplot(212)
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
+att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='red')
+idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=10, color='red')
+#
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
+att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='green')
+idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=10, color='green')
 
-plt.ylabel('$z_1$')
-plt.xlabel('$z_2$')
+# plt.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='green')
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, normal_drivers)
+att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='orange')
+idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=10, color='orange')
+# plt.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=10, color='orange')
+# # plt.scatter(z[:, 0], z[:, 1], s=20, color='blue')
+
+# att_axis.set_ylabel('$z_1$')
+# att_axis.set_xlabel('$z_2$')
 
 # %%
 """Anticipation visualisation
@@ -422,16 +433,16 @@ i = 0
 covered_episodes = []
 
 while Example_pred < 20:
-   # sample_index = [timid_drivers[i]]
-   sample_index = [normal_drivers[i]]
+   sample_index = [timid_drivers[i]]
+   # sample_index = [normal_drivers[i]]
    # sample_index = [aggressive_drivers[i]]
    i += 1
    true_attention = y_hf[sample_index, :, -2].flatten()
    m_y = s_hf_unscaled[sample_index, :, -2].flatten()
    episode = s_hf_unscaled[sample_index, 0, 0][0]
 
-   if episode not in covered_episodes and true_attention[0:20].mean() != 1 and true_attention[0:20].mean() != 0:
-   # if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:10].mean() == 1:
+   # if episode not in covered_episodes and true_attention[0:20].mean() != 1 and true_attention[0:20].mean() != 0:
+   if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:30].mean() == 1:
        Example_pred += 1
        covered_episodes.append(episode)
 
@@ -484,7 +495,8 @@ while Example_pred < 20:
        desired_tgaps = idm_params.numpy()[:, 0, 1]
        plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-       plt.scatter(25, 1.4, color='red')
+       plt.scatter(19.4, 2, color='green')
+       # plt.scatter(25, 1.4, color='orange')
        # plt.scatter(30, 1.4, color='red')
        plt.xlim(15, 40)
        plt.ylim(0, 3)
@@ -500,7 +512,9 @@ while Example_pred < 20:
        plt.figure()
        plt.plot(m_y[:20], color='black')
        plt.plot(range(20, 40), m_y[20:], color='red')
-       plt.plot([0, 40], [-1, -1])
+       plt.plot([0, 40], [-0.37, -0.37], color='green')
+       # plt.plot([0, 40], [-1, -1], color='red')
+       # plt.plot([0, 40], [-1, -1], color='red')
        plt.title(str(sample_index[0]) + ' -- m_y')
        plt.grid()
        ############

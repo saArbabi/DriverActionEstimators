@@ -297,7 +297,8 @@ class IDMLayer(tf.keras.Model):
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
     def get_des_v(self, x, batch_size):
-        return self.des_v_neu(x) + 20
+        output = self.des_v_neu(x)
+        return self.param_activation(output, 15., 35., batch_size)
 
     def get_des_tgap(self, x, batch_size):
         output = self.des_tgap_neu(x)
