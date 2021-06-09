@@ -284,7 +284,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.7
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -433,9 +433,9 @@ i = 0
 covered_episodes = []
 
 while Example_pred < 20:
-   sample_index = [timid_drivers[i]]
+   # sample_index = [timid_drivers[i]]
    # sample_index = [normal_drivers[i]]
-   # sample_index = [aggressive_drivers[i]]
+   sample_index = [aggressive_drivers[i]]
    i += 1
    true_attention = y_hf[sample_index, :, -2].flatten()
    m_y = s_hf_unscaled[sample_index, :, -2].flatten()
@@ -495,9 +495,9 @@ while Example_pred < 20:
        desired_tgaps = idm_params.numpy()[:, 0, 1]
        plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-       plt.scatter(19.4, 2, color='green')
+       # plt.scatter(19.4, 2, color='green')
        # plt.scatter(25, 1.4, color='orange')
-       # plt.scatter(30, 1.4, color='red')
+       plt.scatter(30, 1, color='red')
        plt.xlim(15, 40)
        plt.ylim(0, 3)
        #
@@ -512,9 +512,9 @@ while Example_pred < 20:
        plt.figure()
        plt.plot(m_y[:20], color='black')
        plt.plot(range(20, 40), m_y[20:], color='red')
-       plt.plot([0, 40], [-0.37, -0.37], color='green')
+       # plt.plot([0, 40], [-0.37, -0.37], color='green')
        # plt.plot([0, 40], [-1, -1], color='red')
-       # plt.plot([0, 40], [-1, -1], color='red')
+       plt.plot([0, 40], [-1.5, -1.5], color='red')
        plt.title(str(sample_index[0]) + ' -- m_y')
        plt.grid()
        ############
