@@ -294,7 +294,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.5
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -453,11 +453,11 @@ while Example_pred < 20:
        enc_h = model_trainer.model.h_seq_encoder(h_seq)
        enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
        prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
-       sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
-       att_scores =  model_trainer.model.arbiter(sampled_z)
+       sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+       att_scores = model_trainer.model.arbiter(sampled_att_z)
        # att_scores =  model_trainer.model.arbiter(sampled_z)
 
-       idm_params = model_trainer.model.idm_layer(enc_h)
+       idm_params = model_trainer.model.idm_layer(sampled_idm_z)
        idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
        idm_params = tf.repeat(idm_params, 20, axis=1)
 
