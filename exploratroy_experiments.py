@@ -18,19 +18,16 @@ training_samples_n = 15000
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 
 
-print(training_data[0].shape)
+print(training_data[2].shape)
 # scaler.mean_
 # %%
 # scaler.var_
 # dir(scaler)
 # len(info)
-plt.plot(training_data[0][0, :, -2])
-plt.plot(training_data[2][0, :, 8])
+plt.plot(training_data[2][0, :20, 2])
+plt.plot(range(20, 40), training_data[2][0, 20:, 2])
 
 
-training_data[2][0, 0, :]
-
-training_data[-1][0, 0, :]
 
 # %%
 def get_random_vals(mean_vel):
@@ -371,8 +368,8 @@ len(aggressive_drivers)
 def latent_samples(model_trainer, sample_index):
    enc_h = model_trainer.model.h_seq_encoder(s_h_scaled[sample_index, :, 1:])
    print(s_h_scaled.shape)
-   enc_f_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
-   prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
+   enc_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
+   prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
    sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
 
    return sampled_z
@@ -393,8 +390,8 @@ def latent_samples(model_trainer, sample_index):
    enc_h = model_trainer.model.h_seq_encoder(s_h_scaled[sample_index, :, 1:])
    f_enc_state = model_trainer.model.f_seq_encoder(s_f_scaled[sample_index, :, 1:])
 
-   enc_f_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
-   prior_param, posterior_param = model_trainer.model.belief_net([enc_h, f_enc_state, enc_f_acts], dis_type='both')
+   enc_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
+   prior_param, posterior_param = model_trainer.model.belief_net([enc_h, f_enc_state, enc_acts], dis_type='both')
    sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(posterior_param).numpy()
 
    return sampled_z
@@ -444,8 +441,8 @@ while Example_pred < 20:
        h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
        f_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
        enc_h = model_trainer.model.h_seq_encoder(h_seq)
-       enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
-       prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
+       enc_acts = model_trainer.model.act_encoder(sdv_actions)
+       prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
        att_scores =  model_trainer.model.arbiter(sampled_att_z)
 
@@ -528,8 +525,8 @@ sdv_actions = vectorise(merger_act[sample_index, :, 1:], traces_n)
 h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
 f_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
-enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
-prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
+enc_acts = model_trainer.model.act_encoder(sdv_actions)
+prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
 att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
 

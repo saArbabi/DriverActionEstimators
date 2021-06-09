@@ -85,13 +85,13 @@ class NeurIDMModel(AbstractModel):
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
-        enc_f_acts = self.act_encoder(inputs[-1])
+        enc_acts = self.act_encoder(inputs[-1])
         batch_size = tf.shape(inputs[0])[0]
 
         if self.model_use == 'training':
             enc_f = self.f_seq_encoder(inputs[1])
             pri_params, pos_params = self.belief_net(\
-                                    [enc_h, enc_f_acts, enc_f], dis_type='both')
+                                    [enc_h, enc_acts, enc_f], dis_type='both')
             sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
             att_scores = self.arbiter(sampled_att_z)
 
@@ -154,15 +154,15 @@ class BeliefModel(tf.keras.Model):
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
-            enc_h, enc_f_acts, enc_f = inputs
+            enc_h, enc_acts, enc_f = inputs
             # prior
-            context = self.pri_linear(enc_h+enc_f_acts)
+            context = self.pri_linear(enc_h+enc_acts)
             pri_att_mean = self.pri_att_mean(context)
             pri_att_logsigma = self.pri_att_logsigma(context)
             pri_idm_mean = self.pri_idm_mean(context)
             pri_idm_logsigma = self.pri_idm_logsigma(context)
             # posterior
-            context = self.pos_linear(enc_h+enc_f_acts+enc_f)
+            context = self.pos_linear(enc_h+enc_acts+enc_f)
             pos_att_mean = self.pos_att_mean(context)
             pos_att_logsigma = self.pos_att_logsigma(context)
             pos_idm_mean = self.pos_idm_mean(context)
@@ -173,8 +173,8 @@ class BeliefModel(tf.keras.Model):
             return pri_params, pos_params
 
         elif dis_type == 'prior':
-            enc_h, enc_f_acts = inputs
-            context = self.pri_linear(enc_h+enc_f_acts)
+            enc_h, enc_acts = inputs
+            context = self.pri_linear(enc_h+enc_acts)
 
             pri_att_mean = self.pri_att_mean(context)
             pri_att_logsigma = self.pri_att_logsigma(context)
@@ -207,8 +207,8 @@ class FutureEncoder(tf.keras.Model):
         self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='mul')
 
     def call(self, inputs):
-        enc_f_acts = self.lstm_layer(inputs)
-        return enc_f_acts
+        enc_acts = self.lstm_layer(inputs)
+        return enc_acts
 
 class Arbiter(tf.keras.Model):
     def __init__(self):
