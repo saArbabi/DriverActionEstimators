@@ -94,8 +94,6 @@ class NeurIDMModel(AbstractModel):
                                     [enc_h, enc_f_acts, enc_f], dis_type='both')
             sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
             att_scores = self.arbiter(sampled_att_z)
-            # att_scores = self.arbiter(sampled_z)
-
 
             idm_params = self.idm_layer([sampled_idm_z, enc_h])
             idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
@@ -215,22 +213,15 @@ class FutureEncoder(tf.keras.Model):
 class Arbiter(tf.keras.Model):
     def __init__(self):
         super(Arbiter, self).__init__(name="Arbiter")
-        self.enc_units = 50
         self.attention_temp = 5 # the higher, the sharper the attention
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(100)
-        # self.layer_2 = Dense(100, activation=K.relu)
-        # self.layer_3 = Dense(100, activation=K.relu)
-        # self.layer_4 = Dense(100, activation=K.relu)
+        self.linear_layer = Dense(100)
         self.attention_neu = Dense(20)
 
     def call(self, inputs):
-        x = self.layer_1(inputs)
-        # x = self.layer_2(x)
-        # x = self.layer_3(x)
-        # x = self.layer_4(x)
+        x = self.linear_layer(inputs)
         x = self.attention_neu(x)
         return 1/(1+tf.exp(-self.attention_temp*x))
 
@@ -292,24 +283,11 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(50, activation=K.tanh)
-        # self.layer_2 = Dense(50, activation=K.relu)
-        # self.layer_3 = Dense(50, activation=K.relu)
-        # self.layer_4 = Dense(50, activation=K.relu)
-
-        self.des_v_layer = Dense(self.enc_units)
+        self.linear_layer = Dense(50)
         self.des_v_neu = Dense(1)
-
-        self.des_tgap_layer = Dense(self.enc_units)
         self.des_tgap_neu = Dense(1)
-
-        self.min_jamx_layer = Dense(self.enc_units)
         self.min_jamx_neu = Dense(1)
-
-        self.max_act_layer = Dense(self.enc_units)
         self.max_act_neu = Dense(1)
-
-        self.min_act_layer = Dense(self.enc_units)
         self.min_act_neu = Dense(1)
 
     def param_activation(self, x, min_val, max_val, batch_size):
@@ -319,26 +297,21 @@ class IDMLayer(tf.keras.Model):
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
     def get_des_v(self, x, batch_size):
-        # x = self.des_v_layer(x)
         return self.des_v_neu(x) + 20
 
     def get_des_tgap(self, x, batch_size):
-        # x = self.des_tgap_layer(x)
         output = self.des_tgap_neu(x)
         return self.param_activation(output, 0.5, 4., batch_size)
 
     def get_min_jamx(self, x, batch_size):
-        # x = self.min_jamx_layer(x)
         output = self.min_jamx_neu(x)
         return self.param_activation(output, 0., 4., batch_size)
 
     def get_max_act(self, x, batch_size):
-        # x = self.max_act_layer(x)
         output = self.max_act_neu(x)
         return self.param_activation(output, 0.5, 4., batch_size)
 
     def get_min_act(self, x, batch_size):
-        # x = self.min_act_layer(x)
         output = self.min_act_neu(x)
         return self.param_activation(output, 0.5, 4., batch_size)
 
@@ -346,18 +319,7 @@ class IDMLayer(tf.keras.Model):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
 
-        x = self.layer_1(sampled_idm_z)
-        # x = self.layer_2(x)
-        # x = self.layer_3(x)
-        # x = self.layer_4(x)
-        # x = self.attention_neu(x+enc_h)
-
-        x = x+enc_h
-        # x = self.layer_2(x)
-        # x = self.layer_3(x)
-        # x = self.layer_4(x)
-
-
+        x = self.linear_layer(sampled_idm_z) + enc_h
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)
         min_jamx = self.get_min_jamx(x, batch_size)

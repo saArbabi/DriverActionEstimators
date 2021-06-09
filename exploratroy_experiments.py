@@ -442,33 +442,32 @@ while Example_pred < 20:
 
        sdv_actions = vectorise(merger_act[sample_index, :, 1:], traces_n)
        h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
-       hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
+       f_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
        enc_h = model_trainer.model.h_seq_encoder(h_seq)
        enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
        prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-       att_scores = model_trainer.model.arbiter(sampled_att_z)
-       # att_scores =  model_trainer.model.arbiter(sampled_z)
+       att_scores =  model_trainer.model.arbiter(sampled_att_z)
 
        idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
        idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
        idm_params = tf.repeat(idm_params, 20, axis=1)
 
-       act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
+       act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, f_seq_unscaled])
        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
        plt.figure()
        for sample_trace_i in range(traces_n):
            plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(), color='grey')
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-       plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-       plt.plot(range(20, 40), true_action[20:].flatten(), color='red', linestyle='--')
+       plt.plot(true_action[:20].flatten(), color='black')
+       plt.plot(range(20, 40), true_action[20:].flatten(), color='red')
        plt.ylim(-3, 3)
        plt.title(str(sample_index[0]) + ' -- Action')
        plt.grid()
 
        plt.figure()
-       plt.plot(true_attention[:20] , color='black', linestyle='--')
-       plt.plot(range(20, 40), true_attention[20:], color='red', linestyle='--')
+       plt.plot(true_attention[:20] , color='black')
+       plt.plot(range(20, 40), true_attention[20:], color='red')
 
        for sample_trace_i in range(traces_n):
            plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
@@ -502,8 +501,8 @@ while Example_pred < 20:
 
        ##########
        plt.figure()
-       plt.plot(m_y[:20], color='black', linestyle='--')
-       plt.plot(range(20, 40), m_y[20:], color='red', linestyle='--')
+       plt.plot(m_y[:20], color='black')
+       plt.plot(range(20, 40), m_y[20:], color='red')
        plt.plot([0, 40], [-1, -1])
        plt.title(str(sample_index[0]) + ' -- m_y')
        plt.grid()
@@ -515,11 +514,11 @@ while Example_pred < 20:
 """Single sample Anticipation visualisation
 """
 model_trainer.model.arbiter.attention_temp = 20
-traces_n = 50
-sample_index = [5926]
+traces_n = 20
+sample_index = [6014]
 
 true_attention = y_hf[sample_index, :, -2].flatten()
-m_y = s_hf_unscaled[sample_index, :, -1].flatten()
+m_y = s_hf_unscaled[sample_index, :, -2].flatten()
 episode = s_hf_unscaled[sample_index, 0, 0][0]
 
 
@@ -527,32 +526,32 @@ true_action = y_hf[sample_index, :, -1].flatten()
 
 sdv_actions = vectorise(merger_act[sample_index, :, 1:], traces_n)
 h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
-hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
+f_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-att_scores =  model_trainer.model.arbiter(sampled_att_z)
+att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
 
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
 idm_params = tf.repeat(idm_params, 20, axis=1)
 
-act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
+act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, f_seq_unscaled])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 plt.figure()
 for sample_trace_i in range(traces_n):
    plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(), color='grey')
    # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-plt.plot(range(20, 40), true_action[20:].flatten(), color='red', linestyle='--')
+plt.plot(true_action[:20].flatten(), color='black')
+plt.plot(range(20, 40), true_action[20:].flatten(), color='red')
 plt.ylim(-3, 3)
 plt.title(str(sample_index[0]) + ' -- Action')
 plt.grid()
 
 plt.figure()
-plt.plot(true_attention[:20] , color='black', linestyle='--')
-plt.plot(range(20, 40), true_attention[20:], color='red', linestyle='--')
+plt.plot(true_attention[:20] , color='black')
+plt.plot(range(20, 40), true_attention[20:], color='red')
 
 for sample_trace_i in range(traces_n):
    plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
@@ -589,8 +588,8 @@ plt.grid()
 
 ##########
 plt.figure()
-plt.plot(m_y[:20], color='black', linestyle='--')
-plt.plot(range(20, 40), m_y[20:], color='red', linestyle='--')
+plt.plot(m_y[:20], color='black')
+plt.plot(range(20, 40), m_y[20:], color='red')
 plt.plot([0, 40], [-1, -1])
 plt.title(str(sample_index[0]) + ' -- m_y')
 plt.grid()
