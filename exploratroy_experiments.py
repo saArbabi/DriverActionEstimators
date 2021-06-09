@@ -433,8 +433,8 @@ while Example_pred < 20:
    m_y = s_hf_unscaled[sample_index, :, -2].flatten()
    episode = s_hf_unscaled[sample_index, 0, 0][0]
 
-   # if episode not in covered_episodes and true_attention[:30].mean() == 1:
-   if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:10].mean() == 1:
+   if episode not in covered_episodes and true_attention[0:20].mean() != 1 and true_attention[0:20].mean() != 0:
+   # if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:10].mean() == 1:
        Example_pred += 1
        covered_episodes.append(episode)
 
