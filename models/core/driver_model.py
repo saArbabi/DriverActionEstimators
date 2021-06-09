@@ -292,7 +292,7 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.layer_1 = Dense(50)
+        self.layer_1 = Dense(50, activation=K.tanh)
         # self.layer_2 = Dense(50, activation=K.relu)
         # self.layer_3 = Dense(50, activation=K.relu)
         # self.layer_4 = Dense(50, activation=K.relu)
@@ -313,30 +313,29 @@ class IDMLayer(tf.keras.Model):
         self.min_act_neu = Dense(1)
 
     def param_activation(self, x, min_val, max_val, batch_size):
-        activation_function = tf.tanh(x)
+        activation_function = tf.tanh(0.5*x)
         scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
         min_val = tf.fill([batch_size, 1], min_val)
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
     def get_des_v(self, x, batch_size):
         # x = self.des_v_layer(x)
-        output = self.des_v_neu(x)
-        return self.param_activation(output, 10., 30., batch_size)
+        return self.des_v_neu(x) + 20
 
     def get_des_tgap(self, x, batch_size):
         # x = self.des_tgap_layer(x)
         output = self.des_tgap_neu(x)
-        return self.param_activation(output, 0.5, 3., batch_size)
+        return self.param_activation(output, 0.5, 4., batch_size)
 
     def get_min_jamx(self, x, batch_size):
         # x = self.min_jamx_layer(x)
         output = self.min_jamx_neu(x)
-        return self.param_activation(output, 0., 5., batch_size)
+        return self.param_activation(output, 0., 4., batch_size)
 
     def get_max_act(self, x, batch_size):
         # x = self.max_act_layer(x)
         output = self.max_act_neu(x)
-        return self.param_activation(output, 0.5, 3., batch_size)
+        return self.param_activation(output, 0.5, 4., batch_size)
 
     def get_min_act(self, x, batch_size):
         # x = self.min_act_layer(x)

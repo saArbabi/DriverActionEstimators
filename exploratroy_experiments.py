@@ -380,7 +380,7 @@ def latent_samples(model_trainer, sample_index):
    print(s_h_scaled.shape)
    enc_f_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
    prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
-   sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
+   sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
 
    return sampled_z
 
@@ -402,7 +402,7 @@ def latent_samples(model_trainer, sample_index):
 
    enc_f_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
    prior_param, posterior_param = model_trainer.model.belief_net([enc_h, f_enc_state, enc_f_acts], dis_type='both')
-   sampled_z = model_trainer.model.belief_net.sample_z(posterior_param).numpy()
+   sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(posterior_param).numpy()
 
    return sampled_z
 
@@ -522,8 +522,8 @@ while Example_pred < 20:
 """Single sample Anticipation visualisation
 """
 model_trainer.model.arbiter.attention_temp = 20
-traces_n = 20
-sample_index = [5741]
+traces_n = 50
+sample_index = [5926]
 
 true_attention = y_hf[sample_index, :, -2].flatten()
 m_y = s_hf_unscaled[sample_index, :, -1].flatten()
@@ -538,13 +538,12 @@ hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
-sampled_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
-att_scores =  model_trainer.model.arbiter(sampled_z)
-# att_scores =  model_trainer.model.arbiter(sampled_z)
+sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+att_scores =  model_trainer.model.arbiter(sampled_att_z)
 
-idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 20, axis=0)
-idm_params = tf.reshape(idm_params, [1, 20, 5])
-idm_params = tf.repeat(idm_params, traces_n, axis=0)
+idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
+idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
+idm_params = tf.repeat(idm_params, 20, axis=1)
 
 act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
@@ -690,10 +689,16 @@ plt.grid()
 
 # %%
 
-x = np.linspace(-3, 3 , 100)
-scale = 10
-min = 10
-y = np.tanh(x)*scale + 10 + scale
+x = np.linspace(-6, 6 , 100)
+max = 4
+min = 0
+scale = 2
+# y = np.tanh(0.2*x)*scale + min + scale
+y = np.tanh(0.5*x)*scale + min + scale
 plt.plot(x, y)
-plt.plot([-3, 3], [29.5, 29.5])
+# plt.plot([-3, 3], [29.5, 29.5])
+plt.grid()
+
+# %%
+plt.plot(x, np.tanh(x))
 plt.grid()
