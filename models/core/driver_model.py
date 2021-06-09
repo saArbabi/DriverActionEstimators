@@ -91,8 +91,8 @@ class NeurIDMModel(AbstractModel):
             batch_size = tf.shape(sampled_z)[0]
             # idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), batch_size, axis=0)
 
-            idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 40, axis=0)
-            idm_params = tf.reshape(idm_params, [1, 40, 5])
+            idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 20, axis=0)
+            idm_params = tf.reshape(idm_params, [1, 20, 5])
             idm_params = tf.repeat(idm_params, batch_size, axis=0)
 
             act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
@@ -195,7 +195,7 @@ class Arbiter(tf.keras.Model):
         self.attention_layer_2 = Dense(50, activation=K.relu)
         self.attention_layer_3 = Dense(50, activation=K.relu)
         self.attention_layer_4 = Dense(50, activation=K.relu)
-        self.attention_neu = Dense(40)
+        self.attention_neu = Dense(20)
 
     def call(self, inputs):
         x = self.attention_layer_1(inputs)
@@ -234,17 +234,17 @@ class IDMForwardSim(tf.keras.Model):
         batch_size = tf.shape(unscaled_s)[0]
 
         # get idm actions
-        vel = tf.slice(unscaled_s, [0, 0, 0], [batch_size, 40, 1])
+        vel = tf.slice(unscaled_s, [0, 0, 0], [batch_size, 20, 1])
 
-        dv = tf.slice(unscaled_s, [0, 0, 2], [batch_size, 40, 1])
-        dx = tf.slice(unscaled_s, [0, 0, 3], [batch_size, 40, 1])
+        dv = tf.slice(unscaled_s, [0, 0, 2], [batch_size, 20, 1])
+        dx = tf.slice(unscaled_s, [0, 0, 3], [batch_size, 20, 1])
         fl_act = self.idm_driver(vel, dv, dx, idm_params)
 
-        dv = tf.slice(unscaled_s, [0, 0, 5], [batch_size, 40, 1])
-        dx = tf.slice(unscaled_s, [0, 0, 6], [batch_size, 40, 1])
+        dv = tf.slice(unscaled_s, [0, 0, 5], [batch_size, 20, 1])
+        dx = tf.slice(unscaled_s, [0, 0, 6], [batch_size, 20, 1])
         fm_act = self.idm_driver(vel, dv, dx, idm_params)
 
-        att_scores = tf.reshape(att_scores, [batch_size, 40, 1])
+        att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
         act_seq = att_scores*fl_act + (1-att_scores)*fm_act
 
         return act_seq

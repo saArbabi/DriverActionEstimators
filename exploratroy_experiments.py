@@ -18,7 +18,7 @@ training_samples_n = 15000
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
 
 
-print(training_data[-1].shape)
+print(training_data[-2].shape)
 # scaler.mean_
 # %%
 # scaler.var_
@@ -256,15 +256,15 @@ class Trainer():
 
                 train_input = [xs_h[0:train_sample_index, :, 1:],
                             scaled_xs_f[0:train_sample_index, :, 1:],
-                            unscaled_xs_f[0:train_sample_index, :, 1:],
+                            unscaled_xs_f[0:train_sample_index, 20:, 1:],
                             merger_xas[0:train_sample_index, :, 1:],
-                            ys_f[0:train_sample_index, :, 2:]]
+                            ys_f[0:train_sample_index, 20:, 2:]]
 
             val_input = [xs_h[train_sample_index:, :, 1:],
                         scaled_xs_f[train_sample_index:, :, 1:],
-                        unscaled_xs_f[train_sample_index:, :, 1:],
+                        unscaled_xs_f[train_sample_index:, 20:, 1:],
                         merger_xas[train_sample_index:, :, 1:],
-                        ys_f[train_sample_index:, :, 2:]]
+                        ys_f[train_sample_index:, 20:, 2:]]
 
 
         for epoch in range(epochs):
@@ -294,7 +294,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.7
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -427,7 +427,7 @@ def vectorise(step_row, traces_n):
 model_trainer.model.arbiter.attention_temp = 20
 
 Example_pred = 0
-traces_n = 10
+traces_n = 20
 i = 0
 covered_episodes = []
 
@@ -449,7 +449,7 @@ while Example_pred < 20:
 
        sdv_actions = vectorise(merger_act[sample_index, :, 1:], traces_n)
        h_seq = vectorise(s_h_scaled[sample_index, :, 1:], traces_n)
-       hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, :, 1:], traces_n)
+       hf_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
        enc_h = model_trainer.model.h_seq_encoder(h_seq)
        enc_f_acts = model_trainer.model.act_encoder(sdv_actions)
        prior_param = model_trainer.model.belief_net([enc_h, enc_f_acts], dis_type='prior')
@@ -457,28 +457,28 @@ while Example_pred < 20:
        att_scores =  model_trainer.model.arbiter(sampled_z)
        # att_scores =  model_trainer.model.arbiter(sampled_z)
 
-       idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 40, axis=0)
-       idm_params = tf.reshape(idm_params, [1, 40, 5])
+       idm_params = tf.repeat(tf.constant([[25, 1.5, 2, 1.4, 2]]), 20, axis=0)
+       idm_params = tf.reshape(idm_params, [1, 20, 5])
        idm_params = tf.repeat(idm_params, traces_n, axis=0)
 
        act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, hf_seq_unscaled])
        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
        plt.figure()
        for sample_trace_i in range(traces_n):
-           plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(), color='grey')
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
        plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-       plt.plot(range(19, 40), true_action[19:].flatten(), color='red', linestyle='--')
+       plt.plot(range(20, 40), true_action[20:].flatten(), color='red', linestyle='--')
        plt.ylim(-3, 3)
        plt.title(str(sample_index[0]) + ' -- Action')
        plt.grid()
 
        plt.figure()
        plt.plot(true_attention[:20] , color='black', linestyle='--')
-       plt.plot(range(19, 40), true_attention[19:], color='red', linestyle='--')
+       plt.plot(range(20, 40), true_attention[20:], color='red', linestyle='--')
 
        for sample_trace_i in range(traces_n):
-           plt.plot(att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
        plt.ylim(-0.1, 1.1)
        plt.title(str(sample_index[0]) + ' -- Attention')
        plt.grid()
@@ -513,7 +513,7 @@ while Example_pred < 20:
        ##########
        plt.figure()
        plt.plot(m_y[:20], color='black', linestyle='--')
-       plt.plot(range(19, 40), m_y[19:], color='red', linestyle='--')
+       plt.plot(range(20, 40), m_y[20:], color='red', linestyle='--')
        plt.plot([0, 40], [-1, -1])
        plt.title(str(sample_index[0]) + ' -- m_y')
        plt.grid()
@@ -523,7 +523,7 @@ while Example_pred < 20:
 
 
 plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), true_action[19:].flatten(), color='red', linestyle='--')
+plt.plot(range(20, 40), true_action[19:].flatten(), color='red', linestyle='--')
 
 # %%
 
@@ -559,7 +559,7 @@ plt.figure()
 for sample_trace_i in range(traces_n):
    plt.plot(act_seq[sample_trace_i, :, :].flatten(), color='grey')
 plt.plot(true_action[:20].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), true_action[19:].flatten(), color='red', linestyle='--')
+plt.plot(range(20, 40), true_action[19:].flatten(), color='red', linestyle='--')
 plt.ylim(-2, 2)
 
 plt.grid()
@@ -567,7 +567,7 @@ plt.grid()
 ##########
 plt.figure()
 plt.plot(true_attention[:20] , color='black', linestyle='--')
-plt.plot(range(19, 40), true_attention[19:], color='red', linestyle='--')
+plt.plot(range(20, 40), true_attention[19:], color='red', linestyle='--')
 
 for sample_trace_i in range(traces_n):
    plt.plot(att_scores[sample_trace_i, :].flatten(), color='grey')
@@ -599,7 +599,7 @@ plt.grid()
 state_sample_index = -3
 plt.figure()
 plt.plot(s_hf_unscaled[sample_index, :20, state_sample_index].flatten(), color='black', linestyle='--')
-plt.plot(range(19, 40), s_hf_unscaled[sample_index, 19:, state_sample_index].flatten(), color='red', linestyle='--')
+plt.plot(range(20, 40), s_hf_unscaled[sample_index, 19:, state_sample_index].flatten(), color='red', linestyle='--')
 plt.grid()
 ############
 #
