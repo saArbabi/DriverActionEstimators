@@ -137,8 +137,8 @@ class BeliefModel(tf.keras.Model):
         self.pos_idm_mean = Dense(self.latent_dim)
         self.pos_idm_logsigma = Dense(self.latent_dim)
 
-        self.pri_encoding_layer_1 = Dense(100)
-        self.pos_encoding_layer_1 = Dense(100)
+        self.pri_linear = Dense(100)
+        self.pos_linear = Dense(100)
 
     def sample_z(self, dis_params):
         z_att_mean, z_idm_mean, z_att_logsigma, z_idm_logsigma = dis_params
@@ -156,13 +156,13 @@ class BeliefModel(tf.keras.Model):
         if dis_type == 'both':
             enc_h, enc_f_acts, enc_f = inputs
             # prior
-            context = self.pri_encoding_layer_1(enc_h+enc_f_acts)
+            context = self.pri_linear(enc_h+enc_f_acts)
             pri_att_mean = self.pri_att_mean(context)
             pri_att_logsigma = self.pri_att_logsigma(context)
             pri_idm_mean = self.pri_idm_mean(context)
             pri_idm_logsigma = self.pri_idm_logsigma(context)
             # posterior
-            context = self.pos_encoding_layer_1(enc_h+enc_f_acts+enc_f)
+            context = self.pos_linear(enc_h+enc_f_acts+enc_f)
             pos_att_mean = self.pos_att_mean(context)
             pos_att_logsigma = self.pos_att_logsigma(context)
             pos_idm_mean = self.pos_idm_mean(context)
@@ -174,7 +174,7 @@ class BeliefModel(tf.keras.Model):
 
         elif dis_type == 'prior':
             enc_h, enc_f_acts = inputs
-            context = self.pri_encoding_layer_1(enc_h+enc_f_acts)
+            context = self.pri_linear(enc_h+enc_f_acts)
 
             pri_att_mean = self.pri_att_mean(context)
             pri_att_logsigma = self.pri_att_logsigma(context)
