@@ -292,7 +292,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.9
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -324,13 +324,7 @@ plt.title('KL')
 # plt.ylabel('loss (MSE)')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
-a = {2: 'salar'}
-print('hi ', a)
-type(
-OPTION_keys = list(OPTIONS.keys())
-OPTION_keys = [str(key) for key in OPTION_keys]
 
-  keys, values = list(OPTIONS.items())[0]
 # %%
 import tensorflow_probability as tfp
 tfd = tfp.distributions
@@ -385,7 +379,7 @@ def latent_samples(model_trainer, sample_index):
    print(s_h_scaled.shape)
    enc_acts = model_trainer.model.act_encoder(merger_act[sample_index, :, 1:])
    prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-   sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param, samples_n=1).numpy()
+   sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param).numpy()
 
    return sampled_z
 
@@ -407,7 +401,7 @@ def latent_samples(model_trainer, sample_index):
     enc_h = model_trainer.model.h_seq_encoder(h_seq)
     enc_acts = model_trainer.model.act_encoder(sdv_actions)
     prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-    sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param, samples_n=1)
+    sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
     return sampled_att_z, sampled_idm_z
 
 
@@ -449,8 +443,8 @@ covered_episodes = []
 
 while Example_pred < 20:
    # sample_index = [timid_drivers[i]]
-   # sample_index = [normal_drivers[i]]
-   sample_index = [aggressive_drivers[i]]
+   sample_index = [normal_drivers[i]]
+   # sample_index = [aggressive_drivers[i]]
    i += 1
    true_attention = y_hf[sample_index, :, -2].flatten()
    m_y = s_hf_unscaled[sample_index, :, -2].flatten()
@@ -469,7 +463,7 @@ while Example_pred < 20:
        enc_h = model_trainer.model.h_seq_encoder(h_seq)
        enc_acts = model_trainer.model.act_encoder(sdv_actions)
        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-       sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param, samples_n=1)
+       sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
        att_scores =  model_trainer.model.arbiter(sampled_att_z)
 
        idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
@@ -556,7 +550,7 @@ f_seq_unscaled = vectorise(s_hf_unscaled[sample_index, 20:, 1:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param, samples_n=1)
+sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
 att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
 
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])

@@ -79,7 +79,7 @@ class NeurIDMModel(AbstractModel):
         return kl_att + kl_idm
 
     def vae_loss(self, mse_loss, kl_loss):
-        return  self.vae_loss_weight*kl_loss + (1-self.vae_loss_weight)*mse_loss
+        return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
         # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]

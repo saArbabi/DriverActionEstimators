@@ -39,7 +39,6 @@ class Env():
             #         vehicle.step(action)
 
             # self.sdv.time_budget -= 0.1
-        self.observe(follower_action)
         self.elapsed_time += 1
         return self.observe(follower_action)
 

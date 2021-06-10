@@ -65,6 +65,7 @@ class SDVehicle(Vehicle):
         self.act_encoder = model.act_encoder
         self.belief_net = model.belief_net
         self.arbiter = model.arbiter
+        self.idm_layer = model.idm_layer
         self.arbiter.attention_temp = 20
 
     def act(self, decision, obs):
@@ -145,4 +146,4 @@ class SDVehicle(Vehicle):
         enc_h = self.h_seq_encoder(obs_history)
         enc_acts = self.act_encoder(actions)
         prior_param = self.belief_net([enc_h, enc_acts], dis_type='prior')
-        return prior_param
+        return prior_param, enc_h
