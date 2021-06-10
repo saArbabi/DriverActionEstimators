@@ -5,11 +5,12 @@ tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 class AbstractModel(tf.keras.Model):
     def __init__(self, config):
         super(AbstractModel, self).__init__(name="AbstractModel")
-        self.config = config['model_config']
-        self.exp_dir = './models/experiments/'+config['exp_id']
-        self.optimizer = tf.optimizers.Adam(self.config['learning_rate'])
-        self.batch_size = self.config['batch_size']
         self.callback_def()
+        if config:
+            self.config = config['model_config']
+            self.exp_dir = './models/experiments/'+config['exp_id']
+            self.optimizer = tf.optimizers.Adam(self.config['learning_rate'])
+            self.batch_size = self.config['batch_size']
 
     def architecture_def(self):
         raise NotImplementedError()

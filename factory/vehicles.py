@@ -36,7 +36,8 @@ class LeadVehicle(Vehicle):
 
     def act(self):
         # return 0
-        return 1.5*np.sin(self.x*0.04)
+        return 0
+        # return 1.5*np.sin(self.x*0.04)
 
 class MergeVehicle(Vehicle):
     def __init__(self, id, lane_id, x, v, idm_param=None):
@@ -173,7 +174,7 @@ class LSTMIDMVehicle(NeurVehicle):
         self.action = action
         return action
 
-class SDVehicle(Vehicle):
+class SDVehiclehhhhhhh(Vehicle):
     def __init__(self, id, lane_id, x, v, idm_param=None):
         super().__init__(id, lane_id, x, v)
         self.env_clock = 0
@@ -184,7 +185,7 @@ class SDVehicle(Vehicle):
         # self.s_scaled = np.zeros([self.samples_n, self.steps_n, 9])
         self.obs = np.zeros([self.samples_n, self.steps_n, states_dim])
 
-    def observe(self):
+    def observe(self, follower_action):
         lf_dx = self.lead_vehicle.x-self.follower_vehicle.x
         mf_dx = self.x-self.follower_vehicle.x
         fl_dv = self.follower_vehicle.v - self.lead_vehicle.v

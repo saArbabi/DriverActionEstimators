@@ -3,7 +3,15 @@ import matplotlib.pyplot as plt
 from model import Encoder
 from importlib import reload
 import pickle
-
+[[0]*10]*20
+round([0.243512541])
+a = [[1, 2], [1, 2]]
+a = np.array(a, 'fl')[:, -1]
+np.float([3])
+a.dtype
+for trace in a:
+    trace.append(2)
+a
 # %%
 """
 Generate training data
@@ -284,7 +292,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.9
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -316,13 +324,14 @@ plt.title('KL')
 # plt.ylabel('loss (MSE)')
 # # model_trainer.model.sigma
 # print(model_trainer.valid_loss[-1])
+
 # %%
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 norm1 = tfd.Normal(loc=2., scale=3.)
 norm2 = tfd.Normal(loc=0., scale=-1)
 tfp.distributions.kl_divergence(norm1, norm2)
-
+[[0, 0]]*20
 # %%
 # model_name ='lstm_seq2s_idm'
 model_name ='testing_car'
@@ -434,8 +443,8 @@ covered_episodes = []
 
 while Example_pred < 20:
    # sample_index = [timid_drivers[i]]
-   # sample_index = [normal_drivers[i]]
-   sample_index = [aggressive_drivers[i]]
+   sample_index = [normal_drivers[i]]
+   # sample_index = [aggressive_drivers[i]]
    i += 1
    true_attention = y_hf[sample_index, :, -2].flatten()
    m_y = s_hf_unscaled[sample_index, :, -2].flatten()

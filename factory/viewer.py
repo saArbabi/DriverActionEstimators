@@ -8,7 +8,7 @@ class Viewer():
         self.att_ax = self.fig.add_subplot(212)
         self.model_type = model_type
         self.true_attention_scores = []
-        self.pred_attention_scores = []
+        self.attention_values = None
         self.elapsed_steps = []
 
     def draw_road(self, ax, percept_origin):
@@ -31,34 +31,35 @@ class Viewer():
                                 percept_origin + self.env_config['percept_range'])
 
         ax.set_yticks([])
-        ax.set_title('#Elapsed steps: '+str(self.env_clock/10)+\
-        's  #model: '+self.model_type)
+        # ax.set_title('#Elapsed steps: '+str(self.env_clock/10)+\
+        # 's  #model: '+self.model_type)
 
     def draw_vehicles(self, ax, vehicles):
+        vehicles = list(vehicles.values())
         xs = [veh.x for veh in vehicles if veh.id != 'neural']
         ys = [veh.y for veh in vehicles if veh.id != 'neural']
-        for veh in vehicles:
-            vehicle_color = 'grey'
-            edgecolors = 'black'
+        # for veh in vehicles:
+        vehicle_color = 'grey'
+        edgecolors = 'black'
+            #
+            # if veh.id == 'neural':
+            #     vehicle_color = 'none'
+            #     # print(veh.x)
+            #     # print(veh.y.shape)
+            #
+            #     # if veh.control_type == 'neural':
+            #     #     edgecolors = 'green'
+            #     #     ax.annotate('e', (veh.x, veh.y+0.3))
+            #
+            # if veh.id == 'normal_idm':
+            #     vehicle_color = 'orange'
+            # if veh.id == 'timid_idm':
+            #     vehicle_color = 'yellow'
+            # if veh.id == 'aggressive_idm':
+            #     vehicle_color = 'red'
 
-            if veh.id == 'neural':
-                vehicle_color = 'none'
-                # print(veh.x)
-                # print(veh.y.shape)
-
-                # if veh.control_type == 'neural':
-                #     edgecolors = 'green'
-                #     ax.annotate('e', (veh.x, veh.y+0.3))
-
-            if veh.id == 'normal_idm':
-                vehicle_color = 'orange'
-            if veh.id == 'timid_idm':
-                vehicle_color = 'yellow'
-            if veh.id == 'aggressive_idm':
-                vehicle_color = 'red'
-
-            ax.scatter(veh.x, veh.y, s=100, marker=">", \
-                                            facecolors=vehicle_color, edgecolors=edgecolors)
+        ax.scatter(xs, ys, s=100, marker=">", \
+                                        facecolors=vehicle_color, edgecolors=edgecolors)
 
             # ax.annotate(round(veh.v, 1), (veh.x, veh.y+0.1))
             # ax.annotate(round(veh.v, 1), (veh.x, veh.y+0.1))
@@ -73,22 +74,25 @@ class Viewer():
 
     def draw_env(self, ax, vehicles):
         ax.clear()
-        self.draw_road(ax, percept_origin=vehicles[0].x)
+        self.draw_road(ax, percept_origin=vehicles['sdv'].x)
         self.draw_vehicles(ax, vehicles)
         # self.draw_attention_line(ax, vehicles)
 
     def draw_att_plot(self, ax, vehicles):
         ax.clear()
-        self.true_attention_scores.append(vehicles[0].attention)
-        self.pred_attention_scores.append(vehicles[0].attention_score)
-        self.elapsed_steps.append(self.env_clock)
-
-        ax.plot(self.elapsed_steps, self.true_attention_scores)
-        ax.plot(self.elapsed_steps, self.pred_attention_scores)
-        ax.legend(['True attention', 'Predicted attention'])
+        # self.true_attention_scores.append(vehicles[0].attention)
+        # self.pred_attention_scores.append(vehicles[0].attention_score)
+        # self.elapsed_steps.append(self.env_clock)
+        #
+        if self.attention_values:
+            for trace in self.attention_values:
+                ax.plot(trace[0:self.elapsed_time])
+            ax.set_ylim(-0.1, 1.1)
+        # ax.plot(self.elapsed_steps, self.pred_attention_scores)
+        # ax.legend(['True attention', 'Predicted attention'])
 
     def update_plots(self, vehicles):
         self.draw_env(self.env_ax, vehicles)
-        # self.draw_att_plot(self.att_ax, vehicles)
+        self.draw_att_plot(self.att_ax, vehicles)
         plt.pause(0.00000000000000000000001)
         # plt.show()
