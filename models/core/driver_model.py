@@ -11,7 +11,7 @@ tf.random.set_seed(1234)
 
 
 class NeurIDMModel(AbstractModel):
-    def __init__(self, config, model_use):
+    def __init__(self, config=None):
         super(NeurIDMModel, self).__init__(config)
         self.arbiter = Arbiter()
         self.f_seq_encoder = FutureEncoder()
@@ -20,7 +20,6 @@ class NeurIDMModel(AbstractModel):
         self.belief_net = BeliefModel()
         self.idm_layer = IDMLayer()
         self.idm_sim = IDMForwardSim()
-        self.model_use = model_use
         # self.vae_loss_weight = 0.01
 
     def callback_def(self):
@@ -88,36 +87,24 @@ class NeurIDMModel(AbstractModel):
         enc_acts = self.act_encoder(inputs[-1])
         batch_size = tf.shape(inputs[0])[0]
 
-        if self.model_use == 'training':
-            enc_f = self.f_seq_encoder(inputs[1])
-            pri_params, pos_params = self.belief_net(\
-                                    [enc_h, enc_acts, enc_f], dis_type='both')
-            sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-            att_scores = self.arbiter(sampled_att_z)
+        enc_f = self.f_seq_encoder(inputs[1])
+        pri_params, pos_params = self.belief_net(\
+                                [enc_h, enc_acts, enc_f], dis_type='both')
+        sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
+        att_scores = self.arbiter(sampled_att_z)
 
-            idm_params = self.idm_layer([sampled_idm_z, enc_h])
-            idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-            idm_params = tf.repeat(idm_params, 20, axis=1)
-            # idm_params = tf.reshape(idm_params, [batch_size, 20, 5])
+        idm_params = self.idm_layer([sampled_idm_z, enc_h])
+        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
+        idm_params = tf.repeat(idm_params, 20, axis=1)
+        # idm_params = tf.reshape(idm_params, [batch_size, 20, 5])
 
-            act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
+        act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
 
-            tf.print('att_score_max: ', tf.reduce_max(att_scores))
-            tf.print('att_score_min: ', tf.reduce_min(att_scores))
-            tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+        tf.print('att_score_max: ', tf.reduce_max(att_scores))
+        tf.print('att_score_min: ', tf.reduce_min(att_scores))
+        tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
 
-            return act_seq, pri_params, pos_params
-
-        elif self.model_use == 'inference':
-            h_t, c_t = h_enc_state
-            prior_param = self.belief_net(h_t, dis_type='prior')
-            z = self.belief_net.sample_z(prior_param)
-            inputs = self.decoder(z)
-            idm_param = self.idm_layer([inputs, current_v])
-            # att_score, _, _ = self.idm_sim.arbiter([inputs[1][:, 0:1, :], h_t, c_t])
-            return idm_param
-            # return idm_param, att_score
-
+        return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self):

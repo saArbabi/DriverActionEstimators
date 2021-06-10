@@ -180,7 +180,7 @@ def data_generator():
     scale_data = True
 
     if scale_data:
-        scaler = preprocessing.StandardScaler().fit(xs[:, 1:-2])
+        scaler =0.7 preprocessing.StandardScaler().fit(xs[:, 1:-2])
         xs_scaled = xs.copy()
         xs_scaled[:, 1:-2] = scaler.transform(xs[:, 1:-2]).tolist()
 
