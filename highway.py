@@ -81,9 +81,13 @@ class Viewer():
                                         facecolors='blue', edgecolors='blue')
         ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
                                         facecolors='red')
-            # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
-            # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
 
+        glob_xs = [veh.glob_x for veh in vehicles]
+        glob_ys = [veh.glob_y for veh in vehicles]
+        speeds = [round(veh.speed, 1) for veh in vehicles]
+        for i in range(len(speeds)):
+            ax.annotate(speeds[i], (glob_xs[i], glob_ys[i]+0.2))
+            # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
     def draw_attention_line(self, ax, vehicles):
         x1 = vehicles[0].x
         y1 = vehicles[0].y
@@ -167,6 +171,7 @@ class IDMMOBILVehicle(Vehicle):
         self.capability = 'IDM'
         self.lane_id = {'current':lane_id, 'next':lane_id}
         self.lane_decision = 'keep_lane'
+        self.max_lane_id = 2
         self.neighbours = {}
 
         self.lateral_actions = {'move_left':0.7,
@@ -237,6 +242,14 @@ class IDMMOBILVehicle(Vehicle):
                                             (desired_gap/delta_x)**2)
         return act_long
 
+    def mobil_condition(self, action_gains):
+        """To decide if changing lane is worthwhile/
+        """
+        ego_gain, new_follower_gain, old_follower_gain = action_gains
+        lc_condition = ego_gain+self.mobil_param['politeness']*(new_follower_gain+\
+                                                                old_follower_gain )
+        return lc_condition
+
     def mobil_action(self, neighbours):
         if self.lane_decision == 'move_left':
             if self.lane_id['current'] == self.lane_id['next']:
@@ -267,23 +280,25 @@ class IDMMOBILVehicle(Vehicle):
             act_ego_lk = self.idm_action(self.observe(self, neighbours['f']))
             act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
             act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
+            old_follower_gain = act_r_lc-act_r_lk
 
             if self.lane_id['current'] > 1 and self.mobil_param['safe_braking'] < act_rl_lc:
                 # consider moving left
                 act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
-
                 act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
-                lc_left_condition = act_ego_lc_l-act_ego_lk+self.mobil_param['politeness']*\
-                                                (act_rl_lc-act_rl_lk+act_r_lc-act_r_lk)
+                ego_gain = act_ego_lc_l-act_ego_lk
+                new_follower_gain = act_rl_lc-act_rl_lk
+                lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            elif self.lane_id['current'] < 4 and self.mobil_param['safe_braking'] < act_rr_lc:
+            elif self.lane_id['current'] < self.max_lane_id and \
+                                                self.mobil_param['safe_braking'] < act_rr_lc:
                 # consider moving right
                 act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
                 act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
 
-                lc_right_condition = act_ego_lc_r-act_ego_lk+self.mobil_param['politeness']*\
-                                                (act_rr_lc-act_rr_lk+act_r_lc-act_r_lk)
-
+                ego_gain = act_ego_lc_r-act_ego_lk
+                new_follower_gain = act_rr_lc-act_rr_lk
+                lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if lc_left_condition > self.mobil_param['acceleration_threshold']:
                 act_long = act_ego_lc_l
@@ -310,13 +325,14 @@ class IDMMOBILVehicle(Vehicle):
         elif self.capability == 'IDM':
             obs = self.observe(self, neighbours['f'])
             act_long = self.idm_action(obs)
+            print(act_long)
             return [act_long, 0]
 
 class VehicleHandler:
     def __init__(self, config=None):
         # self.entry_vehicles =
         # self.queuing_vehicles =
-        self.lanes_n = 4
+        self.lanes_n = config['lanes_n']
         self.next_vehicle_id = 0
         self.lane_width = 3.7
 
@@ -454,19 +470,15 @@ class Road:
         self.lanes_n = lanes_n
 
 class Env:
-    def __init__(self, config=None):
+    def __init__(self, config):
         self.config = config
         self.elapsed_time = 0 # number of print(lane_id)s past
-        self.handler = VehicleHandler()
+        self.handler = VehicleHandler(config)
         self.sdv = None
         self.initiate_environment()
         # self.vehicles = []
 
     def initiate_environment(self):
-        self.config = {'lanes_n':4,
-                'lane_width':3.7, # m
-                'lane_length':600 # m
-                }
         self.lane_length = 600
 
         new_vehicle_entries = self.handler.gen_vehicle()
@@ -482,7 +494,6 @@ class Env:
                 # consider vehicle gone
                 continue
             neighbours = self.handler.find_neighbours(vehicle_i, self.vehicles)
-            print(neighbours)
 
             # print(neighbours)
             self.handler.set_vehicle_capability(vehicle_i, neighbours)
@@ -539,9 +550,12 @@ class Env:
     #     return obs
 
 
+config = {'lanes_n':2,
+        'lane_width':3.7, # m
+        'lane_length':600 # m
+        }
 
-
-env = Env()
+env = Env(config)
 # for i in range(10):
 #     xs = [vehicle.glob_x for vehicle in env.vehicles]
 #     ys = [vehicle.glob_y for vehicle in env.vehicles]
@@ -549,10 +563,7 @@ env = Env()
 #     plt.scatter(xs, ys)
 #     env.step()
 #
-config = {'lanes_n':4,
-        'lane_width':3.7, # m
-        'lane_length':600 # m
-        }
+
 
 viewer = Viewer(config)
 def run_sim():
@@ -568,9 +579,9 @@ def run_sim():
 
 run_sim()
 # %%
-a = [1, 2]
-
-for i in range(2):
-    print(a)
-    a[i] += 2
-print(a)
+# a = [1, 2]
+#
+# for i in range(2):
+#     print(a)
+#     a[i] += 2
+# print(a)
