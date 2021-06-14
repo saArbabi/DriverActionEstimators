@@ -335,6 +335,7 @@ class VehicleHandler:
         self.lanes_n = config['lanes_n']
         self.next_vehicle_id = 0
         self.lane_width = 3.7
+        self.percept_range = 70 #m
 
     def gen_vehicle(self):
         """Creates a new IDM vehicle.
@@ -366,13 +367,17 @@ class VehicleHandler:
             front_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x>=glob_x]
             rear_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x<=glob_x]
             if front_vehicles:
-                vehicles_x_globs = [vehicle.glob_x for vehicle in front_vehicles]
-                indx = vehicles_x_globs.index(min(vehicles_x_globs))
-                front_vehicle = front_vehicles[indx]
+                glob_xs = [vehicle.glob_x for vehicle in front_vehicles]
+                min_glob_x = min(glob_xs)
+                if min_glob_x - glob_x <= self.percept_range:
+                    indx = glob_xs.index(min_glob_x)
+                    front_vehicle = front_vehicles[indx]
             if rear_vehicles:
-                vehicles_x_globs = [vehicle.glob_x for vehicle in rear_vehicles]
-                indx = vehicles_x_globs.index(max(vehicles_x_globs))
-                rear_vehicle = rear_vehicles[indx]
+                glob_xs = [vehicle.glob_x for vehicle in rear_vehicles]
+                max_glob_x = max(glob_xs)
+                if glob_x - max_glob_x  <= self.percept_range:
+                    indx = glob_xs.index(max_glob_x)
+                    rear_vehicle = rear_vehicles[indx]
 
             return front_vehicle, rear_vehicle
 
