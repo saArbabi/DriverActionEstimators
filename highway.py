@@ -48,6 +48,15 @@ class Viewer():
 
         xs_idm_mobil = [veh.glob_x for veh in vehicles if veh.capability == 'IDMMOBIL']
         ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
+
+
+        for vehicle in vehicles:
+            if vehicle.capability == 'IDMMOBIL':
+                neighbours = list(vehicle.neighbours.values())
+                for neighbour in neighbours:
+                    if neighbour:
+                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                            [vehicle.glob_y, neighbour.glob_y], color='grey')
         # for veh in vehicles:
         # vehicle_color = 'grey'
         # edgecolors = 'black'
@@ -158,6 +167,7 @@ class IDMMOBILVehicle(Vehicle):
         self.capability = 'IDM'
         self.lane_id = {'current':lane_id, 'next':lane_id}
         self.lane_decision = 'keep_lane'
+        self.neighbours = {}
 
         self.lateral_actions = {'move_left':0.7,
                                 'move_right':-0.7,
@@ -293,7 +303,7 @@ class IDMMOBILVehicle(Vehicle):
 
 
     def act(self, neighbours):
-        if self.capability == 'IDMMOBIL':
+        if self.capability == 'IDMMOBIL' or self.lane_decision != 'keep_lane':
             act_long, act_lat = self.mobil_action(neighbours)
             return [act_long, act_lat]
 
@@ -390,18 +400,52 @@ class VehicleHandler:
         """Ensures only one vehicle within a given neighbourhood can move laterally.
         """
         # neighbours = list(neighbours.values())
-        
+        #
+        # for vehicle in neighbours.values():
+        #     if vehicle:
+        #         if vehicle.capability == 'IDMMOBIL':
+        #             ego.capability == 'IDM'
+        #             return
+        # ego.capability = 'IDMMOBIL'
+
+
+        # idm_mobil_exists = False
+        # for vehicle in neighbours.values():
+        #     if vehicle:
+        #         if vehicle.capability == 'IDMMOBIL':
+        #             if not idm_mobil_exists:
+        #                 idm_mobil_exists = True
+        #             else:
+        #                 vehicle.capability = 'IDM'
+        #
+        #
+        #
+        # if not idm_mobil_exists and ego.capability == 'IDM':
+        #     ego.capability = 'IDMMOBIL'
+
+        idm_mobil_exists = False
         for vehicle in neighbours.values():
             if vehicle:
-                if vehicle.capability == 'IDMMOBIL':
-                    ego.capability == 'IDM'
-                    return
-        ego.capability = 'IDMMOBIL'
+                if vehicle.capability == 'IDMMOBIL' and not idm_mobil_exists:
+                    idm_mobil_exists = True
+                elif idm_mobil_exists:
+                        vehicle.capability = 'IDM'
+
+
+
+        if not idm_mobil_exists and ego.capability == 'IDM':
+            ego.capability = 'IDMMOBIL'
+        elif idm_mobil_exists and ego.capability == 'IDMMOBIL':
+            ego.capability = 'IDM'
 
 
     def get_vehicle_state(self, vehicle):
 
         pass
+
+    # def gen_sdv(self, sdv):
+    #     if not sdv:
+
 
 class Road:
     def __init__(self, lane_length, lane_width, lanes_n):
@@ -414,6 +458,7 @@ class Env:
         self.config = config
         self.elapsed_time = 0 # number of print(lane_id)s past
         self.handler = VehicleHandler()
+        self.sdv = None
         self.initiate_environment()
         # self.vehicles = []
 
@@ -443,6 +488,7 @@ class Env:
             self.handler.set_vehicle_capability(vehicle_i, neighbours)
             # obs = self.observe(vehicle_i, neighbours)
             action = vehicle_i.act(neighbours)
+            vehicle_i.neighbours = neighbours
             # print(action)
             # action = vehicle_i.act()
             vehicle_ii = copy.copy(vehicle_i)
@@ -522,3 +568,9 @@ def run_sim():
 
 run_sim()
 # %%
+a = [1, 2]
+
+for i in range(2):
+    print(a)
+    a[i] += 2
+print(a)
