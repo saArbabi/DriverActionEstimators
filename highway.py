@@ -43,11 +43,14 @@ class Viewer():
 
     def draw_vehicles(self, ax, vehicles):
         # vehicles = lisvehicles.values())
-        xs = [veh.glob_x for veh in vehicles if veh.id != 'neural']
-        ys = [veh.glob_y for veh in vehicles if veh.id != 'neural']
+        xs_idm = [veh.glob_x for veh in vehicles if veh.capability == 'IDM']
+        ys_idm = [veh.glob_y for veh in vehicles if veh.capability == 'IDM']
+
+        xs_idm_mobil = [veh.glob_x for veh in vehicles if veh.capability == 'IDMMOBIL']
+        ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
         # for veh in vehicles:
-        vehicle_color = 'grey'
-        edgecolors = 'black'
+        # vehicle_color = 'grey'
+        # edgecolors = 'black'
             #
             # if veh.id == 'neural':
             #     vehicle_color = 'none'
@@ -65,9 +68,10 @@ class Viewer():
             # if veh.id == 'aggressive_idm':
             #     vehicle_color = 'red'
 
-        ax.scatter(xs, ys, s=100, marker=">", \
-                                        facecolors=vehicle_color, edgecolors=edgecolors)
-
+        ax.scatter(xs_idm, ys_idm, s=100, marker=">", \
+                                        facecolors='blue', edgecolors='blue')
+        ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
+                                        facecolors='red')
             # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
             # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
 
@@ -137,9 +141,11 @@ class Vehicle(object):
             self.lane_y +=  act_lat*self.STEP_SIZE
 
             if self.lane_y <= -self.lane_width/2:
+                # just stepped into right lane
                 self.lane_id['current'] += 1
                 self.lane_y += self.lane_width
             elif self.lane_y >= self.lane_width/2:
+                # just stepped into left lane
                 self.lane_id['current'] -= 1
                 self.lane_y -= self.lane_width
 
@@ -238,8 +244,8 @@ class IDMMOBILVehicle(Vehicle):
                 if self.lane_y <= 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-            elif self.lane_id['current'] > self.lane_id['next']:
-                act_long = self.idm_action(self.observe(self, neighbours['fl']))
+            elif self.lane_id['current'] < self.lane_id['next']:
+                act_long = self.idm_action(self.observe(self, neighbours['fr']))
 
         else:
             lc_left_condition = 0
@@ -331,8 +337,8 @@ class VehicleHandler:
         if not lane_vehicles:
             return front_vehicle, rear_vehicle
         else:
-            front_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x>glob_x]
-            rear_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x<glob_x]
+            front_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x>=glob_x]
+            rear_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x<=glob_x]
             if front_vehicles:
                 vehicles_x_globs = [vehicle.glob_x for vehicle in front_vehicles]
                 indx = vehicles_x_globs.index(min(vehicles_x_globs))
@@ -381,10 +387,11 @@ class VehicleHandler:
 
 
     def set_vehicle_capability(self, ego, neighbours):
-        """Ensures only one vehicle within a given neighbour can move laterally.
+        """Ensures only one vehicle within a given neighbourhood can move laterally.
         """
-        neighbours = list(neighbours.values())
-        for vehicle in neighbours:
+        # neighbours = list(neighbours.values())
+        
+        for vehicle in neighbours.values():
             if vehicle:
                 if vehicle.capability == 'IDMMOBIL':
                     ego.capability == 'IDM'
@@ -429,14 +436,16 @@ class Env:
             if vehicle_i.glob_x > self.lane_length:
                 # consider vehicle gone
                 continue
-            vehicle_ii = copy.copy(vehicle_i)
             neighbours = self.handler.find_neighbours(vehicle_i, self.vehicles)
+            print(neighbours)
+
             # print(neighbours)
             self.handler.set_vehicle_capability(vehicle_i, neighbours)
             # obs = self.observe(vehicle_i, neighbours)
             action = vehicle_i.act(neighbours)
             # print(action)
             # action = vehicle_i.act()
+            vehicle_ii = copy.copy(vehicle_i)
             vehicle_ii.step(action)
             vehicles.append(vehicle_ii)
 
@@ -444,7 +453,7 @@ class Env:
         self.vehicles = vehicles
         self.elapsed_time += 1
 
-        if self.elapsed_time % 30 == 0:
+        if self.elapsed_time % 20 == 0:
             new_vehicle_entries = self.handler.gen_vehicle()
             self.vehicles.extend(new_vehicle_entries)
 
@@ -504,6 +513,8 @@ def run_sim():
     # for i in range(10):
     while True:
         viewer.render(env.vehicles)
+        input()
+
         env.step()
         # cap = [vehicle.capability for vehicle in env.vehicles]
         # cap = [1 if x == 'IDM' else 0 for x in cap]
@@ -511,18 +522,3 @@ def run_sim():
 
 run_sim()
 # %%
-#
-# def modifier(obj):
-#     car_list = []
-#     obj2 = obj
-#     obj2.glob_x = 50
-#     car_list.append(obj2)
-#     return car_list
-#
-#
-#
-# #@|\\|?>
-# new_vehicle = IDMMOBILVehicle(2, 2, 0, 20, 'normal_idm')
-#
-# car_list = modifier(new_vehicle)
-# new_vehicle.glob_x
