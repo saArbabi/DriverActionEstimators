@@ -8,7 +8,7 @@ import numpy as np
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(10, 4))
+        self.fig = plt.figure(figsize=(15, 2))
         self.env_ax = self.fig.add_subplot(211)
         # self.att_ax = self.fig.add_subplot(212)
         # self.model_type = model_type
@@ -325,7 +325,6 @@ class IDMMOBILVehicle(Vehicle):
         elif self.capability == 'IDM':
             obs = self.observe(self, neighbours['f'])
             act_long = self.idm_action(obs)
-            print(act_long)
             return [act_long, 0]
 
 class VehicleHandler:
@@ -341,14 +340,15 @@ class VehicleHandler:
         """Creates a new IDM vehicle.
         """
         driver_disposition = 'normal_idm'
-        glob_x = 0
         speed = 20
         new_vehicle_entries = []
 
         for lane_id in range(1, self.lanes_n+1):
-            id = self.next_vehicle_id
             coin_flip = np.random.random()
-            if coin_flip < 0.3:
+            if coin_flip < 0.6:
+                id = self.next_vehicle_id
+                glob_x = np.random.uniform(-30, 0)
+
                 new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
                 new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
                 new_vehicle_entries.append(new_vehicle)
@@ -484,7 +484,7 @@ class Env:
         # self.vehicles = []
 
     def initiate_environment(self):
-        self.lane_length = 600
+        self.lane_length = self.config['lane_length']
 
         new_vehicle_entries = self.handler.gen_vehicle()
         self.vehicles = new_vehicle_entries
@@ -515,7 +515,7 @@ class Env:
         self.vehicles = vehicles
         self.elapsed_time += 1
 
-        if self.elapsed_time % 20 == 0:
+        if self.elapsed_time % 30 == 0:
             new_vehicle_entries = self.handler.gen_vehicle()
             self.vehicles.extend(new_vehicle_entries)
 
@@ -557,7 +557,7 @@ class Env:
 
 config = {'lanes_n':2,
         'lane_width':3.7, # m
-        'lane_length':600 # m
+        'lane_length':1200 # m
         }
 
 env = Env(config)
