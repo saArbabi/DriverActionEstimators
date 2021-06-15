@@ -1,4 +1,5 @@
 import numpy as np
+
 import matplotlib.pyplot as plt
 from model import Encoder
 from importlib import reload
@@ -649,14 +650,19 @@ counts
 
 from scipy.stats import beta, gamma, norm
 x = np.linspace(0, 1, 100)
-p = beta.pdf(x, 10, 2)
-plt.plot(x, p, color='red')
+
 p = beta.pdf(x, 2, 10)
 plt.plot(x, p, color='green')
 p = beta.pdf(x,  3, 3)
-plt.plot(x, p)
+plt.plot(x, p, color='orange')
+p = beta.pdf(x, 10, 2)
+plt.plot(x, p, color='red')
 mean, var, skew, kurt = beta.stats(2, 10, moments='mvsk')
 mean
+driver_types = ['Timid', 'Normal', 'Aggressive']
+plt.legend(driver_types)
+plt.xlabel('Lateral displacement (%)')
+plt.ylabel('Attention pdf')
 # %%
 x = np.linspace(15, 35, 100)
 scale = 1

@@ -53,10 +53,14 @@ class Viewer():
         for vehicle in vehicles:
             if vehicle.capability == 'IDMMOBIL':
                 neighbours = list(vehicle.neighbours.values())
+                color = 'grey'
+                if vehicle.lane_decision != 'keep_lane':
+                    color = 'red'
+
                 for neighbour in neighbours:
                     if neighbour:
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                            [vehicle.glob_y, neighbour.glob_y], color='grey')
+                                            [vehicle.glob_y, neighbour.glob_y], color=color)
         # for veh in vehicles:
         # vehicle_color = 'grey'
         # edgecolors = 'black'
@@ -336,7 +340,7 @@ class VehicleHandler:
         self.lane_length = config['lane_length']
         self.next_vehicle_id = 0
         self.lane_width = 3.7
-        self.percept_range = 70 #m
+        self.percept_range = 100 #m
         self.target_traffic_density = 1. # vehicle count per 100 meters
         self.traffic_density = 0
 
@@ -352,7 +356,7 @@ class VehicleHandler:
         if self.traffic_density < self.target_traffic_density:
             if elapsed_time % 70 == 0:
                 id = self.next_vehicle_id
-                glob_x = np.random.uniform(-30, 0)
+                glob_x = 0
                 lane_id = np.random.choice(range(1, self.lanes_n+1))
                 new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
                 new_vehicle.capability = 'IDMMOBIL'
@@ -365,7 +369,7 @@ class VehicleHandler:
                     coin_flip = np.random.random()
                     if coin_flip < 0.3:
                         id = self.next_vehicle_id
-                        glob_x = np.random.uniform(-30, 0)
+                        glob_x = 0
 
                         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
                         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
@@ -550,20 +554,54 @@ def run_sim():
     # for i in range(10):
     while True:
         viewer.render(env.vehicles)
-        # decision = input()
-        # if decision == 'n':
-        #     sys.exit()
+        decision = input()
+        if decision == 'n':
+            sys.exit()
 
         env.step()
         # cap = [vehicle.capability for vehicle in env.vehicles]
         # cap = [1 if x == 'IDM' else 0 for x in cap]
         # print(np.mean(cap))
 
-run_sim()
+# run_sim()
 # %%
-# a = [1, 2]
-#
-# for i in range(2):
-#     print(a)
-#     a[i] += 2
-# print(a)
+import numpy as np
+import matplotlib.pyplot as plt
+plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
+# plt.rcParams['animation.ffmpeg_path'] = 'C:\\Users\\sa00443\\.virtualenvs\\mcts_merge-Qb1q4Bs1\\Lib\\site-packages\\ffmpeg.exe'
+
+from matplotlib.animation import FuncAnimation, writers
+# from matplotlib import animation
+# writer = animation.FFMpegWriter(fps=20, metadata=dict(artist='Me'), bitrate=1800)
+
+# plt.rcParams['animation.ffmpeg_path'] = 'C:\Users\sa00443\.virtualenvs\mcts_merge-Qb1q4Bs1\Lib\site-packages\ffmpeg'
+x_data = []
+y_data = []
+
+fig, ax = plt.subplots()
+ax.set_xlim(0, 105)
+ax.set_ylim(0, 12)
+line, = ax.plot(0, 0)
+
+def animation_frame(i):
+    x_data.append(i * 10)
+    y_data.append(i)
+
+    line.set_xdata(x_data)
+    line.set_ydata(y_data)
+    return line,
+
+animation = FuncAnimation(fig, func=animation_frame, frames=np.arange(0, 10, 0.1), interval=10)
+
+import os
+os.getcwd()
+
+# setting up wrtiers object
+Writer = writers['ffmpeg']
+# animation.FFMpegWriter()
+writer = Writer(fps=15, metadata={'artist': 'Me'}, bitrate=1800)
+
+animation.save('njnjnjnjnj.mp4', writer)
+
+
+# plt.show()
