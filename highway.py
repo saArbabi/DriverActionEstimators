@@ -352,7 +352,6 @@ class VehicleHandler:
         new_vehicle_entries = []
 
         self.traffic_density = (vehicle_count/(self.lanes_n*self.lane_length))*100
-        print(self.traffic_density)
         if self.traffic_density < self.target_traffic_density:
             if elapsed_time % 70 == 0:
                 id = self.next_vehicle_id
@@ -551,12 +550,12 @@ env = Env(config)
 
 viewer = Viewer(config)
 def run_sim():
-    # for i in range(10):
-    while True:
+    for i in range(10):
+    # while True:
         viewer.render(env.vehicles)
-        decision = input()
-        if decision == 'n':
-            sys.exit()
+        # decision = input()
+        # if decision == 'n':
+        #     sys.exit()
 
         env.step()
         # cap = [vehicle.capability for vehicle in env.vehicles]
@@ -565,43 +564,21 @@ def run_sim():
 
 # run_sim()
 # %%
-import numpy as np
-import matplotlib.pyplot as plt
 plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
-# plt.rcParams['animation.ffmpeg_path'] = 'C:\\Users\\sa00443\\.virtualenvs\\mcts_merge-Qb1q4Bs1\\Lib\\site-packages\\ffmpeg.exe'
-
 from matplotlib.animation import FuncAnimation, writers
-# from matplotlib import animation
-# writer = animation.FFMpegWriter(fps=20, metadata=dict(artist='Me'), bitrate=1800)
-
-# plt.rcParams['animation.ffmpeg_path'] = 'C:\Users\sa00443\.virtualenvs\mcts_merge-Qb1q4Bs1\Lib\site-packages\ffmpeg'
-x_data = []
-y_data = []
-
-fig, ax = plt.subplots()
-ax.set_xlim(0, 105)
-ax.set_ylim(0, 12)
-line, = ax.plot(0, 0)
 
 def animation_frame(i):
-    x_data.append(i * 10)
-    y_data.append(i)
-
-    line.set_xdata(x_data)
-    line.set_ydata(y_data)
+    viewer.render(env.vehicles)
+    env.step()
     return line,
 
-animation = FuncAnimation(fig, func=animation_frame, frames=np.arange(0, 10, 0.1), interval=10)
+animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
 
-import os
-os.getcwd()
 
 # setting up wrtiers object
 Writer = writers['ffmpeg']
-# animation.FFMpegWriter()
-writer = Writer(fps=15, metadata={'artist': 'Me'}, bitrate=1800)
-
-animation.save('njnjnjnjnj.mp4', writer)
+writer = Writer(fps=25, metadata={'artist': 'Me'}, bitrate=3000)
+animation.save('sim_example.mp4', writer, dpi=500)
 
 
 # plt.show()
