@@ -84,9 +84,10 @@ class Viewer():
 
         glob_xs = [veh.glob_x for veh in vehicles]
         glob_ys = [veh.glob_y for veh in vehicles]
-        speeds = [round(veh.speed, 1) for veh in vehicles]
-        for i in range(len(speeds)):
-            ax.annotate(speeds[i], (glob_xs[i], glob_ys[i]+0.2))
+        # annotation_mark = [veh.lane_decision for veh in vehicles]
+        annotation_mark = [round(veh.speed, 1) for veh in vehicles]
+        for i in range(len(annotation_mark)):
+            ax.annotate(annotation_mark[i], (glob_xs[i], glob_ys[i]+0.2))
             # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
     def draw_attention_line(self, ax, vehicles):
         x1 = vehicles[0].x
@@ -332,27 +333,44 @@ class VehicleHandler:
         # self.entry_vehicles =
         # self.queuing_vehicles =
         self.lanes_n = config['lanes_n']
+        self.lane_length = config['lane_length']
         self.next_vehicle_id = 0
         self.lane_width = 3.7
         self.percept_range = 70 #m
+        self.target_traffic_density = 1. # vehicle count per 100 meters
+        self.traffic_density = 0
 
-    def gen_vehicle(self):
+    def gen_vehicle(self, vehicle_count, elapsed_time):
         """Creates a new IDM vehicle.
         """
         driver_disposition = 'normal_idm'
         speed = 20
         new_vehicle_entries = []
 
-        for lane_id in range(1, self.lanes_n+1):
-            coin_flip = np.random.random()
-            if coin_flip < 0.6:
+        self.traffic_density = (vehicle_count/(self.lanes_n*self.lane_length))*100
+        print(self.traffic_density)
+        if self.traffic_density < self.target_traffic_density:
+            if elapsed_time % 70 == 0:
                 id = self.next_vehicle_id
                 glob_x = np.random.uniform(-30, 0)
-
+                lane_id = np.random.choice(range(1, self.lanes_n+1))
                 new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
+                new_vehicle.capability = 'IDMMOBIL'
                 new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
                 new_vehicle_entries.append(new_vehicle)
                 self.next_vehicle_id += 1
+
+            elif elapsed_time % 20 == 0:
+                for lane_id in range(1, self.lanes_n+1):
+                    coin_flip = np.random.random()
+                    if coin_flip < 0.3:
+                        id = self.next_vehicle_id
+                        glob_x = np.random.uniform(-30, 0)
+
+                        new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
+                        new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
+                        new_vehicle_entries.append(new_vehicle)
+                        self.next_vehicle_id += 1
 
         return new_vehicle_entries
 
@@ -416,50 +434,6 @@ class VehicleHandler:
 
         return neighbours
 
-
-    def set_vehicle_capability(self, ego, neighbours):
-        """Ensures only one vehicle within a given neighbourhood can move laterally.
-        """
-        # neighbours = list(neighbours.values())
-        #
-        # for vehicle in neighbours.values():
-        #     if vehicle:
-        #         if vehicle.capability == 'IDMMOBIL':
-        #             ego.capability == 'IDM'
-        #             return
-        # ego.capability = 'IDMMOBIL'
-
-
-        # idm_mobil_exists = False
-        # for vehicle in neighbours.values():
-        #     if vehicle:
-        #         if vehicle.capability == 'IDMMOBIL':
-        #             if not idm_mobil_exists:
-        #                 idm_mobil_exists = True
-        #             else:
-        #                 vehicle.capability = 'IDM'
-        #
-        #
-        #
-        # if not idm_mobil_exists and ego.capability == 'IDM':
-        #     ego.capability = 'IDMMOBIL'
-
-        idm_mobil_exists = False
-        for vehicle in neighbours.values():
-            if vehicle:
-                if vehicle.capability == 'IDMMOBIL' and not idm_mobil_exists:
-                    idm_mobil_exists = True
-                elif idm_mobil_exists:
-                        vehicle.capability = 'IDM'
-
-
-
-        if not idm_mobil_exists and ego.capability == 'IDM':
-            ego.capability = 'IDMMOBIL'
-        elif idm_mobil_exists and ego.capability == 'IDMMOBIL':
-            ego.capability = 'IDM'
-
-
     def get_vehicle_state(self, vehicle):
 
         pass
@@ -480,14 +454,15 @@ class Env:
         self.elapsed_time = 0 # number of print(lane_id)s past
         self.handler = VehicleHandler(config)
         self.sdv = None
+        self.vehicles = []
         self.initiate_environment()
         # self.vehicles = []
 
     def initiate_environment(self):
         self.lane_length = self.config['lane_length']
 
-        new_vehicle_entries = self.handler.gen_vehicle()
-        self.vehicles = new_vehicle_entries
+        # new_vehicle_entries = self.handler.gen_vehicle()
+        # self.vehicles = new_vehicle_entries
 
     def step(self, action=None):
         """ steps the environment forward in time.
@@ -501,7 +476,6 @@ class Env:
             neighbours = self.handler.find_neighbours(vehicle_i, self.vehicles)
 
             # print(neighbours)
-            self.handler.set_vehicle_capability(vehicle_i, neighbours)
             # obs = self.observe(vehicle_i, neighbours)
             action = vehicle_i.act(neighbours)
             vehicle_i.neighbours = neighbours
@@ -513,11 +487,12 @@ class Env:
 
 
         self.vehicles = vehicles
-        self.elapsed_time += 1
 
-        if self.elapsed_time % 30 == 0:
-            new_vehicle_entries = self.handler.gen_vehicle()
+        new_vehicle_entries = self.handler.gen_vehicle(len(vehicles), self.elapsed_time)
+        if new_vehicle_entries:
             self.vehicles.extend(new_vehicle_entries)
+
+        self.elapsed_time += 1
 
     def get_feature_vector(self, obs):
         return [item for sublist in obs.values() for item in sublist]
@@ -555,7 +530,7 @@ class Env:
     #     return obs
 
 
-config = {'lanes_n':2,
+config = {'lanes_n':4,
         'lane_width':3.7, # m
         'lane_length':1200 # m
         }
@@ -575,7 +550,9 @@ def run_sim():
     # for i in range(10):
     while True:
         viewer.render(env.vehicles)
-        input()
+        # decision = input()
+        # if decision == 'n':
+        #     sys.exit()
 
         env.step()
         # cap = [vehicle.capability for vehicle in env.vehicles]
