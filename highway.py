@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 # import matplotlib.pyplot as plt
 import numpy as np
+np.random.seed(2020)
+
 
 class Viewer():
     def __init__(self, config):
@@ -70,14 +72,15 @@ class Viewer():
             # if veh.id == 'aggressive_idm':
             #     vehicle_color = 'red'
 
-        color_shade = [1-veh.aggressiveness for veh in vehicles]
+        color_shade = [veh.aggressiveness for veh in vehicles]
         ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
-                                        c=color_shade, cmap='RdYlGn')
+                                        c=color_shade, cmap='rainbow')
 
 
         # ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
         #                                 facecolors='red')
 
+        # annotation_mark = [veh.aggressiveness for veh in vehicles]
         annotation_mark = [veh.id for veh in vehicles]
         # annotation_mark = [round(veh.speed, 1) for veh in vehicles]
         for i in range(len(annotation_mark)):
@@ -98,8 +101,13 @@ class Viewer():
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                             [vehicle.glob_y, neighbour.glob_y], color=color)
 
+            else:
+                for neighbour in vehicle.neighbours.values():
+                    if neighbour:
+                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                            [vehicle.glob_y, neighbour.glob_y], color='grey', alpha=0.4)
 
-                        
+
     def draw_attention_line(self, ax, vehicles):
         x1 = vehicles[0].x
         y1 = vehicles[0].y
@@ -226,41 +234,46 @@ class IDMMOBILVehicle(Vehicle):
                                         'min_jamx':0, # m
                                         'max_act':2, # m/s^2
                                         'min_act':3, # m/s^2
+                                        'politeness':0,
+                                        'safe_braking':-3,
+                                        'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                         'desired_v':19.4, # m/s
-                                         'desired_tgap':2, # s
-                                         'min_jamx':4, # m
-                                         'max_act':0.8, # m/s^2
-                                         'min_act':1, # m/s^2
+                                        'desired_v':19.4, # m/s
+                                        'desired_tgap':2, # s
+                                        'min_jamx':4, # m
+                                        'max_act':0.8, # m/s^2
+                                        'min_act':1, # m/s^2
+                                        'politeness':1,
+                                        'safe_braking':-1,
+                                        'act_threshold':0.2
                                          }}
 
-        self.idm_param = {}
-        self.idm_param['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
-        self.idm_param['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
-        self.idm_param['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
-        self.idm_param['max_act'] = self.get_idm_param(Parameter_range, 'max_act')
-        self.idm_param['min_act'] = self.get_idm_param(Parameter_range, 'min_act')
-
+        self.driver_params = {}
+        # IDM params
+        self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
+        self.driver_params['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
+        self.driver_params['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
+        self.driver_params['max_act'] = self.get_idm_param(Parameter_range, 'max_act')
+        self.driver_params['min_act'] = self.get_idm_param(Parameter_range, 'min_act')
+        # MOBIL params
+        self.driver_params['politeness'] = self.get_idm_param(Parameter_range, 'politeness')
+        self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
+        self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
         if not aggressiveness:
             raise ValueError('No aggressiveness specified!')
 
-        if aggressiveness == 'normal_idm':
-            self.idm_param = normal_idm
-        if aggressiveness == 'timid_idm':
-            self.idm_param = timid_idm
-        if aggressiveness == 'aggressive_idm':
-            self.idm_param = aggressive_idm
+        # if aggressiveness == 'normal_idm':
+        #     self.driver_params = normal_idm
+        # if aggressiveness == 'timid_idm':
+        #     self.driver_params = timid_idm
+        # if aggressiveness == 'aggressive_idm':
+        #     self.driver_params = aggressive_idm
 
-        self.idm_param['desired_v'] += np.random.normal(0, 1)
-        self.mobil_param = {
-                    'politeness':0.5,
-                    'safe_braking':-2,
-                    'acceleration_threshold':0.1
-            }
+        # self.driver_params['desired_v'] += np.random.normal(0, 1)
 
     def get_idm_param(self, Parameter_range, param_name):
-        if param_name in ['desired_v', 'max_act', 'min_act']:
+        if param_name in ['desired_v', 'max_act', 'min_act', 'safe_braking']:
             min_value = Parameter_range['least_aggressvie'][param_name]
             max_value = Parameter_range['most_aggressive'][param_name]
             return  min_value + self.aggressiveness*(max_value-min_value)
@@ -270,13 +283,13 @@ class IDMMOBILVehicle(Vehicle):
             return  min_value + self.aggressiveness*(max_value-min_value)
 
     def get_desired_gap(self, delta_v):
-        gap = self.idm_param['min_jamx'] + self.idm_param['desired_tgap']*self.speed+(self.speed*delta_v)/ \
-                    (2*np.sqrt(self.idm_param['max_act']*self.idm_param['min_act']))
+        gap = self.driver_params['min_jamx'] + self.driver_params['desired_tgap']*self.speed+(self.speed*delta_v)/ \
+                    (2*np.sqrt(self.driver_params['max_act']*self.driver_params['min_act']))
         return gap
 
     def observe(self, follower, leader):
         if not follower or not leader:
-            return [0, 100]
+            return [0, 1000]
 
         delta_v = follower.speed-leader.speed
         delta_x = leader.glob_x-follower.glob_x
@@ -285,34 +298,43 @@ class IDMMOBILVehicle(Vehicle):
     def idm_action(self, obs):
         delta_v, delta_x = obs
         desired_gap = self.get_desired_gap(delta_v)
-        act_long = self.idm_param['max_act']*(1-(self.speed/self.idm_param['desired_v'])**4-\
+        act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
                                             (desired_gap/delta_x)**2)
         return act_long
 
     def check_reservations(self, reservations):
+        """To ensure two cars do not simultaneously move into the same lane.
+        """
         if not reservations:
             return 'pass'
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
-                if self.target_lane != reserved_lane or \
-                                    (self.glob_x < min_glob_x and self.glob_x > max_glob_x):
+                if self.target_lane != reserved_lane or self.glob_x < min_glob_x \
+                                                            or self.glob_x > max_glob_x:
 
                     return 'pass'
                 else:
                     return 'fail'
 
+    def check_neighbours(self, neighbours):
+        """To ensure neighbours keep lane while merger is performing lane change
+        """
+        for vehicle in neighbours.values():
+            if vehicle and vehicle.lane_decision != 'keep_lane':
+                return 'fail'
+        return 'pass'
+
     def mobil_condition(self, action_gains):
         """To decide if changing lane is worthwhile/
         """
         ego_gain, new_follower_gain, old_follower_gain = action_gains
-        lc_condition = ego_gain+self.mobil_param['politeness']*(new_follower_gain+\
+        lc_condition = ego_gain+self.driver_params['politeness']*(new_follower_gain+\
                                                                 old_follower_gain )
         return lc_condition
 
     def act(self, neighbours, reservations):
         act_long = self.idm_action(self.observe(self, neighbours['f']))
-
         if self.lane_decision == 'move_left':
             if self.lane_id  == self.target_lane :
                 act_long = self.idm_action(self.observe(self, neighbours['f']))
@@ -333,6 +355,12 @@ class IDMMOBILVehicle(Vehicle):
                 act_long = self.idm_action(self.observe(self, neighbours['fr']))
 
         elif self.lane_decision == 'keep_lane':
+            check_1 = self.check_reservations(reservations)
+            check_2 = self.check_neighbours(neighbours)
+            if check_1 == 'fail' or check_2 == 'fail':
+                self.lane_decision = 'keep_lane'
+                self.target_lane = self.lane_id
+                return [act_long, self.lateral_actions[self.lane_decision]]
 
             lc_left_condition = 0
             lc_right_condition = 0
@@ -344,7 +372,7 @@ class IDMMOBILVehicle(Vehicle):
             act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
-            if self.lane_id  > 1 and self.mobil_param['safe_braking'] < act_rl_lc:
+            if self.lane_id  > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
                 act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
                 act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
@@ -353,7 +381,7 @@ class IDMMOBILVehicle(Vehicle):
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             elif self.lane_id  < self.max_lane_id and \
-                                                self.mobil_param['safe_braking'] < act_rr_lc:
+                                                self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
                 act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
                 act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
@@ -362,10 +390,10 @@ class IDMMOBILVehicle(Vehicle):
                 new_follower_gain = act_rr_lc-act_rr_lk
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            if lc_left_condition > self.mobil_param['acceleration_threshold']:
+            if lc_left_condition > self.driver_params['act_threshold']:
                 self.target_lane  -= 1
 
-            elif lc_right_condition > self.mobil_param['acceleration_threshold']:
+            elif lc_right_condition > self.driver_params['act_threshold']:
                 self.target_lane  += 1
 
             else:
@@ -373,16 +401,15 @@ class IDMMOBILVehicle(Vehicle):
                 self.target_lane = self.lane_id
                 return [act_long, self.lateral_actions[self.lane_decision]]
 
-            check = self.check_reservations(reservations)
-            if check == 'fail':
-                self.lane_decision = 'keep_lane'
-                self.target_lane = self.lane_id
-            elif check == 'pass' and self.target_lane < self.lane_id:
+            if self.target_lane < self.lane_id:
                 act_long = act_ego_lc_l
                 self.lane_decision = 'move_left'
-            elif check == 'pass' and self.target_lane < self.lane_id:
+                print(lc_left_condition)
+            elif self.target_lane < self.lane_id:
                 act_long = act_ego_lc_r
                 self.lane_decision = 'move_right'
+                print(lc_right_condition)
+
 
         return [act_long, self.lateral_actions[self.lane_decision]]
 
@@ -401,7 +428,7 @@ class VehicleHandler:
         self.traffic_density = 0
         self.reservations = {}
 
-    def gen_vehicle(self, vehicle_count, elapsed_time):
+    def place_vehicle(self, vehicle_count, elapsed_time):
         """Creates a new IDM vehicle.
         """
         speed = 20
@@ -532,7 +559,7 @@ class Env:
     def initiate_environment(self):
         self.lane_length = self.config['lane_length']
 
-        # new_vehicle_entries = self.handler.gen_vehicle()
+        # new_vehicle_entries = self.handler.place_vehicle()
         # self.vehicles = new_vehicle_entries
 
     def step(self, action=None):
@@ -562,7 +589,7 @@ class Env:
 
         self.vehicles = vehicles
         print(self.handler.reservations)
-        new_vehicle_entries = self.handler.gen_vehicle(len(vehicles), self.elapsed_time)
+        new_vehicle_entries = self.handler.place_vehicle(len(vehicles), self.elapsed_time)
         if new_vehicle_entries:
             self.vehicles.extend(new_vehicle_entries)
 
@@ -614,17 +641,8 @@ config = {'lanes_n':4,
         }
 
 env = Env(config)
-# for i in range(10):
-#     xs = [vehicle.glob_x for vehicle in env.vehicles]
-#     ys = [vehicle.glob_y for vehicle in env.vehicles]
-#     plt.figure()
-#     plt.scatter(xs, ys)
-#     env.step()
-#
-
-
 viewer = Viewer(config)
-def run_sim():
+def main():
     # for i in range(10):
     while True:
         viewer.render(env.vehicles)
@@ -633,28 +651,30 @@ def run_sim():
             sys.exit()
 
         env.step()
-        # cap = [vehicle.capability for vehicle in env.vehicles]
-        # cap = [1 if x == 'IDM' else 0 for x in cap]
-        # print(np.mean(cap))
 
-run_sim()
 # %%
-# plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
-# from matplotlib.animation import FuncAnimation, writers
-#
-# def animation_frame(i):
-#     viewer.render(env.vehicles)
-#     env.step()
-#     # return line,
-#
-# animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
-#
-#
-# # setting up wrtiers object
-# Writer = writers['ffmpeg']
-# writer = Writer(fps=25, metadata={'artist': 'Me'}, bitrate=3000)
-# animation.save('sim_example.mp4', writer, dpi=500)
+def get_animation():
+    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
+    from matplotlib.animation import FuncAnimation, writers
+
+    def animation_frame(i):
+        viewer.render(env.vehicles)
+        env.step()
+        # return line,
+
+    animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
 
 
+    # setting up wrtiers object
+    Writer = writers['ffmpeg']
+    writer = Writer(fps=25, metadata={'artist': 'Me'}, bitrate=3000)
+    animation.save('sim_example.mp4', writer, dpi=500)
+
+
+
+if __name__=='__main__':
+    main()
+
+get_animation()
 # plt.show()
 # %%
