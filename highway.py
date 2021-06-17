@@ -76,8 +76,10 @@ class Viewer():
             # if veh.id == 'aggressive_idm':
             #     vehicle_color = 'red'
 
+        color_shade = [veh.aggressiveness for veh in vehicles]
+        color_shade = [i/max(color_shade) for i in color_shade]
         ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
-                                        facecolors='blue', edgecolors='blue')
+                                        c=color_shade, cmap='RdYlGn', edgecolors='black')
         # ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
         #                                 facecolors='red')
 
@@ -172,6 +174,7 @@ class IDMMOBILVehicle(Vehicle):
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
         self.max_lane_id = 2
+        self.aggressiveness = 0 # in range [0, 1]
         self.neighbours = {}
 
         self.lateral_actions = {'move_left':0.7,
@@ -380,7 +383,10 @@ class VehicleHandler:
                         id = self.next_vehicle_id
                         glob_x =  np.random.uniform(-30, 0)
 
+
                         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
+                        new_vehicle.aggressiveness = np.random.uniform(0, 1)
+
                         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
                         new_vehicle_entries.append(new_vehicle)
                         self.next_vehicle_id += 1
