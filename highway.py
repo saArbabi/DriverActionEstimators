@@ -43,21 +43,16 @@ class Viewer():
 
     def draw_vehicles(self, ax, vehicles):
         # vehicles = lisvehicles.values())
-        xs_idm = [veh.glob_x for veh in vehicles if veh.capability == 'IDM']
-        ys_idm = [veh.glob_y for veh in vehicles if veh.capability == 'IDM']
 
-        xs_idm_mobil = [veh.glob_x for veh in vehicles if veh.capability == 'IDMMOBIL']
-        ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
-
+        # xs_idm_mobil = [veh.glob_x for veh in vehicles if veh.capability == 'IDMMOBIL']
+        # ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
+        glob_xs = [veh.glob_x for veh in vehicles]
+        glob_ys = [veh.glob_y for veh in vehicles]
 
         for vehicle in vehicles:
-            if vehicle.capability == 'IDMMOBIL':
-                neighbours = list(vehicle.neighbours.values())
-                color = 'grey'
-                if vehicle.lane_decision != 'keep_lane':
-                    color = 'red'
-
-                for neighbour in neighbours:
+            if vehicle.lane_decision != 'keep_lane':
+                color = 'red'
+                for neighbour in vehicle.neighbours.values():
                     if neighbour:
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                             [vehicle.glob_y, neighbour.glob_y], color=color)
@@ -81,15 +76,14 @@ class Viewer():
             # if veh.id == 'aggressive_idm':
             #     vehicle_color = 'red'
 
-        ax.scatter(xs_idm, ys_idm, s=100, marker=">", \
+        ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
                                         facecolors='blue', edgecolors='blue')
-        ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
-                                        facecolors='red')
+        # ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
+        #                                 facecolors='red')
 
-        glob_xs = [veh.glob_x for veh in vehicles]
-        glob_ys = [veh.glob_y for veh in vehicles]
-        # annotation_mark = [veh.lane_decision for veh in vehicles]
-        annotation_mark = [round(veh.speed, 1) for veh in vehicles]
+
+        annotation_mark = [veh.id for veh in vehicles]
+        # annotation_mark = [round(veh.speed, 1) for veh in vehicles]
         for i in range(len(annotation_mark)):
             ax.annotate(annotation_mark[i], (glob_xs[i], glob_ys[i]+0.2))
             # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
@@ -160,11 +154,11 @@ class Vehicle(object):
 
             if self.lane_y <= -self.lane_width/2:
                 # just stepped into right lane
-                self.lane_id['current'] += 1
+                self.lane_id  += 1
                 self.lane_y += self.lane_width
             elif self.lane_y >= self.lane_width/2:
                 # just stepped into left lane
-                self.lane_id['current'] -= 1
+                self.lane_id  -= 1
                 self.lane_y -= self.lane_width
 
 
@@ -173,8 +167,9 @@ class Vehicle(object):
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, driver_disposition=None):
         super().__init__(id, lane_id, glob_x, speed)
-        self.capability = 'IDM'
-        self.lane_id = {'current':lane_id, 'next':lane_id}
+        # self.capability = 'IDM'
+        self.lane_id = lane_id
+        self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
         self.max_lane_id = 2
         self.neighbours = {}
@@ -247,6 +242,19 @@ class IDMMOBILVehicle(Vehicle):
                                             (desired_gap/delta_x)**2)
         return act_long
 
+    def check_reservations(self, reservations):
+        if not reservations:
+            return 'pass'
+        else:
+            for reserved in reservations.values():
+                reserved_lane, max_glob_x, min_glob_x = reserved
+                if self.target_lane != reserved_lane or \
+                                    (self.glob_x < min_glob_x and self.glob_x > max_glob_x):
+
+                    return 'pass'
+                else:
+                    return 'fail'
+
     def mobil_condition(self, action_gains):
         """To decide if changing lane is worthwhile/
         """
@@ -255,82 +263,83 @@ class IDMMOBILVehicle(Vehicle):
                                                                 old_follower_gain )
         return lc_condition
 
-    def mobil_action(self, neighbours):
+    def act(self, neighbours, reservations):
+        act_long = self.idm_action(self.observe(self, neighbours['f']))
+
         if self.lane_decision == 'move_left':
-            if self.lane_id['current'] == self.lane_id['next']:
+            if self.lane_id  == self.target_lane :
                 act_long = self.idm_action(self.observe(self, neighbours['f']))
                 if self.lane_y >= 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
 
-            elif self.lane_id['current'] > self.lane_id['next']:
+            elif self.lane_id > self.target_lane :
                 act_long = self.idm_action(self.observe(self, neighbours['fl']))
 
         elif self.lane_decision == 'move_right':
-            if self.lane_id['current'] == self.lane_id['next']:
+            if self.lane_id  == self.target_lane :
                 act_long = self.idm_action(self.observe(self, neighbours['f']))
                 if self.lane_y <= 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-            elif self.lane_id['current'] < self.lane_id['next']:
+            elif self.lane_id < self.target_lane :
                 act_long = self.idm_action(self.observe(self, neighbours['fr']))
 
-        else:
+        elif self.lane_decision == 'keep_lane':
+
             lc_left_condition = 0
             lc_right_condition = 0
 
             # action for ego vehicle if ego is to keep lane
             act_rl_lc = self.idm_action(self.observe(neighbours['rl'], self))
             act_rr_lc = self.idm_action(self.observe(neighbours['rr'], self))
-            act_ego_lk = self.idm_action(self.observe(self, neighbours['f']))
             act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
             act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
-            if self.lane_id['current'] > 1 and self.mobil_param['safe_braking'] < act_rl_lc:
+            if self.lane_id  > 1 and self.mobil_param['safe_braking'] < act_rl_lc:
                 # consider moving left
                 act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
                 act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
-                ego_gain = act_ego_lc_l-act_ego_lk
+                ego_gain = act_ego_lc_l-act_long
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            elif self.lane_id['current'] < self.max_lane_id and \
+            elif self.lane_id  < self.max_lane_id and \
                                                 self.mobil_param['safe_braking'] < act_rr_lc:
                 # consider moving right
                 act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
                 act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
 
-                ego_gain = act_ego_lc_r-act_ego_lk
+                ego_gain = act_ego_lc_r-act_long
                 new_follower_gain = act_rr_lc-act_rr_lk
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if lc_left_condition > self.mobil_param['acceleration_threshold']:
-                act_long = act_ego_lc_l
-                self.lane_decision = 'move_left'
-                self.lane_id['next'] -= 1
+                self.target_lane  -= 1
 
             elif lc_right_condition > self.mobil_param['acceleration_threshold']:
-                act_long = act_ego_lc_r
-                self.lane_decision = 'move_right'
-                self.lane_id['next'] += 1
+                self.target_lane  += 1
 
             else:
-                act_long = act_ego_lk
+                self.lane_decision = 'keep_lane'
+                self.target_lane = self.lane_id
+                return [act_long, self.lateral_actions[self.lane_decision]]
+
+            check = self.check_reservations(reservations)
+            if check == 'fail':
+                self.lane_decision = 'keep_lane'
+                self.target_lane = self.lane_id
+            elif check == 'pass' and self.target_lane < self.lane_id:
+                act_long = act_ego_lc_l
+                self.lane_decision = 'move_left'
+            elif check == 'pass' and self.target_lane < self.lane_id:
+                act_long = act_ego_lc_r
+                self.lane_decision = 'move_right'
+
+        return [act_long, self.lateral_actions[self.lane_decision]]
 
 
-        return act_long, self.lateral_actions[self.lane_decision]
-
-
-    def act(self, neighbours):
-        if self.capability == 'IDMMOBIL' or self.lane_decision != 'keep_lane':
-            act_long, act_lat = self.mobil_action(neighbours)
-            return [act_long, act_lat]
-
-        elif self.capability == 'IDM':
-            obs = self.observe(self, neighbours['f'])
-            act_long = self.idm_action(obs)
-            return [act_long, 0]
 
 class VehicleHandler:
     def __init__(self, config=None):
@@ -343,6 +352,7 @@ class VehicleHandler:
         self.percept_range = 100 #m
         self.target_traffic_density = 1. # vehicle count per 100 meters
         self.traffic_density = 0
+        self.reservations = {}
 
     def gen_vehicle(self, vehicle_count, elapsed_time):
         """Creates a new IDM vehicle.
@@ -353,22 +363,22 @@ class VehicleHandler:
 
         self.traffic_density = (vehicle_count/(self.lanes_n*self.lane_length))*100
         if self.traffic_density < self.target_traffic_density:
-            if elapsed_time % 70 == 0:
-                id = self.next_vehicle_id
-                glob_x = 0
-                lane_id = np.random.choice(range(1, self.lanes_n+1))
-                new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
-                new_vehicle.capability = 'IDMMOBIL'
-                new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
-                new_vehicle_entries.append(new_vehicle)
-                self.next_vehicle_id += 1
+            # if elapsed_time % 70 == 0:
+            #     id = self.next_vehicle_id
+            #     glob_x = 0
+            #     lane_id = np.random.choice(range(1, self.lanes_n+1))
+            #     new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
+            #     new_vehicle.capability = 'IDMMOBIL'
+            #     new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
+            #     new_vehicle_entries.append(new_vehicle)
+            #     self.next_vehicle_id += 1
 
-            elif elapsed_time % 20 == 0:
+            if elapsed_time % 20 == 0:
                 for lane_id in range(1, self.lanes_n+1):
                     coin_flip = np.random.random()
                     if coin_flip < 0.3:
                         id = self.next_vehicle_id
-                        glob_x = 0
+                        glob_x =  np.random.uniform(-30, 0)
 
                         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
                         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
@@ -406,7 +416,7 @@ class VehicleHandler:
     def find_neighbours(self, ego, vehicles):
         """returns list of current neighbouring vehicles.
         """
-        lane_id = ego.lane_id['current']
+        lane_id = ego.lane_id
         id = ego.id
         glob_x = ego.glob_x
         neighbours = {
@@ -423,11 +433,11 @@ class VehicleHandler:
 
         for vehicle in vehicles:
             if vehicle.id != id:
-                if vehicle.lane_id['current'] == lane_id:
+                if vehicle.lane_id == lane_id:
                     same_lane.append(vehicle)
-                elif vehicle.lane_id['current'] == lane_id+1:
+                elif vehicle.lane_id == lane_id+1:
                     right_lane.append(vehicle)
-                elif vehicle.lane_id['current'] == lane_id-1:
+                elif vehicle.lane_id == lane_id-1:
                     left_lane.append(vehicle)
 
         neighbours['f'], neighbours['r'] = self.find_closest(glob_x, same_lane)
@@ -440,6 +450,16 @@ class VehicleHandler:
     def get_vehicle_state(self, vehicle):
 
         pass
+
+    def update_reservations(self, vehicle):
+        if vehicle.id in self.reservations:
+            if vehicle.lane_decision == 'keep_lane':
+                del self.reservations[vehicle.id]
+        else:
+            if vehicle.lane_decision != 'keep_lane':
+                max_glob_x, min_glob_x = vehicle.glob_x + 100, vehicle.glob_x - 100
+                self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
+
 
     # def gen_sdv(self, sdv):
     #     if not sdv:
@@ -475,12 +495,15 @@ class Env:
         for vehicle_i in self.vehicles:
             if vehicle_i.glob_x > self.lane_length:
                 # consider vehicle gone
+                if vehicle_i.id in self.handler.reservations:
+                    del self.handler.reservations[vehicle_i.id]
                 continue
-            neighbours = self.handler.find_neighbours(vehicle_i, self.vehicles)
 
-            # print(neighbours)
+            neighbours = self.handler.find_neighbours(vehicle_i, self.vehicles)
             # obs = self.observe(vehicle_i, neighbours)
-            action = vehicle_i.act(neighbours)
+            action = vehicle_i.act(neighbours, self.handler.reservations)
+
+            self.handler.update_reservations(vehicle_i)
             vehicle_i.neighbours = neighbours
             # print(action)
             # action = vehicle_i.act()
@@ -490,12 +513,16 @@ class Env:
 
 
         self.vehicles = vehicles
-
+        print(self.handler.reservations)
         new_vehicle_entries = self.handler.gen_vehicle(len(vehicles), self.elapsed_time)
         if new_vehicle_entries:
             self.vehicles.extend(new_vehicle_entries)
 
         self.elapsed_time += 1
+
+
+
+
 
     def get_feature_vector(self, obs):
         return [item for sublist in obs.values() for item in sublist]
@@ -550,35 +577,36 @@ env = Env(config)
 
 viewer = Viewer(config)
 def run_sim():
-    for i in range(10):
-    # while True:
+    # for i in range(10):
+    while True:
         viewer.render(env.vehicles)
-        # decision = input()
-        # if decision == 'n':
-        #     sys.exit()
+        decision = input()
+        if decision == 'n':
+            sys.exit()
 
         env.step()
         # cap = [vehicle.capability for vehicle in env.vehicles]
         # cap = [1 if x == 'IDM' else 0 for x in cap]
         # print(np.mean(cap))
 
-# run_sim()
+run_sim()
 # %%
-plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
-from matplotlib.animation import FuncAnimation, writers
-
-def animation_frame(i):
-    viewer.render(env.vehicles)
-    env.step()
-    return line,
-
-animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
-
-
-# setting up wrtiers object
-Writer = writers['ffmpeg']
-writer = Writer(fps=25, metadata={'artist': 'Me'}, bitrate=3000)
-animation.save('sim_example.mp4', writer, dpi=500)
-
+# plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
+# from matplotlib.animation import FuncAnimation, writers
+#
+# def animation_frame(i):
+#     viewer.render(env.vehicles)
+#     env.step()
+#     return line,
+#
+# animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
+#
+#
+# # setting up wrtiers object
+# Writer = writers['ffmpeg']
+# writer = Writer(fps=25, metadata={'artist': 'Me'}, bitrate=3000)
+# animation.save('sim_example.mp4', writer, dpi=500)
+#
 
 # plt.show()
+# %%
