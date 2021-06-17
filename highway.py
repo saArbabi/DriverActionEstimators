@@ -49,13 +49,7 @@ class Viewer():
         glob_xs = [veh.glob_x for veh in vehicles]
         glob_ys = [veh.glob_y for veh in vehicles]
 
-        for vehicle in vehicles:
-            if vehicle.lane_decision != 'keep_lane':
-                color = 'red'
-                for neighbour in vehicle.neighbours.values():
-                    if neighbour:
-                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                            [vehicle.glob_y, neighbour.glob_y], color=color)
+
         # for veh in vehicles:
         # vehicle_color = 'grey'
         # edgecolors = 'black'
@@ -76,19 +70,36 @@ class Viewer():
             # if veh.id == 'aggressive_idm':
             #     vehicle_color = 'red'
 
-        color_shade = [veh.aggressiveness for veh in vehicles]
-        color_shade = [i/max(color_shade) for i in color_shade]
+        color_shade = [1-veh.aggressiveness for veh in vehicles]
         ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
-                                        c=color_shade, cmap='RdYlGn', edgecolors='black')
+                                        c=color_shade, cmap='RdYlGn')
+
+
         # ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
         #                                 facecolors='red')
-
 
         annotation_mark = [veh.id for veh in vehicles]
         # annotation_mark = [round(veh.speed, 1) for veh in vehicles]
         for i in range(len(annotation_mark)):
             ax.annotate(annotation_mark[i], (glob_xs[i], glob_ys[i]+0.2))
             # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
+
+        for vehicle in vehicles:
+            if vehicle.lane_decision != 'keep_lane':
+                color = 'red'
+                if vehicle.lane_decision == 'move_left':
+                    ax.scatter(vehicle.glob_x-7, vehicle.glob_y+self.config['lane_width']/2,
+                                                        s=50, marker="*", color='red', edgecolors='black')
+                elif vehicle.lane_decision == 'move_right':
+                    ax.scatter(vehicle.glob_x-7, vehicle.glob_y-self.config['lane_width']/2,
+                                                        s=50, marker="*", color='red', edgecolors='black')
+                for neighbour in vehicle.neighbours.values():
+                    if neighbour:
+                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                            [vehicle.glob_y, neighbour.glob_y], color=color)
+
+
+                        
     def draw_attention_line(self, ax, vehicles):
         x1 = vehicles[0].x
         y1 = vehicles[0].y
@@ -167,24 +178,24 @@ class Vehicle(object):
     # def act(self):
     #     raise NotImplementedError
 class IDMMOBILVehicle(Vehicle):
-    def __init__(self, id, lane_id, glob_x, speed, driver_disposition=None):
+    def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
         # self.capability = 'IDM'
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
         self.max_lane_id = 2
-        self.aggressiveness = 0 # in range [0, 1]
+        self.aggressiveness = aggressiveness # in range [0, 1]
         self.neighbours = {}
 
         self.lateral_actions = {'move_left':0.7,
                                 'move_right':-0.7,
                                 'keep_lane':0
                                 }
-        self.set_idm_params(driver_disposition)
+        self.set_idm_params(aggressiveness)
 
 
-    def set_idm_params(self, driver_disposition):
+    def set_idm_params(self, aggressiveness):
         normal_idm = {
                         'desired_v':25, # m/s
                         'desired_tgap':1.5, # s
@@ -208,14 +219,37 @@ class IDMMOBILVehicle(Vehicle):
                         'max_act':2, # m/s^2
                         'min_act':3, # m/s^2
                         }
-        if not driver_disposition:
-            raise ValueError('No driver_disposition specified!')
 
-        if driver_disposition == 'normal_idm':
+        Parameter_range = {'most_aggressive': {
+                                        'desired_v':30, # m/s
+                                        'desired_tgap':1, # s
+                                        'min_jamx':0, # m
+                                        'max_act':2, # m/s^2
+                                        'min_act':3, # m/s^2
+                                        },
+                         'least_aggressvie': {
+                                         'desired_v':19.4, # m/s
+                                         'desired_tgap':2, # s
+                                         'min_jamx':4, # m
+                                         'max_act':0.8, # m/s^2
+                                         'min_act':1, # m/s^2
+                                         }}
+
+        self.idm_param = {}
+        self.idm_param['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
+        self.idm_param['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
+        self.idm_param['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
+        self.idm_param['max_act'] = self.get_idm_param(Parameter_range, 'max_act')
+        self.idm_param['min_act'] = self.get_idm_param(Parameter_range, 'min_act')
+
+        if not aggressiveness:
+            raise ValueError('No aggressiveness specified!')
+
+        if aggressiveness == 'normal_idm':
             self.idm_param = normal_idm
-        if driver_disposition == 'timid_idm':
+        if aggressiveness == 'timid_idm':
             self.idm_param = timid_idm
-        if driver_disposition == 'aggressive_idm':
+        if aggressiveness == 'aggressive_idm':
             self.idm_param = aggressive_idm
 
         self.idm_param['desired_v'] += np.random.normal(0, 1)
@@ -224,6 +258,16 @@ class IDMMOBILVehicle(Vehicle):
                     'safe_braking':-2,
                     'acceleration_threshold':0.1
             }
+
+    def get_idm_param(self, Parameter_range, param_name):
+        if param_name in ['desired_v', 'max_act', 'min_act']:
+            min_value = Parameter_range['least_aggressvie'][param_name]
+            max_value = Parameter_range['most_aggressive'][param_name]
+            return  min_value + self.aggressiveness*(max_value-min_value)
+        else:
+            min_value = Parameter_range['most_aggressive'][param_name]
+            max_value = Parameter_range['least_aggressvie'][param_name]
+            return  min_value + self.aggressiveness*(max_value-min_value)
 
     def get_desired_gap(self, delta_v):
         gap = self.idm_param['min_jamx'] + self.idm_param['desired_tgap']*self.speed+(self.speed*delta_v)/ \
@@ -360,7 +404,6 @@ class VehicleHandler:
     def gen_vehicle(self, vehicle_count, elapsed_time):
         """Creates a new IDM vehicle.
         """
-        driver_disposition = 'normal_idm'
         speed = 20
         new_vehicle_entries = []
 
@@ -370,7 +413,7 @@ class VehicleHandler:
             #     id = self.next_vehicle_id
             #     glob_x = 0
             #     lane_id = np.random.choice(range(1, self.lanes_n+1))
-            #     new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
+            #     new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
             #     new_vehicle.capability = 'IDMMOBIL'
             #     new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
             #     new_vehicle_entries.append(new_vehicle)
@@ -383,9 +426,8 @@ class VehicleHandler:
                         id = self.next_vehicle_id
                         glob_x =  np.random.uniform(-30, 0)
 
-
-                        new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, driver_disposition)
-                        new_vehicle.aggressiveness = np.random.uniform(0, 1)
+                        aggressiveness = np.random.uniform(0, 1)
+                        new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
 
                         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
                         new_vehicle_entries.append(new_vehicle)
@@ -603,7 +645,7 @@ run_sim()
 # def animation_frame(i):
 #     viewer.render(env.vehicles)
 #     env.step()
-#     return line,
+#     # return line,
 #
 # animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
 #
@@ -612,7 +654,7 @@ run_sim()
 # Writer = writers['ffmpeg']
 # writer = Writer(fps=25, metadata={'artist': 'Me'}, bitrate=3000)
 # animation.save('sim_example.mp4', writer, dpi=500)
-#
+
 
 # plt.show()
 # %%
