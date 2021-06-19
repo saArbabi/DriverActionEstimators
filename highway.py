@@ -275,24 +275,24 @@ class IDMMOBILVehicle(Vehicle):
         """To ensure two cars do not simultaneously move into the same lane.
         """
         if not reservations:
-            return 'pass'
+            return True
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
                 if target_lane != reserved_lane or self.glob_x < min_glob_x \
                                                             or self.glob_x > max_glob_x:
 
-                    return 'pass'
+                    return True
                 else:
-                    return 'fail'
+                    return False
 
     def check_neighbours(self, neighbours):
         """To ensure neighbours keep lane while merger is performing lane change
         """
         for vehicle in neighbours.values():
             if vehicle and vehicle.lane_decision != 'keep_lane':
-                return 'fail'
-        return 'pass'
+                return False
+        return True
 
     def mobil_condition(self, action_gains):
         """To decide if changing lane is worthwhile/
@@ -398,9 +398,7 @@ class IDMMOBILVehicle(Vehicle):
         neighbours = self.find_neighbours(vehicles)
         self.neighbours = neighbours
         act_long = self.idm_action(self.observe(self, neighbours['f']))
-        check_1 = self.check_neighbours(neighbours)
-
-        if check_1 == 'fail' or self.glob_x < 100:
+        if not self.check_neighbours(neighbours):
             pass
 
         elif self.lane_decision == 'move_left':
@@ -424,10 +422,6 @@ class IDMMOBILVehicle(Vehicle):
             act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
             act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
-            if self.id == 19:
-                print('old_follower_gain: ', old_follower_gain)
-                print('act_rr_lc: ', act_rr_lc)
-                print('obs: ', self.observe(neighbours['rr'], self))
 
             if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
@@ -436,9 +430,7 @@ class IDMMOBILVehicle(Vehicle):
                 ego_gain = act_ego_lc_l-act_long
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
-                print('##### LEFT ######', self.id)
-                print([ego_gain, new_follower_gain, old_follower_gain])
-                print(['ego_gain', 'new_follower_gain', 'old_follower_gain'])
+
             if self.lane_id < self.lanes_n and \
                                                 self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
@@ -449,22 +441,17 @@ class IDMMOBILVehicle(Vehicle):
                 new_follower_gain = act_rr_lc-act_rr_lk
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-                print('##### RIGHT ######', self.id)
-                print([ego_gain, new_follower_gain, old_follower_gain])
-                print(['ego_gain', 'new_follower_gain', 'old_follower_gain'])
             if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
                 if lc_left_condition > lc_right_condition:
                     target_lane = self.target_lane - 1
-                    check_2 = self.check_reservations(target_lane, reservations)
-                    if check_2 == 'pass':
+                    if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_left'
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
                 elif lc_left_condition < lc_right_condition:
                     target_lane = self.target_lane + 1
-                    check_2 = self.check_reservations(target_lane, reservations)
-                    if check_2 == 'pass':
+                    if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_right'
                         self.target_lane += 1
                         return [act_ego_lc_r, self.lateral_actions[self.lane_decision]]
@@ -568,7 +555,7 @@ class Env:
         return [item for sublist in obs.values() for item in sublist]
 
 
-config = {'lanes_n':2,
+config = {'lanes_n':4,
         'lane_width':3.7, # m
         'lane_length':1200 # m
         }
@@ -629,31 +616,3 @@ driver_params = {
                 'min_act':1, # m/s^2
                 }
 #
-speed = 19.4
-def get_desired_gap(delta_v):
-    gap = driver_params['min_jamx'] + driver_params['desired_tgap']*speed+(speed*delta_v)/ \
-                (2*np.sqrt(driver_params['max_act']*driver_params['min_act']))
-    print('gap: ', gap)
-    return gap
-
-    # return max([0, gap])
-
-def idm_action(obs):
-    delta_v, delta_x = obs
-    desired_gap = get_desired_gap(delta_v)
-    act_long = driver_params['max_act']*(1-(speed/driver_params['desired_v'])**4-\
-                                        (desired_gap/(delta_x+1e-5))**2)
-    return act_long
-
-
-obs = [0.3232128791548199, 38.29334944722247]
-# obs = [0.273349751276303, 55.71618653304381]
-# obs = [0, 1000]
-idm_action(obs)
-# max([0, -10])
-# plt.scatter([1,1], [1,1], marker='>', s=5000)
-# plt.grid()
-# old_follower_gain:  0.8343400627099891
-# act_rr_lc:  -1.1572396660914637
-# obs:
-# 865  ####### step #######
