@@ -10,7 +10,7 @@ np.random.seed(2020)
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(15, 2))
+        self.fig = plt.figure(figsize=(20, 3))
         self.env_ax = self.fig.add_subplot(211)
         # self.att_ax = self.fig.add_subplot(212)
         # self.model_type = model_type
@@ -51,62 +51,68 @@ class Viewer():
         glob_xs = [veh.glob_x for veh in vehicles]
         glob_ys = [veh.glob_y for veh in vehicles]
 
+        annotation_mark_1 = [veh.id for veh in vehicles]
+        # annotation_mark = [veh.lane_decision for veh in vehicles]
+        annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
+        # annotation_mark_2 = [round(veh.lane_y, 2) for veh in vehicles]
+        for i in range(len(annotation_mark_1)):
+            ax.annotate(annotation_mark_1[i], (glob_xs[i]+5, glob_ys[i]+0.2))
+            ax.annotate(annotation_mark_2[i], (glob_xs[i]-20, glob_ys[i]))
 
-        # for veh in vehicles:
-        # vehicle_color = 'grey'
-        # edgecolors = 'black'
-            #
-            # if veh.id == 'neural':
-            #     vehicle_color = 'none'
-            #     # print(veh.glob_x)
-            #     # print(veh.glob_y.shape)
-            #
-            #     # if veh.control_type == 'neural':
-            #     #     edgecolors = 'green'
-            #     #     ax.annotate('e', (veh.glob_x, veh.glob_y+0.3))
-            #
-            # if veh.id == 'normal_idm':
-            #     vehicle_color = 'orange'
-            # if veh.id == 'timid_idm':
-            #     vehicle_color = 'yellow'
-            # if veh.id == 'aggressive_idm':
-            #     vehicle_color = 'red'
+
+
+        for vehicle in vehicles:
+            if vehicle.id in [2]:
+                for key, neighbour in vehicle.neighbours.items():
+                    if neighbour:
+                        # if key == 'f':
+                        # if vehicle.lane_decision != 'keep_lane':
+                        #     ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                        #             [vehicle.glob_y, neighbour.glob_y], linestyle=':',
+                        #                 color='red', linewidth=5, alpha=0.5)
+                        # else:
+                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                [vehicle.glob_y, neighbour.glob_y], linestyle='-',
+                                    color='grey', linewidth=5, alpha=0.3)
+
+                        delta_x = round(neighbour.glob_x-vehicle.glob_x, 2)
+                        pos_x = vehicle.glob_x + (delta_x)/2
+                        delta_y = round(neighbour.glob_y-vehicle.glob_y, 2)
+                        pos_y = vehicle.glob_y + (delta_y)/2
+                        # ax.annotate(delta_x, (pos_x, pos_y+5))
+                        ax.annotate(key, (pos_x, pos_y))
+                        # print(delta_x)
+
+
+            if vehicle.lane_decision != 'keep_lane':
+                neighbour = vehicle.neighbours['f']
+                if neighbour:
+                    ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                            [vehicle.glob_y, neighbour.glob_y], linestyle='-',
+                                color='grey', linewidth=5, alpha=0.3)
+
+                    delta_x = round(neighbour.glob_x-vehicle.glob_x, 2)
+                    pos_x = vehicle.glob_x + (delta_x)/2
+                    delta_y = round(neighbour.glob_y-vehicle.glob_y, 2)
+                    pos_y = vehicle.glob_y + (delta_y)/2
+                    ax.annotate('f', (pos_x, pos_y))
+                        # elif key == 'r':
+                        #     ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                        #             [vehicle.glob_y, neighbour.glob_y], linestyle=':',
+                        #                 color='brown', linewidth=5, alpha=0.3)
+
+
+            if vehicle.lane_decision == 'move_left':
+                ax.scatter(vehicle.glob_x-7, vehicle.glob_y+self.config['lane_width']/2,
+                                                    s=50, marker="*", color='red', edgecolors='black')
+            elif vehicle.lane_decision == 'move_right':
+                ax.scatter(vehicle.glob_x-7, vehicle.glob_y-self.config['lane_width']/2,
+                                                    s=50, marker="*", color='red', edgecolors='black')
+
 
         color_shade = [veh.aggressiveness for veh in vehicles]
         ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
                                         c=color_shade, cmap='rainbow')
-
-
-        # ax.scatter(xs_idm_mobil, ys_idm_mobil, s=100, marker=">", \
-        #                                 facecolors='red')
-
-        # annotation_mark = [veh.aggressiveness for veh in vehicles]
-        annotation_mark = [veh.id for veh in vehicles]
-        # annotation_mark = [round(veh.speed, 1) for veh in vehicles]
-        for i in range(len(annotation_mark)):
-            ax.annotate(annotation_mark[i], (glob_xs[i], glob_ys[i]+0.2))
-            # ax.annotate(round(veh.v, 1), (veh.glob_x, veh.glob_y+0.1))
-
-        for vehicle in vehicles:
-            if vehicle.lane_decision != 'keep_lane':
-                color = 'red'
-                if vehicle.lane_decision == 'move_left':
-                    ax.scatter(vehicle.glob_x-7, vehicle.glob_y+self.config['lane_width']/2,
-                                                        s=50, marker="*", color='red', edgecolors='black')
-                elif vehicle.lane_decision == 'move_right':
-                    ax.scatter(vehicle.glob_x-7, vehicle.glob_y-self.config['lane_width']/2,
-                                                        s=50, marker="*", color='red', edgecolors='black')
-                for neighbour in vehicle.neighbours.values():
-                    if neighbour:
-                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                            [vehicle.glob_y, neighbour.glob_y], color=color)
-
-            else:
-                for neighbour in vehicle.neighbours.values():
-                    if neighbour:
-                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                            [vehicle.glob_y, neighbour.glob_y], color='grey', alpha=0.4)
-
 
     def draw_attention_line(self, ax, vehicles):
         x1 = vehicles[0].x
@@ -138,7 +144,7 @@ class Viewer():
     def update_plots(self, vehicles):
         self.draw_highway(self.env_ax, vehicles)
         # self.draw_att_plot(self.att_ax, vehicles)
-        plt.pause(1e-3)
+        plt.pause(1e-10)
         # plt.show()
     def render(self, vehicles):
         self.update_plots(vehicles)
@@ -154,10 +160,6 @@ class Vehicle(object):
         self.lane_y = 0
         self.lane_width = 3.7
 
-    def act(self, obs=None):
-        # pass
-        return 0
-
     def observe(self):
         raise NotImplementedError
 
@@ -165,10 +167,7 @@ class Vehicle(object):
         act_long, act_lat = action
         self.glob_x +=  self.speed * self.STEP_SIZE \
                                     + 0.5 * act_long * self.STEP_SIZE **2
-
         self.speed +=  act_long * self.STEP_SIZE
-
-
         if act_lat != 0:
             self.glob_y +=  act_lat*self.STEP_SIZE
             self.lane_y +=  act_lat*self.STEP_SIZE
@@ -182,9 +181,9 @@ class Vehicle(object):
                 self.lane_id  -= 1
                 self.lane_y -= self.lane_width
 
+    def act(self):
+        raise NotImplementedError
 
-    # def act(self):
-    #     raise NotImplementedError
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
@@ -192,9 +191,9 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
-        self.max_lane_id = 2
         self.aggressiveness = aggressiveness # in range [0, 1]
         self.neighbours = {}
+        self.percept_range = 100 #m
 
         self.lateral_actions = {'move_left':0.7,
                                 'move_right':-0.7,
@@ -260,37 +259,36 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['politeness'] = self.get_idm_param(Parameter_range, 'politeness')
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
-        if not aggressiveness:
+        if aggressiveness == None:
             raise ValueError('No aggressiveness specified!')
-
-        # if aggressiveness == 'normal_idm':
-        #     self.driver_params = normal_idm
-        # if aggressiveness == 'timid_idm':
-        #     self.driver_params = timid_idm
-        # if aggressiveness == 'aggressive_idm':
-        #     self.driver_params = aggressive_idm
 
         # self.driver_params['desired_v'] += np.random.normal(0, 1)
 
     def get_idm_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act', 'safe_braking']:
+            # the larger the param, the more aggressive the driver
             min_value = Parameter_range['least_aggressvie'][param_name]
             max_value = Parameter_range['most_aggressive'][param_name]
             return  min_value + self.aggressiveness*(max_value-min_value)
-        else:
+
+        elif param_name in ['desired_tgap', 'min_jamx', 'politeness', 'act_threshold']:
+            # the larger the param, the more timid the driver
             min_value = Parameter_range['most_aggressive'][param_name]
             max_value = Parameter_range['least_aggressvie'][param_name]
-            return  min_value + self.aggressiveness*(max_value-min_value)
+            return  max_value - self.aggressiveness*(max_value-min_value)
+
 
     def get_desired_gap(self, delta_v):
-        gap = self.driver_params['min_jamx'] + self.driver_params['desired_tgap']*self.speed+(self.speed*delta_v)/ \
-                    (2*np.sqrt(self.driver_params['max_act']*self.driver_params['min_act']))
-        return gap
+        gap = self.driver_params['min_jamx'] + \
+                                            self.driver_params['desired_tgap']*\
+                                            self.speed+(self.speed*delta_v)/ \
+                                            (2*np.sqrt(self.driver_params['max_act']*\
+                                            self.driver_params['min_act']))
+        return max([0, gap])
 
     def observe(self, follower, leader):
         if not follower or not leader:
             return [0, 1000]
-
         delta_v = follower.speed-leader.speed
         delta_x = leader.glob_x-follower.glob_x
         return [delta_v, delta_x]
@@ -299,10 +297,22 @@ class IDMMOBILVehicle(Vehicle):
         delta_v, delta_x = obs
         desired_gap = self.get_desired_gap(delta_v)
         act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
-                                            (desired_gap/delta_x)**2)
+                                            (desired_gap/(delta_x+1e-5))**2)
         return act_long
 
-    def check_reservations(self, reservations):
+    def who_to_attend_to(self, neighbours):
+        """returns the lead vehicle the follower is attending to.
+        """
+        for neigbour in ['fl', 'fr']:
+            vehicle = neighbours[neigbour]
+            if vehicle and vehicle.target_lane == self.lane_id and \
+                                                abs(vehicle.lane_y) > 0.25:
+                return vehicle
+            else:
+                return neighbours['f']
+
+
+    def check_reservations(self, target_lane, reservations):
         """To ensure two cars do not simultaneously move into the same lane.
         """
         if not reservations:
@@ -310,7 +320,7 @@ class IDMMOBILVehicle(Vehicle):
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
-                if self.target_lane != reserved_lane or self.glob_x < min_glob_x \
+                if target_lane != reserved_lane or self.glob_x < min_glob_x \
                                                             or self.glob_x > max_glob_x:
 
                     return 'pass'
@@ -333,46 +343,124 @@ class IDMMOBILVehicle(Vehicle):
                                                                 old_follower_gain )
         return lc_condition
 
-    def act(self, neighbours, reservations):
+    def find_neighbours(self, vehicles):
+        """returns list of current neighbouring vehicles.
+        """
+        neighbours = {}
+        delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
+                        delta_xs_rr, delta_xs_fr = ([self.percept_range] for i in range(6))
+        candidate_f, candidate_fl, candidate_rl, candidate_r, \
+                        candidate_rr, candidate_fr = (None for i in range(6))
+
+        for vehicle in vehicles:
+            if vehicle.id != self.id:
+                delta_x = vehicle.glob_x-self.glob_x
+                if vehicle.lane_id in [self.lane_id, self.lane_id+1, self.lane_id-1] and \
+                                  abs(delta_x) < self.percept_range:
+
+                    if self.lane_decision != 'keep_lane':
+                        if self.lane_decision == 'move_left' and \
+                                    vehicle.lane_id == self.target_lane and delta_x >= 0:
+                            if delta_x < delta_xs_f[-1]:
+                                delta_xs_f.append(delta_x)
+                                candidate_f = vehicle
+                                continue
+
+                        elif self.lane_decision == 'move_right' and \
+                                    vehicle.lane_id == self.target_lane and delta_x >= 0:
+                            if delta_x < delta_xs_f[-1]:
+                                delta_xs_f.append(delta_x)
+                                candidate_f = vehicle
+                                continue
+
+                    elif self.lane_decision == 'keep_lane':
+                        if delta_x >= 0:
+                            if vehicle.lane_id == self.lane_id+1:
+                                # right lane
+                                if vehicle.target_lane == self.lane_id and \
+                                        abs(vehicle.lane_y) > 0.2 and delta_x < delta_xs_f[-1]:
+                                    delta_xs_f.append(delta_x)
+                                    candidate_f = vehicle
+
+                                elif delta_x < delta_xs_fr[-1]:
+                                    delta_xs_fr.append(delta_x)
+                                    candidate_fr = vehicle
+
+                            elif vehicle.lane_id == self.lane_id-1:
+                                # left lane
+                                if vehicle.target_lane == self.lane_id and \
+                                        abs(vehicle.lane_y) > 0.2 and delta_x < delta_xs_f[-1]:
+                                    delta_xs_f.append(delta_x)
+                                    candidate_f = vehicle
+
+                                elif delta_x < delta_xs_fl[-1]:
+                                    delta_xs_fl.append(delta_x)
+                                    candidate_fl = vehicle
+
+                            elif vehicle.lane_id == self.lane_id:
+                                # same lane
+                                if delta_x < delta_xs_f[-1]:
+                                    delta_xs_f.append(delta_x)
+                                    candidate_f = vehicle
+
+                        elif delta_x < 0:
+                            delta_x = abs(delta_x)
+                            if vehicle.lane_id == self.lane_id+1:
+                                # right lane
+                                if delta_x < delta_xs_rr[-1]:
+                                    delta_xs_rr.append(delta_x)
+                                    candidate_rr = vehicle
+                            elif vehicle.lane_id == self.lane_id-1:
+                                # left lane
+                                if delta_x < delta_xs_rl[-1]:
+                                    delta_xs_rl.append(delta_x)
+                                    candidate_rl = vehicle
+                            elif vehicle.lane_id == self.lane_id:
+                                # same lane
+                                if delta_x < delta_xs_r[-1]:
+                                    delta_xs_r.append(delta_x)
+                                    candidate_r = vehicle
+
+        neighbours['f'] = candidate_f
+        neighbours['fl'] = candidate_fl
+        neighbours['rl'] = candidate_rl
+        neighbours['r'] = candidate_r
+        neighbours['rr'] = candidate_rr
+        neighbours['fr'] = candidate_fr
+
+        return neighbours
+
+    def act(self, vehicles, reservations):
+        neighbours = self.find_neighbours(vehicles)
+        self.neighbours = neighbours
         act_long = self.idm_action(self.observe(self, neighbours['f']))
-        if self.lane_decision == 'move_left':
-            if self.lane_id  == self.target_lane :
-                act_long = self.idm_action(self.observe(self, neighbours['f']))
+        check_1 = self.check_neighbours(neighbours)
+        if check_1 == 'fail' or self.glob_x < 200:
+            pass
+
+        elif self.lane_decision == 'move_left':
+            if self.lane_id == self.target_lane :
                 if self.lane_y >= 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
 
-            elif self.lane_id > self.target_lane :
-                act_long = self.idm_action(self.observe(self, neighbours['fl']))
-
         elif self.lane_decision == 'move_right':
-            if self.lane_id  == self.target_lane :
-                act_long = self.idm_action(self.observe(self, neighbours['f']))
+            if self.lane_id == self.target_lane :
                 if self.lane_y <= 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-            elif self.lane_id < self.target_lane :
-                act_long = self.idm_action(self.observe(self, neighbours['fr']))
 
         elif self.lane_decision == 'keep_lane':
-            check_1 = self.check_reservations(reservations)
-            check_2 = self.check_neighbours(neighbours)
-            if check_1 == 'fail' or check_2 == 'fail':
-                self.lane_decision = 'keep_lane'
-                self.target_lane = self.lane_id
-                return [act_long, self.lateral_actions[self.lane_decision]]
-
             lc_left_condition = 0
             lc_right_condition = 0
 
-            # action for ego vehicle if ego is to keep lane
             act_rl_lc = self.idm_action(self.observe(neighbours['rl'], self))
             act_rr_lc = self.idm_action(self.observe(neighbours['rr'], self))
             act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
             act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
-            if self.lane_id  > 1 and self.driver_params['safe_braking'] < act_rl_lc:
+            if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
                 act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
                 act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
@@ -380,7 +468,7 @@ class IDMMOBILVehicle(Vehicle):
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            elif self.lane_id  < self.max_lane_id and \
+            if self.lane_id < self.lanes_n and \
                                                 self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
                 act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
@@ -390,29 +478,24 @@ class IDMMOBILVehicle(Vehicle):
                 new_follower_gain = act_rr_lc-act_rr_lk
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            if lc_left_condition > self.driver_params['act_threshold']:
-                self.target_lane  -= 1
+            if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
+                if lc_left_condition > lc_right_condition:
+                    target_lane = self.target_lane - 1
+                    check_2 = self.check_reservations(target_lane, reservations)
+                    if check_2 == 'pass':
+                        self.lane_decision = 'move_left'
+                        self.target_lane -= 1
+                        return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
-            elif lc_right_condition > self.driver_params['act_threshold']:
-                self.target_lane  += 1
-
-            else:
-                self.lane_decision = 'keep_lane'
-                self.target_lane = self.lane_id
-                return [act_long, self.lateral_actions[self.lane_decision]]
-
-            if self.target_lane < self.lane_id:
-                act_long = act_ego_lc_l
-                self.lane_decision = 'move_left'
-                print(lc_left_condition)
-            elif self.target_lane < self.lane_id:
-                act_long = act_ego_lc_r
-                self.lane_decision = 'move_right'
-                print(lc_right_condition)
-
+                elif lc_left_condition < lc_right_condition:
+                    target_lane = self.target_lane + 1
+                    check_2 = self.check_reservations(target_lane, reservations)
+                    if check_2 == 'pass':
+                        self.lane_decision = 'move_right'
+                        self.target_lane += 1
+                        return [act_ego_lc_r, self.lateral_actions[self.lane_decision]]
 
         return [act_long, self.lateral_actions[self.lane_decision]]
-
 
 
 class VehicleHandler:
@@ -423,7 +506,6 @@ class VehicleHandler:
         self.lane_length = config['lane_length']
         self.next_vehicle_id = 0
         self.lane_width = 3.7
-        self.percept_range = 100 #m
         self.target_traffic_density = 1. # vehicle count per 100 meters
         self.traffic_density = 0
         self.reservations = {}
@@ -436,109 +518,33 @@ class VehicleHandler:
 
         self.traffic_density = (vehicle_count/(self.lanes_n*self.lane_length))*100
         if self.traffic_density < self.target_traffic_density:
-            # if elapsed_time % 70 == 0:
-            #     id = self.next_vehicle_id
-            #     glob_x = 0
-            #     lane_id = np.random.choice(range(1, self.lanes_n+1))
-            #     new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
-            #     new_vehicle.capability = 'IDMMOBIL'
-            #     new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
-            #     new_vehicle_entries.append(new_vehicle)
-            #     self.next_vehicle_id += 1
-
             if elapsed_time % 20 == 0:
                 for lane_id in range(1, self.lanes_n+1):
                     coin_flip = np.random.random()
                     if coin_flip < 0.3:
                         id = self.next_vehicle_id
-                        glob_x =  np.random.uniform(-30, 0)
+                        glob_x =  0
 
-                        aggressiveness = np.random.uniform(0, 1)
+                        # aggressiveness = np.random.uniform(0, 1)
+                        aggressiveness = np.random.choice([0, 0.5, 1])
                         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
-
+                        new_vehicle.lanes_n = self.lanes_n
                         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
                         new_vehicle_entries.append(new_vehicle)
                         self.next_vehicle_id += 1
 
         return new_vehicle_entries
 
-    def find_closest(self, glob_x, lane_vehicles):
-        """Returns the closest vehicles.
-        """
-        front_vehicle, rear_vehicle = None, None # default
-
-        if not lane_vehicles:
-            return front_vehicle, rear_vehicle
-        else:
-            front_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x>=glob_x]
-            rear_vehicles = [vehicle for vehicle in lane_vehicles if vehicle.glob_x<=glob_x]
-            if front_vehicles:
-                glob_xs = [vehicle.glob_x for vehicle in front_vehicles]
-                min_glob_x = min(glob_xs)
-                if min_glob_x - glob_x <= self.percept_range:
-                    indx = glob_xs.index(min_glob_x)
-                    front_vehicle = front_vehicles[indx]
-            if rear_vehicles:
-                glob_xs = [vehicle.glob_x for vehicle in rear_vehicles]
-                max_glob_x = max(glob_xs)
-                if glob_x - max_glob_x  <= self.percept_range:
-                    indx = glob_xs.index(max_glob_x)
-                    rear_vehicle = rear_vehicles[indx]
-
-            return front_vehicle, rear_vehicle
-
-
-    def find_neighbours(self, ego, vehicles):
-        """returns list of current neighbouring vehicles.
-        """
-        lane_id = ego.lane_id
-        id = ego.id
-        glob_x = ego.glob_x
-        neighbours = {
-                      'f':None,
-                      'fl':None,
-                      'rl':None,
-                      'rr':None,
-                      'fr':None
-                        }
-
-        same_lane = []
-        left_lane = []
-        right_lane = []
-
-        for vehicle in vehicles:
-            if vehicle.id != id:
-                if vehicle.lane_id == lane_id:
-                    same_lane.append(vehicle)
-                elif vehicle.lane_id == lane_id+1:
-                    right_lane.append(vehicle)
-                elif vehicle.lane_id == lane_id-1:
-                    left_lane.append(vehicle)
-
-        neighbours['f'], neighbours['r'] = self.find_closest(glob_x, same_lane)
-        neighbours['fr'], neighbours['rr'] = self.find_closest(glob_x, right_lane)
-        neighbours['fl'], neighbours['rl'] = self.find_closest(glob_x, left_lane)
-        # print(neighbours)
-
-        return neighbours
-
     def get_vehicle_state(self, vehicle):
-
         pass
 
     def update_reservations(self, vehicle):
-        if vehicle.id in self.reservations:
-            if vehicle.lane_decision == 'keep_lane':
-                del self.reservations[vehicle.id]
-        else:
-            if vehicle.lane_decision != 'keep_lane':
-                max_glob_x, min_glob_x = vehicle.glob_x + 100, vehicle.glob_x - 100
-                self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
-
-
-    # def gen_sdv(self, sdv):
-    #     if not sdv:
-
+        if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
+            del self.reservations[vehicle.id]
+        elif vehicle.lane_decision != 'keep_lane':
+            max_glob_x, min_glob_x = round(vehicle.glob_x) + 100, round(vehicle.glob_x) - 100
+            self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
+            print(self.reservations)
 
 class Road:
     def __init__(self, lane_length, lane_width, lanes_n):
@@ -549,7 +555,7 @@ class Road:
 class Env:
     def __init__(self, config):
         self.config = config
-        self.elapsed_time = 0 # number of print(lane_id)s past
+        self.elapsed_time = 0
         self.handler = VehicleHandler(config)
         self.sdv = None
         self.vehicles = []
@@ -559,14 +565,10 @@ class Env:
     def initiate_environment(self):
         self.lane_length = self.config['lane_length']
 
-        # new_vehicle_entries = self.handler.place_vehicle()
-        # self.vehicles = new_vehicle_entries
-
     def step(self, action=None):
         """ steps the environment forward in time.
         """
         vehicles = [] # list for vehicles with new states
-        # print(len(self.vehicles))
         for vehicle_i in self.vehicles:
             if vehicle_i.glob_x > self.lane_length:
                 # consider vehicle gone
@@ -574,67 +576,24 @@ class Env:
                     del self.handler.reservations[vehicle_i.id]
                 continue
 
-            neighbours = self.handler.find_neighbours(vehicle_i, self.vehicles)
-            # obs = self.observe(vehicle_i, neighbours)
-            action = vehicle_i.act(neighbours, self.handler.reservations)
-
+            action = vehicle_i.act(self.vehicles, self.handler.reservations)
             self.handler.update_reservations(vehicle_i)
-            vehicle_i.neighbours = neighbours
-            # print(action)
-            # action = vehicle_i.act()
             vehicle_ii = copy.copy(vehicle_i)
             vehicle_ii.step(action)
             vehicles.append(vehicle_ii)
 
 
         self.vehicles = vehicles
-        print(self.handler.reservations)
         new_vehicle_entries = self.handler.place_vehicle(len(vehicles), self.elapsed_time)
         if new_vehicle_entries:
             self.vehicles.extend(new_vehicle_entries)
 
         self.elapsed_time += 1
 
-
-
-
-
     def get_feature_vector(self, obs):
         return [item for sublist in obs.values() for item in sublist]
 
-    # def get_relative_states(self, follower, leader):
-    #     if not (follower or leader):
-    #         return [0, 50]
-    #
-    #     delta_v = follower.speed-leader.speed
-    #     delta_x = leader.glob_x-follower.glob_x
-    #     return [delta_v, delta_x]
-
-    #
-    # def observe(self, ego, neighbours):
-    #     """ returns current observation for a given vehicle.
-    #     """
-    #     if ego.capability == 'IDM':
-    #         leader = neighbours['f']
-    #         if leader:
-    #             obs = [ego.speed-leader.speed, leader.glob_x-ego.glob_x}]
-    #         else:
-    #             obs = [0, 50]
-    #         return obs
-    #
-    #     elif ego.capability == 'IDMMOBIL':
-    #          obs = {
-    #              'f': self.get_relative_states(ego,  neighbours['f']),
-    #              'fl': self.get_relative_states(ego,  neighbours['fl']),
-    #              'rl': self.get_relative_states(neighbours['rl']), ego),
-    #              'r': self.get_relative_states(neighbours['r']), ego),
-    #              'rr': self.get_relative_states(neighbours['rr']), ego),
-    #              'fr': self.get_relative_states(ego,  neighbours['fr'])
-    #              }
-    #
-    #     return obs
-
-
+  
 config = {'lanes_n':4,
         'lane_width':3.7, # m
         'lane_length':1200 # m
@@ -643,15 +602,20 @@ config = {'lanes_n':4,
 env = Env(config)
 viewer = Viewer(config)
 def main():
-    # for i in range(10):
+    # for i in range(100):
+    step_i = 0
     while True:
-        viewer.render(env.vehicles)
         decision = input()
         if decision == 'n':
             sys.exit()
 
         env.step()
+        viewer.render(env.vehicles)
+        print(step_i, ' ####### step #######')
+        step_i += 1
 
+if __name__=='__main__':
+    main()
 # %%
 def get_animation():
     plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
@@ -662,7 +626,7 @@ def get_animation():
         env.step()
         # return line,
 
-    animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(600), interval=1000)
+    animation = FuncAnimation(viewer.fig, func=animation_frame, frames=range(1800), interval=1000)
 
 
     # setting up wrtiers object
@@ -672,9 +636,40 @@ def get_animation():
 
 
 
-if __name__=='__main__':
-    main()
 
-get_animation()
+
+# get_animation()
 # plt.show()
 # %%
+# driver_params = {
+#                 'desired_v':19.4, # m/s
+#                 'desired_tgap':2, # s
+#                 'min_jamx':4, # m
+#                 'max_act':0.8, # m/s^2
+#                 'min_act':1, # m/s^2
+#                 }
+#
+speed = 19.4
+def get_desired_gap(delta_v):
+    gap = driver_params['min_jamx'] + driver_params['desired_tgap']*speed+(speed*delta_v)/ \
+                (2*np.sqrt(driver_params['max_act']*driver_params['min_act']))
+    print('gap: ', gap)
+    return gap
+
+    # return max([0, gap])
+
+def idm_action(obs):
+    delta_v, delta_x = obs
+    desired_gap = get_desired_gap(delta_v)
+    act_long = driver_params['max_act']*(1-(speed/driver_params['desired_v'])**4-\
+                                        (desired_gap/(delta_x+1e-5))**2)
+    return act_long
+
+
+obs = [-2.0849818926072636, 10.87166467173239]
+# obs = [0.273349751276303, 55.71618653304381]
+# obs = [0, 1000]
+idm_action(obs)
+# max([0, -10])
+# plt.scatter([1,1], [1,1], marker='>', s=5000)
+# plt.grid()
