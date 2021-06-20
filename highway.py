@@ -54,11 +54,11 @@ class Viewer():
 
         annotation_mark_1 = [veh.id for veh in vehicles]
         # annotation_mark = [veh.lane_decision for veh in vehicles]
-        annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
+        # annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
         # annotation_mark_2 = [round(veh.lane_y, 2) for veh in vehicles]
         for i in range(len(annotation_mark_1)):
             ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
-            ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
+            # ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
 
 
 
@@ -154,8 +154,8 @@ class Vehicle(object):
     def observe(self):
         raise NotImplementedError
 
-    def step(self, action):
-        act_long, act_lat = action
+    def step(self, actions):
+        act_long, act_lat = actions
         self.glob_x +=  self.speed * self.STEP_SIZE \
                                     + 0.5 * act_long * self.STEP_SIZE **2
         self.speed +=  act_long * self.STEP_SIZE
@@ -272,7 +272,7 @@ class IDMMOBILVehicle(Vehicle):
         delta_x = leader.glob_x-follower.glob_x
         return [delta_v, delta_x]
 
-    def idm_action(self, obs):
+    def idm_actions(self, obs):
         delta_v, delta_x = obs
         desired_gap = self.get_desired_gap(delta_v)
         act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
@@ -300,17 +300,17 @@ class IDMMOBILVehicle(Vehicle):
                 return False
         return True
 
-    def mobil_condition(self, action_gains):
+    def mobil_condition(self, actions_gains):
         """To decide if changing lane is worthwhile.
         """
-        ego_gain, new_follower_gain, old_follower_gain = action_gains
+        ego_gain, new_follower_gain, old_follower_gain = actions_gains
         lc_condition = ego_gain+self.driver_params['politeness']*(new_follower_gain+\
                                                                 old_follower_gain )
         return lc_condition
 
 
     def act(self, neighbours, reservations):
-        act_long = self.idm_action(self.observe(self, neighbours['f']))
+        act_long = self.idm_actions(self.observe(self, neighbours['f']))
         if not self.check_neighbours(neighbours):
             # Keep lane if neighbours are chanigng lane.
             pass
@@ -331,16 +331,16 @@ class IDMMOBILVehicle(Vehicle):
             lc_left_condition = 0
             lc_right_condition = 0
 
-            act_rl_lc = self.idm_action(self.observe(neighbours['rl'], self))
-            act_rr_lc = self.idm_action(self.observe(neighbours['rr'], self))
-            act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
-            act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
+            act_rl_lc = self.idm_actions(self.observe(neighbours['rl'], self))
+            act_rr_lc = self.idm_actions(self.observe(neighbours['rr'], self))
+            act_r_lc = self.idm_actions(self.observe(neighbours['r'], neighbours['f']))
+            act_r_lk = self.idm_actions(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
             if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
-                act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
-                act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
+                act_rl_lk = self.idm_actions(self.observe(neighbours['rl'], neighbours['fl']))
+                act_ego_lc_l = self.idm_actions(self.observe(self, neighbours['fl']))
                 ego_gain = act_ego_lc_l-act_long
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
@@ -348,8 +348,8 @@ class IDMMOBILVehicle(Vehicle):
             if self.lane_id < self.lanes_n and \
                                                 self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
-                act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
-                act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
+                act_ego_lc_r = self.idm_actions(self.observe(self, neighbours['fr']))
+                act_rr_lk = self.idm_actions(self.observe(neighbours['rr'], neighbours['fr']))
 
                 ego_gain = act_ego_lc_r-act_long
                 new_follower_gain = act_rr_lc-act_rr_lk
@@ -526,7 +526,6 @@ class VehicleHandler:
         elif vehicle.lane_decision != 'keep_lane':
             max_glob_x, min_glob_x = round(vehicle.glob_x) + 100, round(vehicle.glob_x) - 100
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
-            print(self.reservations)
 
 class Road:
     def __init__(self, lane_length, lane_width, lanes_n):
@@ -541,13 +540,44 @@ class Env:
         self.handler = VehicleHandler(config)
         self.sdv = None
         self.vehicles = []
+        self.recordings = []
+        self.usage = None
         self.initiate_environment()
         # self.vehicles = []
 
     def initiate_environment(self):
         self.lane_length = self.config['lane_length']
 
-    def step(self, action=None):
+    def recorder(self, ego, neighbours):
+        """For recording vehicle trajectories. Used for:
+        - model training
+        - perfromance validations # TODO
+        """
+        act_long, act_lat = ego.actions
+        feature = [self.elapsed_time, ego.id, ego.speed, act_long, act_lat]
+        for key, neighbour in neighbours.items():
+            if neighbour:
+                feature.extend(self.get_feature(ego, neighbour, key))
+            else:
+                # assign dummy values
+                feature.extend([20, 0, 50, 0, 0])
+        self.recordings.append(feature)
+
+    def get_feature(self, ego, vehicle, key):
+        """Returns feature
+        """
+        if key in ['f', 'fl', 'fr']:
+            delta_x = vehicle.glob_x - ego.glob_x
+            delta_v = ego.speed - vehicle.speed
+        else:
+            delta_x = ego.glob_x - vehicle.glob_x
+            delta_v = vehicle.speed - ego.speed
+        car_exists = 1
+        act_long, _ = vehicle.actions
+
+        return [vehicle.speed, delta_v, delta_x, act_long, car_exists]
+
+    def step(self, actions=None):
         """ steps the environment forward in time.
         """
         vehicles = [] # list for vehicles with new states
@@ -558,12 +588,17 @@ class Env:
                     del self.handler.reservations[vehicle_i.id]
                 continue
             neighbours = self.handler.my_neighbours(vehicle_i, self.vehicles)
+            actions = vehicle_i.act(neighbours, self.handler.reservations)
             vehicle_i.neighbours = neighbours
-            action = vehicle_i.act(neighbours, self.handler.reservations)
+            vehicle_i.actions = actions
+
             self.handler.update_reservations(vehicle_i)
             vehicle_ii = copy.copy(vehicle_i)
-            vehicle_ii.step(action)
+            vehicle_ii.step(actions)
             vehicles.append(vehicle_ii)
+
+            if self.usage == 'data generation':
+                self.recorder(vehicle_i, neighbours, actions)
 
 
         self.vehicles = vehicles
@@ -573,9 +608,37 @@ class Env:
 
         self.elapsed_time += 1
 
-    def get_feature_vector(self, obs):
-        return [item for sublist in obs.values() for item in sublist]
 
+class DataGenerator:
+    def __init__(self, env, config):
+        self.config = config
+        self.data_frames_n = 100 # number of data samples for training
+        self.env = env
+        self.env.usage = 'data generation'
+
+    def initiate(self):
+
+    def run(self):
+        for step in range(self.data_frames):
+            self.env.step()
+
+        return self.env.recordings
+
+
+    def sequence(self)
+    def preprocess(self, raw_data):
+        xs, xs_scaled, merger_a, ys, info, scaler = data_generator()
+        episode_ids = list(np.unique(xs[:, 0]))
+        seq_scaled_s_h = []
+        scaled_seq_xs_f = []
+        unscaled_seq_xs_f = []
+        seq_merger_a = []
+        seq_ys_f = []
+
+        pass
+
+    def save(self):
+        pass
 
 config = {'lanes_n':4,
         'lane_width':3.7, # m
@@ -584,26 +647,40 @@ config = {'lanes_n':4,
 
 env = Env(config)
 viewer = Viewer(config)
+
+data_config = {
+                'future_seq_length':20,
+                'history_seq_length':20,
+                'data_frames_n':100,
+                'model_type':'belief_net'
+                }
+data_gen = DataGenerator(env, data_config)
+training_data = data_gen.run()
+
+training_data
+# np.array(env.recordings)[:, -1]
+
+
+# %%
+
 def main():
-    # for i in range(100):
-    step_i = 0
-    while True:
-        decision = input()
-        if decision == 'n':
-            sys.exit()
-        try:
-            viewer.focus_on_this_vehicle = int(decision)
-        except:
-            pass
+    for i in range(100):
+    # while True:
+    #     decision = input()
+    #     if decision == 'n':
+    #         sys.exit()
+    #     try:
+    #         viewer.focus_on_this_vehicle = int(decision)
+    #     except:
+    #         pass
 
 
         env.step()
-        viewer.render(env.vehicles)
-        print(step_i, ' ####### step #######')
-        step_i += 1
+        # viewer.render(env.vehicles)
 
-if __name__=='__main__':
-    main()
+
+# if __name__=='__main__':
+#     main()
 
 # %%
 def get_animation():
