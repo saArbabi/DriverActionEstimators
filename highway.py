@@ -184,7 +184,7 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_decision = 'keep_lane'
         self.aggressiveness = aggressiveness # in range [0, 1]
         self.neighbours = {}
-        self.percept_range = 200 #m
+        self.percept_range = 100 #m
         self.lane_width = 3.8
 
         self.lateral_actions = {'move_left':0.7,
@@ -195,6 +195,9 @@ class IDMMOBILVehicle(Vehicle):
 
 
     def set_idm_params(self, aggressiveness):
+        if aggressiveness == None:
+            raise ValueError('No aggressiveness specified!')
+
         Parameter_range = {'most_aggressive': {
                                         'desired_v':30, # m/s
                                         'desired_tgap':1, # s
@@ -227,13 +230,19 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['politeness'] = self.get_idm_param(Parameter_range, 'politeness')
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
-        self.driver_params['attention_switch'] =  0.5*self.lane_width*self.aggressiveness
 
-        if aggressiveness == None:
-            raise ValueError('No aggressiveness specified!')
+        if 0 <= self.aggressiveness < 0.33:
+            # timid driver
+            attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
+        elif 0.33 <= self.aggressiveness <= 0.66:
+            # normal driver
+            attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
+        elif 0.66 < self.aggressiveness:
+            # aggressive driver
+            attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
+        self.driver_params['attentiveness'] = attentiveness
 
         # self.driver_params['desired_v'] += np.random.normal(0, 1)
-
     def get_idm_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act', 'safe_braking']:
             # the larger the param, the more aggressive the driver
@@ -279,15 +288,12 @@ class IDMMOBILVehicle(Vehicle):
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
-                if target_lane != reserved_lane or self.glob_x < min_glob_x \
-                                                            or self.glob_x > max_glob_x:
-
-                    return True
-                else:
+                if target_lane == reserved_lane and min_glob_x < self.glob_x < max_glob_x:
                     return False
+            return True
 
     def check_neighbours(self, neighbours):
-        """To ensure neighbours keep lane while merger is performing lane change
+        """To ensure neighbours keep lane while merger is changing lane.
         """
         for vehicle in neighbours.values():
             if vehicle and vehicle.lane_decision != 'keep_lane':
@@ -295,22 +301,27 @@ class IDMMOBILVehicle(Vehicle):
         return True
 
     def mobil_condition(self, action_gains):
-        """To decide if changing lane is worthwhile/
+        """To decide if changing lane is worthwhile.
         """
         ego_gain, new_follower_gain, old_follower_gain = action_gains
         lc_condition = ego_gain+self.driver_params['politeness']*(new_follower_gain+\
                                                                 old_follower_gain )
         return lc_condition
 
-    def check_attention(self, vehicle, delta_x, delta_xs):
+    def my_attentiveness(self, vehicle, delta_x, delta_xs):
+        """To charactrize how attentive the vehicle is to others merging.
+        """
         if vehicle.target_lane == self.lane_id and \
-                abs(vehicle.lane_y) > self.driver_params['attention_switch'] and \
-                delta_x < delta_xs[-1]:
+                abs(vehicle.lane_y) > self.driver_params['attentiveness'] \
+                and delta_x < delta_xs[-1]:
             return True
         return False
 
-    def find_neighbours(self, vehicles):
-        """returns list of current neighbouring vehicles.
+    def my_neighbours(self, vehicles):
+        """Returns list of current neighbouring vehicles.
+            Note:
+            - When performing a merge, ego will follow the vehicle in the
+            target lane if one exists.
         """
         neighbours = {}
         delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
@@ -343,7 +354,7 @@ class IDMMOBILVehicle(Vehicle):
                         if delta_x >= 0:
                             if vehicle.lane_id == self.lane_id+1:
                                 # right lane
-                                if self.check_attention(vehicle, delta_x, delta_xs_f):
+                                if self.my_attentiveness(vehicle, delta_x, delta_xs_f):
                                     delta_xs_f.append(delta_x)
                                     candidate_f = vehicle
 
@@ -353,7 +364,7 @@ class IDMMOBILVehicle(Vehicle):
 
                             elif vehicle.lane_id == self.lane_id-1:
                                 # left lane
-                                if self.check_attention(vehicle, delta_x, delta_xs_f):
+                                if self.my_attentiveness(vehicle, delta_x, delta_xs_f):
                                     delta_xs_f.append(delta_x)
                                     candidate_f = vehicle
 
@@ -395,10 +406,11 @@ class IDMMOBILVehicle(Vehicle):
         return neighbours
 
     def act(self, vehicles, reservations):
-        neighbours = self.find_neighbours(vehicles)
+        neighbours = self.my_neighbours(vehicles)
         self.neighbours = neighbours
         act_long = self.idm_action(self.observe(self, neighbours['f']))
         if not self.check_neighbours(neighbours):
+            # Keep lane if neighbours are chanigng lane.
             pass
 
         elif self.lane_decision == 'move_left':
@@ -532,7 +544,7 @@ class Env:
         vehicles = [] # list for vehicles with new states
         for vehicle_i in self.vehicles:
             if vehicle_i.glob_x > self.lane_length:
-                # consider vehicle gone
+                # vehicle has left the highway
                 if vehicle_i.id in self.handler.reservations:
                     del self.handler.reservations[vehicle_i.id]
                 continue
@@ -608,11 +620,7 @@ def get_animation():
 # get_animation()
 # plt.show()
 # %%
-driver_params = {
-                'desired_v':19.4, # m/s
-                'desired_tgap':2, # s
-                'min_jamx':4, # m
-                'max_act':0.8, # m/s^2
-                'min_act':1, # m/s^2
-                }
-#
+x = 5
+if x > 2:
+    w = 4
+print(w)
