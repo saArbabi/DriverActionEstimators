@@ -144,14 +144,19 @@ class IDMMOBILVehicle(Vehicle):
         return round(act_long, 2)
 
     def check_reservations(self, target_lane, reservations):
-        """To ensure two cars do not simultaneously move into the same lane.
+        """To ensure:
+        - two cars do not simultaneously move into the same lane.
+        - ego does not perform a lane change as an other car is merging nearby into
+        its lane.
         """
         if not reservations:
             return True
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
-                if target_lane == reserved_lane and min_glob_x < self.glob_x < max_glob_x:
+                if (target_lane == reserved_lane or self.lane_id == reserved_lane) \
+                                    and min_glob_x < self.glob_x < max_glob_x:
+
                     return False
             return True
 
@@ -186,7 +191,9 @@ class IDMMOBILVehicle(Vehicle):
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
 
-        elif self.lane_decision == 'keep_lane' and self.check_neighbours(neighbours):
+        elif self.lane_decision == 'keep_lane' and \
+                                    self.check_neighbours(neighbours) and \
+                                    self.glob_x > 50:
             # if not :
             # # if not self.check_neighbours(neighbours) or self.glob_x < 100:
             #     # Keep lane if neighbours are chanigng lane or if you have just entered

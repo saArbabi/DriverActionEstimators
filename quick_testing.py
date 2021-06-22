@@ -82,7 +82,7 @@ def main():
                 pass
 
             viewer.render(env.vehicles)
-            print(env.elapsed_time)
+            # print(env.elapsed_time)
         env.step()
 
 
@@ -109,7 +109,7 @@ def get_animation():
 
 
 
-
+(1 == 10 or 4 == 6) and 6 == 6
 
 # get_animation()
 # plt.show()

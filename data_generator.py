@@ -163,13 +163,13 @@ class DataGenerator:
                         step_feature[0:0] = episode_id, veh_id, elapsed_time, ego_decision
                         feature_data_episode.append(step_feature)
                     else:
-                        feature_data_episode = []
                         break
-
-                if len(feature_data_episode) > 50:
-                    # ensure enough steps are present within a given episode
-                    episode_id += 1
-                    feature_data.extend(feature_data_episode)
+                else:
+                    # runs if no breaks in loop
+                    if len(feature_data_episode) > 50:
+                        # ensure enough steps are present within a given episode
+                        episode_id += 1
+                        feature_data.extend(feature_data_episode)
 
         # return feature_data
         return np.array(feature_data)

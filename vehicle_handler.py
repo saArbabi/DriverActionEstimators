@@ -10,34 +10,46 @@ class VehicleHandler:
         self.lane_length = config['lane_length']
         self.next_vehicle_id = 0
         self.lane_width = 3.7
-        self.target_traffic_density = 1. # vehicle count per 100 meters
-        self.traffic_density = 0
         self.reservations = {}
 
-    def place_vehicle(self, vehicle_count, elapsed_time):
-        """Creates a new IDM vehicle.
+    def create_vehicle(self, lane_id):
+        """Creates a new vehicle.
         """
+        id = self.next_vehicle_id
+        glob_x = np.random.uniform(-30, 0)
         speed = 20
-        new_vehicle_entries = []
+        # aggressiveness = np.random.uniform(0, 1)
+        aggressiveness = np.random.choice([0, 0.5, 1])
+        new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
+        new_vehicle.lanes_n = self.lanes_n
+        new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
+        self.next_vehicle_id += 1
+        return new_vehicle
 
-        self.traffic_density = (vehicle_count/(self.lanes_n*self.lane_length))*100
-        if self.traffic_density < self.target_traffic_density:
-            if elapsed_time % 20 == 0:
-                for lane_id in range(1, self.lanes_n+1):
-                    coin_flip = np.random.random()
-                    if coin_flip < 0.3:
-                        id = self.next_vehicle_id
-                        glob_x =  0
+    def handle_vehicle_entries(self, queuing_entries, last_entries):
+        new_entries = []
+        if not last_entries:
+            for lane_id in range(1, self.lanes_n+1):
+                new_vehicle = self.create_vehicle(lane_id)
+                queuing_entries[lane_id] = None
+                last_entries[lane_id] = new_vehicle
+                new_entries.append(new_vehicle)
+            return new_entries
 
-                        # aggressiveness = np.random.uniform(0, 1)
-                        aggressiveness = np.random.choice([0, 0.5, 1])
-                        new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
-                        new_vehicle.lanes_n = self.lanes_n
-                        new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
-                        new_vehicle_entries.append(new_vehicle)
-                        self.next_vehicle_id += 1
-
-        return new_vehicle_entries
+        for lane_id in range(1, self.lanes_n+1):
+            # print(last_entries[lane_id].glob_x)
+            if not queuing_entries[lane_id]:
+                queuing_entries[lane_id] = self.create_vehicle(lane_id)
+            else:
+                leader = last_entries[lane_id]
+                follower = queuing_entries[lane_id]
+                act_long = follower.idm_actions(follower.observe(follower, leader))
+                if act_long > -.5:
+                    # check if cars are not too close
+                    new_entries.append(queuing_entries[lane_id])
+                    last_entries[lane_id] = queuing_entries[lane_id]
+                    queuing_entries[lane_id] = None
+        return new_entries
 
     def my_neighbours(self, ego, vehicles):
         """Returns list of current neighbouring vehicles.
@@ -147,6 +159,9 @@ class VehicleHandler:
         return False
 
     def update_reservations(self, vehicle):
+        """
+        Note: lane reservations have to be updated after each vehicle decides an action.
+        """
         if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':

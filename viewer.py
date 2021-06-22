@@ -22,7 +22,7 @@ class Viewer():
             lane_cor = self.config['lane_width']
             for lane in range(self.config['lanes_n']-1):
                 ax.hlines(lane_cor, 0, self.config['lane_length'],
-                                                        colors='k', linestyles='--')
+                                        colors='k', linestyles='--')
                 lane_cor += self.config['lane_width']
 
         ax.set_xlim(0, self.config['lane_length'])
