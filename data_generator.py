@@ -1,291 +1,239 @@
-from collections import deque
-from sklearn import preprocessing
-import numpy as np
-np.random.seed(2020)
-normal_idm = {
-                'desired_v':25, # m/s
-                'desired_tgap':1.5, # s
-                'min_jamx':2, # m
-                'max_act':1.4, # m/s^2
-                'min_act':2, # m/s^2
-                }
 
-timid_idm = {
-                'desired_v':19.4, # m/s
-                'desired_tgap':2, # s
-                'min_jamx':4, # m
-                'max_act':0.8, # m/s^2
-                'min_act':1, # m/s^2
-                }
 
-aggressive_idm = {
-                'desired_v':30, # m/s
-                'desired_tgap':1, # s
-                'min_jamx':0, # m
-                'max_act':2, # m/s^2
-                'min_act':3, # m/s^2
-                }
+class DataGenerator:
+    def __init__(self, env, config):
+        self.config = config
+        self.data_frames_n = 10000 # number of data samples. Not all of it is useful.
+        self.env = env
+        self.initiate()
 
-"""
-Synthetic data generation
-"""
+    def initiate(self):
+        self.env.usage = 'data generation'
+        self.env.recordings = {'info':{}, 'elapsed_time':{}, 'decisions':{}, 'states':{}}
+        self.indxs = {
+                    'speeds':{'leader':0, 'follower':1, 'merger':2},
+                    'actions':{'leader':3, 'follower':4, 'merger':5},
+                    'relatives':{'follower_leader':[6, 7], 'follower_merger':[8, 9]},
+                    'lane_y':10, 'leader_exists':11}
 
-def get_idm_params(driver_type):
-    vel_noise = np.random.normal(0, 1)
 
-    if driver_type == 'normal':
-        idm_param = normal_idm
-    if driver_type == 'timid':
-        idm_param = timid_idm
-    if driver_type == 'aggressive':
-        idm_param = aggressive_idm
+    def run_sim(self):
+        for step in range(self.data_frames_n):
+            self.env.step()
 
-    desired_v = idm_param['desired_v'] + vel_noise
-    desired_tgap = idm_param['desired_tgap']
-    min_jamx = idm_param['min_jamx']
-    max_act = idm_param['max_act']
-    min_act = idm_param['min_act']
+        return self.env.recordings
 
-    return [desired_v, desired_tgap, min_jamx, max_act, min_act]
+    def round_scalars(self, data_list):
+        rounded_items = []
+        for item in data_list:
+            try:
+                rounded_items.append(round(item, 2))
+            except:
+                rounded_items.append(item)
+        return rounded_items
 
-def idm_act(_v, _dv, _dx, idm_params):
-    desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
-    desired_gap = min_jamx + desired_tgap*_v+(_v*_dv)/ \
-                                    (2*np.sqrt(max_act*min_act))
+    def get_step_feature(self, merger_s, leader_s, follower_s):
+        """
+        Note: If a leader is missing or beyond the perception_range of the followe,
+        np.nan is assigned to its feature values.
+        """
+        step_feature = []
 
-    act = max_act*(1-(_v/desired_v)**4-\
-                                        (desired_gap/_dx)**2)
-    return act
+        if follower_s:
+            follower_speed, follower_glob_x, follower_act_long = follower_s
+        else:
+            return
 
-def get_relative_states(front_x, front_v, rear_x, rear_v):
-    """
-    front vehicle and rear vehicle
-    """
-    dx = front_x - rear_x
-    dv = rear_v - front_v
-    head_way = dx/rear_v
-    if head_way < .5:
-        return dv, dx, 'unsafe'
-    return dv, dx, 'safe'
+        if leader_s:
+            leader_speed, leader_glob_x, leader_act_long = leader_s
+            if leader_glob_x-follower_glob_x < 100:
+                leader_exists = 1
+            else:
+                leader_speed, leader_glob_x, leader_act_long = [np.nan]*3
+                leader_exists = 0
+        else:
+            leader_speed, leader_glob_x, leader_act_long = [np.nan]*3
+            leader_exists = 0
 
-def get_random_vals(mean_vel):
-    init_v = 20 + np.random.choice(range(-5, 5))
-    action_magnitute = np.random.uniform(-3, 3)
-    action_freq = np.random.uniform(0.02, 0.06)
-    return init_v, action_magnitute, action_freq
+        merger_speed, merger_glob_x, merger_act_long, \
+                                    merger_act_lat, ego_lane_y = merger_s
 
-def data_generator():
-    xs = []
-    ys = []
-    merger_a = []
-    info = {}
-    episode_steps_n = 50
-    drivers = ['normal', 'timid', 'aggressive']
-    # drivers = ['normal']
-    # drivers = ['aggressive']
-    episode_id = 0
-    # episode_n = 100 * 12
-    episode_n = 100 * 8
-    step_size = 0.1 #s
-    lane_width = 1.85
-    attentiveness = {'timid': [2, 10], 'normal': [3, 3], 'aggressive': [10, 2]} # attention probabilities
 
-    while episode_id < episode_n:
-        for driver in drivers:
-            idm_params = get_idm_params(driver)
-            mean_vel = 20
-            try_lane_change_step = np.random.choice(range(0, episode_steps_n))
-            a = attentiveness[driver][0]
-            b = attentiveness[driver][1]
-            being_noticed_my = lane_width*np.random.beta(a, b)
-            # sim initializations
-            # follower
+        step_feature = [leader_speed, follower_speed, merger_speed, \
+                        leader_act_long, follower_act_long, merger_act_long]
 
-            f_x = np.random.choice(range(0, 30))
-            f_v = mean_vel + np.random.choice(range(-3, 3))
-            f_att = 'leader'
-            # leader
-            l_x = np.random.choice(range(70, 100))
-            l_v, l_act_mag, l_sin_freq = get_random_vals(mean_vel)
-            # merger
-            m_x = np.random.choice(range(30, 70))
-            m_y = 0 # lane relative
-            m_v, m_act_mag, m_sin_freq = get_random_vals(mean_vel)
-            m_vlat = 0
-            lane_id = 1
+        # as if follower following leader
+        step_feature.extend([
+                             follower_speed-leader_speed,
+                             leader_glob_x-follower_glob_x
+                            ])
 
-            for time_step in range(episode_steps_n):
-                # leader
-                fl_dv, lf_dx, safety_situation = get_relative_states(l_x, l_v, f_x, f_v)
-                if safety_situation == 'unsafe':
-                    break
-                fl_act = idm_act(f_v, fl_dv, lf_dx, idm_params)
-                l_v = l_v + l_act_mag*np.sin(l_x*l_sin_freq) * step_size
-                l_x = l_x + l_v * step_size
-                leader_feature = [l_v, fl_dv, lf_dx]
+        # as if follower following merger
+        step_feature.extend([
+                             follower_speed-merger_speed,
+                             merger_glob_x-follower_glob_x
+                             ])
 
-                # merger
-                fm_dv, mf_dx, safety_situation= get_relative_states(m_x, m_v, f_x, f_v)
-                if mf_dx < 1 or m_x >= l_x:
-                    print('bad state')
-                    break
-                fm_act = idm_act(f_v, fm_dv, mf_dx, idm_params)
-                if time_step > try_lane_change_step and f_att == 'leader' \
-                                                and abs(fm_act) < 3 or m_vlat !=0:
+        step_feature.extend([ego_lane_y, leader_exists])
+        return self.round_scalars(step_feature)
 
-                    m_vlat = -0.7
-                    if abs(m_y) >= being_noticed_my or lane_id == 0:
-                        f_att = 'merger'
-                    # f_att = get_att_vehicle(attentiveness[driver], m_y, lane_width)
-                # if f_att == 'merger':
-                if lane_id == 1 and m_y <= -lane_width:
-                    lane_id = 0
-                    m_y = lane_width
-                elif lane_id == 0 and m_y <= 0:
-                    m_y = 0
-                    m_vlat = 0
+    def get_split_indxs(self, ego_decisions):
+        """
+        Decision transitions can be:
+        (1) 1, 1 , 1, 0 indicating manoeuvre end
+        (2) -1, -1, -1, 0 indicating manoeuvre end
+        (3) 0, 0, 0, 1 indicating manoeuvre start
+        (4) 0, 0, 0, -1 indicating manoeuvre start
+        This method returns indexes for (1) and (2).
+        """
+        decision_indxs = np.where(ego_decisions[:-1] != \
+                                        ego_decisions[1:])[0].tolist()
+        if not decision_indxs:
+            return
+        else:
+            split_indxs = []
+            for indx in decision_indxs:
+                ego_end_decision = ego_decisions[indx]
+                if ego_end_decision == 1 or ego_end_decision == -1:
+                    split_indxs.append(indx+1)
+        return [0] + split_indxs
 
-                m_v = m_v + m_act_mag*np.sin(m_x*m_sin_freq) * step_size
-                m_x = m_x + m_v * step_size
-                m_y = m_y + m_vlat * step_size
+    def extract_features(self, raw_recordings):
+        """
+        - remove redundancies: only keeping states for merger, leader and follower car.
+        """
+        feature_data = []
+        episode_id = 0
+        for veh_id in raw_recordings['info'].keys():
+            elapsed_times = np.array(raw_recordings['elapsed_time'][veh_id])
+            ego_decisions = np.array(raw_recordings['decisions'][veh_id])
+            veh_states = raw_recordings['states'][veh_id]
+            split_indxs = self.get_split_indxs(ego_decisions)
+            if not split_indxs:
+                # not a single lane change
+                continue
 
-                merger_feature = [m_v, fm_dv, mf_dx, m_y]
+            for i in range(len(split_indxs)-1):
+                # each split forms an episode
+                start_snip = split_indxs[i]
+                end_snip = split_indxs[i+1]
+                ego_end_decision = ego_decisions[end_snip]
+                feature_data_episode = []
 
-                if f_att == 'leader':
-                    act = fl_act
-                else:
-                    act = fm_act
+                for _step in range(start_snip, end_snip):
+                    ego_decision = ego_decisions[_step]
+                    elapsed_time = elapsed_times[_step]
+                    veh_state = veh_states[_step]
 
-                # act = fl_act
-                # f_att = 1
-                if abs(act) > 3.5:
-                    print('bad action')
-                    break
+                    if ego_end_decision == 1:
+                        # an episode ending with a lane change left
+                        if ego_decision == 0:
+                            step_feature = self.get_step_feature(
+                                                                veh_state['ego'],
+                                                                veh_state['fl'],
+                                                                veh_state['rl'])
 
-                f_v = f_v + act * step_size
-                f_x = f_x + f_v * step_size + 0.5 * act * step_size **2
+                        elif ego_decision == 1:
+                            step_feature = self.get_step_feature(
+                                                                veh_state['ego'],
+                                                                veh_state['f'],
+                                                                veh_state['r'])
 
-                feature = [episode_id, f_v]
-                feature.extend(leader_feature)
-                feature.extend(merger_feature)
-                feature.append(act)
-                xs.append(feature)
-                merger_a.append([episode_id, m_y, m_vlat])
-                ys.append([episode_id, 0 if f_att == 'merger' else 1, act])
+                    elif ego_end_decision == -1:
+                        # an episode ending with a lane change right
+                        if ego_decision == 0:
+                            step_feature = self.get_step_feature(
+                                                                veh_state['ego'],
+                                                                veh_state['fr'],
+                                                                veh_state['rr'])
 
-            info[episode_id] = driver
-            episode_id += 1
-    xs = np.array(xs)
-    # scale_data = False
-    scale_data = True
+                        elif ego_decision == -1:
+                            step_feature = self.get_step_feature(
+                                                                veh_state['ego'],
+                                                                veh_state['f'],
+                                                                veh_state['r'])
+                    elif ego_end_decision == 0:
+                        # an episode ending with lane keep
+                        step_feature = self.get_step_feature(
+                                                            veh_state['ego'],
+                                                            veh_state['f'],
+                                                            veh_state['r'])
 
-    if scale_data:
-        scaler =0.7 preprocessing.StandardScaler().fit(xs[:, 1:-2])
-        xs_scaled = xs.copy()
-        xs_scaled[:, 1:-2] = scaler.transform(xs[:, 1:-2]).tolist()
+                    if step_feature:
+                        step_feature[0:0] = episode_id, veh_id, elapsed_time, ego_decision
+                        feature_data_episode.append(step_feature)
+                    else:
+                        feature_data_episode = []
+                        break
 
-        return xs, xs_scaled, np.array(merger_a), np.array(ys), info, scaler
+                if len(feature_data_episode) > 50:
+                    # ensure enough steps are present within a given episode
+                    episode_id += 1
+                    feature_data.extend(feature_data_episode)
 
-    else:
-        return xs, xs, np.array(merger_a), np.array(ys), info, None
+        # return feature_data
+        return np.array(feature_data)
 
-def seqseq_sequence(training_states, h_len, f_len):
-    scaled_s, unscaled_s, merger_a, actions = training_states
-    scaled_s_h = [] # history, scaled
-    scaled_s_f = [] # future, scaled
-    unscaled_s_hf = [] # history and future, not scaled
-    merger_a_hf = []
-    ys_hf = [] # future, not scaled
-    episode_steps_n = len(scaled_s)
+    def fill_missing_values(self, feature_data):
+        """
+        Fill dummy values for the missing lead vehicle.
+        Note:
+        Different dummy values need to be fed to the IDM action function. Here goal
+        is to assign values to maintain close to gaussian data distributions. Later,
+        to ensure an IDM follower is not perturbed by the leader, different dummy values
+        will be assigned.
+        """
+        def fill_with_dummy(arr, indx, dummy_value):
+            indx += 4 # first n=4 items are episode_id, veh_id, elapsed_time, ego_decision
+            nan_mask = np.isnan(arr[:, indx])
+            nan_indx = np.where(nan_mask)
+            arr[nan_mask, indx] = dummy_value
+            return arr
 
-    scaled_s_seq = deque(maxlen=h_len)
-    unscaled_s_seq = deque(maxlen=h_len)
-    merge_a_seq = deque(maxlen=h_len)
-    ys_seq = deque(maxlen=h_len)
+        indx = self.indxs['speeds']['leader']
+        feature_data = fill_with_dummy(feature_data, indx, 25)
+        indx = self.indxs['actions']['leader']
+        feature_data = fill_with_dummy(feature_data, indx, 0)
+        indx_delta_v,  indx_delta_x = self.indxs['relatives']['follower_leader']
+        feature_data = fill_with_dummy(feature_data, indx_delta_v, 0)
+        feature_data = fill_with_dummy(feature_data, indx_delta_x, 50)
 
-    for i in range(episode_steps_n):
-        scaled_s_seq.append(scaled_s[i])
-        unscaled_s_seq.append(unscaled_s[i])
-        merge_a_seq.append(merger_a[i])
-        ys_seq.append(actions[i])
-        if len(scaled_s_seq) == h_len:
-            indx = i + f_len
-            if indx + 1 > episode_steps_n:
-                break
+        return feature_data
 
-            scaled_s_h.append(list(scaled_s_seq))
-            # scaled_s_h.append(np.array(scaled_s_seq))
-            scaled_s_f.append(scaled_s[i+1:indx+1])
-            unscaled_s_hf.append(list(unscaled_s_seq)+unscaled_s[i+1:indx+1])
-            merger_a_hf.append(list(merge_a_seq)+merger_a[i+1:indx+1])
-            ys_hf.append(list(ys_seq)+actions[i+1:indx+1])
+    #
+    #
+    # def sequence(self, feature_data):
+    #     """
+    #     Sequence the data into history/future sequences.
+    #     """
+    #     episode_ids = list(np.unique(feature_data[:, 0]))
+    #     for episode_id in episode_ids:
 
-    return scaled_s_h, scaled_s_f, unscaled_s_hf, merger_a_hf, ys_hf
+    def prep_data(self):
+        raw_recordings = self.run_sim()
+        feature_data = self.extract_features(raw_recordings)
+        feature_data = self.fill_missing_values(feature_data)
+        return feature_data
 
-def seq_sequence(training_states, h_len):
-    states_h, states_c, actions = training_states
-    scaled_s_h = []
-    xs_c = []
-    ys_c = []
-    episode_steps_n = len(states_h)
-    scaled_s_seq = deque(maxlen=h_len)
+    # def split_data(self):
+    #     """Spli
+    #     """
+    #     train_xs = []
+    #     train_ys = []
 
-    for i in range(episode_steps_n):
-        scaled_s_seq.append(states_h[i])
-        if len(scaled_s_seq) == h_len:
-            scaled_s_h.append(list(scaled_s_seq))
-            xs_c.append(states_c[i])
-            ys_c.append(actions[i])
 
-    return scaled_s_h, xs_c, ys_c
-
-def dnn_prep(training_samples_n):
-    _, xs_scaled, ys, _, scalar = data_generator()
-    return [xs_scaled[:training_samples_n,:], ys[:training_samples_n,:]]
-
-def seq_prep(h_len, training_samples_n):
-    xs, xs_scaled, ys, _, scaler = data_generator()
-
-    episode_ids = list(np.unique(xs[:, 0]))
-    seq_scaled_s_h = []
-    seq_xs_c = []
-    seq_ys_c = []
-    for episode_id in episode_ids:
-        if len(seq_scaled_s_h) >= training_samples_n:
-            break
-        xs_id = xs[xs[:,0]==episode_id].tolist()
-        xs_scaled_id = xs_scaled[xs_scaled[:,0]==episode_id].tolist()
-        ys_id = ys[ys[:,0]==episode_id].tolist()
-
-        scaled_s_h, xs_c, ys_c = seq_sequence([xs_scaled_id, xs_id, ys_id], h_len)
-        seq_scaled_s_h.extend(scaled_s_h)
-        seq_xs_c.extend(xs_c)
-        seq_ys_c.extend(ys_c)
-
-    return [np.array(seq_scaled_s_h), np.array(seq_xs_c), np.array(seq_ys_c)]
-
-def seqseq_prep(h_len, f_len, training_samples_n):
-    xs, xs_scaled, merger_a, ys, info, scaler = data_generator()
-    episode_ids = list(np.unique(xs[:, 0]))
-    seq_scaled_s_h = []
-    scaled_seq_xs_f = []
-    unscaled_seq_xs_f = []
-    seq_merger_a = []
-    seq_ys_f = []
-
-    for episode_id in episode_ids:
-        if len(seq_scaled_s_h) >= training_samples_n:
-            break
-        xs_id = xs[xs[:,0]==episode_id].tolist()
-        xs_scaled_id = xs_scaled[xs_scaled[:,0]==episode_id].tolist()
-        merger_a_id = merger_a[merger_a[:,0]==episode_id].tolist()
-        ys_id = ys[ys[:,0]==episode_id].tolist()
-        scaled_s_h, scaled_s_f, unscaled_s_f, merger_a_hf, ys_f = seqseq_sequence([xs_scaled_id, xs_id, merger_a_id, ys_id], h_len, f_len)
-        seq_scaled_s_h.extend(scaled_s_h)
-        scaled_seq_xs_f.extend(scaled_s_f)
-        unscaled_seq_xs_f.extend(unscaled_s_f)
-        seq_merger_a.extend(merger_a_hf)
-        seq_ys_f.extend(ys_f)
-
-    return [np.array(seq_scaled_s_h), np.array(scaled_seq_xs_f), np.array(unscaled_seq_xs_f), \
-                                np.array(seq_merger_a), np.array(seq_ys_f)], info, scaler
+    # def preprocess(self, raw_data):
+    #
+    #     xs, xs_scaled, merger_a, ys, info, scaler = data_generator()
+    #
+    #     episode_ids = list(np.unique(xs[:, 0]))
+    #     seq_scaled_s_h = []
+    #     scaled_seq_xs_f = []
+    #     unscaled_seq_xs_f = []
+    #     seq_merger_a = []
+    #     seq_ys_f = []
+    #
+    #     pass
+    #
+    # def save(self):
+    #     pass
