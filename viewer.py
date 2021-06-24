@@ -79,6 +79,7 @@ class Viewer():
                         # print('delta_x :', delta_x)
                 print('lane_id: ', vehicle.lane_id)
                 print('target_lane: ', vehicle.target_lane)
+                print('glob_x: ', vehicle.glob_x)
                 print('glob_y: ', vehicle.glob_y)
                 print('lane_y: ', vehicle.lane_y)
 
