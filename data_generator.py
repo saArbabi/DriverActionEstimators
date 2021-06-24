@@ -1,10 +1,12 @@
 import numpy as np
+from collections import deque
+from sklearn import preprocessing
 np.random.seed(2020)
 
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.data_frames_n = 2000 # number of data samples. Not all of it is useful.
+        self.data_frames_n = 500 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -209,20 +211,32 @@ class DataGenerator:
 
         return feature_data
 
-    #
-    #
-    # def sequence(self, feature_data):
-    #     """
-    #     Sequence the data into history/future sequences.
-    #     """
-    #     episode_ids = list(np.unique(feature_data[:, 0]))
-    #     for episode_id in episode_ids:
+    def sequence(self, feature_data, history_length, future_length):
+        """
+        Sequence the data into history/future sequences.
+        """
+        episode_ids = list(np.unique(feature_data[:, 0]))
+        history_seqs, future_seqs = [], []
+        for episode_id in episode_ids:
+            epis_data = feature_data[feature_data[:, 0] == episode_id]
+            history_seq = deque(maxlen=history_length)
+            for step in range(len(epis_data)):
+                history_seq.append(epis_data[step])
+                if len(history_seq) == history_length:
+                    future_indx = step + future_length
+                    if future_indx + 1 > len(epis_data):
+                        break
+
+                    history_seqs.append(list(history_seq))
+                    future_seqs.append(epis_data[step+1:future_indx+1])
+        return np.array(history_seqs), np.array(future_seqs)
 
     def prep_data(self):
         raw_recordings = self.run_sim()
         feature_data = self.extract_features(raw_recordings)
         feature_data = self.fill_missing_values(feature_data)
-        return feature_data
+        history_seqs, future_seqs = self.sequence(feature_data, 20, 20)
+        return history_seqs, future_seqs
 
     # def split_data(self):
     #     """Spli

@@ -33,14 +33,19 @@ data_config = {
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
-feature_data = data_gen.prep_data()
-feature_data.shape
+history_seqs, future_seqs = data_gen.prep_data()
 
+# %%
+future_seqs.shape
+history_seqs.shape
+history_seqs[0][-1]
+future_seqs[0][0]
 
 # %%
 
 
-
+plt.plot(history_seqs[100, :, 9])
+plt.plot(range(20, 40), future_seqs[100, :, 9])
 # %%
 index = 0
 index_name = {}
