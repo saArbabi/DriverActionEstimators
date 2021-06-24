@@ -1,8 +1,9 @@
 # from factory.viewer import Viewer
+from importlib import reload
 import copy
-import matplotlib.pyplot as plt
+import vehicle_handler
+reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
-# import matplotlib.pyplot as plt
 
 class Env:
     def __init__(self, config):

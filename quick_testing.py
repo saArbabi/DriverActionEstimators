@@ -11,6 +11,10 @@ import numpy as np
 import highway
 reload(highway)
 from highway import Env
+
+import vehicle_handler
+reload(vehicle_handler)
+
 from viewer import Viewer
 
 config = {'lanes_n':4,
@@ -45,6 +49,7 @@ np.count_nonzero(np.isnan(feature_data[:, :]))
 # %%
 sample_traj = feature_data[feature_data[:, 0] == 0]
 feature_data[feature_data[:, 0] == 0].shape
+plt.plot(sample_traj[:, 1])
 plt.plot(sample_traj[:, 5])
 plt.plot(sample_traj[:, 14])
 
