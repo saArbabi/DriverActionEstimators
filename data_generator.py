@@ -4,7 +4,7 @@ np.random.seed(2020)
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.data_frames_n = 1000 # number of data samples. Not all of it is useful.
+        self.data_frames_n = 2000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -112,8 +112,6 @@ class DataGenerator:
         feature_data = []
         episode_id = 0
         for veh_id in raw_recordings['info'].keys():
-            if veh_id != 12:
-                continue
             elapsed_times = np.array(raw_recordings['elapsed_time'][veh_id])
             ego_decisions = np.array(raw_recordings['decisions'][veh_id])
             veh_states = raw_recordings['states'][veh_id]
@@ -223,9 +221,7 @@ class DataGenerator:
     def prep_data(self):
         raw_recordings = self.run_sim()
         feature_data = self.extract_features(raw_recordings)
-        print(feature_data.shape)
-        # print(feature_data)
-        # feature_data = self.fill_missing_values(feature_data)
+        feature_data = self.fill_missing_values(feature_data)
         return feature_data
 
     # def split_data(self):

@@ -38,40 +38,28 @@ feature_data.shape
 
 
 # %%
-plt.plot(feature_data[:, 1])
-plt.plot(feature_data[:, -1])
-plt.plot(feature_data[:, 3])
-plt.plot(feature_data[:, 6])
-plt.plot(feature_data[:, 8])
-plt.plot(feature_data[:, 9])
-feature_data[feature_data[:, 0] == 0][:, ]
-lengths = [len(feature_data[i]) for i in range(241)]
-plt.plot(lengths)
 
 
 
 # %%
-feature_data[:, 4]
-feature_data[:, 4]
-#
-np.count_nonzero(np.isnan(feature_data[:, :]))
-# %%
-sample_traj = feature_data[feature_data[:, 0] == 0]
-feature_data[feature_data[:, 0] == 0].shape
-plt.plot(sample_traj[:, 3])
-plt.plot(sample_traj[:, -1])
-plt.plot(sample_traj[:, 5])
-plt.plot(sample_traj[:, 14])
+index = 0
+index_name = {}
+feature_data[:, 4] < 20
+names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
+         'leader_speed', 'follower_speed', 'merger_speed', \
+         'leader_action ', 'follower_action ', 'merger_action ', \
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+         'lane_y', 'leader_exists', 'follower_id']
+for item_name in names:
+    index_name[index] = item_name
+    index += 1
 
-plt.plot(sample_traj[:, -1])
-plt.plot(sample_traj[:, 7])
-plt.plot(sample_traj[:, 14])
-plt.plot(sample_traj[:, 8])
-plt.plot(sample_traj[:, 15])
 # %%
 columns_n = feature_data.shape[-1]
+
 for column in range(columns_n):
     plt.figure()
+    plt.title(names[column])
     _ = plt.hist(feature_data[:, column], bins=150)
 
 # %%
@@ -80,17 +68,3 @@ for column in range(columns_n):
                     'actions':{'leader':3, 'follower':4, 'merger':5},
                     'relatives':{'follower_leader':[6, 7], 'follower_merger':[8, 9]},
                     'lane_y':10, 'leader_exists':11}
-
-
-np.unique(feature_data[:, 0])
-np.unique(feature_data[:, 0])
-feature_data[:, -1].shape
-
-feature_data[0].shape
-feature_data[0]
-feature_data[0]
-feature_data[feature_data[:, 0]==0].shape
-feature_data[feature_data[:, 0]==5][:, -1]
-
-
-# %%
