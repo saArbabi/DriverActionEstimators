@@ -141,7 +141,7 @@ class IDMMOBILVehicle(Vehicle):
         act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
                                             (desired_gap/(delta_x+1e-5))**2)
 
-        return round(act_long, 2)
+        return act_long
 
     def check_reservations(self, target_lane, reservations):
         """To ensure:

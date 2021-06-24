@@ -27,6 +27,8 @@ class Env:
         - model training
         - perfromance validations # TODO
         """
+        if self.usage != 'data generation':
+            return
         if ego.glob_x < 100:
             return
         if ego.lane_decision == 'keep_lane':
@@ -42,7 +44,7 @@ class Env:
         for key, neighbour in neighbours.items():
             if neighbour:
                 act_long, _ = neighbour.actions
-                state[key] = [neighbour.speed, neighbour.glob_x, act_long]
+                state[key] = [neighbour.speed, neighbour.glob_x, act_long, neighbour.id]
             else:
                 state[key] = None
 
@@ -66,14 +68,13 @@ class Env:
         joint_action = []
         for vehicle in self.vehicles:
             neighbours = self.handler.my_neighbours(vehicle, self.vehicles)
+            self.recorder(vehicle, neighbours)
             actions = vehicle.act(neighbours, self.handler.reservations)
             vehicle.neighbours = neighbours
             vehicle.actions = actions
 
             joint_action.append(actions)
             self.handler.update_reservations(vehicle)
-            if self.usage == 'data generation':
-                self.recorder(vehicle, neighbours)
 
         return joint_action
 

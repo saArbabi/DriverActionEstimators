@@ -4,7 +4,7 @@ np.random.seed(2020)
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.data_frames_n = 500 # number of data samples. Not all of it is useful.
+        self.data_frames_n = 1000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -41,12 +41,12 @@ class DataGenerator:
         step_feature = []
 
         if follower_s:
-            follower_speed, follower_glob_x, follower_act_long = follower_s
+            follower_speed, follower_glob_x, follower_act_long, follower_id = follower_s
         else:
             return
 
         if leader_s:
-            leader_speed, leader_glob_x, leader_act_long = leader_s
+            leader_speed, leader_glob_x, leader_act_long, _ = leader_s
             if leader_glob_x-follower_glob_x < 100:
                 leader_exists = 1
             else:
@@ -57,7 +57,7 @@ class DataGenerator:
             leader_exists = 0
 
         merger_speed, merger_glob_x, merger_act_long, \
-                                    merger_act_lat, ego_lane_y = merger_s
+                                merger_act_lat, ego_lane_y = merger_s
 
 
         step_feature = [leader_speed, follower_speed, merger_speed, \
@@ -75,8 +75,9 @@ class DataGenerator:
                              merger_glob_x-follower_glob_x
                              ])
 
-        step_feature.extend([ego_lane_y, leader_exists])
-        return self.round_scalars(step_feature)
+        step_feature.extend([ego_lane_y, leader_exists, follower_id])
+        # return self.round_scalars(step_feature)
+        return step_feature
 
     def get_split_indxs(self, ego_decisions):
         """
@@ -96,8 +97,13 @@ class DataGenerator:
             for indx in decision_indxs:
                 ego_end_decision = ego_decisions[indx]
                 if ego_end_decision == 1 or ego_end_decision == -1:
-                    split_indxs.append(indx+1)
-        return [0] + split_indxs
+                    if split_indxs:
+                        start_snip = end_snip+1
+                    else:
+                        start_snip = 0
+                    end_snip = indx
+                    split_indxs.append([start_snip, end_snip])
+        return split_indxs
 
     def extract_features(self, raw_recordings):
         """
@@ -106,6 +112,8 @@ class DataGenerator:
         feature_data = []
         episode_id = 0
         for veh_id in raw_recordings['info'].keys():
+            if veh_id != 12:
+                continue
             elapsed_times = np.array(raw_recordings['elapsed_time'][veh_id])
             ego_decisions = np.array(raw_recordings['decisions'][veh_id])
             veh_states = raw_recordings['states'][veh_id]
@@ -114,14 +122,13 @@ class DataGenerator:
                 # not a single lane change
                 continue
 
-            for i in range(len(split_indxs)-1):
+            for split_indx in split_indxs:
                 # each split forms an episode
-                start_snip = split_indxs[i]
-                end_snip = split_indxs[i+1]
+                start_snip, end_snip = split_indx
                 ego_end_decision = ego_decisions[end_snip]
                 feature_data_episode = []
 
-                for _step in range(start_snip, end_snip):
+                for _step in range(start_snip, end_snip+1):
                     ego_decision = ego_decisions[_step]
                     elapsed_time = elapsed_times[_step]
                     veh_state = veh_states[_step]
@@ -143,12 +150,14 @@ class DataGenerator:
                     elif ego_end_decision == -1:
                         # an episode ending with a lane change right
                         if ego_decision == 0:
+                            # print(ego_decision)
                             step_feature = self.get_step_feature(
                                                                 veh_state['ego'],
                                                                 veh_state['fr'],
                                                                 veh_state['rr'])
 
                         elif ego_decision == -1:
+                            # print(ego_decision)
                             step_feature = self.get_step_feature(
                                                                 veh_state['ego'],
                                                                 veh_state['f'],
@@ -214,7 +223,9 @@ class DataGenerator:
     def prep_data(self):
         raw_recordings = self.run_sim()
         feature_data = self.extract_features(raw_recordings)
-        feature_data = self.fill_missing_values(feature_data)
+        print(feature_data.shape)
+        # print(feature_data)
+        # feature_data = self.fill_missing_values(feature_data)
         return feature_data
 
     # def split_data(self):

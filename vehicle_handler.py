@@ -1,4 +1,8 @@
+from importlib import reload
+import idmmobil_vehicle
+reload(idmmobil_vehicle)
 from idmmobil_vehicle import IDMMOBILVehicle
+
 import numpy as np
 np.random.seed(2020)
 
