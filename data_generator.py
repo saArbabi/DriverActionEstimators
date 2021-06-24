@@ -1,9 +1,10 @@
-
+import numpy as np
+np.random.seed(2020)
 
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.data_frames_n = 10000 # number of data samples. Not all of it is useful.
+        self.data_frames_n = 500 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -183,20 +184,21 @@ class DataGenerator:
         to ensure an IDM follower is not perturbed by the leader, different dummy values
         will be assigned.
         """
-        def fill_with_dummy(arr, indx, dummy_value):
+        def fill_with_dummy(arr, indx):
             indx += 4 # first n=4 items are episode_id, veh_id, elapsed_time, ego_decision
+            dummy_value = arr[~np.isnan(arr).any(axis=1)][:, indx].mean()
             nan_mask = np.isnan(arr[:, indx])
             nan_indx = np.where(nan_mask)
-            arr[nan_mask, indx] = dummy_value
+            arr[nan_indx, indx] = dummy_value
             return arr
 
         indx = self.indxs['speeds']['leader']
-        feature_data = fill_with_dummy(feature_data, indx, 25)
+        feature_data = fill_with_dummy(feature_data, indx)
         indx = self.indxs['actions']['leader']
-        feature_data = fill_with_dummy(feature_data, indx, 0)
+        feature_data = fill_with_dummy(feature_data, indx)
         indx_delta_v,  indx_delta_x = self.indxs['relatives']['follower_leader']
-        feature_data = fill_with_dummy(feature_data, indx_delta_v, 0)
-        feature_data = fill_with_dummy(feature_data, indx_delta_x, 50)
+        feature_data = fill_with_dummy(feature_data, indx_delta_v)
+        feature_data = fill_with_dummy(feature_data, indx_delta_x)
 
         return feature_data
 

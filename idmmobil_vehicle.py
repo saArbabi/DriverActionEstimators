@@ -154,7 +154,7 @@ class IDMMOBILVehicle(Vehicle):
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
-                if (target_lane == reserved_lane or self.lane_id == reserved_lane) \
+                if (target_lane == reserved_lane or self.lane_id == reserved_lane)\
                                     and min_glob_x < self.glob_x < max_glob_x:
 
                     return False

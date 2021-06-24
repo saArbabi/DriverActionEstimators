@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(20, 6))
-        self.env_ax = self.fig.add_subplot(211)
+        self.fig = plt.figure(figsize=(15, 2))
+        self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         # self.att_ax = self.fig.add_subplot(212)
         # self.model_type = model_type
@@ -86,17 +86,18 @@ class Viewer():
             if 'f' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['f']
                 if neighbour:
-                    line_1 = [vehicle.glob_y, neighbour.glob_y+.5]
-                    line_2 = [vehicle.glob_y, neighbour.glob_y-.5]
+                    line_1 = [vehicle.glob_y, neighbour.glob_y+.6]
+                    line_2 = [vehicle.glob_y, neighbour.glob_y-.6]
                     ax.fill_between([vehicle.glob_x, neighbour.glob_x+1], \
-                                        line_1, line_2, alpha=0.4, color='grey')
+                                        line_1, line_2, alpha=0.3, color='grey')
+
 
             if vehicle.lane_decision == 'move_left':
-                ax.scatter(vehicle.glob_x-7, vehicle.glob_y+self.config['lane_width']/2,
-                                                    s=50, marker="*", color='red', edgecolors='black')
+                ax.scatter(vehicle.glob_x-7, vehicle.glob_y+.7,
+                                s=50, marker="*", color='red', edgecolors='black')
             elif vehicle.lane_decision == 'move_right':
-                ax.scatter(vehicle.glob_x-7, vehicle.glob_y-self.config['lane_width']/2,
-                                                    s=50, marker="*", color='red', edgecolors='black')
+                ax.scatter(vehicle.glob_x-7, vehicle.glob_y-.7,
+                                s=50, marker="*", color='red', edgecolors='black')
 
 
         color_shade = [veh.driver_params['aggressiveness'] for veh in vehicles]

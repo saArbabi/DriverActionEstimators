@@ -67,10 +67,13 @@ class Env:
             neighbours = self.handler.my_neighbours(vehicle, self.vehicles)
             actions = vehicle.act(neighbours, self.handler.reservations)
             vehicle.neighbours = neighbours
+            vehicle.actions = actions
+
             joint_action.append(actions)
             self.handler.update_reservations(vehicle)
             if self.usage == 'data generation':
                 self.recorder(vehicle, neighbours)
+
         return joint_action
 
     def step(self, actions=None):
