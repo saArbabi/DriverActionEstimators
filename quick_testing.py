@@ -82,8 +82,5 @@ for column in range(columns_n):
     _ = plt.hist(future_idm_s[:, 0, column], bins=150)
 
 # %%
-        self.indxs = {
-                    'speeds':{'leader':0, 'follower':1, 'merger':2},
-                    'actions':{'leader':3, 'follower':4, 'merger':5},
-                    'relatives':{'follower_leader':[6, 7], 'follower_merger':[8, 9]},
-                    'lane_y':10, 'leader_exists':11}
+
+# %%
