@@ -44,7 +44,9 @@ class Env:
         for key, neighbour in neighbours.items():
             if neighbour:
                 act_long, _ = neighbour.actions
-                state[key] = [neighbour.speed, neighbour.glob_x, act_long, neighbour.id]
+                aggressiveness = neighbour.driver_params['aggressiveness']
+                state[key] = [neighbour.speed, neighbour.glob_x, act_long, \
+                              aggressiveness, neighbour.id]
             else:
                 state[key] = None
 

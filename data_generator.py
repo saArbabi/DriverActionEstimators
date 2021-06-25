@@ -18,7 +18,7 @@ class DataGenerator:
                  'leader_speed', 'follower_speed', 'merger_speed', \
                  'leader_action', 'follower_action', 'merger_action', \
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-                 'lane_y', 'leader_exists', 'follower_id']
+                 'lane_y', 'leader_exists', 'aggressiveness', 'follower_id']
 
         index = 0
         for item_name in all_col_names:
@@ -48,12 +48,13 @@ class DataGenerator:
         step_feature = []
 
         if follower_s:
-            follower_speed, follower_glob_x, follower_act_long, follower_id = follower_s
+            follower_speed, follower_glob_x, follower_act_long, \
+                        aggressiveness, follower_id = follower_s
         else:
             return
 
         if leader_s:
-            leader_speed, leader_glob_x, leader_act_long, _ = leader_s
+            leader_speed, leader_glob_x, leader_act_long, _, _ = leader_s
             if leader_glob_x-follower_glob_x < 100:
                 leader_exists = 1
             else:
@@ -82,7 +83,7 @@ class DataGenerator:
                              merger_glob_x-follower_glob_x
                              ])
 
-        step_feature.extend([ego_lane_y, leader_exists, follower_id])
+        step_feature.extend([ego_lane_y, leader_exists, aggressiveness, follower_id])
         # return self.round_scalars(step_feature)
         return step_feature
 
@@ -245,21 +246,29 @@ class DataGenerator:
                  'lane_y', 'leader_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
-        # future and histroy states - fed to LSTMs
+
+        #  history+future info for debugging/ visualisation
+        col_names = ['episode_id', 'ego_decision', 'follower_action', \
+                     'merger_action', 'lane_y', 'aggressiveness']
+        history_usc = history_seqs[:, :, self.names_to_index(col_names)]
+        future_usc = future_seqs[:, :, self.names_to_index(col_names)]
+        history_future_usc = np.append(history_usc, future_usc, axis=1)
 
         # future states - fed to idm_layer
         col_names = ['episode_id', 'follower_speed',
                         'fl_delta_v', 'fl_delta_x',
                         'fm_delta_v', 'fm_delta_x']
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
+
         # future action of merger - fed to LSTMs
-        col_names = ['episode_id', 'merger_action', 'lane_y', 'ego_decision']
+        col_names = ['episode_id', 'merger_action', 'lane_y']
         future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
+
         # future action of follower - used as target
         col_names = ['episode_id', 'follower_action']
         future_follower_a = future_seqs[:, :, self.names_to_index(col_names)]
 
-        data_arrays = [history_sca, future_sca, future_idm_s, \
+        data_arrays = [history_future_usc, history_sca, future_sca, future_idm_s, \
                         future_merger_a, future_follower_a]
 
         return data_arrays

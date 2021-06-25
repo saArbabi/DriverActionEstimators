@@ -58,53 +58,34 @@ class IDMMOBILVehicle(Vehicle):
     def set_idm_params(self, aggressiveness):
         if aggressiveness == None:
             raise ValueError('No aggressiveness specified!')
-        #
-        # Parameter_range = {'most_aggressive': {
-        #                                 'desired_v':30, # m/s
-        #                                 'desired_tgap':1, # s
-        #                                 'min_jamx':0, # m
-        #                                 'max_act':2, # m/s^2
-        #                                 'min_act':3, # m/s^2
-        #                                 'politeness':0,
-        #                                 'safe_braking':-3,
-        #                                 'act_threshold':0
-        #                                 },
-        #                  'least_aggressvie': {
-        #                                 'desired_v':19.4, # m/s
-        #                                 'desired_tgap':2, # s
-        #                                 'min_jamx':4, # m
-        #                                 'max_act':0.8, # m/s^2
-        #                                 'min_act':1, # m/s^2
-        #                                 'politeness':1,
-        #                                 'safe_braking':-1,
-        #                                 'act_threshold':0.2
-        #                                  }}
+
         Parameter_range = {'most_aggressive': {
-                                        'desired_v':25, # m/s
-                                        'desired_tgap':1.5, # s
-                                        'min_jamx':2, # m
-                                        'max_act':1.4, # m/s^2
-                                        'min_act':2, # m/s^2
+                                        'desired_v':30, # m/s
+                                        'desired_tgap':1, # s
+                                        'min_jamx':0, # m
+                                        'max_act':2, # m/s^2
+                                        'min_act':3, # m/s^2
                                         'politeness':0,
                                         'safe_braking':-3,
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':25, # m/s
-                                        'desired_tgap':1.5, # s
-                                        'min_jamx':2, # m
-                                        'max_act':1.4, # m/s^2
-                                        'min_act':2, # m/s^2
-                                        'politeness':0,
-                                        'safe_braking':-3,
-                                        'act_threshold':0
+                                        'desired_v':19.4, # m/s
+                                        'desired_tgap':2, # s
+                                        'min_jamx':4, # m
+                                        'max_act':0.8, # m/s^2
+                                        'min_act':1, # m/s^2
+                                        'politeness':1,
+                                        'safe_braking':-1,
+                                        'act_threshold':0.2
                                          }}
+
 
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
 
         # IDM params
-        self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v') + np.random.normal(0, 1)
+        self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
         self.driver_params['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_idm_param(Parameter_range, 'max_act')

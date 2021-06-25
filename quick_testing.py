@@ -25,7 +25,6 @@ config = {'lanes_n':4,
 env = Env(config)
 # viewer = Viewer(config)
 
-
 data_config = {
                 'future_scaeq_length':20,
                 'history_scaeq_length':20,
@@ -34,10 +33,17 @@ data_config = {
                 }
 data_gen = DataGenerator(env, data_config)
 data_arrays, info = data_gen.prep_data()
-future_sca, history_sca, future_idm_s, future_merger_a, future_follower_a = data_arrays
-history_sca.shape
-info
+history_future_usc, future_sca, history_sca, future_idm_s, \
+                future_merger_a, future_follower_a = data_arrays
+
 # %%
+history_future_usc.shape
+history_future_usc[0]
+plt.plot(history_future_usc[2000, :, 1])
+_ = plt.hist(history_future_usc[:, -1, -2], bins=150)
+
+
+
 future_merger_a.shape
 history_scaeqs[0][-1]
 future_scaeqs[0][0]
@@ -68,8 +74,9 @@ for item_name in names:
     index += 1
 
 # %%
-
-
+a = np.ones([10, 4, 17])
+b = np.ones([10, 4, 17])*2
+np.append(a, b, axis=1).shape
 keep_these = ['episode_id', 'future_merger_aion', 'lane_y']
 # %%
 columns_n = future_sca.shape[-1]
@@ -117,7 +124,7 @@ class Trainer():
         train_sample_index = int(len(training_data[0])*0.8)
         self.model.epochs_n = epochs
 
-        history_sca, future_sca, future_idm_s,\
+        _, history_sca, future_sca, future_idm_s,\
                 future_merger_a, future_follower_a = training_data
 
 
@@ -177,7 +184,8 @@ plt.title('KL')
 
 # %%
 np.random.seed(2020)
-history_sca, future_sca, future_idm_s, future_merger_a, future_follower_a = data_arrays
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                                future_merger_a, future_follower_a = data_arrays
 train_sample_index = int(len(history_sca)*0.8)
 val_examples = range(train_sample_index, len(history_sca))
 
@@ -190,19 +198,16 @@ timid_drivers = []
 normal_drivers = []
 aggressive_drivers = []
 for sample_index in val_examples:
-    epis = history_sca[sample_index, 0, 0]
-    if info[epis]['aggressiveness'] == 0:
+    if history_future_usc[sample_index, -1, -1] == 0:
        timid_drivers.append(sample_index)
-    elif info[epis]['aggressiveness'] == 0.5:
+    elif history_future_usc[sample_index, -1, -1] == 0.5:
        normal_drivers.append(sample_index)
-    elif info[epis]['aggressiveness'] == 1:
+    elif history_future_usc[sample_index, -1, -1] == 1:
        aggressive_drivers.append(sample_index)
 history_sca.shape
 len(timid_drivers)
 len(normal_drivers)
 len(aggressive_drivers)
-
-
 # %%
 def latent_samples(model_trainer, sample_index):
     sdv_actions = future_merger_a[sample_index, :, 1:]
