@@ -35,9 +35,10 @@ data_config = {
 data_gen = DataGenerator(env, data_config)
 data_arrays = data_gen.prep_data()
 future_s, history_s, future_idm_s, future_merger_a, future_follower_a = data_arrays
+history_s.shape
+
 # %%
 future_merger_a.shape
-history_s.shape
 history_seqs[0][-1]
 future_seqs[0][0]
 
@@ -69,7 +70,6 @@ keep_these = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
 a = [index_name[item] for item in keep_these]
 
 keep_these = ['episode_id', 'merger_action', 'lane_y']
-
 # %%
 columns_n = future_s.shape[-1]
 future_s.shape

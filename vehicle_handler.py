@@ -23,7 +23,7 @@ class VehicleHandler:
         glob_x = np.random.uniform(-30, 0)
         # aggressiveness = np.random.uniform(0, 1)
         aggressiveness = np.random.choice([0, 0.5, 1])
-        speed = aggressiveness*10 + 20
+        speed = aggressiveness*10 + 20 + np.random.normal(0, 1)
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
@@ -44,16 +44,17 @@ class VehicleHandler:
             # print(last_entries[lane_id].glob_x)
             if not queuing_entries[lane_id]:
                 queuing_entries[lane_id] = self.create_vehicle(lane_id)
-            else:
-                leader = last_entries[lane_id]
-                follower = queuing_entries[lane_id]
-                act_long = follower.idm_actions(follower.observe(follower, leader))
-                delta_x = leader.glob_x - follower.glob_x
-                if act_long > -.5 and delta_x > 5:
-                    # check if cars are not too close
-                    new_entries.append(queuing_entries[lane_id])
-                    last_entries[lane_id] = queuing_entries[lane_id]
-                    queuing_entries[lane_id] = None
+
+            leader = last_entries[lane_id]
+            follower = queuing_entries[lane_id]
+            delta_x = leader.glob_x - follower.glob_x
+            # coin_flip = np.random.random()
+            if delta_x > 70:
+                # check if cars are not too close
+                new_entries.append(queuing_entries[lane_id])
+                last_entries[lane_id] = queuing_entries[lane_id]
+                queuing_entries[lane_id] = None
+
         return new_entries
 
     def my_neighbours(self, ego, vehicles):
