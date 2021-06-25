@@ -6,7 +6,7 @@ np.random.seed(2020)
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.data_frames_n = 500 # number of data samples. Not all of it is useful.
+        self.data_frames_n = 1000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -230,44 +230,55 @@ class DataGenerator:
 
                     history_seqs.append(list(history_seq))
                     future_seqs.append(epis_data[step+1:future_indx+1])
-        return np.array(history_seqs), np.array(future_seqs)
+        return [np.array(history_seqs), np.array(future_seqs)]
 
-    def names_to_index(self, keep_these):
-        return [self.indxs[item] for item in keep_these]
+    def names_to_index(self, col_names ):
+        return [self.indxs[item] for item in col_names ]
 
-    def split_data(self, history_seqs, future_seqs):
+    def split_data(self, history_future_seqs_scaled, future_seqs):
+        history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
-        keep_these = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
+        col_names = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
                  'leader_action', 'follower_action', 'merger_action', \
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-                 'lane_y', 'leader_exists', 'follower_id']
-        future_s = future_seqs[:, :, self.names_to_index(keep_these)]
-        history_s = history_seqs[:, :, self.names_to_index(keep_these)]
+                 'lane_y', 'leader_exists']
+        future_s = future_seqs_scaled[:, :, self.names_to_index(col_names)]
+        history_s = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         # future states - fed to idm_layer
-        keep_these = ['episode_id', 'follower_speed',
+        col_names = ['episode_id', 'follower_speed',
                         'fl_delta_v', 'fl_delta_x',
                         'fm_delta_v', 'fm_delta_x']
-        future_idm_s = future_seqs[:, :, self.names_to_index(keep_these)]
+        future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
         # future action of merger - fed to LSTMs
-        keep_these = ['episode_id', 'merger_action', 'lane_y']
-        future_merger_a = future_seqs[:, :, self.names_to_index(keep_these)]
+        col_names = ['episode_id', 'merger_action', 'lane_y']
+        future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
         # future action of follower - used as target
-        keep_these = ['episode_id', 'follower_action']
-        future_follower_a = future_seqs[:, :, self.names_to_index(keep_these)]
+        col_names = ['episode_id', 'follower_action']
+        future_follower_a = future_seqs[:, :, self.names_to_index(col_names)]
 
         data_arrays = [future_s, history_s, future_idm_s, \
                         future_merger_a, future_follower_a]
 
         return data_arrays
 
-    def scale_date(self, feature_data):
+    def scale_data(self, feature_data):
+        col_names = ['leader_speed', 'follower_speed', 'merger_speed', \
+                 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
+
+        scalar_indexs = self.names_to_index(col_names)
+        scaler = preprocessing.StandardScaler().fit(feature_data[:, scalar_indexs])
+        feature_data_scaled = feature_data.copy()
+        feature_data_scaled[:, scalar_indexs] = scaler.transform(feature_data[:, scalar_indexs])
+        return feature_data_scaled
 
     def prep_data(self):
         raw_recordings = self.run_sim()
         feature_data = self.extract_features(raw_recordings)
         feature_data = self.fill_missing_values(feature_data)
-        history_seqs, future_seqs = self.sequence(feature_data, 20, 20)
-        data_arrays = self.split_data(history_seqs, future_seqs)
+        feature_data_scaled = self.scale_data(feature_data)
+        _, future_seqs = self.sequence(feature_data, 20, 20)
+        history_future_seqs_scaled = self.sequence(feature_data_scaled, 20, 20)
+        data_arrays = self.split_data(history_future_seqs_scaled, future_seqs)
         return data_arrays
 
     # def save(self):
