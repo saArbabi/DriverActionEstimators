@@ -23,7 +23,7 @@ config = {'lanes_n':4,
         }
 
 env = Env(config)
-viewer = Viewer(config)
+# viewer = Viewer(config)
 
 
 data_config = {
@@ -33,31 +33,42 @@ data_config = {
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
-history_seqs, future_seqs = data_gen.prep_data()
-
+data_arrays = data_gen.prep_data()
+future_s, history_s, future_idm_s, future_merger_a, future_follower_a = data_arrays
 # %%
-future_seqs.shape
-history_seqs.shape
+future_merger_a.shape
+history_s.shape
 history_seqs[0][-1]
 future_seqs[0][0]
 
 # %%
 
 
-plt.plot(history_seqs[100, :, 9])
-plt.plot(range(20, 40), future_seqs[100, :, 9])
+plt.plot(history_s[100, :, 6])
+plt.plot(range(20, 40), future_s[100, :, 6])
 # %%
 index = 0
 index_name = {}
 feature_data[:, 4] < 20
 names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
          'leader_speed', 'follower_speed', 'merger_speed', \
-         'leader_action ', 'follower_action ', 'merger_action ', \
+         'leader_action', 'follower_action', 'merger_action', \
          'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
          'lane_y', 'leader_exists', 'follower_id']
 for item_name in names:
-    index_name[index] = item_name
+    index_name[item_name] = index
     index += 1
+
+# %%
+keep_these = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
+         'leader_action', 'follower_action', 'merger_action', \
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+         'lane_y', 'leader_exists', 'follower_id']
+
+
+a = [index_name[item] for item in keep_these]
+
+keep_these = ['episode_id', 'merger_action', 'lane_y']
 
 # %%
 columns_n = feature_data.shape[-1]

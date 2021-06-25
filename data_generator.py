@@ -13,12 +13,17 @@ class DataGenerator:
     def initiate(self):
         self.env.usage = 'data generation'
         self.env.recordings = {'info':{}, 'elapsed_time':{}, 'decisions':{}, 'states':{}}
-        self.indxs = {
-                    'speeds':{'leader':0, 'follower':1, 'merger':2},
-                    'actions':{'leader':3, 'follower':4, 'merger':5},
-                    'relatives':{'follower_leader':[6, 7], 'follower_merger':[8, 9]},
-                    'lane_y':10, 'leader_exists':11}
+        self.indxs = {}
+        all_col_names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
+                 'leader_speed', 'follower_speed', 'merger_speed', \
+                 'leader_action', 'follower_action', 'merger_action', \
+                 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+                 'lane_y', 'leader_exists', 'follower_id']
 
+        index = 0
+        for item_name in all_col_names:
+            self.indxs[item_name] = index
+            index += 1
 
     def run_sim(self):
         for step in range(self.data_frames_n):
@@ -194,20 +199,16 @@ class DataGenerator:
         will be assigned.
         """
         def fill_with_dummy(arr, indx):
-            indx += 4 # first n=4 items are episode_id, veh_id, elapsed_time, ego_decision
             dummy_value = arr[~np.isnan(arr).any(axis=1)][:, indx].mean()
             nan_mask = np.isnan(arr[:, indx])
             nan_indx = np.where(nan_mask)
             arr[nan_indx, indx] = dummy_value
             return arr
 
-        indx = self.indxs['speeds']['leader']
-        feature_data = fill_with_dummy(feature_data, indx)
-        indx = self.indxs['actions']['leader']
-        feature_data = fill_with_dummy(feature_data, indx)
-        indx_delta_v,  indx_delta_x = self.indxs['relatives']['follower_leader']
-        feature_data = fill_with_dummy(feature_data, indx_delta_v)
-        feature_data = fill_with_dummy(feature_data, indx_delta_x)
+        feature_data = fill_with_dummy(feature_data, self.indxs['leader_speed'])
+        feature_data = fill_with_dummy(feature_data, self.indxs['leader_action'])
+        feature_data = fill_with_dummy(feature_data, self.indxs['fl_delta_v'])
+        feature_data = fill_with_dummy(feature_data, self.indxs['fl_delta_x'])
 
         return feature_data
 
@@ -231,32 +232,43 @@ class DataGenerator:
                     future_seqs.append(epis_data[step+1:future_indx+1])
         return np.array(history_seqs), np.array(future_seqs)
 
+    def names_to_index(self, keep_these):
+        return [self.indxs[item] for item in keep_these]
+
+    def split_data(self, history_seqs, future_seqs):
+        # future and histroy states - fed to LSTMs
+        keep_these = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
+                 'leader_action', 'follower_action', 'merger_action', \
+                 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+                 'lane_y', 'leader_exists', 'follower_id']
+        future_s = future_seqs[:, :, self.names_to_index(keep_these)]
+        history_s = history_seqs[:, :, self.names_to_index(keep_these)]
+        # future states - fed to idm_layer
+        keep_these = ['episode_id', 'follower_speed',
+                        'fl_delta_v', 'fl_delta_x',
+                        'fm_delta_v', 'fm_delta_x']
+        future_idm_s = future_seqs[:, :, self.names_to_index(keep_these)]
+        # future action of merger - fed to LSTMs
+        keep_these = ['episode_id', 'merger_action', 'lane_y']
+        future_merger_a = future_seqs[:, :, self.names_to_index(keep_these)]
+        # future action of follower - used as target
+        keep_these = ['episode_id', 'follower_action']
+        future_follower_a = future_seqs[:, :, self.names_to_index(keep_these)]
+
+        data_arrays = [future_s, history_s, future_idm_s, \
+                        future_merger_a, future_follower_a]
+
+        return data_arrays
+
+    def scale_date(self, feature_data):
+
     def prep_data(self):
         raw_recordings = self.run_sim()
         feature_data = self.extract_features(raw_recordings)
         feature_data = self.fill_missing_values(feature_data)
         history_seqs, future_seqs = self.sequence(feature_data, 20, 20)
-        return history_seqs, future_seqs
+        data_arrays = self.split_data(history_seqs, future_seqs)
+        return data_arrays
 
-    # def split_data(self):
-    #     """Spli
-    #     """
-    #     train_xs = []
-    #     train_ys = []
-
-
-    # def preprocess(self, raw_data):
-    #
-    #     xs, xs_scaled, merger_a, ys, info, scaler = data_generator()
-    #
-    #     episode_ids = list(np.unique(xs[:, 0]))
-    #     seq_scaled_s_h = []
-    #     scaled_seq_xs_f = []
-    #     unscaled_seq_xs_f = []
-    #     seq_merger_a = []
-    #     seq_ys_f = []
-    #
-    #     pass
-    #
     # def save(self):
     #     pass
