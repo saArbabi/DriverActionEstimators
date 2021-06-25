@@ -184,7 +184,7 @@ class Trainer():
             from models.core import driver_model
             reload(driver_model)
             from models.core.driver_model import  NeurIDMModel
-            self.model = NeurIDMModel(config, model_use='training')
+            self.model = NeurIDMModel(config)
 
     def train(self, training_data, epochs):
         train_sample_index = int(len(training_data[0])*0.8)
@@ -284,7 +284,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.9
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
