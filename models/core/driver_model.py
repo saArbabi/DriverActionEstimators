@@ -9,7 +9,6 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 tf.random.set_seed(1234)
 
-
 class NeurIDMModel(AbstractModel):
     def __init__(self, config=None):
         super(NeurIDMModel, self).__init__(config)
@@ -82,7 +81,6 @@ class NeurIDMModel(AbstractModel):
         return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
-        # inputs: [xs_h, scaled_xs_f, unscaled_xs_f, merger_xas]
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_acts = self.act_encoder(inputs[-1])
         batch_size = tf.shape(inputs[0])[0]
@@ -235,6 +233,8 @@ class IDMForwardSim(tf.keras.Model):
         desired_gap = min_jamx + desired_tgap*vel+(vel*dv)/ \
                                         (2*tf.sqrt(max_act*min_act))
 
+        desired_gap = tf.clip_by_value(desired_gap, clip_value_min=0, \
+                                                clip_value_max=desired_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
         return self.action_clip(act)
@@ -244,18 +244,18 @@ class IDMForwardSim(tf.keras.Model):
         return tf.clip_by_value(action, clip_value_min=-3.5, clip_value_max=3.5)
 
     def rollout(self, inputs):
-        att_scores, idm_params, unscaled_s = inputs
-        batch_size = tf.shape(unscaled_s)[0]
+        att_scores, idm_params, idm_s = inputs
+        batch_size = tf.shape(idm_s)[0]
 
         # get idm actions
-        vel = tf.slice(unscaled_s, [0, 0, 0], [batch_size, 20, 1])
+        vel = idm_s[:, :, 0:1]
 
-        dv = tf.slice(unscaled_s, [0, 0, 2], [batch_size, 20, 1])
-        dx = tf.slice(unscaled_s, [0, 0, 3], [batch_size, 20, 1])
+        dv = idm_s[:, :, 1:2]
+        dx = idm_s[:, :, 2:3]
         fl_act = self.idm_driver(vel, dv, dx, idm_params)
 
-        dv = tf.slice(unscaled_s, [0, 0, 5], [batch_size, 20, 1])
-        dx = tf.slice(unscaled_s, [0, 0, 6], [batch_size, 20, 1])
+        dv = idm_s[:, :, 3:4]
+        dx = idm_s[:, :, 4:5]
         fm_act = self.idm_driver(vel, dv, dx, idm_params)
 
         att_scores = tf.reshape(att_scores, [batch_size, 20, 1])

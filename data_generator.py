@@ -235,28 +235,31 @@ class DataGenerator:
     def names_to_index(self, col_names ):
         return [self.indxs[item] for item in col_names ]
 
-    def split_data(self, history_future_seqs_scaled, future_seqs):
+    def split_data(self, history_future_seqs_seqs, history_future_seqs_scaled):
+        history_seqs, future_seqs = history_future_seqs_seqs
         history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
         col_names = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
                  'leader_action', 'follower_action', 'merger_action', \
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
                  'lane_y', 'leader_exists']
-        future_s = future_seqs_scaled[:, :, self.names_to_index(col_names)]
-        history_s = history_seqs_scaled[:, :, self.names_to_index(col_names)]
+        history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
+        future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
+        # future and histroy states - fed to LSTMs
+
         # future states - fed to idm_layer
         col_names = ['episode_id', 'follower_speed',
                         'fl_delta_v', 'fl_delta_x',
                         'fm_delta_v', 'fm_delta_x']
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
         # future action of merger - fed to LSTMs
-        col_names = ['episode_id', 'merger_action', 'lane_y']
+        col_names = ['episode_id', 'merger_action', 'lane_y', 'ego_decision']
         future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
         # future action of follower - used as target
         col_names = ['episode_id', 'follower_action']
         future_follower_a = future_seqs[:, :, self.names_to_index(col_names)]
 
-        data_arrays = [future_s, history_s, future_idm_s, \
+        data_arrays = [history_sca, future_sca, future_idm_s, \
                         future_merger_a, future_follower_a]
 
         return data_arrays
@@ -276,10 +279,10 @@ class DataGenerator:
         feature_data = self.extract_features(raw_recordings)
         feature_data = self.fill_missing_values(feature_data)
         feature_data_scaled = self.scale_data(feature_data)
-        _, future_seqs = self.sequence(feature_data, 20, 20)
+        history_future_seqs_seqs = self.sequence(feature_data, 20, 20)
         history_future_seqs_scaled = self.sequence(feature_data_scaled, 20, 20)
-        data_arrays = self.split_data(history_future_seqs_scaled, future_seqs)
-        return data_arrays
+        data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
+        return data_arrays, raw_recordings['info']
 
     # def save(self):
     #     pass
