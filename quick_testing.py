@@ -73,14 +73,13 @@ keep_these = ['episode_id', 'merger_action', 'lane_y']
 # %%
 columns_n = future_s.shape[-1]
 future_s.shape
-names = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
-         'leader_action', 'follower_action', 'merger_action', \
-         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-         'lane_y', 'leader_exists', 'follower_id']
+names = ['episode_id', 'follower_speed',
+                'fl_delta_v', 'fl_delta_x',
+                'fm_delta_v', 'fm_delta_x']
 for column in range(columns_n):
     plt.figure()
     plt.title(names[column])
-    _ = plt.hist(future_s[:, 0, column], bins=150)
+    _ = plt.hist(future_idm_s[:, 0, column], bins=150)
 
 # %%
         self.indxs = {

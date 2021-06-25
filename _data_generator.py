@@ -91,7 +91,7 @@ def data_generator():
     attentiveness = {'timid': [2, 10], 'normal': [3, 3], 'aggressive': [10, 2]} # attention probabilities
 
     while episode_id < episode_n:
-        for driver in dri/vers:
+        for driver in drivers:
             idm_params = get_idm_params(driver)
             mean_vel = 20
             try_lane_change_step = np.random.choice(range(0, episode_steps_n))

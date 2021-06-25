@@ -1,27 +1,18 @@
 import numpy as np
-
 import matplotlib.pyplot as plt
-from model import Encoder
+# from model import Encoder
 from importlib import reload
 import pickle
-[[0]*10]*20
-round([0.243512541])
-a = [[1, 2], [1, 2]]
-a = np.array(a, 'fl')[:, -1]
-np.float([3])
-a.dtype
-for trace in a:
-    trace.append(2)
-a
+
 # %%
 """
 Generate training data
 """
-from factory import data_generator
-reload(data_generator)
-from factory.data_generator import *
+import _data_generator
+reload(_data_generator)
+from _data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 15000
+training_samples_n = 5000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
@@ -120,7 +111,7 @@ att_l/(att_l+att_m)
 # %%
 for i in range(1, 10):
     plt.figure()
-    feature = training_data[0][0:100000, -1, i]
+    feature = training_data[2][0:100000, -1, i]
     feature.max()
     _ = plt.hist(feature, bins=150)
 # %%
