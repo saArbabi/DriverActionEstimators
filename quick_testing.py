@@ -33,13 +33,27 @@ data_config = {
                 }
 data_gen = DataGenerator(env, data_config)
 data_arrays, info = data_gen.prep_data()
-history_future_usc, future_sca, history_sca, future_idm_s, \
+history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_follower_a = data_arrays
 
 # %%
-history_future_usc.shape
-history_future_usc[0]
-plt.plot(history_future_usc[2000, :, 1])
+for item in data_arrays:
+    counts = np.count_nonzero(np.isnan(item))
+    print(counts)
+# %%
+history_sca[40]
+history_sca.shape
+history_future_sc[0]
+plt.plot(history_future_usc[5, :, -1])
+# for i in range(2000):
+#     if history_future_usc[i, :, -1].mean() != history_future_usc[i, -1, -1]:
+#         print(i)
+#         break
+plt.plot(history_future_usc[39, :, -1])
+plt.plot(history_future_usc[39, :, -4])
+plt.plot(history_future_usc[39, :, -1])
+history_future_usc[1000, :, -1].mean()
+plt.plot(history_future_usc[1000, :, 1])
 _ = plt.hist(history_future_usc[:, -1, -2], bins=150)
 
 
@@ -160,7 +174,7 @@ class Trainer():
 
 model_trainer = Trainer(model_type='driver_model')
 
-# %%
+#s %%
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
 plt.figure()
@@ -183,6 +197,43 @@ plt.title('KL')
 
 
 # %%
+import tensorflow as tf
+from tensorflow.keras import layers
+
+raw_inputs = [
+    [711, 632, 71],
+    [73, 8, 3215, 55, 927],
+    [83, 91, 1, 645, 1253, 927],
+]
+
+# By default, this will pad using 0s; it is configurable via the
+# "value" parameter.
+# Note that you could "pre" padding (at the beginning) or
+# "post" padding (at the end).
+# We recommend using "post" padding when working with RNN layers
+# (in order to be able to use the
+# CuDNN implementation of the layers).
+padded_inputs = tf.keras.preprocessing.sequence.pad_sequences(
+    raw_inputs, padding="post"
+)
+print(padded_inputs)
+embedding = layers.Embedding(input_dim=5000, output_dim=16, mask_zero=True)
+masked_output = embedding(padded_inputs)
+unmasked_embedding.shape
+print(masked_output._keras_mask)
+
+masking_layer = layers.Masking()
+# Simulate the embedding lookup by expanding the 2D input to 3D,
+# with embedding dimension of 10.
+unmasked_embedding = tf.cast(
+    tf.tile(tf.expand_dims(padded_inputs, axis=-1), [1, 1, 10]), tf.float32
+)
+
+masked_embedding = masking_layer(unmasked_embedding)
+print(masked_embedding._keras_mask)
+# %%
+
+
 np.random.seed(2020)
 history_future_usc, history_sca, future_sca, future_idm_s, \
                                 future_merger_a, future_follower_a = data_arrays
@@ -241,6 +292,25 @@ idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color
 # att_axis.set_ylabel('$z_1$')
 # att_axis.set_xlabel('$z_2$')
 
+# %%
+history_future_usc[39, :, -1]
+history_future_usc
+axis_0, axis_1 = np.where(history_future_usc[:, 1:, -1] != history_future_usc[:, :-1, -1])
+axis_0.shape
+axis_1.shape
+history_future_usc[39, :4, -1]
+for sample, step in zip(axis_0, axis_1):
+    history_future_usc[sample, :step+1, :] = 0
+
+a = np.ones([10,1])
+a[-2:, 0] = 5
+a[:2, 0] = 5
+a
+# a[~(a[:, 0] == a[-1, 0])] = 0
+a
+np.where(a[1:] != a[:-1])
+a[2:] = 0
+a
 # %%
 """Anticipation visualisation
 """

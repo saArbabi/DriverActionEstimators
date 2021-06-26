@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed
+from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed, Masking
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -177,8 +177,9 @@ class HistoryEncoder(tf.keras.Model):
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units)
-
+        # self.masking = Masking()
     def call(self, inputs):
+        # enc_h = self.lstm_layer(self.masking(inputs))
         enc_h = self.lstm_layer(inputs)
         return enc_h
 

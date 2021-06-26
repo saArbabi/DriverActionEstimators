@@ -248,8 +248,8 @@ class DataGenerator:
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         #  history+future info for debugging/ visualisation
-        col_names = ['episode_id', 'ego_decision', 'follower_action', \
-                     'merger_action', 'lane_y', 'aggressiveness']
+        col_names = ['episode_id', 'elapsed_time', 'ego_decision', 'follower_action', \
+                     'merger_action', 'lane_y', 'aggressiveness', 'follower_id']
         history_usc = history_seqs[:, :, self.names_to_index(col_names)]
         future_usc = future_seqs[:, :, self.names_to_index(col_names)]
         history_future_usc = np.append(history_usc, future_usc, axis=1)
@@ -283,13 +283,34 @@ class DataGenerator:
         feature_data_scaled[:, scalar_indexs] = scaler.transform(feature_data[:, scalar_indexs])
         return feature_data_scaled
 
+    def mask_steps(self, history_future_seqss):
+        """
+        This is needed for cases where the merger passes
+        several cars (i.e., a sequence has states from more than one vehicle
+        """
+        history_seqs, future_seqs = history_future_seqss
+        follower_id_index = self.indxs['follower_id']
+
+        axis_0, axis_1 = np.where(history_seqs[:, 1:, follower_id_index] != \
+                                    history_seqs[:, :-1, follower_id_index])
+        for sample, step in zip(axis_0, axis_1):
+            history_seqs[sample, :step+1, 1:] = 0
+
+        axis_0, axis_1 = np.where(future_seqs[:, 1:, follower_id_index] != \
+                                    future_seqs[:, :-1, follower_id_index])
+        for sample, step in zip(axis_0, axis_1):
+            future_seqs[sample, step+1:, 1:] = 0
+        return [history_seqs, future_seqs]
+
     def prep_data(self):
         raw_recordings = self.run_sim()
         feature_data = self.extract_features(raw_recordings)
         feature_data = self.fill_missing_values(feature_data)
         feature_data_scaled = self.scale_data(feature_data)
         history_future_seqs_seqs = self.sequence(feature_data, 20, 20)
+        # history_future_seqs_seqs = self.mask_steps(history_future_seqs_seqs)
         history_future_seqs_scaled = self.sequence(feature_data_scaled, 20, 20)
+        # history_future_seqs_scaled = self.mask_steps(history_future_seqs_scaled)
         data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
         return data_arrays, raw_recordings['info']
 
