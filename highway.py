@@ -22,7 +22,7 @@ class Env:
         self.queuing_entries = {}
         self.last_entries = {}
 
-    def recorder(self, ego, neighbours):
+    def recorder(self, ego):
         """For recording vehicle trajectories. Used for:
         - model training
         - perfromance validations # TODO
@@ -39,14 +39,18 @@ class Env:
             lane_decision = -1
 
         act_long, act_lat = ego.actions
-        state = neighbours.copy()
+        state = {n: None for n in ego.neighbours.keys()}
         state['ego'] = [ego.speed, ego.glob_x, act_long, act_lat, ego.lane_y]
-        for key, neighbour in neighbours.items():
+        for key, neighbour in ego.neighbours.items():
             if neighbour:
                 act_long, _ = neighbour.actions
-                aggressiveness = neighbour.driver_params['aggressiveness']
+                follower_aggress = neighbour.driver_params['aggressiveness']
+                if neighbour.neighbours['f']:
+                    follower_atten = neighbour.neighbours['f'].id
+                else:
+                    follower_atten = 0
                 state[key] = [neighbour.speed, neighbour.glob_x, act_long, \
-                              aggressiveness, neighbour.id]
+                              follower_aggress, follower_atten, neighbour.id]
             else:
                 state[key] = None
 
@@ -69,10 +73,10 @@ class Env:
         """
         joint_action = []
         for vehicle in self.vehicles:
-            neighbours = self.handler.my_neighbours(vehicle, self.vehicles)
-            self.recorder(vehicle, neighbours)
-            actions = vehicle.act(neighbours, self.handler.reservations)
+            neighbours = vehicle.my_neighbours(self.vehicles)
             vehicle.neighbours = neighbours
+            self.recorder(vehicle)
+            actions = vehicle.act(neighbours, self.handler.reservations)
             vehicle.actions = actions
 
             joint_action.append(actions)

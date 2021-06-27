@@ -36,43 +36,53 @@ data_arrays, info = data_gen.prep_data()
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_follower_a = data_arrays
 
+history_future_usc.shape
+
 # %%
-for item in data_arrays:
-    counts = np.count_nonzero(np.isnan(item))
-    print(counts)
+all_col_names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
+         'leader_speed', 'follower_speed', 'merger_speed', \
+         'leader_action', 'follower_action', 'merger_action', \
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+         'lane_y', 'leader_exists', 'aggressiveness', 'follower_id']
+
+indxs = {}
+index = 0
+for item_name in all_col_names:
+    indxs[item_name] = index
+    index += 1
 # %%
-history_sca[40]
-history_sca.shape
-history_future_sc[0]
-plt.plot(history_future_usc[5, :, -1])
-# for i in range(2000):
-#     if history_future_usc[i, :, -1].mean() != history_future_usc[i, -1, -1]:
-#         print(i)
-#         break
-plt.plot(history_future_usc[39, :, -1])
-plt.plot(history_future_usc[39, :, -4])
-plt.plot(history_future_usc[39, :, -1])
-history_future_usc[1000, :, -1].mean()
-plt.plot(history_future_usc[1000, :, 1])
-_ = plt.hist(history_future_usc[:, -1, -2], bins=150)
 
+# %%
+# %%
 
-
-future_merger_a.shape
-history_scaeqs[0][-1]
-future_scaeqs[0][0]
-_ = plt.hist(future_sca[:, -1, 4], bins=150)
+_ = plt.hist(history_future_usc[:, -1, -3], bins=150)
 _ = plt.hist(future_merger_a[:, -1, 1], bins=150)
-_ = plt.hist(future_sca[:, -1, -2], bins=150)
-
-future_merger_a[future_merger_a[:, -1, -2]==0].shape
-future_merger_a[future_merger_a[:, -1, -2]!= 0].shape
-813+754
-
-2158/5895
+_ = plt.hist(future_sca[:, -1, -3], bins=150)
+_ = plt.hist(future_idm_s[:, -1, 1], bins=150)
+# np.count_nonzero(future_idm_s[:, -1, 5] < 0.5)
+# %%
+future_idm_s
+np.unique(history_future_usc[:, :, -2])
+future_idm_s[5692, :, 1]
+plt.plot(history_future_usc[5692, :, -2])
+info[76]
+info[76]
+plt.plot(history_future_usc[5692, :, 1], history_future_usc[5692, :, -3])
+plt.grid()
 # %%
 
+plt.plot(history_future_usc[5692, :, 3])
+plt.plot(history_future_usc[5692, :, 4])
+plt.plot(history_future_usc[5692, :, 5])
+plt.legend(['leader_action', 'follower_action', 'merger_action'])
+plt.grid()
+# %%
 
+plt.plot(history_future_usc[1000, :, 2])
+plt.plot(history_future_usc[1000, :, -1])
+plt.plot(history_future_usc[1000, :, -3])
+plt.plot(history_future_usc[1000, :, 1],
+            history_future_usc[1000, :, -3])
 plt.plot(history_sca[100, :, 6])
 plt.plot(range(20, 40), future_sca[100, :, 6])
 # %%
@@ -174,7 +184,7 @@ class Trainer():
 
 model_trainer = Trainer(model_type='driver_model')
 
-#s %%
+# %%
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
 plt.figure()
@@ -197,40 +207,6 @@ plt.title('KL')
 
 
 # %%
-import tensorflow as tf
-from tensorflow.keras import layers
-
-raw_inputs = [
-    [711, 632, 71],
-    [73, 8, 3215, 55, 927],
-    [83, 91, 1, 645, 1253, 927],
-]
-
-# By default, this will pad using 0s; it is configurable via the
-# "value" parameter.
-# Note that you could "pre" padding (at the beginning) or
-# "post" padding (at the end).
-# We recommend using "post" padding when working with RNN layers
-# (in order to be able to use the
-# CuDNN implementation of the layers).
-padded_inputs = tf.keras.preprocessing.sequence.pad_sequences(
-    raw_inputs, padding="post"
-)
-print(padded_inputs)
-embedding = layers.Embedding(input_dim=5000, output_dim=16, mask_zero=True)
-masked_output = embedding(padded_inputs)
-unmasked_embedding.shape
-print(masked_output._keras_mask)
-
-masking_layer = layers.Masking()
-# Simulate the embedding lookup by expanding the 2D input to 3D,
-# with embedding dimension of 10.
-unmasked_embedding = tf.cast(
-    tf.tile(tf.expand_dims(padded_inputs, axis=-1), [1, 1, 10]), tf.float32
-)
-
-masked_embedding = masking_layer(unmasked_embedding)
-print(masked_embedding._keras_mask)
 # %%
 
 
@@ -249,11 +225,11 @@ timid_drivers = []
 normal_drivers = []
 aggressive_drivers = []
 for sample_index in val_examples:
-    if history_future_usc[sample_index, -1, -1] == 0:
+    if history_future_usc[sample_index, -1, -3] == 0:
        timid_drivers.append(sample_index)
-    elif history_future_usc[sample_index, -1, -1] == 0.5:
+    elif history_future_usc[sample_index, -1, -3] == 0.5:
        normal_drivers.append(sample_index)
-    elif history_future_usc[sample_index, -1, -1] == 1:
+    elif history_future_usc[sample_index, -1, -3] == 1:
        aggressive_drivers.append(sample_index)
 history_sca.shape
 len(timid_drivers)
@@ -293,29 +269,20 @@ idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color
 # att_axis.set_xlabel('$z_2$')
 
 # %%
-history_future_usc[39, :, -1]
-history_future_usc
-axis_0, axis_1 = np.where(history_future_usc[:, 1:, -1] != history_future_usc[:, :-1, -1])
-axis_0.shape
-axis_1.shape
-history_future_usc[39, :4, -1]
-for sample, step in zip(axis_0, axis_1):
-    history_future_usc[sample, :step+1, :] = 0
 
-a = np.ones([10,1])
-a[-2:, 0] = 5
-a[:2, 0] = 5
-a
-# a[~(a[:, 0] == a[-1, 0])] = 0
-a
-np.where(a[1:] != a[:-1])
-a[2:] = 0
-a
 # %%
 """Anticipation visualisation
 """
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
+
+def get_true_attention(ego_id, ego_decision, follower_atten):
+    atten_on_ego = np.where(follower_atten == ego_id)
+    ego_changing_lane = np.where(ego_decision != 0)
+    atten_on_ego_changing_lane = np.intersect1d(atten_on_ego, ego_changing_lane)
+    true_attention = np.ones(40)
+    true_attention[atten_on_ego_changing_lane] = 0
+    return true_attention
 
 # model_trainer.model.idm_sim.arbiter.attention_temp = 20
 model_trainer.model.arbiter.attention_temp = 20
@@ -324,93 +291,114 @@ Example_pred = 0
 traces_n = 20
 i = 0
 covered_episodes = []
+col_names = ['episode_id', 'elapsed_time', 'ego_decision', \
+        'leader_action', 'follower_action', 'merger_action', \
+        'lane_y', 'follower_aggress', \
+        'follower_atten', 'veh_id', 'follower_id']
+indxs = {}
+for i in range(len(col_names)):
+    indxs[col_names[i]] = i
 
-while Example_pred < 20:
-   # sample_index = [timid_drivers[i]]
-   sample_index = [normal_drivers[i]]
-   # sample_index = [aggressive_drivers[i]]
-   i += 1
-   true_attention = future_follower_a[sample_index, :, -2].flatten()
-   m_y = future_idm_s[sample_index, :, -2].flatten()
-   episode = future_idm_s[sample_index, 0, 0][0]
+while Example_pred < 10:
+    sample_index = [timid_drivers[i]]
+    # sample_index = [normal_drivers[i]]
+    # sample_index = [aggressive_drivers[i]]
+    i += 1
 
-   # if episode not in covered_episodes and true_attention[0:20].mean() != 1 and true_attention[0:20].mean() != 0:
-   if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:30].mean() == 1:
-       Example_pred += 1
-       covered_episodes.append(episode)
+    ego_id = history_future_usc[sample_index, 0, indxs['veh_id']]
+    ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
+    follower_atten = history_future_usc[sample_index, :, indxs['follower_atten']][0]
+    true_attention = get_true_attention(ego_id, ego_decision, follower_atten)
+    # if true_attention.mean() != 0:
+    # plt.figure()
+    # plt.plot(ego_decision)
+    # plt.plot(true_attention)
+    # plt.plot(ego_decision)
+    lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
+    episode = future_idm_s[sample_index, 0, 0][0]
 
-       true_action = future_follower_a[sample_index, :, -1].flatten()
+    if episode not in covered_episodes and 0 < true_attention[:30].mean() < 1:
+        # if episode not in covered_episodes and true_attention[30:].mean() == 0 and true_attention[:30].mean() == 1:
+        covered_episodes.append(episode)
 
-       sdv_actions = vectorise(future_merger_a[sample_index, :, 1:], traces_n)
-       h_seq = vectorise(history_sca[sample_index, :, 1:], traces_n)
-       f_seq_unscaled = vectorise(future_idm_s[sample_index, :, 1:], traces_n)
-       enc_h = model_trainer.model.h_seq_encoder(h_seq)
-       enc_acts = model_trainer.model.act_encoder(sdv_actions)
-       prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-       sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-       att_scores =  model_trainer.model.arbiter(sampled_att_z)
+        true_action = history_future_usc[sample_index, :, indxs['follower_action']][0]
 
-       idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-       idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
-       idm_params = tf.repeat(idm_params, 20, axis=1)
+        sdv_actions = vectorise(future_merger_a[sample_index, :, 1:], traces_n)
+        h_seq = vectorise(history_sca[sample_index, :, 1:], traces_n)
+        f_seq_unscaled = vectorise(future_idm_s[sample_index, :, 1:], traces_n)
+        enc_h = model_trainer.model.h_seq_encoder(h_seq)
+        enc_acts = model_trainer.model.act_encoder(sdv_actions)
+        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+        att_scores =  model_trainer.model.arbiter(sampled_att_z)
 
-       act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, f_seq_unscaled])
-       act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-       plt.figure()
-       for sample_trace_i in range(traces_n):
+        idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
+        idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
+        idm_params = tf.repeat(idm_params, 20, axis=1)
+
+        act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, f_seq_unscaled])
+        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+        plt.figure()
+        plt.plot(history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
+        plt.plot(history_future_usc[sample_index, :, indxs['follower_action']][0], color='red')
+        plt.plot(history_future_usc[sample_index, :, indxs['merger_action']][0], color='orange')
+        plt.legend(['leader_action', 'follower_action', 'merger_action'])
+
+        for sample_trace_i in range(traces_n):
            plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(), color='grey')
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-       plt.plot(true_action[:20].flatten(), color='black')
-       plt.plot(range(20, 40), true_action[20:].flatten(), color='red')
-       plt.ylim(-3, 3)
-       plt.title(str(sample_index[0]) + ' -- Action')
-       plt.grid()
 
-       plt.figure()
-       plt.plot(true_attention[:20] , color='black')
-       plt.plot(range(20, 40), true_attention[20:], color='red')
+        plt.ylim(-3, 3)
+        plt.title(str(sample_index[0]) + ' -- Action')
+        plt.grid()
 
-       for sample_trace_i in range(traces_n):
+        plt.figure()
+        plt.plot(true_attention[:20] , color='black')
+        plt.plot(range(20, 40), true_attention[20:], color='red')
+
+        for sample_trace_i in range(traces_n):
            plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
-       plt.ylim(-0.1, 1.1)
-       plt.title(str(sample_index[0]) + ' -- Attention')
-       plt.grid()
+        plt.ylim(-0.1, 1.1)
+        plt.title(str(sample_index[0]) + ' -- Attention')
+        plt.grid()
 
-       ##########
+        ##########
 
-       # plt.plot(desired_vs)
-       # plt.grid()
-       # plt.plot(desired_tgaps)
-       # plt.grid()
+        # plt.plot(desired_vs)
+        # plt.grid()
+        # plt.plot(desired_tgaps)
+        # plt.grid()
 
-       plt.figure()
-       desired_vs = idm_params.numpy()[:, 0, 0]
-       desired_tgaps = idm_params.numpy()[:, 0, 1]
-       plt.scatter(desired_vs, desired_tgaps, color='grey')
+        plt.figure()
+        desired_vs = idm_params.numpy()[:, 0, 0]
+        desired_tgaps = idm_params.numpy()[:, 0, 1]
+        plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-       # plt.scatter(19.4, 2, color='green')
-       # plt.scatter(25, 1.4, color='orange')
-       plt.scatter(30, 1, color='red')
-       plt.xlim(15, 40)
-       plt.ylim(0, 3)
-       #
-       # plt.scatter(30, 1, color='red')
-       # plt.xlim(25, 35)
-       # plt.ylim(0, 2)
+        plt.scatter(19.4, 2, color='green')
+        # plt.scatter(25, 1.4, color='orange')
+        # plt.scatter(30, 1, color='red')
+        plt.xlim(15, 40)
+        plt.ylim(0, 3)
+        #
+        # plt.scatter(30, 1, color='red')
+        # plt.xlim(25, 35)
+        # plt.ylim(0, 2)
 
-       plt.title(str(sample_index[0]) + ' -- Param')
-       plt.grid()
+        plt.title(str(sample_index[0]) + ' -- Param')
+        plt.grid()
 
-       ##########
-       plt.figure()
-       plt.plot(m_y[:20], color='black')
-       plt.plot(range(20, 40), m_y[20:], color='red')
-       # plt.plot([0, 40], [-0.37, -0.37], color='green')
-       # plt.plot([0, 40], [-1, -1], color='red')
-       plt.plot([0, 40], [-1.5, -1.5], color='red')
-       plt.title(str(sample_index[0]) + ' -- m_y')
-       plt.grid()
-       ############
+        ##########
+        plt.figure()
+        plt.plot(lane_y[:20], color='black')
+        plt.plot(range(20, 40), lane_y[20:], color='red')
+        # plt.plot([0, 40], [-0.37, -0.37], color='green')
+        # plt.plot([0, 40], [-1, -1], color='red')
+        plt.plot([0, 40], [-1.5, -1.5], color='red')
+        plt.title(str(sample_index[0]) + ' -- lane_y')
+        plt.grid()
+        ############
+        Example_pred += 1
+
 
 # %%
 

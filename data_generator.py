@@ -18,7 +18,8 @@ class DataGenerator:
                  'leader_speed', 'follower_speed', 'merger_speed', \
                  'leader_action', 'follower_action', 'merger_action', \
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-                 'lane_y', 'leader_exists', 'aggressiveness', 'follower_id']
+                 'lane_y', 'leader_exists', 'follower_aggress', \
+                 'follower_atten', 'follower_id']
 
         index = 0
         for item_name in all_col_names:
@@ -49,12 +50,12 @@ class DataGenerator:
 
         if follower_s:
             follower_speed, follower_glob_x, follower_act_long, \
-                        aggressiveness, follower_id = follower_s
+                    follower_aggress, follower_atten, follower_id = follower_s
         else:
             return
 
         if leader_s:
-            leader_speed, leader_glob_x, leader_act_long, _, _ = leader_s
+            leader_speed, leader_glob_x, leader_act_long, _, _, _ = leader_s
             if leader_glob_x-follower_glob_x < 100:
                 leader_exists = 1
             else:
@@ -83,7 +84,8 @@ class DataGenerator:
                              merger_glob_x-follower_glob_x
                              ])
 
-        step_feature.extend([ego_lane_y, leader_exists, aggressiveness, follower_id])
+        step_feature.extend([ego_lane_y, leader_exists, follower_aggress, \
+                                                    follower_atten, follower_id])
         # return self.round_scalars(step_feature)
         return step_feature
 
@@ -233,8 +235,8 @@ class DataGenerator:
                     future_seqs.append(epis_data[step+1:future_indx+1])
         return [np.array(history_seqs), np.array(future_seqs)]
 
-    def names_to_index(self, col_names ):
-        return [self.indxs[item] for item in col_names ]
+    def names_to_index(self, col_names):
+        return [self.indxs[item] for item in col_names]
 
     def split_data(self, history_future_seqs_seqs, history_future_seqs_scaled):
         history_seqs, future_seqs = history_future_seqs_seqs
@@ -248,8 +250,11 @@ class DataGenerator:
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         #  history+future info for debugging/ visualisation
-        col_names = ['episode_id', 'elapsed_time', 'ego_decision', 'follower_action', \
-                     'merger_action', 'lane_y', 'aggressiveness', 'follower_id']
+        col_names = ['episode_id', 'elapsed_time', 'ego_decision', \
+                'leader_action', 'follower_action', 'merger_action', \
+                'lane_y', 'follower_aggress', \
+                'follower_atten', 'veh_id', 'follower_id']
+
         history_usc = history_seqs[:, :, self.names_to_index(col_names)]
         future_usc = future_seqs[:, :, self.names_to_index(col_names)]
         history_future_usc = np.append(history_usc, future_usc, axis=1)

@@ -10,17 +10,18 @@ def main():
     viewer = Viewer(config)
     # for i in range(100):
     while True:
-        decision = input()
-        if decision == 'n':
-            sys.exit()
-        try:
-            viewer.focus_on_this_vehicle = int(decision)
-        except:
-            pass
+        if env.elapsed_time > 770:
+            decision = input()
+            if decision == 'n':
+                sys.exit()
+            try:
+                viewer.focus_on_this_vehicle = int(decision)
+            except:
+                pass
+            viewer.render(env.vehicles)
+            print(env.elapsed_time)
 
         env.step()
-        viewer.render(env.vehicles)
-        # print(env.elapsed_time)
 
 
 if __name__=='__main__':

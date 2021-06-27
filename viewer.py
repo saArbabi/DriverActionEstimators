@@ -83,7 +83,6 @@ class Viewer():
                 print('glob_y: ', vehicle.glob_y)
                 print('lane_y: ', vehicle.lane_y)
 
-
             if 'f' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['f']
                 if neighbour:
