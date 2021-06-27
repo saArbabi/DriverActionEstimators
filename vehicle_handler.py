@@ -50,7 +50,7 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             # coin_flip = np.random.random()
-            if delta_x > 70:
+            if delta_x > 80:
                 # check if cars are not too close
                 new_entries.append(queuing_entries[lane_id])
                 last_entries[lane_id] = queuing_entries[lane_id]

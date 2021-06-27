@@ -78,6 +78,9 @@ class Env:
             self.recorder(vehicle)
             actions = vehicle.act(neighbours, self.handler.reservations)
             vehicle.actions = actions
+            if abs(actions[0]) > 3:
+                print(actions[0])
+                print(vehicle.id)
 
             joint_action.append(actions)
             self.handler.update_reservations(vehicle)

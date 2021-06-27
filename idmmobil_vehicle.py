@@ -337,14 +337,14 @@ class IDMMOBILVehicle(Vehicle):
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
-                if lc_left_condition > lc_right_condition:
+                if lc_left_condition > lc_right_condition and act_rl_lc > -3:
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_left'
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
-                elif lc_left_condition < lc_right_condition:
+                elif lc_left_condition < lc_right_condition and act_rr_lc > -3:
                     target_lane = self.target_lane + 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_right'
