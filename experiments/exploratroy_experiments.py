@@ -12,7 +12,7 @@ import _data_generator
 reload(_data_generator)
 from _data_generator import *
 # training_data, info, scaler = seqseq_prep(h_len=100, f_len=100)
-training_samples_n = 5000
+training_samples_n = 10000
 # training_data = dnn_prep(training_samples_n)
 # training_data = seq_prep(30, training_samples_n=training_samples_n)
 training_data, info, scaler = seqseq_prep(h_len=20, f_len=20, training_samples_n=training_samples_n)
@@ -284,7 +284,7 @@ model_trainer = Trainer(model_type='driver_model')
 # training_data[0][:,:,-1].min()
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.5
 model_trainer.train(training_data, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -318,6 +318,7 @@ plt.title('KL')
 # print(model_trainer.valid_loss[-1])
 
 # %%
+import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 norm1 = tfd.Normal(loc=2., scale=3.)
@@ -434,8 +435,8 @@ i = 0
 covered_episodes = []
 
 while Example_pred < 20:
-   # sample_index = [timid_drivers[i]]
-   sample_index = [normal_drivers[i]]
+   sample_index = [timid_drivers[i]]
+   # sample_index = [normal_drivers[i]]
    # sample_index = [aggressive_drivers[i]]
    i += 1
    true_attention = y_hf[sample_index, :, -2].flatten()
@@ -496,9 +497,9 @@ while Example_pred < 20:
        desired_tgaps = idm_params.numpy()[:, 0, 1]
        plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-       # plt.scatter(19.4, 2, color='green')
+       plt.scatter(19.4, 2, color='green')
        # plt.scatter(25, 1.4, color='orange')
-       plt.scatter(30, 1, color='red')
+       # plt.scatter(30, 1, color='red')
        plt.xlim(15, 40)
        plt.ylim(0, 3)
        #
