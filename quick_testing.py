@@ -39,10 +39,25 @@ data_gen = DataGenerator(env, data_config)
 # history_future_usc.shape
 data_arrays = data_gen.prep_data()
 data_arrays.shape
-# data_arrays[data_arrays[:, -1] != -1]
-data_arrays[data_arrays[:, -1] == 7]
+data_arrays[data_arrays[:, 0] == 41]
+
 # %%
-list(a.keys())[-1]
+
+# data_arrays[data_arrays[:, -1] != -1]
+data_arrays[data_arrays[:, -1] == 9]
+data_arrays[data_arrays[:, 0] == 5]
+data_arrays[data_arrays[:, -1] == -1].shape
+data_arrays[data_arrays[:, -1] != -1].shape
+np.unique(data_arrays[data_arrays[:, -1] != -1][:, 0])
+np.unique(data_arrays[:, 0])
+data_arrays[data_arrays[:, 0] == 6]
+
+# %%
+a = []
+def reset_episode():
+    a.append(4)
+reset_episode()
+a
 # %%
 np.unique(data_arrays[:, 0])
 data_arrays[data_arrays[:, 0] == 10]
@@ -52,7 +67,7 @@ plt.plot(data_arrays[:, -1])
 _ = plt.hist(data_arrays[:, -1], bins=150)
 
 # %%
-all_col_names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
+all_col_names = ['episode_id', 'veh_id', 'time_step', 'ego_decision', \
          'leader_speed', 'follower_speed', 'merger_speed', \
          'leader_action', 'follower_action', 'merger_action', \
          'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
@@ -101,7 +116,7 @@ plt.plot(range(20, 40), future_sca[100, :, 6])
 # %%
 index = 0
 index_name = {}
-names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
+names = ['episode_id', 'veh_id', 'time_step', 'ego_decision', \
          'leader_speed', 'follower_speed', 'merger_speed', \
          'leader_action', 'follower_action', 'future_merger_aion', \
          'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
@@ -304,7 +319,7 @@ Example_pred = 0
 traces_n = 20
 i = 0
 covered_episodes = []
-col_names = ['episode_id', 'elapsed_time', 'ego_decision', \
+col_names = ['episode_id', 'time_step', 'ego_decision', \
         'leader_action', 'follower_action', 'merger_action', \
         'lane_y', 'follower_aggress', \
         'follower_atten', 'veh_id', 'follower_id']

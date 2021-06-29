@@ -8,7 +8,7 @@ from vehicle_handler import VehicleHandler
 class Env:
     def __init__(self, config):
         self.config = config
-        self.elapsed_time = 0
+        self.time_step = 0
         self.handler = VehicleHandler(config)
         self.sdv = None
         self.vehicles = []
@@ -42,10 +42,10 @@ class Env:
 
         if not ego.id in self.recordings:
             self.recordings[ego.id] = {}
-        # self.recordings[ego.id][self.elapsed_time] = copy.deepcopy(ego) # snapshot of ego
+        # self.recordings[ego.id][self.time_step] = copy.deepcopy(ego) # snapshot of ego
         state = {attrname: getattr(ego, attrname) for attrname in self.fetch_states}
         state['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
-        self.recordings[ego.id][self.elapsed_time] = state
+        self.recordings[ego.id][self.time_step] = state
         # copy.deepcopy(ego) # snapshot of ego
 
         # act_long, act_lat = ego.actions
@@ -71,11 +71,11 @@ class Env:
         # if not ego.id in self.recordings['states']:
         #     self.recordings['states'][ego.id] = []
         #     self.recordings['decisions'][ego.id] = []
-        #     self.recordings['elapsed_time'][ego.id] = []
+        #     self.recordings['time_step'][ego.id] = []
         #
         # self.recordings['states'][ego.id].append(state)
         # self.recordings['decisions'][ego.id].append(lane_decision)
-        # self.recordings['elapsed_time'][ego.id].append(self.elapsed_time)
+        # self.recordings['time_step'][ego.id].append(self.time_step)
 
     def get_joint_action(self):
         """
@@ -98,6 +98,8 @@ class Env:
         """
         vehicles = []
         joint_action = self.get_joint_action()
+        self.time_step += 1
+
         for vehicle, actions in zip(self.vehicles, joint_action):
             if vehicle.glob_x > self.lane_length:
                 # vehicle has left the highway
@@ -114,4 +116,3 @@ class Env:
                                                           self.last_entries)
         if new_entries:
             self.vehicles.extend(new_entries)
-        self.elapsed_time += 1

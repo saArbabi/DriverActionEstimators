@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 200 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 500 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -131,20 +131,20 @@ class DataGenerator:
             When a merger is found, trace back its state while it is being observed
             by follower.
             """
-            merger_vehs = raw_recordings[merger_id]
-            leader_vehs = raw_recordings[leader_id]
-            # print(merger_vehs)
             pointer = -1
             while True:
-                try:
-                    merger_glob_x = merger_vehs[time_step].glob_x
-                    if merger_glob_x >= ego_veh[time_step].glob_x and \
-                                    merger_glob_x < leader_vehs[time_step].glob_x:
+                merger_glob_x = merger_vehs[time_step]['glob_x']
+                merger_decision = merger_vehs[time_step]['lane_decision']
+                ego_glob_x = ego_vehs[time_step]['glob_x']
+                leader_glob_x = leader_vehs[time_step]['glob_x']
 
+                if merger_glob_x >= ego_glob_x and \
+                                        merger_glob_x <= leader_glob_x:
+                    try:
                         feature_data_episode[pointer][-1] = merger_id
-                    else:
+                    except:
                         break
-                except:
+                else:
                     break
 
                 time_step -= 1
@@ -166,21 +166,35 @@ class DataGenerator:
                     return True
             return False
 
-        feature_data = [] # episode_id ...
-        episode_id = 0
-        for ego_id in raw_recordings.keys():
-            if ego_id != 14:
-                continue
-            ego_vehs = raw_recordings[ego_id]
+        def reset_episode():
+            nonlocal feature_data_episode, leader_id, merger_id, episode_id
+            if len(feature_data_episode) > 10:
+                feature_data.extend(feature_data_episode)
+                episode_id += 1
             feature_data_episode = []
             leader_id = None
             merger_id = None
+
+
+        feature_data = [] # episode_id ...
+        episode_id = 0
+        feature_data_episode = []
+        leader_id = None
+        merger_id = None
+
+        for ego_id in raw_recordings.keys():
+            # if ego_id != 14:
+            #     continue
+            ego_vehs = raw_recordings[ego_id]
+            ego_time_steps = list(ego_vehs.keys())
+            reset_episode()
 
             for time_step, ego_veh in ego_vehs.items():
                 if ego_veh['att_veh_id']:
                     att_veh = raw_recordings[ego_veh['att_veh_id']][time_step]
                 else:
                     # no point if follower is not attending to anyone
+                    reset_episode()
                     continue
 
                 if not leader_id:
@@ -189,10 +203,10 @@ class DataGenerator:
                         # confirm this is the leader
                         leader_id = att_veh['id']
                         leader_vehs = raw_recordings[leader_id]
-                        # leader_end_step = list(leader_vehs.keys())[-1]
+                        leader_time_steps = list(leader_vehs.keys())
                         leader = leader_vehs[time_step]
-
                     else:
+                        reset_episode()
                         continue
                 else:
                     leader = leader_vehs[time_step]
@@ -204,7 +218,7 @@ class DataGenerator:
                         merger_id = att_veh['id']
                         merger_vehs = raw_recordings[merger_id]
                         trace_back(time_step)
-                        # leader_end_step = list(leader_vehs.keys())[-1]
+                        merger_time_steps = list(merger_vehs.keys())
                         merger = merger_vehs[time_step]
                     else:
                         merger = None
@@ -212,12 +226,7 @@ class DataGenerator:
                     merger = merger_vehs[time_step]
 
                 if is_epis_end():
-                    if len(feature_data_episode) > 10:
-                        feature_data.extend(feature_data_episode)
-                        episode_id += 1
-                    feature_data_episode = []
-                    leader_id = None
-                    merger_id = None
+                    reset_episode()
                     continue
 
                 feature_data_episode.append([episode_id,
