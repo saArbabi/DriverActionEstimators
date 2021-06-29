@@ -36,11 +36,28 @@ data_gen = DataGenerator(env, data_config)
 # history_future_usc, history_sca, future_sca, future_idm_s, \
 #                 future_merger_a, future_follower_a = data_arrays
 #
+data_gen.indxs
 # history_future_usc.shape
 data_arrays = data_gen.prep_data()
 data_arrays.shape
+data_arrays.shape
 # data_arrays[data_arrays[:, 0] == 41]
+np.round(data_arrays[data_arrays[:, 0] == 14], 2)
 
+# %%
+example[:, 2]
+example[:, -2]
+example = data_arrays[data_arrays[:, 0] == 14]
+titles = list(data_gen.indxs.keys())
+for i in range(16):
+    plt.figure()
+    plt.plot(example[:, i])
+    plt.title(titles[i])
+
+# %%
+for item in data_arrays[:]:
+    print(len(item))
+data_arrays[-15]
 # %%
 
 # data_arrays[data_arrays[:, -1] != -1]
@@ -64,10 +81,10 @@ a = []
 def reset_episode():
     a.append(4)
 reset_episode()
+np.set_printoptions(suppress=True)
 a
 # %%
 np.unique(data_arrays[:, 0])
-data_arrays[data_arrays[:, 0] == 10]
 data_arrays[data_arrays[:, 0] == 1]
 data_arrays[data_arrays[:, 0] == 7]
 plt.plot(data_arrays[:, -1])
