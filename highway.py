@@ -50,9 +50,9 @@ class Env:
             neighbours = vehicle.my_neighbours(self.vehicles)
             vehicle.neighbours = neighbours
             actions = vehicle.act(neighbours, self.handler.reservations)
-            self.recorder(vehicle, actions)
             joint_action.append(actions)
             self.handler.update_reservations(vehicle)
+            self.recorder(vehicle, actions)
 
         return joint_action
 

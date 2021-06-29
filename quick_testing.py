@@ -51,7 +51,7 @@ data_arrays[data_arrays[:, -1] != -1].shape
 np.unique(data_arrays[data_arrays[:, -1] != -1][:, 0])
 np.unique(data_arrays[data_arrays[:, -1] != -1][:, 0])
 np.unique(data_arrays[:, 0])
-data_arrays[data_arrays[:, 0] == 66]
+data_arrays[data_arrays[:, -1] == 9]
 
 np.mean([2, 4, 0])
 # %%
