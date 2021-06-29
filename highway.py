@@ -38,7 +38,7 @@ class Env:
         log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
         log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
         log['aggressiveness'] = ego.driver_params['aggressiveness']
-        log['act_long'], log['act_lat'] = actions
+        log['act_long'] = actions[0]
         self.recordings[ego.id][self.time_step] = log
 
     def get_joint_action(self):

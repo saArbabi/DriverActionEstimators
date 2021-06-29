@@ -139,7 +139,6 @@ class DataGenerator:
             # if follower_id != 14:
             #     continue
             follower_ts = raw_recordings[follower_id]
-            follower_time_steps = list(follower_ts.keys())
             reset_episode()
 
             for time_step, follower in follower_ts.items():
@@ -154,9 +153,8 @@ class DataGenerator:
                     if att_veh['lane_decision'] == 'keep_lane' and \
                                     att_veh['lane_id'] == follower['lane_id']:
                         # confirm this is the leader
-                        leader_id = att_veh_id
+                        leader_id = follower['att_veh_id']
                         leader_ts = raw_recordings[leader_id]
-                        leader_time_steps = list(leader_ts.keys())
                         leader = leader_ts[time_step]
                     else:
                         reset_episode()
@@ -168,10 +166,9 @@ class DataGenerator:
                     if att_veh['lane_decision'] != 'keep_lane' and \
                                     att_veh['target_lane'] == follower['lane_id']:
                         # confirm this is the leader
-                        merger_id = att_veh_id
+                        merger_id = follower['att_veh_id']
                         merger_ts = raw_recordings[merger_id]
                         trace_back(time_step-1)
-                        merger_time_steps = list(merger_ts.keys())
                         merger = merger_ts[time_step]
                     else:
                         merger = None
@@ -196,17 +193,19 @@ class DataGenerator:
         to ensure an IDM follower is not perturbed by the leader, different dummy values
         will be assigned.
         """
-        def fill_with_dummy(arr, indx):
-            dummy_value = arr[~np.isnan(arr).any(axis=1)][:, indx].mean()
-            nan_mask = np.isnan(arr[:, indx])
+        def fill_with_dummy(indx):
+            nonlocal features
+            dummy_value = non_nan_values[:, indx].mean()
+            nan_mask = np.isnan(features[:, indx])
             nan_indx = np.where(nan_mask)
-            arr[nan_indx, indx] = dummy_value
-            return arr
+            features[nan_indx, indx] = dummy_value
 
-        features = fill_with_dummy(features, self.indxs['leader_speed'])
-        features = fill_with_dummy(features, self.indxs['leader_action'])
-        features = fill_with_dummy(features, self.indxs['fl_delta_v'])
-        features = fill_with_dummy(features, self.indxs['fl_delta_x'])
+        non_nan_values = features[~np.isnan(features).any(axis=1)]
+        fill_with_dummy(self.indxs['merger_speed'])
+        fill_with_dummy(self.indxs['merger_action'])
+        fill_with_dummy(self.indxs['lane_y'])
+        fill_with_dummy(self.indxs['fm_delta_v'])
+        fill_with_dummy(self.indxs['fm_delta_x'])
 
         return features
 
@@ -237,18 +236,18 @@ class DataGenerator:
         history_seqs, future_seqs = history_future_seqs_seqs
         history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
-        col_names = ['episode_id', 'leader_speed', 'follower_speed', 'merger_speed', \
-                 'leader_action', 'follower_action', 'merger_action', \
-                 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-                 'lane_y', 'leader_exists']
+        col_names = ['episode_id',
+                'follower_speed', 'leader_speed', 'merger_speed', \
+                'follower_action', 'leader_action', 'merger_action', \
+                'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+                'lane_y', 'merger_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         #  history+future info for debugging/ visualisation
-        col_names = ['episode_id', 'time_steps', 'ego_decision', \
-                'leader_action', 'follower_action', 'merger_action', \
-                'lane_y', 'follower_aggress', \
-                'follower_atten', 'veh_id', 'follower_id']
+        col_names = ['episode_id', 'time_step',
+                'follower_action', 'leader_action', 'merger_action', \
+                'lane_y', 'aggressiveness']
 
         history_usc = history_seqs[:, :, self.names_to_index(col_names)]
         future_usc = future_seqs[:, :, self.names_to_index(col_names)]
@@ -303,21 +302,17 @@ class DataGenerator:
         return [history_seqs, future_seqs]
 
     def prep_data(self):
-        time_1 = time.time()
         raw_recordings = self.run_sim()
-        print(time.time()-time_1)
-        time_1 = time.time()
         features = self.extract_features(raw_recordings)
-        print(time.time()-time_1)
 
-        # features = self.fill_missing_values(features)
-        # features_scaled = self.scale_data(features)
-        # history_future_seqs_seqs = self.sequence(features, 20, 20)
+        features = self.fill_missing_values(features)
+        features_scaled = self.scale_data(features)
+        history_future_seqs_seqs = self.sequence(features, 20, 20)
         # history_future_seqs_seqs = self.mask_steps(history_future_seqs_seqs)
-        # history_future_seqs_scaled = self.sequence(features_scaled, 20, 20)
+        history_future_seqs_scaled = self.sequence(features_scaled, 20, 20)
         # history_future_seqs_scaled = self.mask_steps(history_future_seqs_scaled)
-        # data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
-        return features
+        data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
+        return data_arrays
         # return data_arrays, raw_recordings['info']
 
     # def save(self):
