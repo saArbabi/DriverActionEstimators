@@ -14,7 +14,8 @@ class DataGenerator:
     def initiate(self):
         self.env.usage = 'data generation'
         self.env.recordings = {}
-        self.env.fetch_states = ['id', 'lane_decision', 'lane_id', 'target_lane', 'glob_x']
+        self.env.veh_log = ['id', 'lane_decision', 'lane_id',
+                             'target_lane', 'glob_x', 'lane_y', 'speed']
         self.indxs = {}
         all_col_names = ['episode_id', 'veh_id', 'time_steps', 'ego_decision', \
                  'leader_speed', 'follower_speed', 'merger_speed', \
@@ -43,12 +44,11 @@ class DataGenerator:
                 rounded_items.append(item)
         return rounded_items
 
-    def get_step_feature(self, merger_s, leader_s, follower_s):
+    def get_step_state(self, follower, leader, merger):
         """
-        Note: If a leader is missing or beyond the perception_range of the followe,
-        np.nan is assigned to its feature values.
+        Note: If a merger is missing, np.nan is assigned to its feature values.
         """
-        step_feature = []
+        step_state = []
 
         if follower_s:
             follower_speed, follower_glob_x, follower_act_long, \
@@ -91,40 +91,10 @@ class DataGenerator:
         # return self.round_scalars(step_feature)
         return step_feature
 
-    def get_split_indxs(self, ego_decisions):
-        """
-        Decision transitions can be:
-        (1) 1, 1 , 1, 0 indicating manoeuvre end
-        (2) -1, -1, -1, 0 indicating manoeuvre end
-        (3) 0, 0, 0, 1 indicating manoeuvre start
-        (4) 0, 0, 0, -1 indicating manoeuvre start
-        This method returns indexes for (1) and (2).
-        """
-        decision_indxs = np.where(ego_decisions[:-1] != \
-                                        ego_decisions[1:])[0].tolist()
-        if not decision_indxs:
-            return
-        else:
-            split_indxs = []
-            for indx in decision_indxs:
-                ego_end_decision = ego_decisions[indx]
-                if ego_end_decision == 1 or ego_end_decision == -1:
-                    if split_indxs:
-                        start_snip = end_snip+1
-                    else:
-                        start_snip = 0
-                    end_snip = indx
-                    split_indxs.append([start_snip, end_snip])
-        return split_indxs
-
-
 
     def extract_features(self, raw_recordings):
         """
         Extrtacts features from follower's perspective.
-        raw_recordings: {veh_id:{aggressiveness:0-1,
-                            states:{t_0:[state_0], t_1:[state_1]}
-                            }}
         """
         def trace_back(time_step):
             """
@@ -133,15 +103,15 @@ class DataGenerator:
             """
             pointer = -1
             while True:
-                merger_glob_x = merger_vehs[time_step]['glob_x']
-                merger_decision = merger_vehs[time_step]['lane_decision']
-                ego_glob_x = ego_vehs[time_step]['glob_x']
-                leader_glob_x = leader_vehs[time_step]['glob_x']
+                merger_glob_x = merger_ts[time_step]['glob_x']
+                merger_decision = merger_ts[time_step]['lane_decision']
+                follower_glob_x = follower_ts[time_step]['glob_x']
+                leader_glob_x = leader_ts[time_step]['glob_x']
 
-                if merger_glob_x >= ego_glob_x and \
+                if merger_glob_x >= follower_glob_x and \
                                         merger_glob_x <= leader_glob_x:
                     try:
-                        feature_data_episode[pointer][-1] = merger_id
+                        epis_states[pointer][-1] = merger_id
                     except:
                         break
                 else:
@@ -158,7 +128,7 @@ class DataGenerator:
             - merger completes its manoeuvre.
             """
             if leader['lane_decision'] != 'keep_lane' or \
-                                ego_veh['lane_decision'] != 'keep_lane':
+                                follower['lane_decision'] != 'keep_lane':
                 return True
 
             elif merger:
@@ -167,31 +137,30 @@ class DataGenerator:
             return False
 
         def reset_episode():
-            nonlocal feature_data_episode, leader_id, merger_id, episode_id
-            if len(feature_data_episode) > 10:
-                feature_data.extend(feature_data_episode)
+            nonlocal epis_states, leader_id, merger_id, episode_id
+            if len(epis_states) > 10:
+                feature_data.extend(epis_states)
                 episode_id += 1
-            feature_data_episode = []
+            epis_states = []
             leader_id = None
             merger_id = None
 
-
         feature_data = [] # episode_id ...
         episode_id = 0
-        feature_data_episode = []
+        epis_states = []
         leader_id = None
         merger_id = None
 
-        for ego_id in raw_recordings.keys():
-            # if ego_id != 14:
+        for follower_id in raw_recordings.keys():
+            # if follower_id != 14:
             #     continue
-            ego_vehs = raw_recordings[ego_id]
-            ego_time_steps = list(ego_vehs.keys())
+            follower_ts = raw_recordings[follower_id]
+            follower_time_steps = list(follower_ts.keys())
             reset_episode()
 
-            for time_step, ego_veh in ego_vehs.items():
-                if ego_veh['att_veh_id']:
-                    att_veh = raw_recordings[ego_veh['att_veh_id']][time_step]
+            for time_step, follower in follower_ts.items():
+                if follower['att_veh_id']:
+                    att_veh = raw_recordings[follower['att_veh_id']][time_step]
                 else:
                     # no point if follower is not attending to anyone
                     reset_episode()
@@ -199,44 +168,45 @@ class DataGenerator:
 
                 if not leader_id:
                     if att_veh['lane_decision'] == 'keep_lane' and \
-                                    att_veh['lane_id'] == ego_veh['lane_id']:
+                                    att_veh['lane_id'] == follower['lane_id']:
                         # confirm this is the leader
                         leader_id = att_veh['id']
-                        leader_vehs = raw_recordings[leader_id]
-                        leader_time_steps = list(leader_vehs.keys())
-                        leader = leader_vehs[time_step]
+                        leader_ts = raw_recordings[leader_id]
+                        leader_time_steps = list(leader_ts.keys())
+                        leader = leader_ts[time_step]
                     else:
                         reset_episode()
                         continue
                 else:
-                    leader = leader_vehs[time_step]
+                    leader = leader_ts[time_step]
 
                 if not merger_id:
                     if att_veh['lane_decision'] != 'keep_lane' and \
-                                    att_veh['target_lane'] == ego_veh['lane_id']:
+                                    att_veh['target_lane'] == follower['lane_id']:
                         # confirm this is the leader
                         merger_id = att_veh['id']
-                        merger_vehs = raw_recordings[merger_id]
+                        merger_ts = raw_recordings[merger_id]
                         trace_back(time_step)
-                        merger_time_steps = list(merger_vehs.keys())
-                        merger = merger_vehs[time_step]
+                        merger_time_steps = list(merger_ts.keys())
+                        merger = merger_ts[time_step]
                     else:
                         merger = None
                 else:
-                    merger = merger_vehs[time_step]
+                    merger = merger_ts[time_step]
 
                 if is_epis_end():
                     reset_episode()
                     continue
-
-                feature_data_episode.append([episode_id,
+                # step_state =
+                epis_states.append([episode_id,
                                              time_step,
-                                            ego_id,
+                                            follower_id,
                                             leader_id,
                                             -1 if not merger_id else merger_id
                                              ])
 
         return np.array(feature_data)
+
 
 
 
@@ -265,7 +235,7 @@ class DataGenerator:
                 # each split forms an episode
                 start_snip, end_snip = split_indx
                 ego_end_decision = ego_decisions[end_snip]
-                feature_data_episode = []
+                epis_states = []
 
                 for _step in range(start_snip, end_snip+1):
                     ego_decision = ego_decisions[_step]
@@ -310,15 +280,15 @@ class DataGenerator:
 
                     if step_feature:
                         step_feature[0:0] = episode_id, veh_id, time_steps, ego_decision
-                        feature_data_episode.append(step_feature)
+                        epis_states.append(step_feature)
                     else:
                         break
                 else:
                     # runs if no breaks in loop
-                    if len(feature_data_episode) > 50:
+                    if len(epis_states) > 50:
                         # ensure enough steps are present within a given episode
                         episode_id += 1
-                        feature_data.extend(feature_data_episode)
+                        feature_data.extend(epis_states)
 
         # return feature_data
         return np.array(feature_data)

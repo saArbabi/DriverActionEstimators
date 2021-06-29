@@ -39,7 +39,7 @@ data_gen = DataGenerator(env, data_config)
 # history_future_usc.shape
 data_arrays = data_gen.prep_data()
 data_arrays.shape
-data_arrays[data_arrays[:, 0] == 41]
+# data_arrays[data_arrays[:, 0] == 41]
 
 # %%
 
@@ -49,8 +49,15 @@ data_arrays[data_arrays[:, 0] == 5]
 data_arrays[data_arrays[:, -1] == -1].shape
 data_arrays[data_arrays[:, -1] != -1].shape
 np.unique(data_arrays[data_arrays[:, -1] != -1][:, 0])
+np.unique(data_arrays[data_arrays[:, -1] != -1][:, 0])
 np.unique(data_arrays[:, 0])
-data_arrays[data_arrays[:, 0] == 6]
+data_arrays[data_arrays[:, 0] == 66]
+
+np.mean([2, 4, 0])
+# %%
+for epis in range(79):
+    print(epis)
+    print(data_arrays[data_arrays[:, 0] == epis].shape)
 
 # %%
 a = []

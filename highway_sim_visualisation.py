@@ -10,7 +10,7 @@ def main():
     viewer = Viewer(config)
     # for i in range(100):
     while True:
-        if env.time_step > 180:
+        if env.time_step > 370:
         # if env.time_step > 0:
             decision = input()
             if decision == 'n':

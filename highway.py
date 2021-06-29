@@ -23,59 +23,23 @@ class Env:
         self.last_entries = {}
 
 
-    def recorder(self, ego):
+    def recorder(self, ego, actions):
         """For recording vehicle trajectories. Used for:
         - model training
         - perfromance validations # TODO
         """
-
         if self.usage != 'data generation':
             return
         # if ego.glob_x < 100:
         #     return
-        if ego.lane_decision == 'keep_lane':
-            lane_decision = 0
-        elif ego.lane_decision == 'move_left':
-            lane_decision = 1
-        elif ego.lane_decision == 'move_right':
-            lane_decision = -1
 
         if not ego.id in self.recordings:
             self.recordings[ego.id] = {}
-        # self.recordings[ego.id][self.time_step] = copy.deepcopy(ego) # snapshot of ego
-        state = {attrname: getattr(ego, attrname) for attrname in self.fetch_states}
-        state['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
-        self.recordings[ego.id][self.time_step] = state
-        # copy.deepcopy(ego) # snapshot of ego
-
-        # act_long, act_lat = ego.actions
-        # state = {n: None for n in ego.neighbours.keys()}
-        # state['ego'] = [ego.speed, ego.glob_x, act_long, act_lat, ego.lane_y]
-        # for key, neighbour in ego.neighbours.items():
-        #     if neighbour:
-        #         act_long, _ = neighbour.actions
-        #         follower_aggress = neighbour.driver_params['aggressiveness']
-        #         if neighbour.neighbours['f']:
-        #             follower_atten = neighbour.neighbours['f'].id
-        #         else:
-        #             follower_atten = 0
-        #         state[key] = [neighbour.speed, neighbour.glob_x, act_long, \
-        #                       follower_aggress, follower_atten, neighbour.id]
-        #     else:
-        #         state[key] = None
-        #
-        #
-        # if not ego.id in self.recordings['info']:
-        #     self.recordings['info'][ego.id] = ego.driver_params
-        #
-        # if not ego.id in self.recordings['states']:
-        #     self.recordings['states'][ego.id] = []
-        #     self.recordings['decisions'][ego.id] = []
-        #     self.recordings['time_step'][ego.id] = []
-        #
-        # self.recordings['states'][ego.id].append(state)
-        # self.recordings['decisions'][ego.id].append(lane_decision)
-        # self.recordings['time_step'][ego.id].append(self.time_step)
+        log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
+        log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
+        log['aggressiveness'] = ego.driver_params['aggressiveness']
+        log['act_long'], log['act_lat'] = actions
+        self.recordings[ego.id][self.time_step] = log
 
     def get_joint_action(self):
         """
@@ -85,9 +49,8 @@ class Env:
         for vehicle in self.vehicles:
             neighbours = vehicle.my_neighbours(self.vehicles)
             vehicle.neighbours = neighbours
-            self.recorder(vehicle)
             actions = vehicle.act(neighbours, self.handler.reservations)
-            vehicle.actions = actions
+            self.recorder(vehicle, actions)
             joint_action.append(actions)
             self.handler.update_reservations(vehicle)
 
