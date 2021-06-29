@@ -32,11 +32,24 @@ data_config = {
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
-data_arrays, info = data_gen.prep_data()
-history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_merger_a, future_follower_a = data_arrays
-
-history_future_usc.shape
+# data_arrays, info = data_gen.prep_data()
+# history_future_usc, history_sca, future_sca, future_idm_s, \
+#                 future_merger_a, future_follower_a = data_arrays
+#
+# history_future_usc.shape
+data_arrays = data_gen.prep_data()
+data_arrays.shape
+# data_arrays[data_arrays[:, -1] != -1]
+data_arrays[data_arrays[:, -1] == 7]
+# %%
+list(a.keys())[-1]
+# %%
+np.unique(data_arrays[:, 0])
+data_arrays[data_arrays[:, 0] == 10]
+data_arrays[data_arrays[:, 0] == 1]
+data_arrays[data_arrays[:, 0] == 7]
+plt.plot(data_arrays[:, -1])
+_ = plt.hist(data_arrays[:, -1], bins=150)
 
 # %%
 all_col_names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \

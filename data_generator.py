@@ -2,19 +2,21 @@ import numpy as np
 from collections import deque
 from sklearn import preprocessing
 np.random.seed(2020)
+import time
 
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.data_frames_n = 1000 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 200 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
     def initiate(self):
         self.env.usage = 'data generation'
-        self.env.recordings = {'info':{}, 'elapsed_time':{}, 'decisions':{}, 'states':{}}
+        self.env.recordings = {}
+        self.env.fetch_states = ['id', 'lane_decision', 'lane_id', 'target_lane', 'glob_x']
         self.indxs = {}
-        all_col_names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
+        all_col_names = ['episode_id', 'veh_id', 'time_steps', 'ego_decision', \
                  'leader_speed', 'follower_speed', 'merger_speed', \
                  'leader_action', 'follower_action', 'merger_action', \
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
@@ -27,7 +29,7 @@ class DataGenerator:
             index += 1
 
     def run_sim(self):
-        for step in range(self.data_frames_n):
+        for step in range(self.env_steps_n):
             self.env.step()
 
         return self.env.recordings
@@ -115,14 +117,134 @@ class DataGenerator:
                     split_indxs.append([start_snip, end_snip])
         return split_indxs
 
+
+
     def extract_features(self, raw_recordings):
         """
+        Extrtacts features from follower's perspective.
+        raw_recordings: {veh_id:{aggressiveness:0-1,
+                            states:{t_0:[state_0], t_1:[state_1]}
+                            }}
+        """
+        def trace_back(time_step):
+            """
+            When a merger is found, trace back its state while it is being observed
+            by follower.
+            """
+            merger_vehs = raw_recordings[merger_id]
+            leader_vehs = raw_recordings[leader_id]
+            # print(merger_vehs)
+            pointer = -1
+            while True:
+                try:
+                    merger_glob_x = merger_vehs[time_step].glob_x
+                    if merger_glob_x >= ego_veh[time_step].glob_x and \
+                                    merger_glob_x < leader_vehs[time_step].glob_x:
+
+                        feature_data_episode[pointer][-1] = merger_id
+                    else:
+                        break
+                except:
+                    break
+
+                time_step -= 1
+                pointer -= 1
+
+        def is_epis_end():
+            """
+            To tell if an episode should end. Reasons for ending an episode:
+            - follower changes lane.
+            - leader leaves lane.
+            - merger completes its manoeuvre.
+            """
+            if leader['lane_decision'] != 'keep_lane' or \
+                                ego_veh['lane_decision'] != 'keep_lane':
+                return True
+
+            elif merger:
+                if merger['lane_decision'] == 'keep_lane':
+                    return True
+            return False
+
+        feature_data = [] # episode_id ...
+        episode_id = 0
+        for ego_id in raw_recordings.keys():
+            if ego_id != 14:
+                continue
+            ego_vehs = raw_recordings[ego_id]
+            feature_data_episode = []
+            leader_id = None
+            merger_id = None
+
+            for time_step, ego_veh in ego_vehs.items():
+                if ego_veh['att_veh_id']:
+                    att_veh = raw_recordings[ego_veh['att_veh_id']][time_step]
+                else:
+                    # no point if follower is not attending to anyone
+                    continue
+
+                if not leader_id:
+                    if att_veh['lane_decision'] == 'keep_lane' and \
+                                    att_veh['lane_id'] == ego_veh['lane_id']:
+                        # confirm this is the leader
+                        leader_id = att_veh['id']
+                        leader_vehs = raw_recordings[leader_id]
+                        # leader_end_step = list(leader_vehs.keys())[-1]
+                        leader = leader_vehs[time_step]
+
+                    else:
+                        continue
+                else:
+                    leader = leader_vehs[time_step]
+
+                if not merger_id:
+                    if att_veh['lane_decision'] != 'keep_lane' and \
+                                    att_veh['target_lane'] == ego_veh['lane_id']:
+                        # confirm this is the leader
+                        merger_id = att_veh['id']
+                        merger_vehs = raw_recordings[merger_id]
+                        trace_back(time_step)
+                        # leader_end_step = list(leader_vehs.keys())[-1]
+                        merger = merger_vehs[time_step]
+                    else:
+                        merger = None
+                else:
+                    merger = merger_vehs[time_step]
+
+                if is_epis_end():
+                    if len(feature_data_episode) > 10:
+                        feature_data.extend(feature_data_episode)
+                        episode_id += 1
+                    feature_data_episode = []
+                    leader_id = None
+                    merger_id = None
+                    continue
+
+                feature_data_episode.append([episode_id,
+                                             time_step,
+                                            ego_id,
+                                            leader_id,
+                                            -1 if not merger_id else merger_id
+                                             ])
+
+        return np.array(feature_data)
+
+
+
+
+
+
+
+
+    def extract_features_edddddddd(self, raw_recordings):
+        """
         - remove redundancies: only keeping states for merger, leader and follower car.
+        Extract
         """
         feature_data = []
         episode_id = 0
         for veh_id in raw_recordings['info'].keys():
-            elapsed_times = np.array(raw_recordings['elapsed_time'][veh_id])
+            time_stepss = np.array(raw_recordings['time_steps'][veh_id])
             ego_decisions = np.array(raw_recordings['decisions'][veh_id])
             veh_states = raw_recordings['states'][veh_id]
             split_indxs = self.get_split_indxs(ego_decisions)
@@ -138,7 +260,7 @@ class DataGenerator:
 
                 for _step in range(start_snip, end_snip+1):
                     ego_decision = ego_decisions[_step]
-                    elapsed_time = elapsed_times[_step]
+                    time_steps = time_stepss[_step]
                     veh_state = veh_states[_step]
 
                     if ego_end_decision == 1:
@@ -178,7 +300,7 @@ class DataGenerator:
                                                             veh_state['r'])
 
                     if step_feature:
-                        step_feature[0:0] = episode_id, veh_id, elapsed_time, ego_decision
+                        step_feature[0:0] = episode_id, veh_id, time_steps, ego_decision
                         feature_data_episode.append(step_feature)
                     else:
                         break
@@ -250,7 +372,7 @@ class DataGenerator:
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         #  history+future info for debugging/ visualisation
-        col_names = ['episode_id', 'elapsed_time', 'ego_decision', \
+        col_names = ['episode_id', 'time_steps', 'ego_decision', \
                 'leader_action', 'follower_action', 'merger_action', \
                 'lane_y', 'follower_aggress', \
                 'follower_atten', 'veh_id', 'follower_id']
@@ -308,16 +430,22 @@ class DataGenerator:
         return [history_seqs, future_seqs]
 
     def prep_data(self):
+        time_1 = time.time()
         raw_recordings = self.run_sim()
+        print(time.time()-time_1)
+        time_1 = time.time()
         feature_data = self.extract_features(raw_recordings)
-        feature_data = self.fill_missing_values(feature_data)
-        feature_data_scaled = self.scale_data(feature_data)
-        history_future_seqs_seqs = self.sequence(feature_data, 20, 20)
+        print(time.time()-time_1)
+
+        # feature_data = self.fill_missing_values(feature_data)
+        # feature_data_scaled = self.scale_data(feature_data)
+        # history_future_seqs_seqs = self.sequence(feature_data, 20, 20)
         # history_future_seqs_seqs = self.mask_steps(history_future_seqs_seqs)
-        history_future_seqs_scaled = self.sequence(feature_data_scaled, 20, 20)
+        # history_future_seqs_scaled = self.sequence(feature_data_scaled, 20, 20)
         # history_future_seqs_scaled = self.mask_steps(history_future_seqs_scaled)
-        data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
-        return data_arrays, raw_recordings['info']
+        # data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
+        return feature_data
+        # return data_arrays, raw_recordings['info']
 
     # def save(self):
     #     pass
