@@ -24,7 +24,6 @@ config = {'lanes_n':4,
 
 env = Env(config)
 # viewer = Viewer(config)
-
 data_config = {
                 'future_scaeq_length':20,
                 'history_scaeq_length':20,
@@ -32,86 +31,12 @@ data_config = {
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
-data_arrays, info = data_gen.prep_data()
+data_arrays = data_gen.prep_data()
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_follower_a = data_arrays
 
-history_future_usc.shape
-
-# %%
-all_col_names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
-         'leader_speed', 'follower_speed', 'merger_speed', \
-         'leader_action', 'follower_action', 'merger_action', \
-         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-         'lane_y', 'leader_exists', 'aggressiveness', 'follower_id']
-
-indxs = {}
-index = 0
-for item_name in all_col_names:
-    indxs[item_name] = index
-    index += 1
 # %%
 
-# %%
-# %%
-
-_ = plt.hist(history_future_usc[:, -1, -3], bins=150)
-_ = plt.hist(future_merger_a[:, -1, 1], bins=150)
-_ = plt.hist(future_sca[:, -1, -3], bins=150)
-_ = plt.hist(future_idm_s[:, -1, 1], bins=150)
-# np.count_nonzero(future_idm_s[:, -1, 5] < 0.5)
-# %%
-future_idm_s
-np.unique(history_future_usc[:, :, -2])
-future_idm_s[5692, :, 1]
-plt.plot(history_future_usc[5692, :, -2])
-info[76]
-info[76]
-plt.plot(history_future_usc[5692, :, 1], history_future_usc[5692, :, -3])
-plt.grid()
-# %%
-
-plt.plot(history_future_usc[5692, :, 3])
-plt.plot(history_future_usc[5692, :, 4])
-plt.plot(history_future_usc[5692, :, 5])
-plt.legend(['leader_action', 'follower_action', 'merger_action'])
-plt.grid()
-# %%
-
-plt.plot(history_future_usc[1000, :, 2])
-plt.plot(history_future_usc[1000, :, -1])
-plt.plot(history_future_usc[1000, :, -3])
-plt.plot(history_future_usc[1000, :, 1],
-            history_future_usc[1000, :, -3])
-plt.plot(history_sca[100, :, 6])
-plt.plot(range(20, 40), future_sca[100, :, 6])
-# %%
-index = 0
-index_name = {}
-names = ['episode_id', 'veh_id', 'elapsed_time', 'ego_decision', \
-         'leader_speed', 'follower_speed', 'merger_speed', \
-         'leader_action', 'follower_action', 'future_merger_aion', \
-         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
-         'lane_y', 'leader_exists', 'follower_id']
-for item_name in names:
-    index_name[item_name] = index
-    index += 1
-
-# %%
-a = np.ones([10, 4, 17])
-b = np.ones([10, 4, 17])*2
-np.append(a, b, axis=1).shape
-keep_these = ['episode_id', 'future_merger_aion', 'lane_y']
-# %%
-columns_n = future_sca.shape[-1]
-future_sca.shape
-names = ['episode_id', 'follower_speed',
-                'fl_delta_v', 'fl_delta_x',
-                'fm_delta_v', 'fm_delta_x']
-for column in range(columns_n):
-    plt.figure()
-    # plt.title(names[column])
-    _ = plt.hist(future_sca[:, 0, column], bins=150)
 
 # %%
 config = {
@@ -291,7 +216,7 @@ Example_pred = 0
 traces_n = 20
 i = 0
 covered_episodes = []
-col_names = ['episode_id', 'elapsed_time', 'ego_decision', \
+col_names = ['episode_id', 'time_step', 'ego_decision', \
         'leader_action', 'follower_action', 'merger_action', \
         'lane_y', 'follower_aggress', \
         'follower_atten', 'veh_id', 'follower_id']

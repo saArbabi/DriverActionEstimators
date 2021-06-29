@@ -10,8 +10,8 @@ def main():
     viewer = Viewer(config)
     # for i in range(100):
     while True:
-        if env.elapsed_time > 140:
-        # if env.elapsed_time > 0:
+        if env.time_step > 80:
+        # if env.time_step > 0:
             decision = input()
             if decision == 'n':
                 sys.exit()
@@ -20,7 +20,7 @@ def main():
             except:
                 pass
             viewer.render(env.vehicles)
-            print(env.elapsed_time)
+            print(env.time_step)
 
         env.step()
 
