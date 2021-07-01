@@ -28,10 +28,8 @@ class Env:
         - model training
         - perfromance validations # TODO
         """
-        if self.usage != 'data generation':
+        if self.usage != 'data generation' or ego.glob_x < 100:
             return
-        # if ego.glob_x < 100:
-        #     return
 
         if not ego.id in self.recordings:
             self.recordings[ego.id] = {}

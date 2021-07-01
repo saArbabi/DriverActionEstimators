@@ -22,8 +22,9 @@ class VehicleHandler:
         id = self.next_vehicle_id
         glob_x = np.random.uniform(-30, 0)
         # aggressiveness = np.random.uniform(0, 1)
-        # aggressiveness = 0.5
-        aggressiveness = np.random.choice([0, 0.5, 1])
+        # aggressiveness = 1
+        aggressiveness = np.random.choice([0.7, 1])
+        # aggressiveness = np.random.choice([0, 0.5, 1])
         speed = aggressiveness*10 + 20 + np.random.normal(0, 1)
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
@@ -50,7 +51,7 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             # coin_flip = np.random.random()
-            if delta_x > 80:
+            if delta_x > 60:
                 # check if cars are not too close
                 new_entries.append(queuing_entries[lane_id])
                 last_entries[lane_id] = queuing_entries[lane_id]
@@ -65,5 +66,5 @@ class VehicleHandler:
         if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':
-            max_glob_x, min_glob_x = round(vehicle.glob_x) + 100, round(vehicle.glob_x) - 100
+            max_glob_x, min_glob_x = round(vehicle.glob_x) + 50, round(vehicle.glob_x) - 50
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]

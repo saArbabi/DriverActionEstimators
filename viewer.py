@@ -47,11 +47,11 @@ class Viewer():
 
         annotation_mark_1 = [veh.id for veh in vehicles]
         # annotation_mark = [veh.lane_decision for veh in vehicles]
-        # annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
+        annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
         # annotation_mark_2 = [round(veh.lane_y, 2) for veh in vehicles]
         for i in range(len(annotation_mark_1)):
             ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
-            # ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
+            ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
 
 
 

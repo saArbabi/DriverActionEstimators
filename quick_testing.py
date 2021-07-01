@@ -17,15 +17,15 @@ reload(vehicle_handler)
 
 from viewer import Viewer
 
-config = {'lanes_n':4,
+config = {'lanes_n':6,
         'lane_width':3.7, # m
-        'lane_length':1200 # m
+        'lane_length':400 # m
         }
 
 env = Env(config)
 # viewer = Viewer(config)
 data_config = {
-                'future_scaeq_length':20,
+                # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
                 'data_frames_n':100,
                 'model_type':'belief_net'
@@ -34,10 +34,143 @@ data_gen = DataGenerator(env, data_config)
 data_arrays = data_gen.prep_data()
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_follower_a = data_arrays
+history_future_usc.shape
+future_follower_a.shape
+# data_arrays.shape
 
 # %%
+data_arrays
+# %%
+history_future_usc[history_future_usc[:, :, 7] > 0]
+this = history_future_usc[history_future_usc[:, 0, 0] == 71]
+plt.plot(this[0, :, 1], this[0, :, 7])
+# %%
+# veh_arr = data_arrays[data_arrays[:, 0] == 88]
 
+for epis in np.unique(data_arrays[:, 0]):
+    veh_arr = data_arrays[data_arrays[:, 0] == epis]
+    print('epis', epis)
+    print(len(veh_arr))
+# %%
+veh_arr = data_arrays[data_arrays[:, 0] == 78]
+indxs = {}
+feature_names = [
+         'episode_id', 'time_step', 'follower_id', 'leader_id', 'merger_id', \
+         'follower_speed', 'leader_speed', 'merger_speed', \
+         'follower_action', 'leader_action', 'merger_action', \
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+         'lane_y', 'merger_exists', 'aggressiveness']
 
+index = 0
+for item_name in feature_names:
+    indxs[item_name] = index
+    index += 1
+# %%
+veh_arr = data_arrays[data_arrays[:, 0] == 78]
+plt.plot(veh_arr[:, indxs['fl_delta_x']])
+# plt.ylim([-3, 3])
+# %%
+veh_arr = data_arrays[data_arrays[:, 0] == 78]
+plt.plot(veh_arr[:, indxs['follower_action']], color='red')
+plt.plot(veh_arr[:, indxs['leader_action']])
+plt.ylim([-3, 3])
+# %%
+
+for epis in np.unique(data_arrays[:, 0])[0:20]:
+    plt.figure()
+    veh_arr = data_arrays[data_arrays[:, 0] == epis]
+    plt.plot(veh_arr[:, indxs['time_step']],
+                            veh_arr[:, indxs['follower_action']])
+    plt.ylim([-3, 3])
+    tit = str(veh_arr[0, indxs['follower_id']]) + ' ' + str(veh_arr[0, indxs['leader_id']])
+    plt.title(tit)
+    plt.grid()
+# %%
+x = np.linspace(-4, 4, 100)
+y = (1/(1+np.exp(-5*x)))
+plt.plot(x, y)
+y = 1 + (1/(1+np.exp(-5*x)))
+plt.plot(x, y)
+plt.grid()
+
+# %%
+x = np.linspace(0, 100, 200)
+y = np.sin(0.1*x)
+plt.plot(y)
+feature_names = [
+         'episode_id', 'time_step', 'follower_id', 'leader_id', 'merger_id', \
+         'follower_speed', 'leader_speed', 'merger_speed', \
+         'follower_action', 'leader_action', 'merger_action', \
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+         'lane_y', 'merger_exists', 'aggressiveness']
+
+for i in range(veh_arr.shape[-1]):
+    plt.figure()
+    plt.plot(veh_arr[:, 1], veh_arr[:, i])
+    plt.title(feature_names[i])
+    plt.grid()
+# %%
+for i in range(veh_arr.shape[-1]):
+    plt.figure()
+    _ = plt.hist(data_arrays[:, i], bins=150)
+    plt.title(feature_names[i])
+    plt.grid()
+
+# %%
+index_pos = np.where(history_future_usc[:, :, -2]==1)[0]
+consider = history_future_usc[index_pos, :, :]
+
+_ = plt.hist(consider[:, 0, -1], bins=150)
+consider.shape
+plt.plot(consider[0, :, -6])
+features = data_gen.prep_data()
+
+features.shape
+features[:,-2]
+history_future_usc[history_future_usc[:, 0, -2]==0].shape
+history_future_usc[history_future_usc[:, 0, -2]==1].shape
+# %%
+data_arrays[0].shape
+future_idm_s[:, -4,-1]
+_ = plt.hist(history_future_usc[:, 0, -2], bins=150)
+"""
+attention and param values are compu
+"""
+# %%
+
+col_names = ['episode_id',
+        'follower_speed', 'leader_speed', 'merger_speed', \
+        'follower_action', 'leader_action', 'merger_action', \
+        'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+        'lane_y', 'merger_exists']
+
+for i in range(history_sca.shape[-1]):
+    plt.figure()
+    to_plot = history_sca[:, :, i].flatten()
+    _ = plt.hist(to_plot, bins=150)
+    plt.title(col_names[i])
+# %%
+col_names = ['episode_id', 'time_step', 'follower_id', \
+        'follower_speed', 'leader_speed', 'merger_speed', \
+        'follower_action', 'leader_action', 'merger_action', \
+        'lane_y', 'merger_exists','aggressiveness']
+# np.count_nonzero(history_future_usc[:, :, 6] == 0)
+
+for i in range(history_future_usc.shape[-1]):
+    plt.figure()
+    to_plot = history_future_usc[:, :, i].flatten()
+    _ = plt.hist(to_plot, bins=150)
+    plt.title(col_names[i])
+
+# %%
+col_names = ['episode_id', 'follower_speed',
+                'fl_delta_v', 'fl_delta_x',
+                'fm_delta_v', 'fm_delta_x',  'merger_exists']
+
+for i in range(future_idm_s.shape[-1]):
+    plt.figure()
+    _ = plt.hist(future_idm_s[:, -1, i], bins=150)
+    plt.title(col_names[i])
 # %%
 config = {
  "model_config": {
@@ -110,7 +243,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.0
 model_trainer.train(data_arrays, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
@@ -132,14 +265,20 @@ plt.title('KL')
 
 
 # %%
+
+# %%
+# val_1 = model_trainer.valid_mseloss
+# val_2 = model_trainer.valid_mseloss
+# val_3 = model_trainer.valid_mseloss
+plt.plot(val_1, color='red')
+plt.plot(val_2)
+plt.plot(val_3)
 # %%
 
-
 np.random.seed(2020)
-history_future_usc, history_sca, future_sca, future_idm_s, \
-                                future_merger_a, future_follower_a = data_arrays
 train_sample_index = int(len(history_sca)*0.8)
-val_examples = range(train_sample_index, len(history_sca))
+# val_examples = range(train_sample_index, len(history_sca))
+val_examples = range(0, len(history_sca))
 
 
 history_sca = np.float32(history_sca)
@@ -150,11 +289,11 @@ timid_drivers = []
 normal_drivers = []
 aggressive_drivers = []
 for sample_index in val_examples:
-    if history_future_usc[sample_index, -1, -3] == 0:
+    if history_future_usc[sample_index, -1, -1] == 0:
        timid_drivers.append(sample_index)
-    elif history_future_usc[sample_index, -1, -3] == 0.5:
+    elif history_future_usc[sample_index, -1, -1] == 0.5:
        normal_drivers.append(sample_index)
-    elif history_future_usc[sample_index, -1, -3] == 1:
+    elif history_future_usc[sample_index, -1, -1] == 1:
        aggressive_drivers.append(sample_index)
 history_sca.shape
 len(timid_drivers)
@@ -175,13 +314,14 @@ def latent_samples(model_trainer, sample_index):
 fig = plt.figure(figsize=(7, 7))
 att_axis = fig.add_subplot(211)
 idm_axs = fig.add_subplot(212)
-sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='red')
-idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='red')
+
+# sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
+# att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='red')
+# idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='red')
 #
-sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='green')
-idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='green')
+# sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
+# att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='green')
+# idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='green')
 
 # plt.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='green')
 sampled_att_z, sampled_idm_z = latent_samples(model_trainer, normal_drivers)

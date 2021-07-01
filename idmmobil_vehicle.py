@@ -80,12 +80,11 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0.2
                                          }}
 
-
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
-
         # IDM params
-        self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
+        self.driver_params['desired_v'] = self.get_idm_param(\
+                                Parameter_range, 'desired_v')
         self.driver_params['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_idm_param(Parameter_range, 'max_act')
@@ -242,8 +241,10 @@ class IDMMOBILVehicle(Vehicle):
         delta_x = leader.glob_x-follower.glob_x
         return [delta_v, delta_x]
 
-    def idm_actions(self, obs):
+    def idm_action(self, obs):
         delta_v, delta_x = obs
+        assert delta_x > 0
+
         desired_gap = self.get_desired_gap(delta_v)
         act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
                                             (desired_gap/(delta_x+1e-5))**2)
@@ -283,9 +284,16 @@ class IDMMOBILVehicle(Vehicle):
                                                                 old_follower_gain )
         return lc_condition
 
-
     def act(self, neighbours, reservations):
-        act_long = self.idm_actions(self.observe(self, neighbours['f']))
+        if self.driver_params['aggressiveness'] == 1:
+            act_long, act_lat = self.idm_mobil_act(neighbours, reservations)
+            return [max(-3, min(act_long, 3)), act_lat]
+        else:
+            return [3*np.sin(0.05*self.glob_x), 0]
+
+    def idm_mobil_act(self, neighbours, reservations):
+        act_long = self.idm_action(self.observe(self, neighbours['f']))
+        return [act_long, 0]
         if self.lane_decision == 'move_left':
             if self.lane_id == self.target_lane :
                 if self.lane_y >= 0:
@@ -312,16 +320,16 @@ class IDMMOBILVehicle(Vehicle):
             lc_left_condition = 0
             lc_right_condition = 0
 
-            act_rl_lc = self.idm_actions(self.observe(neighbours['rl'], self))
-            act_rr_lc = self.idm_actions(self.observe(neighbours['rr'], self))
-            act_r_lc = self.idm_actions(self.observe(neighbours['r'], neighbours['f']))
-            act_r_lk = self.idm_actions(self.observe(neighbours['r'], self))
+            act_rl_lc = self.idm_action(self.observe(neighbours['rl'], self))
+            act_rr_lc = self.idm_action(self.observe(neighbours['rr'], self))
+            act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
+            act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
             if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
-                act_rl_lk = self.idm_actions(self.observe(neighbours['rl'], neighbours['fl']))
-                act_ego_lc_l = self.idm_actions(self.observe(self, neighbours['fl']))
+                act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
+                act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
                 ego_gain = act_ego_lc_l-act_long
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
@@ -329,8 +337,8 @@ class IDMMOBILVehicle(Vehicle):
             if self.lane_id < self.lanes_n and \
                                                 self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
-                act_ego_lc_r = self.idm_actions(self.observe(self, neighbours['fr']))
-                act_rr_lk = self.idm_actions(self.observe(neighbours['rr'], neighbours['fr']))
+                act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
+                act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
 
                 ego_gain = act_ego_lc_r-act_long
                 new_follower_gain = act_rr_lc-act_rr_lk
