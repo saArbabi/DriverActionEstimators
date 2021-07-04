@@ -270,6 +270,14 @@ class IDMMOBILVehicle(Vehicle):
                     return False
             return True
 
+    def check_neighbours(self, neighbours):
+        """To ensure neighbours keep lane while merger is changing lane.
+        """
+        for vehicle in neighbours.values():
+            if vehicle and vehicle.lane_decision != 'keep_lane':
+                return False
+        return True
+
     def mobil_condition(self, actions_gains):
         """To decide if changing lane is worthwhile.
         """
@@ -299,7 +307,8 @@ class IDMMOBILVehicle(Vehicle):
                     self.lane_decision = 'keep_lane'
                     self.lane_y = 0
 
-        elif self.lane_decision == 'keep_lane' and self.glob_x > 50:
+        elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
+                                            self.check_neighbours(neighbours):
             lc_left_condition = 0
             lc_right_condition = 0
 
@@ -329,16 +338,14 @@ class IDMMOBILVehicle(Vehicle):
 
             if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
 
-                if lc_left_condition > lc_right_condition and act_rl_lc > -3 \
-                                                            and act_ego_lc_l > -3:
+                if lc_left_condition > lc_right_condition:
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_left'
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
-                elif lc_left_condition < lc_right_condition and act_rr_lc > -3 \
-                                                            and act_ego_lc_r > -3:
+                elif lc_left_condition < lc_right_condition:
                     target_lane = self.target_lane + 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_right'

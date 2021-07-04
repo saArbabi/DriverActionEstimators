@@ -52,7 +52,7 @@ features_origin[
             (features_origin[:, indxs['merger_exists']] == 0) &
             (features_origin[:, indxs['fm_delta_v']] == 0)]
 
-
+type(features_origin)
 # %%
 # desired_v = 30
 # desired_tgap = 1
@@ -111,16 +111,27 @@ history_future_seqs_seqs = data_gen.sequence(features, 20, 20)
 history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
 data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
-# data_arrays = [data_array[0:5000, :, :] for data_array in data_arrays]
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_ego_a = data_arrays
 future_ego_a.shape
 
-cond = (history_sca[:, :, -1] == 1).any(axis=1)
-history_sca.shape
-history_sca[cond].shape
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# cond = (history_sca[:, :, -1] == 1).any(axis=1)
+
+cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+np.count_nonzero(cond)
+cond.shape
+data_arrays = [data_array[~cond] for data_array in data_arrays]
+# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# %%
+a = np.ones([10, 20, 13])
+# a[3:5, 5:11, 10] = 77
+# a[3:5, 5:11, 10]
+cond = (a[:, :, 10] == 77).any(axis=1)
+np.count_nonzero(cond)
+a = a[~cond]
+a.shape
+a
 # %%
 """
 balancing
@@ -271,7 +282,7 @@ col_names = ['episode_id', 'time_step', 'ego_speed',
 
 for i in range(future_idm_s.shape[-1]):
     plt.figure()
-    _ = plt.hist(future_idm_s[1000:, -1, i], bins=150)
+    _ = plt.hist(future_idm_s[:, -1, i], bins=150)
     plt.title(col_names[i])
     plt.grid()
 # %%

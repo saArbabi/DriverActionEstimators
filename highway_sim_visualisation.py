@@ -4,7 +4,7 @@ from viewer import Viewer
 def main():
     config = {'lanes_n':6,
             'lane_width':3.7, # m
-            'lane_length':400 # m
+            'lane_length':1200 # m
             }
     env = Env(config)
     viewer = Viewer(config)
@@ -12,7 +12,7 @@ def main():
     while True:
         # if env.time_step > 200:
         # if env.time_step > 0:
-        if env.time_step > 470:
+        if env.time_step > 450:
             decision = input()
             if decision == 'n':
                 sys.exit()

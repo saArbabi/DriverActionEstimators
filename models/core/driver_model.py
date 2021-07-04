@@ -264,20 +264,19 @@ class IDMForwardSim(tf.keras.Model):
         tf.print('minnnnnnn fl_act: ', tf.reduce_min(fl_act))
         tf.print('meannnnnn fl_act: ', tf.reduce_mean(fl_act))
 
-        dv = idm_s[:, :, 3:4]
-        dx = idm_s[:, :, 4:5]
-
-
-        # fm_act_factor = 10*(ego_decision)*(1-merger_exists)
-        fm_act = self.idm_driver(vel, dv, dx, idm_params)*(merger_exists)
-        tf.print('maxxxxxxx fm_act: ', tf.reduce_max(fm_act))
-        tf.print('minnnnnnn fm_act: ', tf.reduce_min(fm_act))
-        tf.print('meannnnnn fm_act: ', tf.reduce_mean(fm_act))
-
-        att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
-        act_seq = (1-att_scores)*fl_act + att_scores*fm_act
-        # return fl_act
-        return act_seq
+        # dv = idm_s[:, :, 3:4]
+        # dx = idm_s[:, :, 4:5]
+        #
+        #
+        # fm_act = self.idm_driver(vel, dv, dx, idm_params)*(merger_exists)
+        # tf.print('maxxxxxxx fm_act: ', tf.reduce_max(fm_act))
+        # tf.print('minnnnnnn fm_act: ', tf.reduce_min(fm_act))
+        # tf.print('meannnnnn fm_act: ', tf.reduce_mean(fm_act))
+        #
+        # att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
+        # act_seq = (1-att_scores)*fl_act + att_scores*fm_act
+        return fl_act
+        # return act_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
