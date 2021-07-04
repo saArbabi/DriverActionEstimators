@@ -28,7 +28,7 @@ class Env:
         - model training
         - perfromance validations # TODO
         """
-        if self.usage != 'data generation' or ego.glob_x < 100:
+        if self.usage != 'data generation':
             return
 
         if not ego.id in self.recordings:
@@ -38,6 +38,11 @@ class Env:
         log['aggressiveness'] = ego.driver_params['aggressiveness']
         log['act_long'] = actions[0]
         self.recordings[ego.id][self.time_step] = log
+        # if ego.id == 225:
+        #     print(self.time_step)
+        #     print(ego.lane_decision)
+        #     print(log)
+        #     print(ego.glob_x - ego.neighbours['f'].glob_x)
 
     def get_joint_action(self):
         """
@@ -45,21 +50,22 @@ class Env:
         """
         joint_action = []
         for vehicle in self.vehicles:
-            neighbours = vehicle.my_neighbours(self.vehicles)
-            vehicle.neighbours = neighbours
-            actions = vehicle.act(neighbours, self.handler.reservations)
+            vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
+            actions = vehicle.act(self.handler.reservations)
             joint_action.append(actions)
+            vehicle.actions = actions
             self.handler.update_reservations(vehicle)
+            if vehicle.lane_decision != 'keep_lane':
+                # neighbours change depending on vehicle action
+                vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
             self.recorder(vehicle, actions)
-
         return joint_action
 
     def step(self, actions=None):
         """ steps the environment forward in time.
-        """
+        # """
         vehicles = []
         joint_action = self.get_joint_action()
-        self.time_step += 1
 
         for vehicle, actions in zip(self.vehicles, joint_action):
             if vehicle.glob_x > self.lane_length:
@@ -77,3 +83,5 @@ class Env:
                                                           self.last_entries)
         if new_entries:
             self.vehicles.extend(new_entries)
+
+        self.time_step += 1

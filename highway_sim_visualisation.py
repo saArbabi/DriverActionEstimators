@@ -10,8 +10,9 @@ def main():
     viewer = Viewer(config)
     # for i in range(100):
     while True:
-        # if env.time_step > 410:
-        if env.time_step > 0:
+        # if env.time_step > 200:
+        # if env.time_step > 0:
+        if env.time_step > 470:
             decision = input()
             if decision == 'n':
                 sys.exit()

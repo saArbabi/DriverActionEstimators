@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(15, 2))
+        self.fig = plt.figure(figsize=(15, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         # self.att_ax = self.fig.add_subplot(212)
@@ -77,11 +77,20 @@ class Viewer():
                         ax.annotate(key, (pos_x, pos_y))
                         # print(delta_x)
                         # print('delta_x :', delta_x)
+                print('###########################')
                 print('lane_id: ', vehicle.lane_id)
                 print('target_lane: ', vehicle.target_lane)
                 print('glob_x: ', vehicle.glob_x)
                 print('glob_y: ', vehicle.glob_y)
                 print('lane_y: ', vehicle.lane_y)
+                print('lane_decision: ', vehicle.lane_decision)
+                print('neighbour_f: ', vehicle.neighbours['f'].id)
+                print('true_act: ', vehicle.actions)
+                ideal_ = vehicle.idm_action(vehicle.observe(vehicle, vehicle.neighbours['f']))
+                print('ideal_act: ', ideal_)
+                print('obs: ', vehicle.observe(vehicle, vehicle.neighbours['f']))
+                print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
+                print('###########################')
 
             if 'f' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['f']
@@ -93,10 +102,10 @@ class Viewer():
 
 
             if vehicle.lane_decision == 'move_left':
-                ax.scatter(vehicle.glob_x-7, vehicle.glob_y+.7,
+                ax.scatter(vehicle.glob_x-2, vehicle.glob_y+.7,
                                 s=50, marker="*", color='red', edgecolors='black')
             elif vehicle.lane_decision == 'move_right':
-                ax.scatter(vehicle.glob_x-7, vehicle.glob_y-.7,
+                ax.scatter(vehicle.glob_x-2, vehicle.glob_y-.7,
                                 s=50, marker="*", color='red', edgecolors='black')
 
 

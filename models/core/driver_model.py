@@ -29,13 +29,13 @@ class NeurIDMModel(AbstractModel):
 
     def train_loop(self, data_objs):
         train_ds = self.batch_data(data_objs)
-        for xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f in train_ds:
-            self.train_step([xs_h, scaled_xs_f, unscaled_xs_f, merger_xas], ys_f)
+        for history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a in train_ds:
+            self.train_step([history_sca, future_sca, future_idm_s, future_merger_a], future_ego_a)
 
     def test_loop(self, data_objs, epoch):
         train_ds = self.batch_data(data_objs)
-        for xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f in train_ds:
-            self.test_step([xs_h, scaled_xs_f, unscaled_xs_f, merger_xas], ys_f)
+        for history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a in train_ds:
+            self.test_step([history_sca, future_sca, future_idm_s, future_merger_a], future_ego_a)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -90,12 +90,10 @@ class NeurIDMModel(AbstractModel):
                                 [enc_h, enc_acts, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
         att_scores = self.arbiter(sampled_att_z)
-        # att_scores = self.arbiter(sampled_att_z)
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         idm_params = tf.repeat(idm_params, 20, axis=1)
-        # idm_params = tf.reshape(idm_params, [batch_size, 20, 5])
 
         act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
 
@@ -237,13 +235,10 @@ class IDMForwardSim(tf.keras.Model):
         tf.print('desired_gap_mean: ', tf.reduce_mean(desired_gap))
         tf.print('desired_gap_min: ', tf.reduce_min(desired_gap))
 
-        # desired_gap = tf.clip_by_value(desired_gap, clip_value_min=0, \
-        #                                         clip_value_max=desired_gap)
+        desired_gap = tf.clip_by_value(desired_gap, clip_value_min=min_jamx, \
+                                                clip_value_max=desired_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        tf.print('maxxxxxxx: ', tf.reduce_max(act))
-        tf.print('minnnnnnn: ', tf.reduce_min(act))
-        tf.print('meannnnnn: ', tf.reduce_mean(act))
 
         # return self.action_clip(act)
         return act
@@ -258,23 +253,31 @@ class IDMForwardSim(tf.keras.Model):
 
         # get idm actions
         vel = idm_s[:, :, 0:1]
+        leader_exists = idm_s[:, :, 5:6]
+        merger_exists = idm_s[:, :, 6:]
 
         dv = idm_s[:, :, 1:2]
         dx = idm_s[:, :, 2:3]
-        fl_act = self.idm_driver(vel, dv, dx, idm_params)
 
-        # dv = idm_s[:, :, 3:4]
-        # dx = idm_s[:, :, 4:5]
-        # fm_act = self.idm_driver(vel, dv, dx, idm_params)
+        fl_act = self.idm_driver(vel, dv, dx, idm_params)*(leader_exists)
+        tf.print('maxxxxxxx fl_act: ', tf.reduce_max(fl_act))
+        tf.print('minnnnnnn fl_act: ', tf.reduce_min(fl_act))
+        tf.print('meannnnnn fl_act: ', tf.reduce_mean(fl_act))
 
-        # att_scores = tf.reshape(att_scores, [batch_size, 20, 1])*idm_s[:, :, 5:6]
-        # act_seq = (1-att_scores)*fl_act + att_scores*fm_act
-        # att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
-        # act_seq = (1-att_scores)*fl_act + att_scores*fm_act
-        # att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
-        # act_seq = att_scores*fl_act + (1-att_scores)*10
+        dv = idm_s[:, :, 3:4]
+        dx = idm_s[:, :, 4:5]
 
-        return fl_act
+
+        # fm_act_factor = 10*(ego_decision)*(1-merger_exists)
+        fm_act = self.idm_driver(vel, dv, dx, idm_params)*(merger_exists)
+        tf.print('maxxxxxxx fm_act: ', tf.reduce_max(fm_act))
+        tf.print('minnnnnnn fm_act: ', tf.reduce_min(fm_act))
+        tf.print('meannnnnn fm_act: ', tf.reduce_mean(fm_act))
+
+        att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
+        act_seq = (1-att_scores)*fl_act + att_scores*fm_act
+        # return fl_act
+        return act_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
@@ -298,7 +301,7 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x, batch_size):
         output = self.des_v_neu(x)
-
+        # return  10 + 30*(1/(1+tf.exp(-5*output)))
         return 15 + 15*(1/(1+tf.exp(-5*output)))
 
     def get_des_tgap(self, x, batch_size):
@@ -321,17 +324,17 @@ class IDMLayer(tf.keras.Model):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
 
-        x = enc_h
-        # x = self.linear_layer(sampled_idm_z) + enc_h
-        desired_v = tf.fill([batch_size, 1], 30.0)
-        desired_tgap = tf.fill([batch_size, 1], 1.0)
-        min_jamx = tf.fill([batch_size, 1], 0.0)
-        # max_act = tf.fill([batch_size, 1], 2.0)
-        # min_act = tf.fill([batch_size, 1], 3.0)
+        # x = enc_h
+        x = self.linear_layer(sampled_idm_z) + enc_h
+        # desired_v = tf.fill([batch_size, 1], 19.4)
+        # desired_tgap = tf.fill([batch_size, 1], 2.0)
+        # min_jamx = tf.fill([batch_size, 1], 4.0)
+        # max_act = tf.fill([batch_size, 1], 0.8)
+        # min_act = tf.fill([batch_size, 1], 1.0)
 
-        # desired_v = self.get_des_v(x, batch_size)
-        # desired_tgap = self.get_des_tgap(x, batch_size)
-        # min_jamx = self.get_min_jamx(x, batch_size)
+        desired_v = self.get_des_v(x, batch_size)
+        desired_tgap = self.get_des_tgap(x, batch_size)
+        min_jamx = self.get_min_jamx(x, batch_size)
         max_act = self.get_max_act(x, batch_size)
         min_act = self.get_min_act(x, batch_size)
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
