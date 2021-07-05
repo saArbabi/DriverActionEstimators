@@ -2,16 +2,17 @@ from highway import Env
 from viewer import Viewer
 
 def main():
-    config = {'lanes_n':4,
+    config = {'lanes_n':6,
             'lane_width':3.7, # m
-            'lane_length':1200 # m
+            'lane_length':400 # m
             }
     env = Env(config)
     viewer = Viewer(config)
     # for i in range(100):
     while True:
-        if env.time_step > 80:
-        # if env.time_step > 0:
+        # if env.time_step > 200:
+        # if env.time_step > 640:
+        if env.time_step > 640:
             decision = input()
             if decision == 'n':
                 sys.exit()

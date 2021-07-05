@@ -19,6 +19,9 @@ class AbstractModel(tf.keras.Model):
         self.train_loss = tf.keras.metrics.Mean(name='train_loss')
         self.test_loss = tf.keras.metrics.Mean(name='test_loss')
 
+    def mse(self, act_true, act_pred):
+        return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
+
     def train_loop(self, data_objs):
         train_ds = self.batch_data(data_objs)
         for xs_h, xs_f, ys_f in train_ds:

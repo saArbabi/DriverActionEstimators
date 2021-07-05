@@ -23,23 +23,26 @@ class Env:
         self.last_entries = {}
 
 
-    def recorder(self, ego, actions):
+    def recorder(self):
         """For recording vehicle trajectories. Used for:
         - model training
         - perfromance validations # TODO
         """
-        if self.usage != 'data generation':
-            return
-        # if ego.glob_x < 100:
-        #     return
-
-        if not ego.id in self.recordings:
-            self.recordings[ego.id] = {}
-        log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
-        log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
-        log['aggressiveness'] = ego.driver_params['aggressiveness']
-        log['act_long'] = actions[0]
-        self.recordings[ego.id][self.time_step] = log
+        for ego in self.vehicles:
+            if ego.glob_x < 0:
+                continue
+            if not ego.id in self.recordings:
+                self.recordings[ego.id] = {}
+            log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
+            log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
+            log['aggressiveness'] = ego.driver_params['aggressiveness']
+            log['act_long'] = ego.actions[0]
+            self.recordings[ego.id][self.time_step] = log
+            # if ego.id == 225:
+            #     print(self.time_step)
+            #     print(ego.lane_decision)
+            #     print(log)
+            #     print(ego.glob_x - ego.neighbours['f'].glob_x)
 
     def get_joint_action(self):
         """
@@ -47,35 +50,39 @@ class Env:
         """
         joint_action = []
         for vehicle in self.vehicles:
-            neighbours = vehicle.my_neighbours(self.vehicles)
-            vehicle.neighbours = neighbours
-            actions = vehicle.act(neighbours, self.handler.reservations)
+            vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
+            actions = vehicle.act(self.handler.reservations)
+            vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
             joint_action.append(actions)
+            vehicle.actions = actions
             self.handler.update_reservations(vehicle)
-            self.recorder(vehicle, actions)
-
         return joint_action
 
-    def step(self, actions=None):
-        """ steps the environment forward in time.
-        """
+    def remove_vehicles_outside_bound(self):
         vehicles = []
-        joint_action = self.get_joint_action()
-        self.time_step += 1
-
-        for vehicle, actions in zip(self.vehicles, joint_action):
+        for vehicle in self.vehicles:
             if vehicle.glob_x > self.lane_length:
                 # vehicle has left the highway
                 if vehicle.id in self.handler.reservations:
                     del self.handler.reservations[vehicle.id]
+
                 continue
-
-            vehicle.step(actions)
             vehicles.append(vehicle)
-
         self.vehicles = vehicles
+
+    def step(self, actions=None):
+        """ steps the environment forward in time.
+        """
+        if self.usage == 'data generation':
+            self.recorder()
+        self.remove_vehicles_outside_bound()
+        joint_action = self.get_joint_action()
+        for vehicle, actions in zip(self.vehicles, joint_action):
+            vehicle.step(actions)
+
         new_entries = self.handler.handle_vehicle_entries(
                                                           self.queuing_entries,
                                                           self.last_entries)
         if new_entries:
             self.vehicles.extend(new_entries)
+        self.time_step += 1

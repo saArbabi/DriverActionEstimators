@@ -44,9 +44,10 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
-        self.neighbours = {}
+        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr']}
         self.perception_range = 100 #m
         self.lane_width = 3.8
+        self.actions = [0, 0]
 
         self.lateral_actions = {'move_left':0.7,
                                 'move_right':-0.7,
@@ -80,12 +81,11 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0.2
                                          }}
 
-
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
-
         # IDM params
-        self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
+        self.driver_params['desired_v'] = self.get_idm_param(\
+                                Parameter_range, 'desired_v')
         self.driver_params['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_idm_param(Parameter_range, 'max_act')
@@ -95,18 +95,19 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
 
-        if 0 <= self.driver_params['aggressiveness'] < 0.33:
-            # timid driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
-        elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
-            # normal driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
-        elif 0.66 < self.driver_params['aggressiveness']:
-            # aggressive driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
-        self.driver_params['attentiveness'] = round(attentiveness, 1)
+        # if 0 <= self.driver_params['aggressiveness'] < 0.33:
+        #     # timid driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
+        # elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
+        #     # normal driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
+        # elif 0.66 < self.driver_params['aggressiveness']:
+        #     # aggressive driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
+        # self.driver_params['attentiveness'] = round(attentiveness, 1)
 
-        # self.driver_params['desired_v'] += np.random.normal(0, 1)
+        self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
+
     def get_idm_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act', 'safe_braking']:
             # the larger the param, the more aggressive the driver
@@ -149,7 +150,7 @@ class IDMMOBILVehicle(Vehicle):
                         continue
 
                     elif self.lane_decision == 'keep_lane':
-                        if delta_x >= 0:
+                        if delta_x > 0:
                             if vehicle.lane_id == self.lane_id+1:
                                 # right lane
                                 if self.am_i_attending(vehicle, delta_x, delta_xs_f):
@@ -170,7 +171,8 @@ class IDMMOBILVehicle(Vehicle):
                                     delta_xs_fl.append(delta_x)
                                     candidate_fl = vehicle
 
-                            elif vehicle.lane_id == self.lane_id:
+                            elif vehicle.lane_id == self.lane_id and \
+                                vehicle.target_lane == self.lane_id:
                                 # same lane
                                 if delta_x < delta_xs_f[-1]:
                                     delta_xs_f.append(delta_x)
@@ -188,7 +190,8 @@ class IDMMOBILVehicle(Vehicle):
                                 if delta_x < delta_xs_rl[-1]:
                                     delta_xs_rl.append(delta_x)
                                     candidate_rl = vehicle
-                            elif vehicle.lane_id == self.lane_id:
+                            elif vehicle.lane_id == self.lane_id and \
+                                vehicle.target_lane == self.lane_id:
                                 # same lane
                                 if delta_x < delta_xs_r[-1]:
                                     delta_xs_r.append(delta_x)
@@ -207,7 +210,7 @@ class IDMMOBILVehicle(Vehicle):
         """Am I attending to the merging car?
         """
         if vehicle.target_lane == self.lane_id and \
-                abs(vehicle.lane_y) > self.driver_params['attentiveness'] \
+                abs(vehicle.lane_y) >= self.driver_params['attentiveness'] \
                 and delta_x < delta_xs[-1]:
             return True
         return False
@@ -228,12 +231,15 @@ class IDMMOBILVehicle(Vehicle):
         return False
 
     def get_desired_gap(self, delta_v):
-        gap = self.driver_params['min_jamx'] + \
-                                            self.driver_params['desired_tgap']*\
-                                            self.speed+(self.speed*delta_v)/ \
-                                            (2*np.sqrt(self.driver_params['max_act']*\
-                                            self.driver_params['min_act']))
-        return max([0, gap])
+        desired_gap = self.driver_params['min_jamx'] + \
+                        max(0,
+                        self.driver_params['desired_tgap']*\
+                        self.speed+(self.speed*delta_v)/ \
+                        (2*np.sqrt(self.driver_params['max_act']*\
+                        self.driver_params['min_act']))
+                        )
+
+        return desired_gap
 
     def observe(self, follower, leader):
         if not follower or not leader:
@@ -242,11 +248,13 @@ class IDMMOBILVehicle(Vehicle):
         delta_x = leader.glob_x-follower.glob_x
         return [delta_v, delta_x]
 
-    def idm_actions(self, obs):
+    def idm_action(self, obs):
         delta_v, delta_x = obs
+        assert delta_x > 0
+
         desired_gap = self.get_desired_gap(delta_v)
         act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
-                                            (desired_gap/(delta_x+1e-5))**2)
+                                            (desired_gap/(delta_x))**2)
 
         return act_long
 
@@ -270,9 +278,8 @@ class IDMMOBILVehicle(Vehicle):
     def check_neighbours(self, neighbours):
         """To ensure neighbours keep lane while merger is changing lane.
         """
-        for vehicle in neighbours.values():
-            if vehicle and vehicle.lane_decision != 'keep_lane':
-                return False
+        if neighbours['f'] and neighbours['f'].lane_decision != 'keep_lane':
+            return False
         return True
 
     def mobil_condition(self, actions_gains):
@@ -283,9 +290,13 @@ class IDMMOBILVehicle(Vehicle):
                                                                 old_follower_gain )
         return lc_condition
 
+    def act(self, reservations):
+        act_long, act_lat = self.idm_mobil_act(reservations)
+        return [max(-3, min(act_long, 3)), act_lat]
 
-    def act(self, neighbours, reservations):
-        act_long = self.idm_actions(self.observe(self, neighbours['f']))
+    def idm_mobil_act(self, reservations):
+        neighbours = self.neighbours
+        act_long = self.idm_action(self.observe(self, neighbours['f']))
         if self.lane_decision == 'move_left':
             if self.lane_id == self.target_lane :
                 if self.lane_y >= 0:
@@ -300,28 +311,21 @@ class IDMMOBILVehicle(Vehicle):
                     self.lane_decision = 'keep_lane'
                     self.lane_y = 0
 
-        elif self.lane_decision == 'keep_lane' and \
-                                    self.check_neighbours(neighbours) and \
-                                    self.glob_x > 50:
-            # if not :
-            # # if not self.check_neighbours(neighbours) or self.glob_x < 100:
-            #     # Keep lane if neighbours are chanigng lane or if you have just entered
-            #     # highway
-            #     pass
-
+        elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
+                                            self.check_neighbours(neighbours):
             lc_left_condition = 0
             lc_right_condition = 0
 
-            act_rl_lc = self.idm_actions(self.observe(neighbours['rl'], self))
-            act_rr_lc = self.idm_actions(self.observe(neighbours['rr'], self))
-            act_r_lc = self.idm_actions(self.observe(neighbours['r'], neighbours['f']))
-            act_r_lk = self.idm_actions(self.observe(neighbours['r'], self))
+            act_rl_lc = self.idm_action(self.observe(neighbours['rl'], self))
+            act_rr_lc = self.idm_action(self.observe(neighbours['rr'], self))
+            act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
+            act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
             if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
-                act_rl_lk = self.idm_actions(self.observe(neighbours['rl'], neighbours['fl']))
-                act_ego_lc_l = self.idm_actions(self.observe(self, neighbours['fl']))
+                act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
+                act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
                 ego_gain = act_ego_lc_l-act_long
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
@@ -329,22 +333,23 @@ class IDMMOBILVehicle(Vehicle):
             if self.lane_id < self.lanes_n and \
                                                 self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
-                act_ego_lc_r = self.idm_actions(self.observe(self, neighbours['fr']))
-                act_rr_lk = self.idm_actions(self.observe(neighbours['rr'], neighbours['fr']))
+                act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
+                act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
 
                 ego_gain = act_ego_lc_r-act_long
                 new_follower_gain = act_rr_lc-act_rr_lk
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
-                if lc_left_condition > lc_right_condition and act_rl_lc > -3:
+
+                if lc_left_condition > lc_right_condition:
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_left'
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
-                elif lc_left_condition < lc_right_condition and act_rr_lc > -3:
+                elif lc_left_condition < lc_right_condition:
                     target_lane = self.target_lane + 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_right'
