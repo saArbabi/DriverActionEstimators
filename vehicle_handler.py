@@ -22,6 +22,7 @@ class VehicleHandler:
         id = self.next_vehicle_id
         glob_x = np.random.uniform(-30, 0)
         # aggressiveness = np.random.uniform(0, 1)
+        # aggressiveness = 1
         aggressiveness = np.random.choice([0, 0.5, 1])
         speed = aggressiveness*10 + 20 + np.random.normal(0, 1)
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
@@ -49,120 +50,13 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             # coin_flip = np.random.random()
-            if delta_x > 70:
+            if delta_x > 80:
                 # check if cars are not too close
                 new_entries.append(queuing_entries[lane_id])
                 last_entries[lane_id] = queuing_entries[lane_id]
                 queuing_entries[lane_id] = None
 
         return new_entries
-
-    def my_neighbours(self, ego, vehicles):
-        """Returns list of current neighbouring vehicles.
-            Note:
-            - When performing a merge, ego will follow the vehicle in the
-            target lane if one exists.
-        """
-        neighbours = {}
-        delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
-                        delta_xs_rr, delta_xs_fr = ([ego.perception_range] for i in range(6))
-        candidate_f, candidate_fl, candidate_rl, candidate_r, \
-                        candidate_rr, candidate_fr = (None for i in range(6))
-
-        for vehicle in vehicles:
-            if vehicle.id != ego.id:
-                delta_x = vehicle.glob_x-ego.glob_x
-                if vehicle.lane_id in [ego.lane_id, ego.lane_id+1, ego.lane_id-1] and \
-                                  abs(delta_x) < ego.perception_range:
-
-                    if ego.lane_decision != 'keep_lane':
-                        if self.am_i_following(ego.target_lane, vehicle.lane_id, delta_x, delta_xs_f):
-                            delta_xs_f.append(delta_x)
-                            candidate_f = vehicle
-
-                        elif self.will_i_lead(ego.target_lane, vehicle.lane_id, delta_x, delta_xs_r):
-                            delta_xs_r.append(abs(delta_x))
-                            candidate_r = vehicle
-                        continue
-
-                    elif ego.lane_decision == 'keep_lane':
-                        if delta_x >= 0:
-                            if vehicle.lane_id == ego.lane_id+1:
-                                # right lane
-                                if self.am_i_attending(ego, vehicle, delta_x, delta_xs_f):
-                                    delta_xs_f.append(delta_x)
-                                    candidate_f = vehicle
-
-                                elif delta_x < delta_xs_fr[-1]:
-                                    delta_xs_fr.append(delta_x)
-                                    candidate_fr = vehicle
-
-                            elif vehicle.lane_id == ego.lane_id-1:
-                                # left lane
-                                if self.am_i_attending(ego, vehicle, delta_x, delta_xs_f):
-                                    delta_xs_f.append(delta_x)
-                                    candidate_f = vehicle
-
-                                elif delta_x < delta_xs_fl[-1]:
-                                    delta_xs_fl.append(delta_x)
-                                    candidate_fl = vehicle
-
-                            elif vehicle.lane_id == ego.lane_id:
-                                # same lane
-                                if delta_x < delta_xs_f[-1]:
-                                    delta_xs_f.append(delta_x)
-                                    candidate_f = vehicle
-
-                        elif delta_x < 0:
-                            delta_x = abs(delta_x)
-                            if vehicle.lane_id == ego.lane_id+1:
-                                # right lane
-                                if delta_x < delta_xs_rr[-1]:
-                                    delta_xs_rr.append(delta_x)
-                                    candidate_rr = vehicle
-                            elif vehicle.lane_id == ego.lane_id-1:
-                                # left lane
-                                if delta_x < delta_xs_rl[-1]:
-                                    delta_xs_rl.append(delta_x)
-                                    candidate_rl = vehicle
-                            elif vehicle.lane_id == ego.lane_id:
-                                # same lane
-                                if delta_x < delta_xs_r[-1]:
-                                    delta_xs_r.append(delta_x)
-                                    candidate_r = vehicle
-
-        neighbours['f'] = candidate_f
-        neighbours['fl'] = candidate_fl
-        neighbours['rl'] = candidate_rl
-        neighbours['r'] = candidate_r
-        neighbours['rr'] = candidate_rr
-        neighbours['fr'] = candidate_fr
-
-        return neighbours
-
-    def am_i_attending(self, ego, vehicle, delta_x, delta_xs):
-        """Am I attending to the merging car?
-        """
-        if vehicle.target_lane == ego.lane_id and \
-                abs(vehicle.lane_y) > ego.driver_params['attentiveness'] \
-                and delta_x < delta_xs[-1]:
-            return True
-        return False
-
-    def am_i_following(self, ego_target_lane, vehicle_lane_id, delta_x, delta_xs):
-        """Am I following 'vehicle' in my target lane?
-        """
-        if vehicle_lane_id == ego_target_lane and delta_x > 0 and delta_x < delta_xs[-1]:
-            return True
-        return False
-
-    def will_i_lead(self, ego_target_lane, vehicle_lane_id, delta_x, delta_xs):
-        """Will I be leading 'vehicle' at some point?
-        """
-        if vehicle_lane_id == ego_target_lane and delta_x < 0 \
-                                            and abs(delta_x) < delta_xs[-1]:
-            return True
-        return False
 
     def update_reservations(self, vehicle):
         """
@@ -171,5 +65,5 @@ class VehicleHandler:
         if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':
-            max_glob_x, min_glob_x = round(vehicle.glob_x) + 100, round(vehicle.glob_x) - 100
+            max_glob_x, min_glob_x = round(vehicle.glob_x) + 30, round(vehicle.glob_x) - 100
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]

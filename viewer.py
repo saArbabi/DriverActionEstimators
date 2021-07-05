@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(15, 2))
+        self.fig = plt.figure(figsize=(15, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         # self.att_ax = self.fig.add_subplot(212)
@@ -47,11 +47,11 @@ class Viewer():
 
         annotation_mark_1 = [veh.id for veh in vehicles]
         # annotation_mark = [veh.lane_decision for veh in vehicles]
-        # annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
+        annotation_mark_2 = [round(veh.speed, 1) for veh in vehicles]
         # annotation_mark_2 = [round(veh.lane_y, 2) for veh in vehicles]
         for i in range(len(annotation_mark_1)):
             ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
-            # ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
+            ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
 
 
 
@@ -77,12 +77,28 @@ class Viewer():
                         ax.annotate(key, (pos_x, pos_y))
                         # print(delta_x)
                         # print('delta_x :', delta_x)
-                print('lane_id: ', vehicle.lane_id)
-                print('target_lane: ', vehicle.target_lane)
-                print('glob_x: ', vehicle.glob_x)
-                print('glob_y: ', vehicle.glob_y)
-                print('lane_y: ', vehicle.lane_y)
+                print('###########################')
+                # print('lane_id: ', vehicle.lane_id)
+                # print('target_lane: ', vehicle.target_lane)
+                print('ego_decision: ', vehicle.lane_decision)
+                # print('glob_x: ', vehicle.glob_x)
+                # print('glob_y: ', vehicle.glob_y)
+                # print('lane_y: ', vehicle.lane_y)
+                try:
+                    print('att_veh_id: ', vehicle.neighbours['f'].id)
 
+                except:
+                    pass
+                print('###########################')
+
+                # print('lane_decision: ', vehicle.lane_decision)
+                # print('neighbour_f: ', vehicle.neighbours['f'].id)
+                # print('true_act: ', vehicle.actions)
+                # ideal_ = vehicle.idm_action(vehicle.observe(vehicle, vehicle.neighbours['f']))
+                # print('ideal_act: ', ideal_)
+                # print('obs: ', vehicle.observe(vehicle, vehicle.neighbours['f']))
+                # print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
+                # print('###########################')
 
             if 'f' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['f']
@@ -94,10 +110,10 @@ class Viewer():
 
 
             if vehicle.lane_decision == 'move_left':
-                ax.scatter(vehicle.glob_x-7, vehicle.glob_y+.7,
+                ax.scatter(vehicle.glob_x-2, vehicle.glob_y+.7,
                                 s=50, marker="*", color='red', edgecolors='black')
             elif vehicle.lane_decision == 'move_right':
-                ax.scatter(vehicle.glob_x-7, vehicle.glob_y-.7,
+                ax.scatter(vehicle.glob_x-2, vehicle.glob_y-.7,
                                 s=50, marker="*", color='red', edgecolors='black')
 
 

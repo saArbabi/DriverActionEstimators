@@ -8,7 +8,7 @@ from vehicle_handler import VehicleHandler
 class Env:
     def __init__(self, config):
         self.config = config
-        self.elapsed_time = 0
+        self.time_step = 0
         self.handler = VehicleHandler(config)
         self.sdv = None
         self.vehicles = []
@@ -22,44 +22,27 @@ class Env:
         self.queuing_entries = {}
         self.last_entries = {}
 
-    def recorder(self, ego, neighbours):
+
+    def recorder(self):
         """For recording vehicle trajectories. Used for:
         - model training
         - perfromance validations # TODO
         """
-        if self.usage != 'data generation':
-            return
-        if ego.glob_x < 100:
-            return
-        if ego.lane_decision == 'keep_lane':
-            lane_decision = 0
-        elif ego.lane_decision == 'move_left':
-            lane_decision = 1
-        elif ego.lane_decision == 'move_right':
-            lane_decision = -1
-
-        act_long, act_lat = ego.actions
-        state = neighbours.copy()
-        state['ego'] = [ego.speed, ego.glob_x, act_long, act_lat, ego.lane_y]
-        for key, neighbour in neighbours.items():
-            if neighbour:
-                act_long, _ = neighbour.actions
-                state[key] = [neighbour.speed, neighbour.glob_x, act_long, neighbour.id]
-            else:
-                state[key] = None
-
-
-        if not ego.id in self.recordings['info']:
-            self.recordings['info'][ego.id] = ego.driver_params
-
-        if not ego.id in self.recordings['states']:
-            self.recordings['states'][ego.id] = []
-            self.recordings['decisions'][ego.id] = []
-            self.recordings['elapsed_time'][ego.id] = []
-
-        self.recordings['states'][ego.id].append(state)
-        self.recordings['decisions'][ego.id].append(lane_decision)
-        self.recordings['elapsed_time'][ego.id].append(self.elapsed_time)
+        for ego in self.vehicles:
+            if ego.glob_x < 0:
+                continue
+            if not ego.id in self.recordings:
+                self.recordings[ego.id] = {}
+            log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
+            log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
+            log['aggressiveness'] = ego.driver_params['aggressiveness']
+            log['act_long'] = ego.actions[0]
+            self.recordings[ego.id][self.time_step] = log
+            # if ego.id == 225:
+            #     print(self.time_step)
+            #     print(ego.lane_decision)
+            #     print(log)
+            #     print(ego.glob_x - ego.neighbours['f'].glob_x)
 
     def get_joint_action(self):
         """
@@ -67,36 +50,39 @@ class Env:
         """
         joint_action = []
         for vehicle in self.vehicles:
-            neighbours = self.handler.my_neighbours(vehicle, self.vehicles)
-            self.recorder(vehicle, neighbours)
-            actions = vehicle.act(neighbours, self.handler.reservations)
-            vehicle.neighbours = neighbours
-            vehicle.actions = actions
-
+            vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
+            actions = vehicle.act(self.handler.reservations)
+            vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
             joint_action.append(actions)
+            vehicle.actions = actions
             self.handler.update_reservations(vehicle)
-
         return joint_action
 
-    def step(self, actions=None):
-        """ steps the environment forward in time.
-        """
+    def remove_vehicles_outside_bound(self):
         vehicles = []
-        joint_action = self.get_joint_action()
-        for vehicle, actions in zip(self.vehicles, joint_action):
+        for vehicle in self.vehicles:
             if vehicle.glob_x > self.lane_length:
                 # vehicle has left the highway
                 if vehicle.id in self.handler.reservations:
                     del self.handler.reservations[vehicle.id]
+
                 continue
-
-            vehicle.step(actions)
             vehicles.append(vehicle)
-
         self.vehicles = vehicles
+
+    def step(self, actions=None):
+        """ steps the environment forward in time.
+        """
+        if self.usage == 'data generation':
+            self.recorder()
+        self.remove_vehicles_outside_bound()
+        joint_action = self.get_joint_action()
+        for vehicle, actions in zip(self.vehicles, joint_action):
+            vehicle.step(actions)
+
         new_entries = self.handler.handle_vehicle_entries(
                                                           self.queuing_entries,
                                                           self.last_entries)
         if new_entries:
             self.vehicles.extend(new_entries)
-        self.elapsed_time += 1
+        self.time_step += 1
