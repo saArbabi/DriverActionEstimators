@@ -44,7 +44,7 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
-        self.neighbours = {}
+        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr']}
         self.perception_range = 100 #m
         self.lane_width = 3.8
         self.actions = [0, 0]
@@ -95,17 +95,19 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
 
-        if 0 <= self.driver_params['aggressiveness'] < 0.33:
-            # timid driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
-        elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
-            # normal driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
-        elif 0.66 < self.driver_params['aggressiveness']:
-            # aggressive driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
-        self.driver_params['attentiveness'] = round(attentiveness, 1)
-        # self.driver_params['desired_v'] += np.random.normal(0, 1)
+        # if 0 <= self.driver_params['aggressiveness'] < 0.33:
+        #     # timid driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
+        # elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
+        #     # normal driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
+        # elif 0.66 < self.driver_params['aggressiveness']:
+        #     # aggressive driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
+        # self.driver_params['attentiveness'] = round(attentiveness, 1)
+
+        self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
+
     def get_idm_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act', 'safe_braking']:
             # the larger the param, the more aggressive the driver
@@ -169,7 +171,8 @@ class IDMMOBILVehicle(Vehicle):
                                     delta_xs_fl.append(delta_x)
                                     candidate_fl = vehicle
 
-                            elif vehicle.lane_id == self.lane_id:
+                            elif vehicle.lane_id == self.lane_id and \
+                                vehicle.target_lane == self.lane_id:
                                 # same lane
                                 if delta_x < delta_xs_f[-1]:
                                     delta_xs_f.append(delta_x)
@@ -187,7 +190,8 @@ class IDMMOBILVehicle(Vehicle):
                                 if delta_x < delta_xs_rl[-1]:
                                     delta_xs_rl.append(delta_x)
                                     candidate_rl = vehicle
-                            elif vehicle.lane_id == self.lane_id:
+                            elif vehicle.lane_id == self.lane_id and \
+                                vehicle.target_lane == self.lane_id:
                                 # same lane
                                 if delta_x < delta_xs_r[-1]:
                                     delta_xs_r.append(delta_x)
@@ -206,7 +210,7 @@ class IDMMOBILVehicle(Vehicle):
         """Am I attending to the merging car?
         """
         if vehicle.target_lane == self.lane_id and \
-                abs(vehicle.lane_y) > self.driver_params['attentiveness'] \
+                abs(vehicle.lane_y) >= self.driver_params['attentiveness'] \
                 and delta_x < delta_xs[-1]:
             return True
         return False
@@ -234,6 +238,7 @@ class IDMMOBILVehicle(Vehicle):
                         (2*np.sqrt(self.driver_params['max_act']*\
                         self.driver_params['min_act']))
                         )
+
         return desired_gap
 
     def observe(self, follower, leader):
@@ -249,7 +254,7 @@ class IDMMOBILVehicle(Vehicle):
 
         desired_gap = self.get_desired_gap(delta_v)
         act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
-                                            (desired_gap/(delta_x+1e-5))**2)
+                                            (desired_gap/(delta_x))**2)
 
         return act_long
 
@@ -273,9 +278,8 @@ class IDMMOBILVehicle(Vehicle):
     def check_neighbours(self, neighbours):
         """To ensure neighbours keep lane while merger is changing lane.
         """
-        for vehicle in neighbours.values():
-            if vehicle and vehicle.lane_decision != 'keep_lane':
-                return False
+        if neighbours['f'] and neighbours['f'].lane_decision != 'keep_lane':
+            return False
         return True
 
     def mobil_condition(self, actions_gains):
@@ -288,7 +292,7 @@ class IDMMOBILVehicle(Vehicle):
 
     def act(self, reservations):
         act_long, act_lat = self.idm_mobil_act(reservations)
-        return [act_long, act_lat]
+        return [max(-3, min(act_long, 3)), act_lat]
 
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours

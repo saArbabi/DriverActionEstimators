@@ -78,19 +78,27 @@ class Viewer():
                         # print(delta_x)
                         # print('delta_x :', delta_x)
                 print('###########################')
-                print('lane_id: ', vehicle.lane_id)
-                print('target_lane: ', vehicle.target_lane)
-                print('glob_x: ', vehicle.glob_x)
-                print('glob_y: ', vehicle.glob_y)
-                print('lane_y: ', vehicle.lane_y)
-                print('lane_decision: ', vehicle.lane_decision)
-                print('neighbour_f: ', vehicle.neighbours['f'].id)
-                print('true_act: ', vehicle.actions)
-                ideal_ = vehicle.idm_action(vehicle.observe(vehicle, vehicle.neighbours['f']))
-                print('ideal_act: ', ideal_)
-                print('obs: ', vehicle.observe(vehicle, vehicle.neighbours['f']))
-                print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
+                # print('lane_id: ', vehicle.lane_id)
+                # print('target_lane: ', vehicle.target_lane)
+                print('ego_decision: ', vehicle.lane_decision)
+                # print('glob_x: ', vehicle.glob_x)
+                # print('glob_y: ', vehicle.glob_y)
+                # print('lane_y: ', vehicle.lane_y)
+                try:
+                    print('att_veh_id: ', vehicle.neighbours['f'].id)
+
+                except:
+                    pass
                 print('###########################')
+
+                # print('lane_decision: ', vehicle.lane_decision)
+                # print('neighbour_f: ', vehicle.neighbours['f'].id)
+                # print('true_act: ', vehicle.actions)
+                # ideal_ = vehicle.idm_action(vehicle.observe(vehicle, vehicle.neighbours['f']))
+                # print('ideal_act: ', ideal_)
+                # print('obs: ', vehicle.observe(vehicle, vehicle.neighbours['f']))
+                # print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
+                # print('###########################')
 
             if 'f' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['f']

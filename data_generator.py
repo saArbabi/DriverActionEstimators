@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 2000 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 1000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -22,7 +22,7 @@ class DataGenerator:
                  'episode_id', 'time_step',
                  'ego_id', 'leader_id', 'merger_id',
                  'ego_decision', 'leader_exists', 'merger_exists',
-                 'aggressiveness', 'lane_y', 'true_attention',
+                 'aggressiveness', 'lane_y', 'ego_att',
                  'ego_speed', 'leader_speed', 'merger_speed',
                  'ego_action', 'leader_action', 'merger_action',
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
@@ -47,57 +47,51 @@ class DataGenerator:
                 rounded_items.append(item)
         return rounded_items
 
-    def get_step_feature(self, ego, leader, merger):
+    def get_step_feature(self, ego, leader, merger, ego_att):
         """
         Note: ego and leader always exist. If a merger is missing, np.nan
         is assigned to its feature values.
         """
         if not merger:
-            merger = {'glob_x':ego['glob_x']+50, 'lane_y':0, 'speed':25, 'act_long':0}
-            # merger = {key: np.nan for key in leader.keys()}
+            # merger = {'glob_x':ego['glob_x']+50, 'lane_y':0, 'speed':25, 'act_long':0}
+            merger = {key: np.nan for key in leader.keys()}
+            merger['lane_y'] = np.nan
             merger_exists = 0
-            true_attention = 0
         else:
             merger_exists = 1
-            if 'true_attention' in merger:
-                true_attention = 1
-            else:
-                true_attention = 0
 
         if not leader:
-            leader = {'glob_x':ego['glob_x']+50, 'lane_y':0, 'speed':25, 'act_long':0}
-            # leader = {key: np.nan for key in leader.keys()}
+            # leader = {'glob_x':ego['glob_x']+50, 'lane_y':0, 'speed':25, 'act_long':0}
+            leader = {key: np.nan for key in merger.keys()}
             leader_exists = 0
         else:
             leader_exists = 1
 
         ego_decision = 1 if ego['lane_decision'] != 'keep_lane' else 0
         ego_aggressiveness = ego['aggressiveness']
-        lane_y = merger['lane_y']
-        # lane_y = merger['lane_y'] if merger else 0
         step_feature = [ego_decision, leader_exists, merger_exists,
-                        ego_aggressiveness, lane_y, true_attention,
+                        ego_aggressiveness, merger['lane_y'], ego_att,
                         ego['speed'], leader['speed'], merger['speed'],
                         ego['act_long'], leader['act_long'], merger['act_long']]
 
         # as if ego following leader
-        if leader_exists:
-            step_feature.extend([
-                                 ego['speed']-leader['speed'],
-                                 leader['glob_x']-ego['glob_x']])
-        else:
-            step_feature.extend([
-                                 0,
-                                 50])
+        # if leader_exists:
+        step_feature.extend([
+                             ego['speed']-leader['speed'],
+                             leader['glob_x']-ego['glob_x']])
+        # else:
+        #     step_feature.extend([
+        #                          np.nan,
+        #                          np.nan])
         # as if ego following merger
-        if merger_exists:
-            step_feature.extend([
-                                 ego['speed']-merger['speed'],
-                                 merger['glob_x']-ego['glob_x']])
-        else:
-            step_feature.extend([
-                                 0,
-                                 50])
+        # if merger_exists:
+        step_feature.extend([
+                             ego['speed']-merger['speed'],
+                             merger['glob_x']-ego['glob_x']])
+        # else:
+        #     step_feature.extend([
+        #                          np.nan,
+        #                          np.nan])
         # return self.round_scalars(step_feature)
         return step_feature
 
@@ -112,40 +106,54 @@ class DataGenerator:
         (4) Ego following a leader who is changing lane.
         """
         # print(raw_recordings[47])
-        def trace_back(merger_id, time_step):
+        def trace_back(leader_id, merger_id, time_step):
             """
-            When a merger is found, trace back its state while it is performing
-            its lane-change.
+            When a merger is found, trace back while merger exists.
             """
             nonlocal epis_features
-            pointer = -1
+            insert_point = len(epis_features)
+            init_lane_id = merger_ts[time_step+1]['lane_id']
             while True:
                 try:
-                    ego, leader, merger = ego_ts[time_step], \
-                                    leader_ts[time_step], merger_ts[time_step]
-                    if merger['lane_decision'] != 'keep_lane':
-                        step_feature = self.get_step_feature(\
-                                                        ego, leader, merger)
-                        step_feature[0:0] = add_info(leader_id, merger_id, time_step)
-                        epis_features[pointer] = step_feature
-                    else:
-                        break
+                    ego = ego_ts[time_step]
+                    merger = merger_ts[time_step]
+                    past_lane_id = merger['lane_id']
                 except:
                     break
-                time_step -= 1
-                pointer -= 1
+                att_veh_id = ego['att_veh_id']
+                if att_veh_id:
+                    # if att_veh exists, consider it to be a leader, regardless
+                        # what its doing ()
+                    leader = raw_recordings[att_veh_id][time_step]
+                    leader_id = att_veh_id
+                else:
+                    # no car is being attended to
+                    break
+
+                delta_x = merger['glob_x'] - ego['glob_x']
+                if delta_x > 0 and past_lane_id == init_lane_id and \
+                                        ego['lane_decision'] == 'keep_lane':
+                    step_feature = self.get_step_feature(ego, leader, merger, ego_att=0)
+                    step_feature[0:0] = add_info(leader_id, merger_id, time_step)
+                    epis_features.insert(insert_point, step_feature)
+                    time_step -= 1
+                else:
+                    break
 
         def reset_episode():
-            nonlocal epis_features, leader_id, merger_id, episode_id, leader, merger
+            nonlocal epis_features, leader_id, merger_id, episode_id, \
+                        leader, merger, ego_att, leader_ts, merger_ts
             if len(epis_features) > 50:
                 features.extend(epis_features)
                 episode_id += 1
             epis_features = []
             leader_id = None
             merger_id = None
-            true_attention = 0
+            ego_att = 0
             leader = None
             merger = None
+            leader_ts = None
+            merger_ts = None
 
         def add_info(leader_id, merger_id, time_step):
             """Useful for debugging
@@ -169,26 +177,29 @@ class DataGenerator:
                 return True
             return False
 
-        def is_merger():
+        def is_merger(att_veh, ego):
             if att_veh['lane_decision'] != 'keep_lane' and \
                                 att_veh['target_lane'] == ego['lane_id'] and \
                                 ego['lane_decision'] == 'keep_lane':
                 return True
             return False
 
-        features = [] # episode_id ...
+        features = [] # episode_id ..
+
         epis_features = []
         leader_id = None
         merger_id = None
-        true_attention = 0
+        ego_att = 0
         leader = None
         merger = None
+        leader_ts = None
+        merger_ts = None
         episode_id = 0
         vehicle_ids = list(raw_recordings.keys())
         print(len(vehicle_ids))
         np.random.shuffle(vehicle_ids)
         for ego_id in vehicle_ids:
-            # if ego_id != 225:
+            # if ego_id != 55:
             #     continue
             reset_episode()
             ego_ts = raw_recordings[ego_id]
@@ -202,14 +213,10 @@ class DataGenerator:
                     reset_episode()
                     continue
 
-                if not is_merger():
-                    if not leader_id or leader_id != att_veh_id:
-                        leader_id = att_veh_id
-                        leader_ts = raw_recordings[att_veh_id]
-                        leader = att_veh
-                    else:
-                        leader = att_veh
-
+                if not is_merger(att_veh, ego):
+                    leader_id = att_veh_id
+                    leader_ts = raw_recordings[att_veh_id]
+                    leader = att_veh
                 elif leader_id:
                     try:
                         leader = leader_ts[time_step]
@@ -218,34 +225,33 @@ class DataGenerator:
                         leader = None
                         leader_id = None
 
-                if is_merger():
-                    # reset_episode()
-                    # continue
+                if is_merger(att_veh, ego):
+                    #Episode ends
+                    if merger_id and merger_id != att_veh_id:
+                        reset_episode()
+                        continue
+                elif merger_id:
+                    reset_episode()
+                    continue
+
+                if is_merger(att_veh, ego):
                     if not merger_id:
-                        true_attention = 1
+                        ego_att = 1
                         merger_ts = raw_recordings[att_veh_id]
-                        trace_back(att_veh_id, time_step-1)
+                        epis_features = []
+                        trace_back(leader_id, att_veh_id, time_step-1)
                     merger_id = att_veh_id
                     merger = att_veh
-                    merger['true_attention'] = true_attention
-                elif merger_id:
-                    # merger existed at some point, but no more.
-                    merger_id = None
-                    merger = None
-                    true_attention = 0
+
                 # print('time_step')
                 # print(time_step)
-                # print(leader_id)
-                # print(time_step)
-                # print(leader)
+                # # print(epis_features)
+                # print(str(leader_id), leader)
+                # print(str(merger_id), merger)
                 # print(merger)
-                # if merger:
-                #     if is_epis_end():
-                #         reset_episode()
-                #         continue
 
-                # print(time_step)
-                step_feature = self.get_step_feature(ego, leader, merger)
+
+                step_feature = self.get_step_feature(ego, leader, merger, ego_att)
                 step_feature[0:0] = add_info(leader_id, merger_id, time_step)
                 epis_features.append(step_feature)
 
@@ -262,19 +268,16 @@ class DataGenerator:
         """
         def fill_with_dummy(indx):
             nonlocal features
-            dummy_value = non_nan_values[:, indx].mean()
-            # dummy_value = 0
+            col_vals = features[:, indx]
+            dummy_value = col_vals[~np.isnan(col_vals)].mean()
             nan_mask = np.isnan(features[:, indx])
             nan_indx = np.where(nan_mask)
             features[nan_indx, indx] = dummy_value
 
-        # non_nan_values = features[~np.isnan(features).any(axis=1)]
-        non_nan_values = features[~np.isnan(features).any(axis=1)]
-        fill_with_dummy(self.indxs['merger_speed'])
-        fill_with_dummy(self.indxs['merger_action'])
-        fill_with_dummy(self.indxs['lane_y'])
-        fill_with_dummy(self.indxs['fm_delta_v'])
-        fill_with_dummy(self.indxs['fm_delta_x'])
+        cols_with_nans = ['lane_y', 'leader_speed', 'merger_speed', 'leader_action', \
+                'merger_action', 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
+        for col in cols_with_nans:
+            fill_with_dummy(self.indxs[col])
 
         return features
 
@@ -301,8 +304,8 @@ class DataGenerator:
     def names_to_index(self, col_names):
         return [self.indxs[item] for item in col_names]
 
-    def split_data(self, history_future_seqs_seqs, history_future_seqs_scaled):
-        history_seqs, future_seqs = history_future_seqs_seqs
+    def split_data(self, history_future_seqs, history_future_seqs_scaled):
+        history_seqs, future_seqs = history_future_seqs
         history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
         col_names = ['episode_id', 'time_step',
@@ -317,7 +320,7 @@ class DataGenerator:
         col_names = ['episode_id', 'time_step', 'ego_id',
                 'ego_speed', 'leader_speed', 'merger_speed',
                 'ego_action', 'leader_action', 'merger_action',
-                'lane_y', 'true_attention', 'leader_exists', 'merger_exists',
+                'lane_y', 'ego_att', 'leader_exists', 'merger_exists',
                 'ego_decision', 'aggressiveness']
 
         history_usc = history_seqs[:, :, self.names_to_index(col_names)]
@@ -332,7 +335,7 @@ class DataGenerator:
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
 
         # future action of merger - fed to LSTMs
-        col_names = ['episode_id', 'time_step', 'merger_action', 'lane_y']
+        col_names = ['episode_id', 'time_step', 'merger_exists', 'merger_action', 'lane_y']
         future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
 
         # future action of ego - used as target
@@ -380,9 +383,9 @@ class DataGenerator:
         # features = features[features[:, 7]==0] # aggrss
         # features = features[features[:, 6]==0] # merger exists
         # features_scaled = self.scale_data(features)
-        # history_future_seqs_seqs = self.sequence(features, 20, 20)
+        # history_future_seqs = self.sequence(features, 20, 20)
         # history_future_seqs_scaled = self.sequence(features_scaled, 20, 20)
-        # data_arrays = self.split_data(history_future_seqs_seqs, history_future_seqs_scaled)
+        # data_arrays = self.split_data(history_future_seqs, history_future_seqs_scaled)
         # return data_arrays
         return features
 
