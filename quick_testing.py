@@ -35,7 +35,13 @@ data_gen = DataGenerator(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 features_origin.shape
-# features_origin[features_origin[:, indxs['ego_decision']] != 1].shape
+# %%
+
+features_origin[(features_origin[:, indxs['merger_exists']] == 0) & \
+                    (features_origin[:, indxs['ego_att']] == 1) ].shape
+
+# %%
+
 features_origin[:, indxs['ego_action']].min()
 features_origin[:, indxs['ego_action']].std()
 # %%
@@ -172,7 +178,7 @@ future_ego_a.shape
 
 # cond = (history_sca[:, :, -1] == 1).any(axis=1)
 
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
 # cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
 # cond = (history_future_usc[:, :, -1] == 0.5).any(axis=1)
 # cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
@@ -299,14 +305,7 @@ for i in range(future_idm_s.shape[-1]):
     plt.title(col_names[i])
     plt.grid()
 # %%
-col_names = ['episode_id', 'time_step', 'ego_id',
-        'ego_speed', 'leader_speed', 'merger_speed',
-        'ego_action', 'leader_action', 'merger_action',
-        'lane_y', 'ego_att', 'leader_exists', 'merger_exists',
-        'ego_decision', 'aggressiveness']
 
-random_samples = np.round(np.random.uniform(0, 3000, 200))
- 
 # %%
 config = {
  "model_config": {
@@ -345,18 +344,23 @@ class Trainer():
         _, history_sca, future_sca, future_idm_s,\
                 future_merger_a, future_ego_a = training_data
 
+        all_epis = np.unique(history_sca[:, 0, 0])
+        train_epis = all_epis[:int(len(all_epis)*0.8)]
+        val_epis = np.setdiff1d(all_epis, train_epis)
+        train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
+        val_indxs = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 
-        train_input = [history_sca[0:train_sample_index, :, 2:],
-                    future_sca[0:train_sample_index, :, 2:],
-                    future_idm_s[0:train_sample_index, :, 2:],
-                    future_merger_a[0:train_sample_index, :, 2:],
-                    future_ego_a[0:train_sample_index, :, 2:]]
+        train_input = [history_sca[train_indxs, :, 2:],
+                    future_sca[train_indxs, :, 2:],
+                    future_idm_s[train_indxs, :, 2:],
+                    future_merger_a[train_indxs, :, 2:],
+                    future_ego_a[train_indxs, :, 2:]]
 
-        val_input = [history_sca[train_sample_index:, :, 2:],
-                    future_sca[train_sample_index:, :, 2:],
-                    future_idm_s[train_sample_index:, :, 2:],
-                    future_merger_a[train_sample_index:, :, 2:],
-                    future_ego_a[train_sample_index:, :, 2:]]
+        val_input = [history_sca[val_indxs, :, 2:],
+                    future_sca[val_indxs, :, 2:],
+                    future_idm_s[val_indxs, :, 2:],
+                    future_merger_a[val_indxs, :, 2:],
+                    future_ego_a[val_indxs, :, 2:]]
 
         for epoch in range(epochs):
             self.model.train_loop(train_input)
@@ -413,9 +417,12 @@ plt.plot(val_3)
 # %%
 
 np.random.seed(2020)
-train_sample_index = int(len(history_sca)*0.8)
-val_examples = range(train_sample_index, len(history_sca))
-# val_examples = range(0, len(history_sca))
+all_epis = np.unique(history_sca[:, 0, 0])
+train_epis = all_epis[:int(len(all_epis)*0.8)]
+val_epis = np.setdiff1d(all_epis, train_epis)
+train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
+val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
+
 
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
@@ -447,25 +454,34 @@ def latent_samples(model_trainer, sample_index):
 
 
 
-fig = plt.figure(figsize=(7, 7))
-att_axis = fig.add_subplot(211)
-idm_axs = fig.add_subplot(212)
+def latent_vis():
+    fig = plt.figure(figsize=(7, 7))
+    att_axis = fig.add_subplot(211)
+    idm_axs = fig.add_subplot(212)
+    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
+    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='red')
+    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='red')
 
-sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='red')
-idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='red')
+    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
+    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='green')
+    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='green')
 
-sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='green')
-idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='green')
+    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, normal_drivers)
+    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='orange')
+    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='orange')
 
-sampled_att_z, sampled_idm_z = latent_samples(model_trainer, normal_drivers)
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='orange')
-idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='orange')
+    att_axis.set_ylabel('$z_1$')
+    att_axis.set_xlabel('$z_2$')
+    return att_axis, idm_axs
+att_axis, idm_axs = latent_vis()
+
+# %%
+att_axis, idm_axs = latent_vis()
+att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
+idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 
 att_axis.set_ylabel('$z_1$')
 att_axis.set_xlabel('$z_2$')
-
 # %%
 sampled_att_z = sampled_att_z.numpy()
 sampled_att_z[:, 0].max()
@@ -514,10 +530,11 @@ for item_name in col_names:
     indxs[item_name] = index
     index += 1
 
+np.random.shuffle(normal_drivers)
 while Example_pred < 20:
     # sample_index = [timid_drivers[i]]
-    sample_index = [normal_drivers[i]]
-    # sample_index = [aggressive_drivers[i]]
+    # sample_index = [normal_drivers[i]]
+    sample_index = [aggressive_drivers[i]]
     i += 1
     # ego_id = history_future_usc[sample_index, 0, indxs['ego_id']]
     ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
@@ -531,10 +548,11 @@ while Example_pred < 20:
     lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # future_merger_a[8255, :, 2:]
-    # if episode not in covered_episodes and 0 < ego_att[:30].mean() < 1:
-    if episode not in covered_episodes and 0 < ego_att[:30].mean():
+    # if episode not in covered_episodes and ego_att[:].mean() > 0:
+    if episode not in covered_episodes:
+    # if episode not in covered_episodes and 0 < ego_att[:30].mean():
         # if episode not in covered_episodes and ego_att[30:].mean() == 0 and ego_att[:30].mean() == 1:
-        covered_episodes.append(episode)
+        # covered_episodes.append(episode)
         sdv_actions = vectorise(future_merger_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
@@ -591,6 +609,15 @@ while Example_pred < 20:
         plt.grid()
 
         ##########
+        # lATENT
+        att_axis, idm_axs = latent_vis()
+        att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
+        idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
+
+        att_axis.set_ylabel('$z_1$')
+        att_axis.set_xlabel('$z_2$')
+        fig
+        ##########
 
         # plt.plot(desired_vs)
         # plt.grid()
@@ -601,8 +628,8 @@ while Example_pred < 20:
         desired_tgaps = idm_params.numpy()[:, 0, 1]
         plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-        plt.scatter(19.4, 2, color='green')
-        # plt.scatter(25, 1.4, color='orange')
+        # plt.scatter(19.4, 2, color='green')
+        plt.scatter(24.7, 1.5, color='orange')
         # plt.scatter(30, 1, color='red')
         plt.xlim(15, 40)
         plt.ylim(0, 3)
@@ -637,12 +664,12 @@ while Example_pred < 20:
 """
 ########################
 desired_v = 20
-desired_tgap = 1.4
-min_jamx = 2.4
-max_act = 1.4
-min_act = 2.3
+desired_tgap = 2
+min_jamx = 2.
+max_act = 0.8
+min_act = 1.4
 
-i = 8237
+i = 7444
 # vel = future_idm_s[i, :, 2]
 # dv = future_idm_s[i, :, 3]
 # dx = future_idm_s[i, :, 4]
@@ -710,7 +737,7 @@ for item_name in col_names:
 
 model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
-sample_index = [7559]
+sample_index = [7444]
 # sample_index = [aggressive_drivers[i]]
 # ego_id = history_future_usc[sample_index, 0, indxs['ego_id']]
 ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
