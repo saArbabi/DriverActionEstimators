@@ -106,7 +106,7 @@ class DataGenerator:
         (4) Ego following a leader who is changing lane.
         """
         # print(raw_recordings[47])
-        def trace_back(leader_id, merger_id, time_step):
+        def trace_back(merger_id, time_step):
             """
             When a merger is found, trace back while merger exists.
             """
@@ -124,8 +124,6 @@ class DataGenerator:
                     break
                 att_veh_id = ego['att_veh_id']
                 if att_veh_id:
-                    # if att_veh exists, consider it to be a leader, regardless
-                        # what its doing ()
                     leader = raw_recordings[att_veh_id][time_step]
                     leader_id = att_veh_id
                 else:
@@ -203,8 +201,8 @@ class DataGenerator:
         print(len(vehicle_ids))
         np.random.shuffle(vehicle_ids)
         for ego_id in vehicle_ids:
-            if ego_id != 287:
-                continue
+            # if ego_id != 287:
+            #     continue
             reset_episode()
             ego_ts = raw_recordings[ego_id]
             for time_step, ego in ego_ts.items():
@@ -243,7 +241,7 @@ class DataGenerator:
                         # reset_episode()
                         merger_ts = raw_recordings[att_veh_id]
                         if epis_features:
-                            trace_back(leader_id, att_veh_id, time_step-1)
+                            trace_back(att_veh_id, time_step-1)
                     merger_id = att_veh_id
                     merger = att_veh
                     ego_att = 1

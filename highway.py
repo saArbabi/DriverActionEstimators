@@ -73,10 +73,10 @@ class Env:
     def step(self, actions=None):
         """ steps the environment forward in time.
         """
-        if self.usage == 'data generation':
-            self.recorder()
         self.remove_vehicles_outside_bound()
         joint_action = self.get_joint_action()
+        if self.usage == 'data generation':
+            self.recorder()
         for vehicle, actions in zip(self.vehicles, joint_action):
             vehicle.step(actions)
 

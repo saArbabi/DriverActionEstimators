@@ -60,17 +60,17 @@ features_origin[:, indxs['ego_action']].std()
 #     dv = future_idm_s[i, :, 3]
 #     dx = future_idm_s[i, :, 4]
 #
-# desired_v = 19.4
-# desired_tgap = 2
-# min_jamx = 4
-# max_act = 0.8
-# min_act = 1
-desired_v = 24.7
-desired_tgap = 1.5
-min_jamx = 2
-max_act = 1.4
-min_act = 2
-
+desired_v = 19.4
+desired_tgap = 2
+min_jamx = 4
+max_act = 0.8
+min_act = 1
+# desired_v = 24.7
+# desired_tgap = 1.5
+# min_jamx = 2
+# max_act = 1.4
+# min_act = 2
+#
 
 # desired_v = 26
 # desired_tgap = 1.7
@@ -85,7 +85,7 @@ min_act = 2
 # min_jamx:  3.61159277
 # max_act:  1.19065118
 # min_act:  2.99607801
-for i in range(7140):
+for i in range(7892):
     vel = future_idm_s[i, :, 2]
     dv = future_idm_s[i, :, 3]
     dx = future_idm_s[i, :, 4]
@@ -114,9 +114,10 @@ for i in range(7140):
         print(loss.max())
 
 # %%
-future_idm_s[1223]
 # %%
-i = 106
+i = 4630
+future_idm_s[i]
+
 vel = future_idm_s[i, :, 2]
 dv = future_idm_s[i, :, 3]
 dx = future_idm_s[i, :, 4]
@@ -179,8 +180,8 @@ plt.plot(model_act)
 # features = features_origin[(features_origin[:, indxs['ego_att']]==1) &
 #                     (features_origin[:, indxs['aggressiveness']]==0)] # aggrss
 features.shape
-features = features_origin[features_origin[:, indxs['aggressiveness']]==0.5] # aggrss
-# features = features_origin
+# features = features_origin[features_origin[:, indxs['aggressiveness']]==0.5] # aggrss
+features = features_origin
 
 # features.shape
 # features[features[:, indxs['merger_exists']] == 0].shape
@@ -565,8 +566,8 @@ for item_name in col_names:
 np.random.shuffle(normal_drivers)
 while Example_pred < 5:
     # sample_index = [timid_drivers[i]]
-    # sample_index = [normal_drivers[i]]
-    sample_index = [aggressive_drivers[i]]
+    sample_index = [normal_drivers[i]]
+    # sample_index = [aggressive_drivers[i]]
     i += 1
     # ego_id = history_future_usc[sample_index, 0, indxs['ego_id']]
     ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
@@ -580,8 +581,8 @@ while Example_pred < 5:
     lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # future_merger_a[8255, :, 2:]
-    # if episode not in covered_episodes and ego_att[:].mean() > 0:
-    if episode not in covered_episodes:
+    if episode not in covered_episodes and ego_att[:].mean() > 0:
+    # if episode not in covered_episodes:
     # if episode not in covered_episodes and 0 < ego_att[:30].mean():
         # if episode not in covered_episodes and ego_att[30:].mean() == 0 and ego_att[:30].mean() == 1:
         # covered_episodes.append(episode)
@@ -647,7 +648,6 @@ while Example_pred < 5:
 
         att_axis.set_ylabel('$z_1$')
         att_axis.set_xlabel('$z_2$')
-        fig
         ##########
 
         # plt.plot(desired_vs)

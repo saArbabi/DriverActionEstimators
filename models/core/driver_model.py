@@ -244,12 +244,12 @@ class IDMForwardSim(tf.keras.Model):
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
 
-        # return self.action_clip(act)
-        return act
+        return self.action_clip(act)
+        # return act
 
     def action_clip(self, action):
         "this helps with avoiding vanishing gradients"
-        return tf.clip_by_value(action, clip_value_min=-4., clip_value_max=4.)
+        return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
 
     def rollout(self, inputs):
         att_scores, idm_params, idm_s = inputs
