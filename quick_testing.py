@@ -47,9 +47,13 @@ features_origin[(features_origin[:, indxs['ego_decision']] == 1) & \
 
 features_origin[:, indxs['ego_action']].min()
 features_origin[:, indxs['ego_action']].std()
+features_origin[:, indxs['ego_action']].mean()
 # %%
 
 # %%
+"""
+For debugging
+"""
 # desired_v = 30
 # desired_tgap = 1
 # min_jamx = 0
@@ -194,10 +198,11 @@ history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
+
+future_ego_a.shape
+# %%
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_ego_a = data_arrays
-future_ego_a.shape
-
 # cond = (history_sca[:, :, -1] == 1).any(axis=1)
 
 cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
@@ -216,13 +221,6 @@ future_ego_a.shape
 future_ego_a.shape
 
 
-# %%
-a = [1, 2, 3, 4]
-pointer = -1 if a else 0
-while abs(pointer) != len(a)+1:
-    a[pointer] = 7
-    pointer -= 1
-a
 # %%
 indxs = {}
 feature_names = [
