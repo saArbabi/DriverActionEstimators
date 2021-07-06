@@ -28,8 +28,8 @@ class NeurIDMModel(AbstractModel):
         self.test_mseloss = tf.keras.metrics.Mean(name='train_loss')
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true - 0.18)/0.4
-        act_pred = (act_pred - 0.18)/0.4
+        act_true = (act_true - 0.93)/0.26
+        act_pred = (act_pred - 0.93)/0.26
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
@@ -98,7 +98,7 @@ class NeurIDMModel(AbstractModel):
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        idm_params = tf.repeat(idm_params, 20, axis=1)
+        idm_params = tf.repeat(idm_params, 40, axis=1)
 
         act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
 
@@ -208,7 +208,7 @@ class Arbiter(tf.keras.Model):
 
     def architecture_def(self):
         self.linear_layer = Dense(100)
-        self.attention_neu = Dense(20)
+        self.attention_neu = Dense(40)
 
     def call(self, inputs):
         x = self.linear_layer(inputs)
@@ -244,12 +244,12 @@ class IDMForwardSim(tf.keras.Model):
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
 
-        # return self.action_clip(act)
-        return act
+        return self.action_clip(act)
+        # return act
 
     def action_clip(self, action):
         "this helps with avoiding vanishing gradients"
-        return tf.clip_by_value(action, clip_value_min=-4., clip_value_max=4.)
+        return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
 
     def rollout(self, inputs):
         att_scores, idm_params, idm_s = inputs
@@ -271,8 +271,8 @@ class IDMForwardSim(tf.keras.Model):
 
 
 
-        # dv = idm_s[:, :, 3:4] + (1-merger_exists)*tf.random.uniform(shape=(batch_size, 20, 1), minval=-5, maxval=5)
-        # dx = idm_s[:, :, 4:5] + (1-merger_exists)*tf.random.uniform(shape=(batch_size, 20, 1), minval=-30, maxval=30)
+        # dv = idm_s[:, :, 3:4] + (1-merger_exists)*tf.random.uniform(shape=(batch_size, 40, 1), minval=-5, maxval=5)
+        # dx = idm_s[:, :, 4:5] + (1-merger_exists)*tf.random.uniform(shape=(batch_size, 40, 1), minval=-10, maxval=10)
         dv = idm_s[:, :, 3:4]
         dx = idm_s[:, :, 4:5]
         # dv = dv (1-merger_exists)
@@ -283,13 +283,13 @@ class IDMForwardSim(tf.keras.Model):
         tf.print('maxxxxxxx fm_act: ', tf.reduce_max(fm_act))
         tf.print('minnnnnnn fm_act: ', tf.reduce_min(fm_act))
         tf.print('meannnnnn fm_act: ', tf.reduce_mean(fm_act))
-        att_scores = tf.reshape(att_scores, [batch_size, 20, 1])
+        att_scores = tf.reshape(att_scores, [batch_size, 40, 1])
         # att_scores = 1*(1-merger_exists) + att_scores*merger_exists
         # att_scores = att_scores*merger_exists
         act_seq = (1-att_scores)*fl_act + att_scores*fm_act
         # act_seq = att_scores*fl_act
         # return (1-att_scores)*fl_act
-        # return fm_act
+        # return fl_act
         return act_seq
 
 class IDMLayer(tf.keras.Model):

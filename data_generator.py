@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 1000 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 2000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -106,24 +106,24 @@ class DataGenerator:
         (4) Ego following a leader who is changing lane.
         """
         # print(raw_recordings[47])
-        def trace_back(leader_id, merger_id, time_step):
+        def trace_back(merger_id, time_step):
             """
             When a merger is found, trace back while merger exists.
             """
+
             nonlocal epis_features
-            insert_point = len(epis_features)
             init_lane_id = merger_ts[time_step+1]['lane_id']
+            pointer = -1
+
             while True:
                 try:
                     ego = ego_ts[time_step]
                     merger = merger_ts[time_step]
-                    past_lane_id = merger['lane_id']
+                    past_lane_id = merger_ts[time_step-1]['lane_id']
                 except:
                     break
                 att_veh_id = ego['att_veh_id']
                 if att_veh_id:
-                    # if att_veh exists, consider it to be a leader, regardless
-                        # what its doing ()
                     leader = raw_recordings[att_veh_id][time_step]
                     leader_id = att_veh_id
                 else:
@@ -131,12 +131,14 @@ class DataGenerator:
                     break
 
                 delta_x = merger['glob_x'] - ego['glob_x']
-                if delta_x > 0 and past_lane_id == init_lane_id and \
+                if abs(pointer) != len(epis_features)+1 and delta_x > 0 and \
+                                        past_lane_id == init_lane_id and \
                                         ego['lane_decision'] == 'keep_lane':
                     step_feature = self.get_step_feature(ego, leader, merger, ego_att=0)
                     step_feature[0:0] = add_info(leader_id, merger_id, time_step)
-                    epis_features.insert(insert_point, step_feature)
+                    epis_features[pointer] = step_feature
                     time_step -= 1
+                    pointer -= 1
                 else:
                     break
 
@@ -199,7 +201,7 @@ class DataGenerator:
         print(len(vehicle_ids))
         np.random.shuffle(vehicle_ids)
         for ego_id in vehicle_ids:
-            # if ego_id != 55:
+            # if ego_id != 287:
             #     continue
             reset_episode()
             ego_ts = raw_recordings[ego_id]
@@ -236,12 +238,13 @@ class DataGenerator:
 
                 if is_merger(att_veh, ego):
                     if not merger_id:
-                        ego_att = 1
+                        # reset_episode()
                         merger_ts = raw_recordings[att_veh_id]
-                        epis_features = []
-                        trace_back(leader_id, att_veh_id, time_step-1)
+                        if epis_features:
+                            trace_back(att_veh_id, time_step-1)
                     merger_id = att_veh_id
                     merger = att_veh
+                    ego_att = 1
 
                 # print('time_step')
                 # print(time_step)
@@ -320,6 +323,7 @@ class DataGenerator:
         col_names = ['episode_id', 'time_step', 'ego_id',
                 'ego_speed', 'leader_speed', 'merger_speed',
                 'ego_action', 'leader_action', 'merger_action',
+                'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x',
                 'lane_y', 'ego_att', 'leader_exists', 'merger_exists',
                 'ego_decision', 'aggressiveness']
 
@@ -332,7 +336,9 @@ class DataGenerator:
                         'fl_delta_v', 'fl_delta_x',
                         'fm_delta_v', 'fm_delta_x',
                         'leader_exists', 'merger_exists']
+        history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
+        future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
 
         # future action of merger - fed to LSTMs
         col_names = ['episode_id', 'time_step', 'merger_exists', 'merger_action', 'lane_y']
@@ -340,7 +346,9 @@ class DataGenerator:
 
         # future action of ego - used as target
         col_names = ['episode_id', 'time_step', 'ego_action']
+        history_ego_a = history_seqs[:, :, self.names_to_index(col_names)]
         future_ego_a = future_seqs[:, :, self.names_to_index(col_names)]
+        future_ego_a = np.append(history_ego_a, future_ego_a, axis=1)
 
         data_arrays = [history_future_usc, history_sca, future_sca, future_idm_s, \
                         future_merger_a, future_ego_a]
