@@ -39,6 +39,9 @@ features_origin.shape
 
 
 # %%
+features_origin[(features_origin[:, indxs['ego_att']] == 1)][1000, 0]
+
+# %%
 
 features_origin[(features_origin[:, indxs['ego_decision']] == 1) & \
                     (features_origin[:, indxs['ego_att']] == 1) ].shape
@@ -49,7 +52,8 @@ features_origin[:, indxs['ego_action']].min()
 features_origin[:, indxs['ego_action']].std()
 features_origin[:, indxs['ego_action']].mean()
 # %%
-
+abs(1e-415)
+a = tf.constant(4)
 # %%
 """
 For debugging
@@ -183,7 +187,6 @@ plt.plot(model_act)
 
 # features = features_origin[(features_origin[:, indxs['ego_att']]==1) &
 #                     (features_origin[:, indxs['aggressiveness']]==0)] # aggrss
-features.shape
 # features = features_origin[features_origin[:, indxs['aggressiveness']]==0.5] # aggrss
 features = features_origin
 
@@ -199,7 +202,8 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
 
-future_ego_a.shape
+# future_ego_a.shape
+# features_origin.shape
 # %%
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_ego_a = data_arrays
@@ -246,19 +250,19 @@ feature_names[7]
 EPISODE EVALUATION
 """
 # features_origin[features_origin[:, 2] == 110]
-veh_arr = features_origin[features_origin[:, 0] == 68]
+veh_arr = features_origin[features_origin[:, 0] == 45]
 veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-# time_snap_1 = 1789
-# time_snap_2 = 209
+time_snap_1 = 172
+# time_snap_2 = 342
 for i in range(veh_arr.shape[-1]):
     plt.figure()
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
@@ -310,15 +314,7 @@ for i in range(history_future_usc.shape[-1]):
     plt.title(col_names[i])
     plt.grid()
 # %%
-sample_index = 9791
-time_steps = history_future_usc[sample_index, :, 1]
-for i in range(history_future_usc.shape[-1]):
-    plt.figure()
-    to_plot = history_future_usc[sample_index, :, i].flatten()
-    plt.plot(time_steps, to_plot)
-    plt.title(col_names[i])
-    plt.grid()
-# history_future_usc[9770,:,:]
+
 
 # %%
 
@@ -414,7 +410,7 @@ model_trainer = Trainer(model_type='driver_model')
 # %%
 
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.train(data_arrays, epochs=5)
+model_trainer.train(data_arrays, epochs=2)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
 model_trainer.valid_mseloss
@@ -436,7 +432,7 @@ plt.title('KL')
 
 
 # %%
-
+tf.maximum(0, 1)
 # %%
 # val_1 = model_trainer.valid_mseloss
 # val_2 = model_trainer.valid_mseloss
@@ -458,20 +454,7 @@ history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_merger_a = np.float32(future_merger_a)
 
-timid_drivers = []
-normal_drivers = []
-aggressive_drivers = []
-for sample_index in val_examples:
-    if history_future_usc[sample_index, -1, -1] == 0:
-       timid_drivers.append(sample_index)
-    elif history_future_usc[sample_index, -1, -1] == 0.5:
-       normal_drivers.append(sample_index)
-    elif history_future_usc[sample_index, -1, -1] == 1:
-       aggressive_drivers.append(sample_index)
-history_sca.shape
-len(timid_drivers)
-len(normal_drivers)
-len(aggressive_drivers)
+
 # %%
 def latent_samples(model_trainer, sample_index):
     sdv_actions = future_merger_a[sample_index, :, 2:]
@@ -482,23 +465,17 @@ def latent_samples(model_trainer, sample_index):
     sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
     return sampled_att_z, sampled_idm_z
 
-
-
 def latent_vis():
     fig = plt.figure(figsize=(7, 7))
     att_axis = fig.add_subplot(211)
     idm_axs = fig.add_subplot(212)
-    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, aggressive_drivers)
-    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='red')
-    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='red')
-
-    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, timid_drivers)
-    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='green')
-    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='green')
-
-    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, normal_drivers)
-    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, color='orange')
-    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, color='orange')
+    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
+    aggressiveness = history_future_usc[val_examples, 0, -1]
+    color_shade = aggressiveness
+    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
+                                                c=color_shade, cmap='rainbow')
+    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
+                                                c=color_shade, cmap='rainbow')
 
     att_axis.set_ylabel('$z_1$')
     att_axis.set_xlabel('$z_2$')

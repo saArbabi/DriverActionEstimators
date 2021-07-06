@@ -28,8 +28,8 @@ class NeurIDMModel(AbstractModel):
         self.test_mseloss = tf.keras.metrics.Mean(name='train_loss')
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true - 0.93)/0.26
-        act_pred = (act_pred - 0.93)/0.26
+        act_true = (act_true - 1)/1
+        act_pred = (act_pred - 1)/1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
@@ -213,7 +213,7 @@ class Arbiter(tf.keras.Model):
     def call(self, inputs):
         x = self.linear_layer(inputs)
         x = self.attention_neu(x)
-        return 1/(1+tf.exp(-self.attention_temp*x))
+        return tf.maximum(1/(1+tf.exp(-self.attention_temp*x)), 1e-5)
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
