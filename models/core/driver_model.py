@@ -28,8 +28,9 @@ class NeurIDMModel(AbstractModel):
         self.test_mseloss = tf.keras.metrics.Mean(name='train_loss')
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true - 1)/1
-        act_pred = (act_pred - 1)/1
+        # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.08)
+        act_true = ((act_true - 1)/0.1)
+        act_pred = (act_pred - 1)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
@@ -102,9 +103,9 @@ class NeurIDMModel(AbstractModel):
 
         act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
 
-        tf.print('att_score_max: ', tf.reduce_max(att_scores))
-        tf.print('att_score_min: ', tf.reduce_min(att_scores))
-        tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+        # tf.print('att_score_max: ', tf.reduce_max(att_scores))
+        # tf.print('att_score_min: ', tf.reduce_min(att_scores))
+        # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
 
         return act_seq, pri_params, pos_params
 
@@ -213,7 +214,8 @@ class Arbiter(tf.keras.Model):
     def call(self, inputs):
         x = self.linear_layer(inputs)
         x = self.attention_neu(x)
-        return tf.maximum(1/(1+tf.exp(-self.attention_temp*x)), 1e-5)
+        x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.)
+        return 1/(1+tf.exp(-self.attention_temp*x))
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
@@ -226,19 +228,17 @@ class IDMForwardSim(tf.keras.Model):
         min_jamx = idm_params[:,:,2:3]
         max_act = idm_params[:,:,3:4]
         min_act = idm_params[:,:,4:5]
-        tf.print('########################')
-        tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        tf.print('desired_v_max: ', tf.reduce_max(desired_v))
-        tf.print('desired_v_min: ', tf.reduce_min(desired_v))
-        tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        tf.print('max_act: ', tf.reduce_mean(max_act))
-        tf.print('min_act: ', tf.reduce_mean(min_act))
+        # tf.print('########################')
+        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
+        # tf.print('desired_v_max: ', tf.reduce_max(desired_v))
+        # tf.print('desired_v_min: ', tf.reduce_min(desired_v))
+        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        # tf.print('max_act: ', tf.reduce_mean(max_act))
+        # tf.print('min_act: ', tf.reduce_mean(min_act))
         desired_gap = min_jamx + K.relu(desired_tgap*vel+(vel*dv)/ \
                                         (2*tf.sqrt(max_act*min_act)))
 
-        tf.print('desired_gap_mean: ', tf.reduce_mean(desired_gap))
-        tf.print('desired_gap_min: ', tf.reduce_min(desired_gap))
 
 
         act = max_act*(1-(vel/desired_v)**4-\
@@ -262,34 +262,14 @@ class IDMForwardSim(tf.keras.Model):
 
         dv = idm_s[:, :, 1:2]
         dx = idm_s[:, :, 2:3]
-
         fl_act = self.idm_driver(vel, dv, dx, idm_params)
-        tf.print('maxxxxxxx fl_act: ', tf.reduce_max(fl_act))
-        tf.print('minnnnnnn fl_act: ', tf.reduce_min(fl_act))
-        tf.print('meannnnnn fl_act: ', tf.reduce_mean(fl_act))
-        #
 
-
-
-        # dv = idm_s[:, :, 3:4] + (1-merger_exists)*tf.random.uniform(shape=(batch_size, 40, 1), minval=-5, maxval=5)
-        # dx = idm_s[:, :, 4:5] + (1-merger_exists)*tf.random.uniform(shape=(batch_size, 40, 1), minval=-10, maxval=10)
         dv = idm_s[:, :, 3:4]
         dx = idm_s[:, :, 4:5]
-        # dv = dv (1-merger_exists)
-        # dx = idm_s[:, :, 4:5] + (1-merger_exists)*tf.random.uniform(
-        #                 shape=(batch_size, 20, 1), minval=-30, maxval=30)
-        #
         fm_act = self.idm_driver(vel, dv, dx, idm_params)
-        tf.print('maxxxxxxx fm_act: ', tf.reduce_max(fm_act))
-        tf.print('minnnnnnn fm_act: ', tf.reduce_min(fm_act))
-        tf.print('meannnnnn fm_act: ', tf.reduce_mean(fm_act))
+
         att_scores = tf.reshape(att_scores, [batch_size, 40, 1])
-        # att_scores = 1*(1-merger_exists) + att_scores*merger_exists
-        # att_scores = att_scores*merger_exists
         act_seq = (1-att_scores)*fl_act + att_scores*fm_act
-        # act_seq = att_scores*fl_act
-        # return (1-att_scores)*fl_act
-        # return fl_act
         return act_seq
 
 class IDMLayer(tf.keras.Model):

@@ -5,6 +5,7 @@ from importlib import reload
 import sys
 import data_generator
 reload(data_generator)
+# reload(plt)
 from data_generator import DataGenerator
 import numpy as np
 import tensorflow as tf
@@ -37,7 +38,7 @@ features_origin = data_gen.prep_data()
 features_origin.shape
 
 
-
+ np.random.normal(0, 1)
 # %%
 features_origin[(features_origin[:, indxs['ego_att']] == 1)][1000, 0]
 
@@ -200,7 +201,9 @@ history_future_seqs = data_gen.sequence(features, 20, 20)
 history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+features_origin = features
 
+# %%
 
 # future_ego_a.shape
 # features_origin.shape
@@ -216,8 +219,8 @@ cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
 
 # data_arrays = [data_array[~cond] for data_array in data_arrays]
 data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-np.count_nonzero(cond)
-np.count_nonzero(cond)/future_ego_a.shape[0]
+np.count_nonzero(cond)/np.count_nonzero(~cond)
+# data_arrays = [data_array[:5000] for data_array in data_arrays]
 
 # %%
 future_idm_s[cond].shape
@@ -249,21 +252,21 @@ feature_names[7]
 """
 EPISODE EVALUATION
 """
-# features_origin[features_origin[:, 2] == 110]
-veh_arr = features_origin[features_origin[:, 0] == 45]
+# features_origin[features_origin[:, 2] == 123]
+veh_arr = features_origin[features_origin[:, 0] == 196]
 veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 172
-# time_snap_2 = 342
+# time_snap_1 = 172
+time_snap_2 = 666
 for i in range(veh_arr.shape[-1]):
     plt.figure()
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
@@ -363,7 +366,6 @@ class Trainer():
         self.model = NeurIDMModel(config)
 
     def train(self, training_data, epochs):
-        train_sample_index = int(len(training_data[0])*0.8)
         self.model.epochs_n = epochs
 
         _, history_sca, future_sca, future_idm_s,\
@@ -410,7 +412,7 @@ model_trainer = Trainer(model_type='driver_model')
 # %%
 
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.train(data_arrays, epochs=2)
+model_trainer.train(data_arrays, epochs=5)
 plt.figure()
 plt.plot(model_trainer.valid_mseloss)
 model_trainer.valid_mseloss
@@ -431,15 +433,7 @@ plt.ylabel('loss (KL)')
 plt.title('KL')
 
 
-# %%
-tf.maximum(0, 1)
-# %%
-# val_1 = model_trainer.valid_mseloss
-# val_2 = model_trainer.valid_mseloss
-# val_3 = model_trainer.valid_mseloss
-plt.plot(val_1, color='red')
-plt.plot(val_2)
-plt.plot(val_3)
+
 # %%
 
 np.random.seed(2020)
@@ -467,25 +461,77 @@ def latent_samples(model_trainer, sample_index):
 
 def latent_vis():
     fig = plt.figure(figsize=(7, 7))
+    # plt.style.use('ggplot')
+    plt.style.use('default')
     att_axis = fig.add_subplot(211)
-    idm_axs = fig.add_subplot(212)
+    idm_axis = fig.add_subplot(212)
     sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
     aggressiveness = history_future_usc[val_examples, 0, -1]
     color_shade = aggressiveness
     att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
                                                 c=color_shade, cmap='rainbow')
-    idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
-                                                c=color_shade, cmap='rainbow')
+    idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
+                                    c=color_shade, cmap='rainbow')
 
-    att_axis.set_ylabel('$z_1$')
-    att_axis.set_xlabel('$z_2$')
-    return att_axis, idm_axs
-att_axis, idm_axs = latent_vis()
+    att_axis.set_ylabel('$z_{att_1}$')
+    att_axis.set_xlabel('$z_{att_2}$')
+    idm_axis.set_ylabel('$z_{idm_1}$')
+    idm_axis.set_xlabel('$z_{idm_1}$')
+
+    return att_axis, idm_axis
+att_axis, idm_axis = latent_vis()
 
 # %%
-att_axis, idm_axs = latent_vis()
+def get_animation():
+    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
+    from matplotlib.animation import FuncAnimation, writers
+
+    def latent_samples(model_trainer, sample_index):
+        sdv_actions = future_merger_a[sample_index, :, 2:]
+        h_seq = history_sca[sample_index, :, 2:]
+        enc_h = model_trainer.model.h_seq_encoder(h_seq)
+        enc_acts = model_trainer.model.act_encoder(sdv_actions)
+        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+        return sampled_att_z, sampled_idm_z
+
+    fig = plt.figure(figsize=(7, 7))
+    plt.style.use('ggplot')
+    att_axis = fig.add_subplot(211)
+    idm_axis = fig.add_subplot(212)
+
+
+    def animation_frame(i):
+        model_trainer.model.vae_loss_weight = 0.1
+        model_trainer.train(data_arrays, epochs=1)
+        sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
+        aggressiveness = history_future_usc[val_examples, 0, -1]
+        color_shade = aggressiveness
+        att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
+                                                    c=color_shade, cmap='rainbow')
+        idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
+                                                    c=color_shade, cmap='rainbow')
+
+        att_axis.set_title('Iteration ' + str(i))
+        att_axis.set_ylabel('$z_{att_1}$')
+        att_axis.set_xlabel('$z_{att_2}$')
+        idm_axis.set_ylabel('$z_{idm_1}$')
+        idm_axis.set_xlabel('$z_{idm_1}$')
+
+    animation = FuncAnimation(fig, func=animation_frame, \
+                              frames=range(1, 81), interval=1)
+
+    # setting up wrtiers object
+    Writer = writers['ffmpeg']
+    writer = Writer(fps=4, metadata={'artist': 'Me'}, bitrate=3000)
+    animation.save('latent_evolution.mp4', writer, dpi=250)
+
+
+get_animation()
+# %%
+att_axis, idm_axis = latent_vis()
 att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
-idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
+idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 
 att_axis.set_ylabel('$z_1$')
 att_axis.set_xlabel('$z_2$')
@@ -496,6 +542,10 @@ sampled_att_z[17]
 bad_samples = np.where(sampled_att_z[:, 1] > 6)
 
 normal_drivers[38]
+future_merger_a[sample_index, :, :]
+ego_act = future_merger_a[sample_index, :, -2].copy()[0]
+plt.plot(ego_act)
+plt.plot(ego_act+np.random.normal(0, 0.05, 20))
 # %%
 bad_epis = []
 for drv in bad_samples[0]:
@@ -538,16 +588,16 @@ for item_name in col_names:
     indxs[item_name] = index
     index += 1
 
-np.random.shuffle(normal_drivers)
-while Example_pred < 5:
+while Example_pred < 20:
     # sample_index = [timid_drivers[i]]
-    sample_index = [normal_drivers[i]]
+    sample_index = [val_examples[i]]
     # sample_index = [aggressive_drivers[i]]
     i += 1
     # ego_id = history_future_usc[sample_index, 0, indxs['ego_id']]
     ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
     ego_att = history_future_usc[sample_index, :, indxs['ego_att']][0]
     merger_exists = history_future_usc[sample_index, :, indxs['merger_exists']][0]
+    aggressiveness = history_future_usc[sample_index, 0, indxs['aggressiveness']][0]
     # if ego_att.mean() != 0:
     # plt.figure()
     # plt.plot(ego_decision)
@@ -556,7 +606,8 @@ while Example_pred < 5:
     lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # future_merger_a[8255, :, 2:]
-    if episode not in covered_episodes and ego_att[:].mean() > 0:
+    if episode not in covered_episodes and ego_att[:].mean() > 0 and aggressiveness > 0.5:
+    # if episode not in covered_episodes and aggressiveness > 0.5:
     # if episode not in covered_episodes:
     # if episode not in covered_episodes and 0 < ego_att[:30].mean():
         # if episode not in covered_episodes and ego_att[30:].mean() == 0 and ego_att[:30].mean() == 1:
@@ -580,7 +631,6 @@ while Example_pred < 5:
         episode_id = history_future_usc[sample_index, 0, indxs['episode_id']][0]
         ego_id = history_future_usc[sample_index, 0, indxs['ego_id']][0]
         time_0 = history_future_usc[sample_index, 0, indxs['time_step']][0]
-        aggressiveness = history_future_usc[sample_index, 0, indxs['aggressiveness']][0]
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, ego_id, aggressiveness]]
         plt.text(0.5, 0.5,
                         'episode_id: '+ info[0] +\
@@ -617,9 +667,9 @@ while Example_pred < 5:
 
         ##########
         # lATENT
-        att_axis, idm_axs = latent_vis()
+        att_axis, idm_axis = latent_vis()
         att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
-        idm_axs.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
+        idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 
         att_axis.set_ylabel('$z_1$')
         att_axis.set_xlabel('$z_2$')
@@ -675,7 +725,7 @@ min_jamx = 2.
 max_act = 0.8
 min_act = 1.4
 
-i = 7444
+i = 14408
 # vel = future_idm_s[i, :, 2]
 # dv = future_idm_s[i, :, 3]
 # dx = future_idm_s[i, :, 4]
@@ -729,34 +779,19 @@ future_idm_s[i, :, :]
 # %%
 """Single sample Anticipation visualisation
 """
-indxs = {}
-col_names = ['episode_id', 'time_step', 'ego_id',
-        'ego_speed', 'leader_speed', 'merger_speed',
-        'ego_action', 'leader_action', 'merger_action',
-        'lane_y', 'ego_att', 'leader_exists', 'merger_exists',
-        'ego_decision', 'aggressiveness']
 
-index = 0
-for item_name in col_names:
-    indxs[item_name] = index
-    index += 1
 
-model_trainer.model.arbiter.attention_temp = 20
-traces_n = 20
-sample_index = [7444]
-# sample_index = [aggressive_drivers[i]]
-# ego_id = history_future_usc[sample_index, 0, indxs['ego_id']]
+model_trainer.model.arbiter.attention_temp = 5
+traces_n = 50
+sample_index = [17752]
 ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, indxs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, indxs['merger_exists']][0]
-# if ego_att.mean() != 0:
-# plt.figure()
-# plt.plot(ego_decision)
-# plt.plot(ego_att)
-# plt.plot(ego_decision)
+
 lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
 episode = future_idm_s[sample_index, 0, 0][0]
 
+episode = future_idm_s[sample_index, 0, 0][0]
 sdv_actions = vectorise(future_merger_a[sample_index, :, 2:], traces_n)
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
@@ -768,11 +803,11 @@ att_scores =  model_trainer.model.arbiter(sampled_att_z)
 
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
-idm_params = tf.repeat(idm_params, 20, axis=1)
-
+idm_params = tf.repeat(idm_params, 40, axis=1)
 act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
+time_axis = np.linspace(0., 4., 40)
 plt.figure()
 episode_id = history_future_usc[sample_index, 0, indxs['episode_id']][0]
 ego_id = history_future_usc[sample_index, 0, indxs['ego_id']][0]
@@ -787,54 +822,71 @@ plt.text(0.5, 0.5,
                     , fontsize = 15)
 plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
 
-
+##########
+# %%
 plt.figure()
-plt.plot(history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
-plt.plot(history_future_usc[sample_index, :, indxs['ego_action']][0], color='black')
-plt.plot(history_future_usc[sample_index, :, indxs['merger_action']][0], color='red')
-plt.legend(['leader_action', 'ego_action', 'merger_action'])
+plt.plot(time_axis, history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
+plt.plot(time_axis, history_future_usc[sample_index, :, indxs['ego_action']][0], color='red')
+plt.plot(time_axis, history_future_usc[sample_index, :, indxs['merger_action']][0], color='black')
+plt.legend(['Leader', 'Follower', 'Merger'])
 
 for sample_trace_i in range(traces_n):
-   plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(), \
+   plt.plot(time_axis, act_seq[sample_trace_i, :, :].flatten(), \
                                 color='grey', alpha=0.5)
-   # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
-
-# plt.ylim(-3, 3)
-plt.title(str(sample_index[0]) + ' -- Action')
+plt.title('Vehicle actions')
+plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
+plt.xlabel('Time (s)')
+plt.ylabel('Acceleration ($ms^{-2}$)')
+plt.ylim(-3, 1)
 plt.grid()
-
+##########
+# %%
 plt.figure()
-plt.plot(ego_att[:20] , color='black')
-plt.plot(range(20, 40), ego_att[20:], color='red')
+plt.plot(time_axis, ego_att, color='red', linewidth=3)
 for sample_trace_i in range(traces_n):
-   plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
+   plt.plot(time_axis, att_scores[sample_trace_i, :].flatten(), color='grey', alpha=0.5)
 plt.ylim(-0.1, 1.1)
-plt.title(str(sample_index[0]) + ' -- Attention')
+plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
+plt.xlabel('Time (s)')
+plt.ylabel('Attentiveness (%)')
+plt.title('Driver attentiveness')
+plt.legend(['True', 'Predicted'])
 plt.grid()
+# %%
 
 ##########
+# lATENT
+att_axis, idm_axis = latent_vis()
+att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
+idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 
-# plt.plot(desired_vs)
-# plt.grid()
-# plt.plot(desired_tgaps)
-# plt.grid()
-plt.figure()
+att_axis.set_ylabel('$z_1$')
+att_axis.set_xlabel('$z_2$')
+
+# %%
+##########
 desired_vs = idm_params.numpy()[:, 0, 0]
 desired_tgaps = idm_params.numpy()[:, 0, 1]
-plt.scatter(desired_vs, desired_tgaps, color='grey')
+min_jamx = idm_params.numpy()[:, 0, 2]
+fig = pyplot.figure()
+ax = Axes3D(fig)
 
-plt.scatter(19.4, 2, color='green')
-# plt.scatter(25, 1.4, color='orange')
-# plt.scatter(30, 1, color='red')
-plt.xlim(15, 40)
-plt.ylim(0, 3)
-#
-# plt.scatter(30, 1, color='red')
-# plt.xlim(25, 35)
-# plt.ylim(0, 2)
+ax.scatter(24.7,  1.5, 2, color='red')
+# ax.scatter(19.4,  2, 4, color='red')
+ax.scatter(desired_vs, desired_tgaps, min_jamx, color='grey')
+ax.set_xlim(18, 30)
+ax.set_ylim(1, 2)
+ax.set_zlim(0, 4)
+ax.set_title('Driver disposition')
 
-plt.title(str(sample_index[0]) + ' -- Param')
-plt.grid()
+ax.set_xlabel('Desired speed')
+ax.set_ylabel('Desired time gap')
+ax.set_zlabel('Minimum jam distance')
+plt.legend(['True', 'Predicted'])
+
+
+# %%
+
 
 ##########
 plt.figure()
@@ -844,10 +896,14 @@ plt.grid()
 ############
 plt.figure()
 plt.plot(lane_y[:20], color='black')
-plt.plot(range(20, 40), lane_y[20:], color='red')
+plt.plot(range(0, 40), lane_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')
 plt.title(str(sample_index[0]) + ' -- lane_y')
 plt.grid()
 ############
+# %%
+from matplotlib import pyplot
+from mpl_toolkits.mplot3d import Axes3D
+import random
