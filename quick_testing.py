@@ -38,7 +38,6 @@ features_origin = data_gen.prep_data()
 features_origin.shape
 
 
- np.random.normal(0, 1)
 # %%
 features_origin[(features_origin[:, indxs['ego_att']] == 1)][1000, 0]
 

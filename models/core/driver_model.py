@@ -28,7 +28,7 @@ class NeurIDMModel(AbstractModel):
         self.test_mseloss = tf.keras.metrics.Mean(name='train_loss')
 
     def mse(self, act_true, act_pred):
-        # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.08)
+        # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
         act_true = ((act_true - 1)/0.1)
         act_pred = (act_pred - 1)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
