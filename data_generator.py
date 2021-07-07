@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 2000 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 1000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -126,12 +126,16 @@ class DataGenerator:
                 if att_veh_id:
                     leader = raw_recordings[att_veh_id][time_step]
                     leader_id = att_veh_id
+                    ml_delta_x = leader['glob_x'] - merger['glob_x']
                 else:
-                    # no car is being attended to
-                    break
+                    leader = None
+                    leader_id = None
+                    ml_delta_x = 1 # just a dummy value
 
-                delta_x = merger['glob_x'] - ego['glob_x']
-                if abs(pointer) != len(epis_features)+1 and delta_x > 0 and \
+                fm_delta_x = merger['glob_x'] - ego['glob_x']
+                if abs(pointer) != len(epis_features)+1 and \
+                                        fm_delta_x > 0 and \
+                                        ml_delta_x > 0 and \
                                         past_lane_id == init_lane_id and \
                                         ego['lane_decision'] == 'keep_lane':
                     step_feature = self.get_step_feature(ego, leader, merger, ego_att=0)
