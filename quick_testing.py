@@ -190,7 +190,7 @@ col_names = ['episode_id', 'time_step',
         'lane_y', 'leader_exists', 'merger_exists']
 
 for i in range(future_sca.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(3, 3))
     to_plot = history_sca[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
@@ -206,7 +206,7 @@ col_names = ['episode_id', 'time_step', 'ego_id',
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
 
 for i in range(history_future_usc.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(3, 3))
     to_plot = history_future_usc[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
@@ -223,7 +223,7 @@ col_names = ['episode_id', 'time_step', 'ego_speed',
 # type(future_idm_s[i, 0, -3])
 
 for i in range(future_idm_s.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(3, 3))
     _ = plt.hist(future_idm_s[:, -1, i], bins=150)
     plt.title(col_names[i])
     plt.grid()
@@ -308,7 +308,7 @@ model_trainer = Trainer(model_type='driver_model')
 
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
-plt.figure()
+plt.figure(figsize=(3, 3))
 plt.plot(model_trainer.valid_mseloss)
 model_trainer.valid_mseloss
 plt.plot(model_trainer.train_mseloss)
@@ -318,7 +318,7 @@ plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 plt.title('MSE')
 
-plt.figure()
+plt.figure(figsize=(3, 3))
 plt.plot(model_trainer.valid_klloss)
 plt.plot(model_trainer.train_klloss)
 plt.legend(['val', 'train'])
@@ -331,14 +331,16 @@ plt.title('KL')
 
 # %%
 
-np.random.seed(2020)
 all_epis = np.unique(history_sca[:, 0, 0])
 train_epis = all_epis[:int(len(all_epis)*0.8)]
+
 val_epis = np.setdiff1d(all_epis, train_epis)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 
-
+history_sca.shape
+train_indxs.shape
+val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_merger_a = np.float32(future_merger_a)
@@ -355,7 +357,7 @@ def latent_samples(model_trainer, sample_index):
     return sampled_att_z, sampled_idm_z
 
 def latent_vis():
-    fig = plt.figure(figsize=(7, 7))
+    fig = plt.figure(figsize=(4, 4))
     # plt.style.use('ggplot')
     plt.style.use('default')
     att_axis = fig.add_subplot(211)
@@ -422,33 +424,7 @@ def get_animation():
     animation.save('latent_evolution.mp4', writer, dpi=250)
 
 
-get_animation()
-# %%
-att_axis, idm_axis = latent_vis()
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
-idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
-
-att_axis.set_ylabel('$z_1$')
-att_axis.set_xlabel('$z_2$')
-# %%
-sampled_att_z = sampled_att_z.numpy()
-sampled_att_z[:, 0].max()
-sampled_att_z[17]
-bad_samples = np.where(sampled_att_z[:, 1] > 6)
-
-normal_drivers[38]
-future_merger_a[sample_index, :, :]
-ego_act = future_merger_a[sample_index, :, -2].copy()[0]
-plt.plot(ego_act)
-plt.plot(ego_act+np.random.normal(0, 0.05, 20))
-# %%
-bad_epis = []
-for drv in bad_samples[0]:
-    print(timid_drivers[drv])
-    indx = timid_drivers[drv]
-    bad_epis.append(history_sca[indx, 0, 0])
-bad_epis
-
+# get_animation()
 # %%
 """Anticipation visualisation
 """
@@ -463,13 +439,6 @@ def get_ego_att(ego_id, ego_decision, ego_att):
     ego_att[atten_on_ego_changing_lane] = 0
     return ego_att
 
-# model_trainer.model.idm_sim.arbiter.attention_temp = 20
-model_trainer.model.arbiter.attention_temp = 20
-
-Example_pred = 0
-traces_n = 20
-i = 0
-covered_episodes = []
 indxs = {}
 col_names = ['episode_id', 'time_step', 'ego_id',
         'ego_speed', 'leader_speed', 'merger_speed',
@@ -482,8 +451,13 @@ index = 0
 for item_name in col_names:
     indxs[item_name] = index
     index += 1
-
-while Example_pred < 20:
+# %%
+Example_pred = 0
+i = 0
+covered_episodes = []
+model_trainer.model.arbiter.attention_temp = 5
+traces_n = 20
+while Example_pred < 5:
     # sample_index = [timid_drivers[i]]
     sample_index = [val_examples[i]]
     # sample_index = [aggressive_drivers[i]]
@@ -494,19 +468,21 @@ while Example_pred < 20:
     merger_exists = history_future_usc[sample_index, :, indxs['merger_exists']][0]
     aggressiveness = history_future_usc[sample_index, 0, indxs['aggressiveness']][0]
     # if ego_att.mean() != 0:
-    # plt.figure()
+    # plt.figure(figsize=(4, 4))
     # plt.plot(ego_decision)
     # plt.plot(ego_att)
     # plt.plot(ego_decision)
     lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # future_merger_a[8255, :, 2:]
-    if episode not in covered_episodes and ego_att[:].mean() > 0 and aggressiveness > 0.5:
+    # if ego_att[30:].mean() > 0 and ego_att[:20].mean() == 0 and aggressiveness > 0.5:
+    # if ego_att[30:].mean() > 0 and ego_att[:20].mean() == 0 and aggressiveness > 0.5:
+    # if episode not in covered_episodes and ego_att[30:].mean() > 0 and aggressiveness > 0.5:
     # if episode not in covered_episodes and aggressiveness > 0.5:
-    # if episode not in covered_episodes:
-    # if episode not in covered_episodes and 0 < ego_att[:30].mean():
+    if episode not in covered_episodes and ego_att[:].mean() > 0:
+        # if episode not in covered_episodes and 0 < ego_att[:30].mean():
         # if episode not in covered_episodes and ego_att[30:].mean() == 0 and ego_att[:30].mean() == 1:
-        # covered_episodes.append(episode)
+        covered_episodes.append(episode)
         sdv_actions = vectorise(future_merger_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
@@ -522,28 +498,28 @@ while Example_pred < 20:
         act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         episode_id = history_future_usc[sample_index, 0, indxs['episode_id']][0]
         ego_id = history_future_usc[sample_index, 0, indxs['ego_id']][0]
         time_0 = history_future_usc[sample_index, 0, indxs['time_step']][0]
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, ego_id, aggressiveness]]
         plt.text(0.5, 0.5,
-                        'episode_id: '+ info[0] +\
-                        'time_0: '+ info[1] +\
-                        'ego_id: '+ info[2] +\
+                        'episode_id: '+ info[0] +
+                        'time_0: '+ info[1] +
+                        'ego_id: '+ info[2] +
                         'aggressiveness: '+ info[3]
-                            , fontsize = 15)
+                            , fontsize=10)
         plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
 
 
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         plt.plot(history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
         plt.plot(history_future_usc[sample_index, :, indxs['ego_action']][0], color='black')
         plt.plot(history_future_usc[sample_index, :, indxs['merger_action']][0], color='red')
         plt.legend(['leader_action', 'ego_action', 'merger_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 40), act_seq[sample_trace_i, :, :].flatten(), \
+           plt.plot(range(0, 40), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -551,7 +527,7 @@ while Example_pred < 20:
         plt.title(str(sample_index[0]) + ' -- Action')
         plt.grid()
 
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         # plt.plot(ego_att[:40] , color='black')
         plt.plot(range(0, 40), ego_att, color='red')
         for sample_trace_i in range(traces_n):
@@ -574,7 +550,7 @@ while Example_pred < 20:
         # plt.grid()
         # plt.plot(desired_tgaps)
         # plt.grid()
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         desired_vs = idm_params.numpy()[:, 0, 0]
         desired_tgaps = idm_params.numpy()[:, 0, 1]
         plt.scatter(desired_vs, desired_tgaps, color='grey')
@@ -593,12 +569,12 @@ while Example_pred < 20:
         plt.grid()
 
         ##########
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         plt.plot(merger_exists, color='black')
         plt.title(str(sample_index[0]) + ' -- merger_exists')
         plt.grid()
         ############
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         plt.plot(lane_y[:20], color='black')
         plt.plot(range(0, 40), lane_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
@@ -678,7 +654,7 @@ future_idm_s[i, :, :]
 
 model_trainer.model.arbiter.attention_temp = 5
 traces_n = 50
-sample_index = [17752]
+sample_index = [77327]
 ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, indxs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, indxs['merger_exists']][0]
@@ -703,7 +679,7 @@ act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_id
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
 time_axis = np.linspace(0., 4., 40)
-plt.figure()
+plt.figure(figsize=(4, 4))
 episode_id = history_future_usc[sample_index, 0, indxs['episode_id']][0]
 ego_id = history_future_usc[sample_index, 0, indxs['ego_id']][0]
 time_0 = history_future_usc[sample_index, 0, indxs['time_step']][0]
@@ -719,7 +695,7 @@ plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
 
 ##########
 # %%
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(time_axis, history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
 plt.plot(time_axis, history_future_usc[sample_index, :, indxs['ego_action']][0], color='red')
 plt.plot(time_axis, history_future_usc[sample_index, :, indxs['merger_action']][0], color='black')
@@ -736,7 +712,7 @@ plt.ylim(-3, 1)
 plt.grid()
 ##########
 # %%
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(time_axis, ego_att, color='red', linewidth=3)
 for sample_trace_i in range(traces_n):
    plt.plot(time_axis, att_scores[sample_trace_i, :].flatten(), color='grey', alpha=0.5)
@@ -784,12 +760,12 @@ plt.legend(['True', 'Predicted'])
 
 
 ##########
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(merger_exists, color='black')
 plt.title(str(sample_index[0]) + ' -- merger_exists')
 plt.grid()
 ############
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(lane_y[:20], color='black')
 plt.plot(range(0, 40), lane_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
