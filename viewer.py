@@ -81,12 +81,13 @@ class Viewer():
                 # print('lane_id: ', vehicle.lane_id)
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
-                print('ego_act: ', vehicle.actions)
+                print('ego_act: ', vehicle.act_long)
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)
                 # print('lane_y: ', vehicle.lane_y)
                 try:
                     print('att_veh_id: ', vehicle.neighbours['f'].id)
+                    print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
 
                 except:
                     pass

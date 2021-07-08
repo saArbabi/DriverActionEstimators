@@ -48,6 +48,7 @@ class IDMMOBILVehicle(Vehicle):
         self.perception_range = 100 #m
         self.lane_width = 3.8
         self.actions = [0, 0]
+        self.steps_since_last_lc = 0
 
         self.lateral_actions = {'move_left':0.7,
                                 'move_right':-0.7,
@@ -140,7 +141,7 @@ class IDMMOBILVehicle(Vehicle):
                                   abs(delta_x) < self.perception_range:
 
                     if self.lane_decision != 'keep_lane':
-                        if self.am_i_following(vehicle.lane_id, delta_x, delta_xs_f):
+                        if self.am_i_following(vehicle, delta_x, delta_xs_f):
                             delta_xs_f.append(delta_x)
                             candidate_f = vehicle
 
@@ -215,10 +216,11 @@ class IDMMOBILVehicle(Vehicle):
             return True
         return False
 
-    def am_i_following(self, vehicle_lane_id, delta_x, delta_xs):
+    def am_i_following(self, vehicle, delta_x, delta_xs):
         """Am I following 'vehicle' in my target lane?
         """
-        if vehicle_lane_id == self.target_lane and delta_x > 0 and delta_x < delta_xs[-1]:
+        if vehicle.lane_id == vehicle.target_lane == self.target_lane and  delta_x > 0 \
+                and delta_x < delta_xs[-1] and vehicle.lane_decision:
             return True
         return False
 
@@ -303,6 +305,7 @@ class IDMMOBILVehicle(Vehicle):
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
                     self.lane_y = 0
+                    self.steps_since_last_lc = 0
 
         elif self.lane_decision == 'move_right':
             if self.lane_id == self.target_lane :
@@ -310,9 +313,11 @@ class IDMMOBILVehicle(Vehicle):
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
                     self.lane_y = 0
+                    self.steps_since_last_lc = 0
 
         elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
-                                            self.check_neighbours(neighbours):
+                                            self.check_neighbours(neighbours) \
+                                            and self.steps_since_last_lc > 5:
             lc_left_condition = 0
             lc_right_condition = 0
 
@@ -358,4 +363,5 @@ class IDMMOBILVehicle(Vehicle):
                         self.target_lane += 1
                         return [act_ego_lc_r, self.lateral_actions[self.lane_decision]]
 
+        self.steps_since_last_lc += 1
         return [act_long, self.lateral_actions[self.lane_decision]]
