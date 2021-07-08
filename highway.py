@@ -36,13 +36,17 @@ class Env:
             log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
             log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
             log['aggressiveness'] = ego.driver_params['aggressiveness']
-            log['act_long'] = ego.actions[0]
+            log['act_long'] = ego.act_long
             self.recordings[ego.id][self.time_step] = log
-            # if ego.id == 225:
+            # if ego.id == 14:
+            #     print('##### sim ####')
             #     print(self.time_step)
             #     print(ego.lane_decision)
-            #     print(log)
-            #     print(ego.glob_x - ego.neighbours['f'].glob_x)
+            #     print(ego.neighbours['f'].glob_x - ego.glob_x)
+            #     print('front_id ', ego.neighbours['f'].id)
+            #     print('##### sim ####')
+                # print(log)
+                # print(ego.glob_x - ego.neighbours['f'].glob_x)
 
     def get_joint_action(self):
         """
@@ -52,9 +56,8 @@ class Env:
         for vehicle in self.vehicles:
             vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
             actions = vehicle.act(self.handler.reservations)
-            vehicle.neighbours = vehicle.my_neighbours(self.vehicles)
             joint_action.append(actions)
-            vehicle.actions = actions
+            vehicle.act_long = actions[0]
             self.handler.update_reservations(vehicle)
         return joint_action
 

@@ -36,8 +36,158 @@ data_gen = DataGenerator(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 features_origin.shape
+# %%
+indxs = {}
+feature_names = [
+         'episode_id', 'time_step',
+         'ego_id', 'leader_id', 'merger_id',
+         'ego_decision', 'leader_exists', 'merger_exists',
+         'aggressiveness', 'lane_y', 'ego_att',
+         'ego_speed', 'leader_speed', 'merger_speed',
+         'ego_action', 'leader_action', 'merger_action',
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
+
+index = 0
+for item_name in feature_names:
+    indxs[item_name] = index
+    index += 1
+indxs['ego_att']
+# %%
+
+# %%
+
+features_origin[:, indxs['ego_action']].min()
+features_origin[:, indxs['ego_action']].std()
+features_origin[:, indxs['ego_action']].mean()
+# %%
+"""
+PREPARE DATA
+"""
+features = features_origin.copy()
+# features = features[features[:, indxs['aggressiveness']] == 0.5]
+# features[features[:, indxs['merger_exists']] == 1].shape
+features = data_gen.fill_missing_values(features)
+features_scaled = data_gen.scale_data(features)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_merger_a, future_ego_a = data_arrays
 
 
+# %%
+"""
+BALANCE DATA
+"""
+history_future_usc, history_sca, future_sca, future_idm_s, \ 
+                future_merger_a, future_ego_a = data_arrays
+cond = (future_sca[:, :, -1] == 1).any(axis=1)
+data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+np.count_nonzero(cond)/future_ego_a.shape[0]
+# %%
+future_ego_a.shape
+future_ego_a.shape
+
+# %%
+"""
+For debugging
+"""
+
+for i in range(100000):
+    aggressiveness = history_future_usc[i, 0, -1]
+    if aggressiveness == 0:
+        desired_v = 19.4
+        desired_tgap = 2
+        min_jamx = 4
+        max_act = 0.8
+        min_act = 1
+    elif aggressiveness == 0.5:
+        desired_v = 24.7
+        desired_tgap = 1.5
+        min_jamx = 2
+        max_act = 1.4
+        min_act = 2
+    elif aggressiveness == 1:
+        desired_v = 30
+        desired_tgap = 1
+        min_jamx = 0
+        max_act = 2
+        min_act = 3
+
+    vel = future_idm_s[i, :, 2]
+    dv = future_idm_s[i, :, 3]
+    dx = future_idm_s[i, :, 4]
+
+
+    desired_gap = min_jamx + \
+    np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
+
+    fl_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
+    fl_act = np.clip(fl_act, -3, 3)
+
+
+    dv = future_idm_s[i, :, 5]
+    dx = future_idm_s[i, :, 6]
+    desired_gap = min_jamx + \
+    np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
+
+    fm_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
+    fm_act = np.clip(fm_act, -3, 3)
+    att_scores = history_future_usc[i, :, -5]
+    act =(1-att_scores)*fl_act + att_scores*fm_act
+    # features = features[features[:, 6]==0] # merger exists
+    loss = abs(act-future_ego_a[i, :, -1])
+    if not loss.max() < 0.001:
+        print('index:  ', i)
+        print(loss.max())
+########################################
+# %%
+
+"""
+EPISODE EVALUATION
+"""
+# %%
+
+features[features[:, 2] == 135]
+veh_arr = features[features[:, 0] == 5]
+# veh_arr[:, indxs['time_step']][26]
+veh_arr[:, indxs['leader_id']]
+veh_arr[:, indxs['merger_id']]
+veh_arr[:, indxs['ego_id']]
+# veh_arr[:, indxs['ego_att']][25]
+time_snap_start = veh_arr[0, 1]
+time_snap_1 = 1742
+time_snap_2 = 1767
+for i in range(veh_arr.shape[-1]):
+    plt.figure(figsize=(4, 4))
+    plt.plot(veh_arr[:, 1], veh_arr[:, i])
+    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.title(feature_names[i])
+    plt.grid()
+
+
+# %%
+
+"""
+RAW FEATURE ANAL
+"""
+for i in range(features.shape[-1]):
+    plt.figure(figsize=(4, 4))
+    _ = plt.hist(features[:, i], bins=150)
+    plt.title(feature_names[i])
+    plt.grid()
+
+# %%
+########################################
+# %%
+
+
+
+# %%
 # %%
 features_origin[(features_origin[:, indxs['ego_att']] == 1)][1000, 0]
 
