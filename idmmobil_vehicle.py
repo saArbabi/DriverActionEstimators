@@ -346,6 +346,7 @@ class IDMMOBILVehicle(Vehicle):
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_left'
+                        self.neighbours['f'] = self.neighbours['fl']
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
@@ -353,6 +354,7 @@ class IDMMOBILVehicle(Vehicle):
                     target_lane = self.target_lane + 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_right'
+                        self.neighbours['f'] = self.neighbours['fr']
                         self.target_lane += 1
                         return [act_ego_lc_r, self.lateral_actions[self.lane_decision]]
 
