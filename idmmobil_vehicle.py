@@ -140,7 +140,7 @@ class IDMMOBILVehicle(Vehicle):
                                   abs(delta_x) < self.perception_range:
 
                     if self.lane_decision != 'keep_lane':
-                        if self.am_i_following(vehicle, delta_x, delta_xs_f):
+                        if self.am_i_following(vehicle.lane_id, delta_x, delta_xs_f):
                             delta_xs_f.append(delta_x)
                             candidate_f = vehicle
 
@@ -215,11 +215,10 @@ class IDMMOBILVehicle(Vehicle):
             return True
         return False
 
-    def am_i_following(self, vehicle, delta_x, delta_xs):
+    def am_i_following(self, vehicle_lane_id, delta_x, delta_xs):
         """Am I following 'vehicle' in my target lane?
         """
-        if vehicle.lane_id == vehicle.target_lane == self.target_lane and  delta_x > 0 \
-                and delta_x < delta_xs[-1] and vehicle.lane_decision:
+        if vehicle_lane_id == self.target_lane and delta_x > 0 and delta_x < delta_xs[-1]:
             return True
         return False
 
@@ -347,7 +346,6 @@ class IDMMOBILVehicle(Vehicle):
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_left'
-                        self.neighbours['f'] = self.neighbours['fl']
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_actions[self.lane_decision]]
 
@@ -355,7 +353,6 @@ class IDMMOBILVehicle(Vehicle):
                     target_lane = self.target_lane + 1
                     if self.check_reservations(target_lane, reservations):
                         self.lane_decision = 'move_right'
-                        self.neighbours['f'] = self.neighbours['fr']
                         self.target_lane += 1
                         return [act_ego_lc_r, self.lateral_actions[self.lane_decision]]
 
