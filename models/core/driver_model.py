@@ -29,16 +29,18 @@ class NeurIDMModel(AbstractModel):
 
     def mse(self, act_true, act_pred):
         # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
-        act_true = ((act_true - 1)/0.1)
-        act_pred = (act_pred - 1)/0.1
+        act_true = (act_true+0.2)/0.1
+        act_pred = (act_pred+0.2)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
+        # tf.print('######## TRAIN #######:')
         train_ds = self.batch_data(data_objs)
         for history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a in train_ds:
             self.train_step([history_sca, future_sca, future_idm_s, future_merger_a], future_ego_a)
 
     def test_loop(self, data_objs, epoch):
+        # tf.print('######## TEST #######:')
         train_ds = self.batch_data(data_objs)
         for history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a in train_ds:
             self.test_step([history_sca, future_sca, future_idm_s, future_merger_a], future_ego_a)
@@ -102,7 +104,8 @@ class NeurIDMModel(AbstractModel):
         idm_params = tf.repeat(idm_params, 40, axis=1)
 
         act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
-
+        #
+        # tf.print('###############:')
         # tf.print('att_score_max: ', tf.reduce_max(att_scores))
         # tf.print('att_score_min: ', tf.reduce_min(att_scores))
         # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
@@ -228,7 +231,6 @@ class IDMForwardSim(tf.keras.Model):
         min_jamx = idm_params[:,:,2:3]
         max_act = idm_params[:,:,3:4]
         min_act = idm_params[:,:,4:5]
-        # tf.print('########################')
         # tf.print('desired_v: ', tf.reduce_mean(desired_v))
         # tf.print('desired_v_max: ', tf.reduce_max(desired_v))
         # tf.print('desired_v_min: ', tf.reduce_min(desired_v))
@@ -262,10 +264,12 @@ class IDMForwardSim(tf.keras.Model):
 
         dv = idm_s[:, :, 1:2]
         dx = idm_s[:, :, 2:3]
+        # tf.print('############ fl_act ############')
         fl_act = self.idm_driver(vel, dv, dx, idm_params)
 
         dv = idm_s[:, :, 3:4]
         dx = idm_s[:, :, 4:5]
+        # tf.print('############ fm_act ############')
         fm_act = self.idm_driver(vel, dv, dx, idm_params)
 
         att_scores = tf.reshape(att_scores, [batch_size, 40, 1])

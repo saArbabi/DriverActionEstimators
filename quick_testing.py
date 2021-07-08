@@ -36,64 +36,92 @@ data_gen = DataGenerator(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 features_origin.shape
-
-
 # %%
-features_origin[(features_origin[:, indxs['ego_att']] == 1)][1000, 0]
+indxs = {}
+feature_names = [
+         'episode_id', 'time_step',
+         'ego_id', 'leader_id', 'merger_id',
+         'ego_decision', 'leader_exists', 'merger_exists',
+         'aggressiveness', 'lane_y', 'ego_att',
+         'ego_speed', 'leader_speed', 'merger_speed',
+         'ego_action', 'leader_action', 'merger_action',
+         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
 
+index = 0
+for item_name in feature_names:
+    indxs[item_name] = index
+    index += 1
+indxs['ego_att']
 # %%
-
-features_origin[(features_origin[:, indxs['ego_decision']] == 1) & \
-                    (features_origin[:, indxs['ego_att']] == 1) ].shape
-
+# %%
+features_origin.shape
+features_origin[(features_origin[:, indxs['ego_att']] == 0) & \
+                    (features_origin[:, indxs['leader_exists']] == 0) ].shape
+features_origin[(features_origin[:, indxs['merger_exists']] == 1)]
+this = features_origin[(features_origin[:, indxs['merger_exists']] == 1)]
+np.unique(this[:, 0])
+# %%
 # %%
 
 features_origin[:, indxs['ego_action']].min()
 features_origin[:, indxs['ego_action']].std()
 features_origin[:, indxs['ego_action']].mean()
 # %%
-abs(1e-415)
-a = tf.constant(4)
+"""
+PREPARE DATA
+"""
+features = features_origin.copy()
+# features = features[features[:, indxs['aggressiveness']] == 0.5]
+# features[features[:, indxs['merger_exists']] == 1].shape
+features = data_gen.fill_missing_values(features)
+features_scaled = data_gen.scale_data(features)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_merger_a, future_ego_a = data_arrays
+
+
+# %%
+"""
+BALANCE DATA
+"""
+history_future_usc, history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a = data_arrays
+cond = (future_sca[:, :, -1] == 1).any(axis=1)
+data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+np.count_nonzero(cond)/future_ego_a.shape[0]
+# %%
+future_ego_a.shape
+future_ego_a.shape
+
 # %%
 """
 For debugging
 """
-# desired_v = 30
-# desired_tgap = 1
-# min_jamx = 0
-# max_act = 2
-# min_act = 3
-# for i in range(5000):
-#     vel = future_idm_s[i, :, 2]
-#     dv = future_idm_s[i, :, 3]
-#     dx = future_idm_s[i, :, 4]
-#
-desired_v = 19.4
-desired_tgap = 2
-min_jamx = 4
-max_act = 0.8
-min_act = 1
-# desired_v = 24.7
-# desired_tgap = 1.5
-# min_jamx = 2
-# max_act = 1.4
-# min_act = 2
-#
 
-# desired_v = 26
-# desired_tgap = 1.7
-# min_jamx = 2.9
-# max_act = 1.
-# min_act = 2
+for i in range(100000):
+    aggressiveness = history_future_usc[i, 0, -1]
+    if aggressiveness == 0:
+        desired_v = 19.4
+        desired_tgap = 2
+        min_jamx = 4
+        max_act = 0.8
+        min_act = 1
+    elif aggressiveness == 0.5:
+        desired_v = 24.7
+        desired_tgap = 1.5
+        min_jamx = 2
+        max_act = 1.4
+        min_act = 2
+    elif aggressiveness == 1:
+        desired_v = 30
+        desired_tgap = 1
+        min_jamx = 0
+        max_act = 2
+        min_act = 3
 
-# desired_v:  22.8070831
-# desired_v_max:  25.6258011
-# desired_v_min:  21.70508
-# desired_tgap:  1.00854421
-# min_jamx:  3.61159277
-# max_act:  1.19065118
-# min_act:  2.99607801
-for i in range(7892):
     vel = future_idm_s[i, :, 2]
     dv = future_idm_s[i, :, 3]
     dx = future_idm_s[i, :, 4]
@@ -117,170 +145,56 @@ for i in range(7892):
     act =(1-att_scores)*fl_act + att_scores*fm_act
     # features = features[features[:, 6]==0] # merger exists
     loss = abs(act-future_ego_a[i, :, -1])
-    if not loss.max() < 0.1:
+    if not loss.max() < 0.001:
         print('index:  ', i)
         print(loss.max())
-
-# %%
-# %%
-i = 4630
-future_idm_s[i]
-
-vel = future_idm_s[i, :, 2]
-dv = future_idm_s[i, :, 3]
-dx = future_idm_s[i, :, 4]
-
-
-desired_gap = min_jamx + \
-np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
-
-fl_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-fl_act = np.clip(fl_act, -3, 3)
-
-future_idm_s[i, :, 1]
-dv = future_idm_s[i, :, 5]
-dx = future_idm_s[i, :, 6]
-desired_gap = min_jamx + \
-np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
-
-fm_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-fm_act = np.clip(fm_act, -3, 3)
-# att_scores
-# [4]=1
-fm_act*att_scores
-att_scores = history_future_usc[i, :, -5].copy()
-act =(1-att_scores)*fl_act + att_scores*fm_act
-# features = features[features[:, 6]==0] # merger exists
-loss = abs(act-future_ego_a[i, :, -1])
-time_steps = future_idm_s[i, :, 1]
-plt.plot(time_steps, loss)
-plt.grid()
-# %%
-plt.plot(time_steps, act)
-plt.plot(time_steps, future_ego_a[i, :, -1])
-plt.grid()
-# %%
-plt.plot(time_steps, act)
-plt.plot(time_steps, future_ego_a[i, :, -1])
-plt.grid()
-
-# %%
-sample_index = [7113]
-traces_n = 1
-sdv_actions = vectorise(future_merger_a[sample_index, :, 2:], traces_n)
-h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
-future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
-enc_h = model_trainer.model.h_seq_encoder(h_seq)
-enc_acts = model_trainer.model.act_encoder(sdv_actions)
-prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-att_scores =  model_trainer.model.arbiter(sampled_att_z)
-idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-idm_params = tf.reshape(idm_params, [1, 1, 5])
-idm_params = tf.repeat(idm_params, 20, axis=1)
-
-act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
-model_act = act_seq.numpy().flatten()
-plt.plot(model_act)
- plt.plot(att_scores.numpy()[0])
+########################################
 # %%
 
-# features = features_origin[(features_origin[:, indxs['ego_att']]==1) &
-#                     (features_origin[:, indxs['aggressiveness']]==0)] # aggrss
-# features = features_origin[features_origin[:, indxs['aggressiveness']]==0.5] # aggrss
-features = features_origin
-
-# features.shape
-# features[features[:, indxs['merger_exists']] == 0].shape
-# features[features[:, indxs['merger_exists']] == 1].shape
-features = data_gen.fill_missing_values(features)
-
-features_scaled = data_gen.scale_data(features)
-history_future_seqs = data_gen.sequence(features, 20, 20)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
-data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
-# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
-features_origin = features
-
-# %%
-
-# future_ego_a.shape
-# features_origin.shape
-# %%
-history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_merger_a, future_ego_a = data_arrays
-# cond = (history_sca[:, :, -1] == 1).any(axis=1)
-
-cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
-# cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
-# cond = (history_future_usc[:, :, -1] == 0.5).any(axis=1)
-# cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
-
-# data_arrays = [data_array[~cond] for data_array in data_arrays]
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-np.count_nonzero(cond)/np.count_nonzero(~cond)
-# data_arrays = [data_array[:5000] for data_array in data_arrays]
-
-# %%
-future_idm_s[cond].shape
-future_ego_a.shape
-future_ego_a.shape
-
-
-# %%
-indxs = {}
-feature_names = [
-         'episode_id', 'time_step',
-         'ego_id', 'leader_id', 'merger_id',
-         'ego_decision', 'leader_exists', 'merger_exists',
-         'aggressiveness', 'lane_y', 'ego_att',
-         'ego_speed', 'leader_speed', 'merger_speed',
-         'ego_action', 'leader_action', 'merger_action',
-         'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
-
-index = 0
-for item_name in feature_names:
-    indxs[item_name] = index
-    index += 1
-indxs['merger_exists']
-feature_names[7]
-# %%
-
-
-# %%
 """
 EPISODE EVALUATION
 """
-# features_origin[features_origin[:, 2] == 123]
-veh_arr = features_origin[features_origin[:, 0] == 196]
-veh_arr[:, indxs['time_step']][26]
+2.,   9.,  12.,  14.,  15.,  18.,  19.,  23.,  28.,  35.,  36.,
+        38.,  42.,  49.,  52.,  54.,  63.,  65.,  74.,  82.,  86.,  90.,
+        93.,  95., 101., 104., 107., 109., 114., 119., 122., 128., 129.,
+       134., 137., 140., 142., 145., 157., 160., 161., 171., 182., 183.,
+       193., 194., 206., 212., 214., 217., 221., 223., 228., 234., 235.,
+       238., 241., 244., 246., 248., 252., 261., 262., 267., 269., 270.,
+       271., 272., 275., 277., 282., 284., 286., 287., 291., 293., 298.,
+       299., 303., 305., 306., 310., 314., 318., 321., 325., 328., 334.,
+       337., 341., 345., 346., 350., 351., 352., 355., 357., 361., 363.,
+       364., 374., 376., 379., 380., 385., 390., 392., 395., 396., 399.,
+       401., 402., 406., 413., 414., 416., 417., 421., 422
+# %%
+
+features[features[:, 2] == 135]
+veh_arr = features[features[:, 0] == 380]
+# veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
-veh_arr[:, indxs['ego_att']][25]
+# veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-# time_snap_1 = 172
-time_snap_2 = 666
+time_snap_1 = 1742
+time_snap_2 = 1767
 for i in range(veh_arr.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
     # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
 
-
-# plt.ylim([-3, 3])
 
 # %%
 
 """
 RAW FEATURE ANAL
 """
-for i in range(features_origin.shape[-1]):
-    plt.figure()
-    _ = plt.hist(features_origin[:, i], bins=150)
+for i in range(features.shape[-1]):
+    plt.figure(figsize=(4, 4))
+    _ = plt.hist(features[:, i], bins=150)
     plt.title(feature_names[i])
     plt.grid()
 
@@ -294,7 +208,7 @@ col_names = ['episode_id', 'time_step',
         'lane_y', 'leader_exists', 'merger_exists']
 
 for i in range(future_sca.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(3, 3))
     to_plot = history_sca[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
@@ -310,7 +224,7 @@ col_names = ['episode_id', 'time_step', 'ego_id',
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
 
 for i in range(history_future_usc.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(3, 3))
     to_plot = history_future_usc[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
@@ -327,7 +241,7 @@ col_names = ['episode_id', 'time_step', 'ego_speed',
 # type(future_idm_s[i, 0, -3])
 
 for i in range(future_idm_s.shape[-1]):
-    plt.figure()
+    plt.figure(figsize=(3, 3))
     _ = plt.hist(future_idm_s[:, -1, i], bins=150)
     plt.title(col_names[i])
     plt.grid()
@@ -412,7 +326,7 @@ model_trainer = Trainer(model_type='driver_model')
 
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
-plt.figure()
+plt.figure(figsize=(3, 3))
 plt.plot(model_trainer.valid_mseloss)
 model_trainer.valid_mseloss
 plt.plot(model_trainer.train_mseloss)
@@ -422,7 +336,7 @@ plt.xlabel('epochs')
 plt.ylabel('loss (MSE)')
 plt.title('MSE')
 
-plt.figure()
+plt.figure(figsize=(3, 3))
 plt.plot(model_trainer.valid_klloss)
 plt.plot(model_trainer.train_klloss)
 plt.legend(['val', 'train'])
@@ -435,14 +349,16 @@ plt.title('KL')
 
 # %%
 
-np.random.seed(2020)
 all_epis = np.unique(history_sca[:, 0, 0])
 train_epis = all_epis[:int(len(all_epis)*0.8)]
+
 val_epis = np.setdiff1d(all_epis, train_epis)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 
-
+history_sca.shape
+train_indxs.shape
+val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_merger_a = np.float32(future_merger_a)
@@ -459,7 +375,7 @@ def latent_samples(model_trainer, sample_index):
     return sampled_att_z, sampled_idm_z
 
 def latent_vis():
-    fig = plt.figure(figsize=(7, 7))
+    fig = plt.figure(figsize=(4, 4))
     # plt.style.use('ggplot')
     plt.style.use('default')
     att_axis = fig.add_subplot(211)
@@ -526,33 +442,7 @@ def get_animation():
     animation.save('latent_evolution.mp4', writer, dpi=250)
 
 
-get_animation()
-# %%
-att_axis, idm_axis = latent_vis()
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
-idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
-
-att_axis.set_ylabel('$z_1$')
-att_axis.set_xlabel('$z_2$')
-# %%
-sampled_att_z = sampled_att_z.numpy()
-sampled_att_z[:, 0].max()
-sampled_att_z[17]
-bad_samples = np.where(sampled_att_z[:, 1] > 6)
-
-normal_drivers[38]
-future_merger_a[sample_index, :, :]
-ego_act = future_merger_a[sample_index, :, -2].copy()[0]
-plt.plot(ego_act)
-plt.plot(ego_act+np.random.normal(0, 0.05, 20))
-# %%
-bad_epis = []
-for drv in bad_samples[0]:
-    print(timid_drivers[drv])
-    indx = timid_drivers[drv]
-    bad_epis.append(history_sca[indx, 0, 0])
-bad_epis
-
+# get_animation()
 # %%
 """Anticipation visualisation
 """
@@ -567,14 +457,7 @@ def get_ego_att(ego_id, ego_decision, ego_att):
     ego_att[atten_on_ego_changing_lane] = 0
     return ego_att
 
-# model_trainer.model.idm_sim.arbiter.attention_temp = 20
-model_trainer.model.arbiter.attention_temp = 20
-
-Example_pred = 0
-traces_n = 20
-i = 0
-covered_episodes = []
-indxs = {}
+hf_usc_indexs = {}
 col_names = ['episode_id', 'time_step', 'ego_id',
         'ego_speed', 'leader_speed', 'merger_speed',
         'ego_action', 'leader_action', 'merger_action',
@@ -584,33 +467,40 @@ col_names = ['episode_id', 'time_step', 'ego_id',
 
 index = 0
 for item_name in col_names:
-    indxs[item_name] = index
+    hf_usc_indexs[item_name] = index
     index += 1
-
-while Example_pred < 20:
+# %%
+Example_pred = 0
+i = 0
+covered_episodes = []
+model_trainer.model.arbiter.attention_temp = 5
+traces_n = 20
+while Example_pred < 10:
     # sample_index = [timid_drivers[i]]
     sample_index = [val_examples[i]]
     # sample_index = [aggressive_drivers[i]]
     i += 1
-    # ego_id = history_future_usc[sample_index, 0, indxs['ego_id']]
-    ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
-    ego_att = history_future_usc[sample_index, :, indxs['ego_att']][0]
-    merger_exists = history_future_usc[sample_index, :, indxs['merger_exists']][0]
-    aggressiveness = history_future_usc[sample_index, 0, indxs['aggressiveness']][0]
+    # ego_id = history_future_usc[sample_index, 0, hf_usc_indexs['ego_id']]
+    ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
+    ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
+    merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
+    aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     # if ego_att.mean() != 0:
-    # plt.figure()
+    # plt.figure(figsize=(4, 4))
     # plt.plot(ego_decision)
     # plt.plot(ego_att)
     # plt.plot(ego_decision)
-    lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
+    lane_y = history_future_usc[sample_index, :, hf_usc_indexs['lane_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # future_merger_a[8255, :, 2:]
-    if episode not in covered_episodes and ego_att[:].mean() > 0 and aggressiveness > 0.5:
+    # if ego_att[30:].mean() > 0 and ego_att[:20].mean() == 0 and aggressiveness > 0.5:
+    # if ego_att[30:].mean() > 0 and ego_att[:20].mean() == 0 and aggressiveness > 0.5:
+    # if episode not in covered_episodes and ego_att[30:].mean() > 0 and aggressiveness > 0.5:
     # if episode not in covered_episodes and aggressiveness > 0.5:
-    # if episode not in covered_episodes:
-    # if episode not in covered_episodes and 0 < ego_att[:30].mean():
+    if episode not in covered_episodes and ego_att[:].mean() > 0:
+        # if episode not in covered_episodes and 0 < ego_att[:30].mean():
         # if episode not in covered_episodes and ego_att[30:].mean() == 0 and ego_att[:30].mean() == 1:
-        # covered_episodes.append(episode)
+        covered_episodes.append(episode)
         sdv_actions = vectorise(future_merger_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
@@ -626,28 +516,28 @@ while Example_pred < 20:
         act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
-        plt.figure()
-        episode_id = history_future_usc[sample_index, 0, indxs['episode_id']][0]
-        ego_id = history_future_usc[sample_index, 0, indxs['ego_id']][0]
-        time_0 = history_future_usc[sample_index, 0, indxs['time_step']][0]
+        plt.figure(figsize=(4, 4))
+        episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
+        ego_id = history_future_usc[sample_index, 0, hf_usc_indexs['ego_id']][0]
+        time_0 = history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0]
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, ego_id, aggressiveness]]
         plt.text(0.5, 0.5,
-                        'episode_id: '+ info[0] +\
-                        'time_0: '+ info[1] +\
-                        'ego_id: '+ info[2] +\
+                        'episode_id: '+ info[0] +
+                        'time_0: '+ info[1] +
+                        'ego_id: '+ info[2] +
                         'aggressiveness: '+ info[3]
-                            , fontsize = 15)
+                            , fontsize=10)
         plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
 
 
-        plt.figure()
-        plt.plot(history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
-        plt.plot(history_future_usc[sample_index, :, indxs['ego_action']][0], color='black')
-        plt.plot(history_future_usc[sample_index, :, indxs['merger_action']][0], color='red')
+        plt.figure(figsize=(4, 4))
+        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['leader_action']][0], color='purple')
+        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['ego_action']][0], color='black')
+        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['merger_action']][0], color='red')
         plt.legend(['leader_action', 'ego_action', 'merger_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 40), act_seq[sample_trace_i, :, :].flatten(), \
+           plt.plot(range(0, 40), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -655,7 +545,7 @@ while Example_pred < 20:
         plt.title(str(sample_index[0]) + ' -- Action')
         plt.grid()
 
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         # plt.plot(ego_att[:40] , color='black')
         plt.plot(range(0, 40), ego_att, color='red')
         for sample_trace_i in range(traces_n):
@@ -678,7 +568,7 @@ while Example_pred < 20:
         # plt.grid()
         # plt.plot(desired_tgaps)
         # plt.grid()
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         desired_vs = idm_params.numpy()[:, 0, 0]
         desired_tgaps = idm_params.numpy()[:, 0, 1]
         plt.scatter(desired_vs, desired_tgaps, color='grey')
@@ -697,12 +587,12 @@ while Example_pred < 20:
         plt.grid()
 
         ##########
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         plt.plot(merger_exists, color='black')
         plt.title(str(sample_index[0]) + ' -- merger_exists')
         plt.grid()
         ############
-        plt.figure()
+        plt.figure(figsize=(4, 4))
         plt.plot(lane_y[:20], color='black')
         plt.plot(range(0, 40), lane_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
@@ -782,12 +672,12 @@ future_idm_s[i, :, :]
 
 model_trainer.model.arbiter.attention_temp = 5
 traces_n = 50
-sample_index = [17752]
-ego_decision = history_future_usc[sample_index, :, indxs['ego_decision']][0]
-ego_att = history_future_usc[sample_index, :, indxs['ego_att']][0]
-merger_exists = history_future_usc[sample_index, :, indxs['merger_exists']][0]
+sample_index = [77327]
+ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
+ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
+merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
 
-lane_y = history_future_usc[sample_index, :, indxs['lane_y']][0]
+lane_y = history_future_usc[sample_index, :, hf_usc_indexs['lane_y']][0]
 episode = future_idm_s[sample_index, 0, 0][0]
 
 episode = future_idm_s[sample_index, 0, 0][0]
@@ -807,11 +697,11 @@ act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_id
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
 time_axis = np.linspace(0., 4., 40)
-plt.figure()
-episode_id = history_future_usc[sample_index, 0, indxs['episode_id']][0]
-ego_id = history_future_usc[sample_index, 0, indxs['ego_id']][0]
-time_0 = history_future_usc[sample_index, 0, indxs['time_step']][0]
-aggressiveness = history_future_usc[sample_index, 0, indxs['aggressiveness']][0]
+plt.figure(figsize=(4, 4))
+episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
+ego_id = history_future_usc[sample_index, 0, hf_usc_indexs['ego_id']][0]
+time_0 = history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0]
+aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
 info = [str(item)+' '+'\n' for item in [episode_id, time_0, ego_id, aggressiveness]]
 plt.text(0.5, 0.5,
                 'episode_id: '+ info[0] +\
@@ -823,10 +713,10 @@ plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
 
 ##########
 # %%
-plt.figure()
-plt.plot(time_axis, history_future_usc[sample_index, :, indxs['leader_action']][0], color='purple')
-plt.plot(time_axis, history_future_usc[sample_index, :, indxs['ego_action']][0], color='red')
-plt.plot(time_axis, history_future_usc[sample_index, :, indxs['merger_action']][0], color='black')
+plt.figure(figsize=(4, 4))
+plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['leader_action']][0], color='purple')
+plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['ego_action']][0], color='red')
+plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['merger_action']][0], color='black')
 plt.legend(['Leader', 'Follower', 'Merger'])
 
 for sample_trace_i in range(traces_n):
@@ -840,7 +730,7 @@ plt.ylim(-3, 1)
 plt.grid()
 ##########
 # %%
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(time_axis, ego_att, color='red', linewidth=3)
 for sample_trace_i in range(traces_n):
    plt.plot(time_axis, att_scores[sample_trace_i, :].flatten(), color='grey', alpha=0.5)
@@ -888,12 +778,12 @@ plt.legend(['True', 'Predicted'])
 
 
 ##########
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(merger_exists, color='black')
 plt.title(str(sample_index[0]) + ' -- merger_exists')
 plt.grid()
 ############
-plt.figure()
+plt.figure(figsize=(4, 4))
 plt.plot(lane_y[:20], color='black')
 plt.plot(range(0, 40), lane_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
