@@ -119,8 +119,11 @@ class DataGenerator:
                     leader_id = att_veh_id
                     ml_delta_x = leader['glob_x'] - merger['glob_x']
                 else:
-                    # no car to attend to
+                    # leader = None
+                    # leader_id = None
+                    # ml_delta_x = 1 # dummy
                     break
+
                 fm_delta_x = merger['glob_x'] - ego['glob_x']
                 if fm_delta_x > 0 and ml_delta_x > 0 and \
                                         ego['lane_decision'] == 'keep_lane':
@@ -142,7 +145,7 @@ class DataGenerator:
             merger = None
             ego_att = 0
 
-            if len(epis_features) > 50:
+            if len(epis_features) > 40:
                 features.extend(epis_features)
                 episode_id += 1
             epis_features = []
@@ -154,10 +157,10 @@ class DataGenerator:
             end_episode()
             leader_id = None
             merger_id = None
-            ego_att = 0
             leader = None
-            merger = None
             leader_ts = None
+            ego_att = 0
+            merger = None
             merger_ts = None
 
         def add_info(leader_id, merger_id, time_step):
@@ -212,7 +215,11 @@ class DataGenerator:
 
                     else:
                         if merger_id:
-                            end_episode()
+                            ego_att = 0
+                            merger = None
+                            merger_ts = None
+                            merger_id = None
+
                         if leader_id != att_veh_id:
                             # check if its a new leader
                             leader_id = att_veh_id
@@ -222,8 +229,9 @@ class DataGenerator:
                         try:
                             leader = leader_ts[time_step]
                         except:
-                            leader_id = None
                             leader = None
+                            merger_ts = None        #
+                            leader_id = None
                             if not merger_id:
                                 end_episode()
                                 continue

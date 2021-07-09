@@ -262,13 +262,13 @@ class IDMForwardSim(tf.keras.Model):
         leader_exists = idm_s[:, :, 5:6]
         merger_exists = idm_s[:, :, 6:]
 
-        dv = idm_s[:, :, 1:2]
-        dx = idm_s[:, :, 2:3]
+        dv = idm_s[:, :, 1:2]*leader_exists
+        dx = idm_s[:, :, 2:3]*leader_exists + 1000*(1-leader_exists)
         # tf.print('############ fl_act ############')
         fl_act = self.idm_driver(vel, dv, dx, idm_params)
 
-        dv = idm_s[:, :, 3:4]
-        dx = idm_s[:, :, 4:5]
+        dv = idm_s[:, :, 3:4]*merger_exists
+        dx = idm_s[:, :, 4:5]*merger_exists + 1000*(1-merger_exists)
         # tf.print('############ fm_act ############')
         fm_act = self.idm_driver(vel, dv, dx, idm_params)
 
