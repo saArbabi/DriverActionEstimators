@@ -36,7 +36,6 @@ data_gen = DataGenerator(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 features_origin.shape
-features_origin[(features_origin[:, indxs['fm_delta_x']] < 0)]
 
 # %%
 indxs = {}
@@ -55,6 +54,8 @@ for item_name in feature_names:
     index += 1
 indxs['ego_att']
 # %%
+np.where(features_origin[:, indxs['merger_id']] == features_origin[:, indxs['leader_id']])
+features_origin[31972, 0]
 # %%
 features_origin.shape
 features_origin[(features_origin[:, indxs['ego_att']] == 0) & \
@@ -162,10 +163,11 @@ for i in range(1000000):
 EPISODE EVALUATION
 """
 # %%
+
 np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 486]
+veh_arr = features[features[:, 0] == 429]
 # veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['time_step']]
@@ -346,7 +348,6 @@ plt.title('KL')
 
 
 # %%
-
 all_epis = np.unique(history_sca[:, 0, 0])
 train_epis = all_epis[:int(len(all_epis)*0.8)]
 

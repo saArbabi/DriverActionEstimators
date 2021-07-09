@@ -119,10 +119,10 @@ class DataGenerator:
                     leader_id = att_veh_id
                     ml_delta_x = leader['glob_x'] - merger['glob_x']
                 else:
-                    # leader = None
-                    # leader_id = None
-                    # ml_delta_x = 1 # dummy
-                    break
+                    leader = None
+                    leader_id = None
+                    ml_delta_x = 1 # dummy
+                    # break
 
                 fm_delta_x = merger['glob_x'] - ego['glob_x']
                 if fm_delta_x > 0 and ml_delta_x > 0 and \
@@ -225,18 +225,21 @@ class DataGenerator:
                             leader_id = att_veh_id
                             leader_ts = raw_recordings[att_veh_id]
 
-                    if leader_id:
+                    if leader_id and leader_id != merger_id:
                         try:
                             leader = leader_ts[time_step]
                         except:
                             leader = None
-                            merger_ts = None        #
+                            merger_ts = None
                             leader_id = None
                             if not merger_id:
                                 end_episode()
                                 continue
 
-
+                    elif leader_id == merger_id:
+                        leader = None
+                        merger_ts = None
+                        leader_id = None
                 # print('time_step')
                 # print(time_step)
                 # # print(epis_features)
