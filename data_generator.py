@@ -145,7 +145,7 @@ class DataGenerator:
             merger = None
             ego_att = 0
 
-            if len(epis_features) > 50:
+            if len(epis_features) > 40:
                 features.extend(epis_features)
                 episode_id += 1
             epis_features = []
@@ -217,7 +217,8 @@ class DataGenerator:
                         if merger_id:
                             ego_att = 0
                             merger = None
-                            merger_ts = None        #
+                            merger_ts = None
+                            merger_id = None
 
                         if leader_id != att_veh_id:
                             # check if its a new leader
@@ -228,8 +229,9 @@ class DataGenerator:
                         try:
                             leader = leader_ts[time_step]
                         except:
-                            leader_id = None
                             leader = None
+                            merger_ts = None        #
+                            leader_id = None
                             if not merger_id:
                                 end_episode()
                                 continue

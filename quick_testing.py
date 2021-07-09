@@ -36,6 +36,8 @@ data_gen = DataGenerator(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 features_origin.shape
+features_origin[(features_origin[:, indxs['fm_delta_x']] < 0)]
+
 # %%
 indxs = {}
 feature_names = [
@@ -103,7 +105,7 @@ future_ego_a.shape
 For debugging
 """
 
-for i in range(100000):
+for i in range(1000000):
     aggressiveness = history_future_usc[i, 0, -1]
     if aggressiveness == 0:
         desired_v = 19.4
@@ -125,8 +127,11 @@ for i in range(100000):
         min_act = 3
 
     vel = future_idm_s[i, :, 2]
-    dv = future_idm_s[i, :, 3]
-    dx = future_idm_s[i, :, 4]
+    leader_exists = future_idm_s[i, :, -2]
+    merger_exists = future_idm_s[i, :, -1]
+
+    dv = future_idm_s[i, :, 3]*leader_exists
+    dx = future_idm_s[i, :, 4]*leader_exists + 1000*(1-leader_exists)
 
 
     desired_gap = min_jamx + \
@@ -136,8 +141,8 @@ for i in range(100000):
     fl_act = np.clip(fl_act, -3, 3)
 
 
-    dv = future_idm_s[i, :, 5]
-    dx = future_idm_s[i, :, 6]
+    dv = future_idm_s[i, :, 5]*merger_exists
+    dx = future_idm_s[i, :, 6]*merger_exists + 1000*(1-merger_exists)
     desired_gap = min_jamx + \
     np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
@@ -156,23 +161,14 @@ for i in range(100000):
 """
 EPISODE EVALUATION
 """
-2.,   9.,  12.,  14.,  15.,  18.,  19.,  23.,  28.,  35.,  36.,
-        38.,  42.,  49.,  52.,  54.,  63.,  65.,  74.,  82.,  86.,  90.,
-        93.,  95., 101., 104., 107., 109., 114., 119., 122., 128., 129.,
-       134., 137., 140., 142., 145., 157., 160., 161., 171., 182., 183.,
-       193., 194., 206., 212., 214., 217., 221., 223., 228., 234., 235.,
-       238., 241., 244., 246., 248., 252., 261., 262., 267., 269., 270.,
-       271., 272., 275., 277., 282., 284., 286., 287., 291., 293., 298.,
-       299., 303., 305., 306., 310., 314., 318., 321., 325., 328., 334.,
-       337., 341., 345., 346., 350., 351., 352., 355., 357., 361., 363.,
-       364., 374., 376., 379., 380., 385., 390., 392., 395., 396., 399.,
-       401., 402., 406., 413., 414., 416., 417., 421., 422
 # %%
+np.unique(features[features[:, 2] == 21][:, 0])
 
-features[features[:, 2] == 17]
-veh_arr = features[features[:, 0] == 2]
+# features[features[:, 2] == 34]
+veh_arr = features[features[:, 0] == 486]
 # veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
+veh_arr[:, indxs['time_step']]
 veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 # veh_arr[:, indxs['ego_att']][25]
@@ -327,7 +323,7 @@ model_trainer = Trainer(model_type='driver_model')
 # %%
 
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.train(data_arrays, epochs=10)
+model_trainer.train(data_arrays, epochs=5)
 plt.figure(figsize=(3, 3))
 plt.plot(model_trainer.valid_mseloss)
 model_trainer.valid_mseloss
