@@ -60,6 +60,8 @@ features_origin[(features_origin[:, indxs['ego_att']] == 0) & \
 features_origin[(features_origin[:, indxs['merger_exists']] == 1)]
 this = features_origin[(features_origin[:, indxs['merger_exists']] == 1)]
 np.unique(this[:, 0])
+
+np.unique(this[:, 0])
 # %%
 # %%
 
@@ -167,8 +169,8 @@ EPISODE EVALUATION
        401., 402., 406., 413., 414., 416., 417., 421., 422
 # %%
 
-features[features[:, 2] == 135]
-veh_arr = features[features[:, 0] == 380]
+features[features[:, 2] == 17]
+veh_arr = features[features[:, 0] == 2]
 # veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['merger_id']]
@@ -325,7 +327,7 @@ model_trainer = Trainer(model_type='driver_model')
 # %%
 
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.train(data_arrays, epochs=5)
+model_trainer.train(data_arrays, epochs=10)
 plt.figure(figsize=(3, 3))
 plt.plot(model_trainer.valid_mseloss)
 model_trainer.valid_mseloss
