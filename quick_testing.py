@@ -167,7 +167,7 @@ EPISODE EVALUATION
 np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 429]
+veh_arr = features[features[:, 0] == 458]
 # veh_arr[:, indxs['time_step']][26]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['time_step']]

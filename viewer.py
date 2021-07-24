@@ -82,6 +82,8 @@ class Viewer():
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_act: ', vehicle.act_long)
+                print('steps_since_lc_desired: ', vehicle.steps_since_lc_desired)
+
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)
                 # print('lane_y: ', vehicle.lane_y)
