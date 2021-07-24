@@ -110,16 +110,16 @@ class IDMMOBILVehicle(Vehicle):
         # self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
 
     def get_idm_param(self, Parameter_range, param_name):
-        if param_name in ['desired_v', 'max_act', 'min_act', 'safe_braking']:
+        if param_name in ['desired_v', 'max_act', 'min_act']:
             # the larger the param, the more aggressive the driver
             min_value = Parameter_range['least_aggressvie'][param_name]
             max_value = Parameter_range['most_aggressive'][param_name]
             return  min_value + self.driver_params['aggressiveness']*(max_value-min_value)
 
-        elif param_name in ['desired_tgap', 'min_jamx', 'politeness', 'act_threshold']:
+        elif param_name in ['desired_tgap', 'min_jamx', 'politeness', 'act_threshold', 'safe_braking']:
             # the larger the param, the more timid the driver
             min_value = Parameter_range['most_aggressive'][param_name]
-            max_value = Parameter_range['least_aggressvie'][param_name]
+            max_value = Parameter_range['least_aggressvie'][param_name] 
             return  max_value - self.driver_params['aggressiveness']*(max_value-min_value)
 
     def my_neighbours(self, vehicles):

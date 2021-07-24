@@ -257,8 +257,8 @@ class IDMForwardSim(tf.keras.Model):
         att_scores, idm_params, idm_s = inputs
         batch_size = tf.shape(idm_s)[0]
 
-        # get idm actions
         vel = idm_s[:, :, 0:1]
+        # these to deal with missing cars 
         leader_exists = idm_s[:, :, 5:6]
         merger_exists = idm_s[:, :, 6:]
 
