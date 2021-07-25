@@ -66,8 +66,10 @@ np.unique(this[:, 0])
 
 np.unique(this[:, 0])
 # %%
-features_origin[(features_origin[:, indxs['ego_decision']] == 1) & \
-                    (features_origin[:, indxs['ego_att']] == 0) ].shape
+features_origin[(features_origin[:, indxs['merger_id']] != -1) & \
+                    (features_origin[:, indxs['leader_id']] != -1) ].shape
+# %%
+features_origin[(features_origin[:, indxs['ego_id']] == 155)]
 # %%
 
 features_origin[:, indxs['ego_action']].min()
@@ -108,7 +110,7 @@ future_ego_a.shape
 For debugging
 """
 
-for i in range(1000000):
+for i in range(10000000):
     aggressiveness = history_future_usc[i, 0, -1]
     if aggressiveness == 0:
         desired_v = 19.4
@@ -169,7 +171,7 @@ EPISODE EVALUATION
 # np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 464]
+veh_arr = features[features[:, 0] == 521]
 veh_arr[:, indxs['time_step']]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['time_step']]
@@ -177,13 +179,13 @@ veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 # veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 1677
-time_snap_2 = time_snap_1 + 40
+time_snap_1 = 1159
+time_snap_2 = 1198
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
@@ -267,10 +269,12 @@ class Trainer():
         self.valid_loss = []
 
         self.train_mseloss = []
-        self.train_klloss = []
+        self.train_att_klloss = []
+        self.train_idm_klloss = []
 
-        self.valid_mseloss = []
-        self.valid_klloss = []
+        self.test_mseloss = []
+        self.test_att_klloss = []
+        self.test_idm_klloss = []
         self.epoch_count = 0
         self.initiate_model()
 
@@ -309,9 +313,11 @@ class Trainer():
             self.model.test_loop(val_input, epoch)
             if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
-                self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
-                self.valid_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
-                self.valid_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
+                self.train_att_klloss.append(round(self.model.train_att_klloss.result().numpy().item(), 2))
+                self.train_idm_klloss.append(round(self.model.train_idm_klloss.result().numpy().item(), 2))
+                self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
+                self.test_att_klloss.append(round(self.model.test_att_klloss.result().numpy().item(), 2))
+                self.test_idm_klloss.append(round(self.model.test_idm_klloss.result().numpy().item(), 2))
             else:
                 self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
@@ -328,24 +334,44 @@ model_trainer = Trainer(model_type='driver_model')
 
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
-plt.figure(figsize=(3, 3))
-plt.plot(model_trainer.valid_mseloss)
-model_trainer.valid_mseloss
-plt.plot(model_trainer.train_mseloss)
-plt.legend(['val', 'train'])
-plt.grid()
-plt.xlabel('epochs')
-plt.ylabel('loss (MSE)')
-plt.title('MSE')
+################## MSE LOSS ##################
+fig = plt.figure(figsize=(15, 5))
+plt.style.use('default')
 
-plt.figure(figsize=(3, 3))
-plt.plot(model_trainer.valid_klloss)
-plt.plot(model_trainer.train_klloss)
-plt.legend(['val', 'train'])
-plt.grid()
-plt.xlabel('epochs')
-plt.ylabel('loss (KL)')
-plt.title('KL')
+mse_axis = fig.add_subplot(131)
+att_kl_axis = fig.add_subplot(132)
+idm_kl_axis = fig.add_subplot(133)
+mse_axis.plot(model_trainer.test_mseloss)
+mse_axis.plot(model_trainer.train_mseloss)
+
+mse_axis.grid()
+mse_axis.set_xlabel('epochs')
+mse_axis.set_ylabel('loss (MSE)')
+mse_axis.set_title('MSE')
+mse_axis.legend(['test', 'train'])
+
+################## att_kl LOSS ##################
+att_kl_axis.plot(model_trainer.test_att_klloss)
+att_kl_axis.plot(model_trainer.train_att_klloss)
+
+att_kl_axis.grid()
+att_kl_axis.set_xlabel('epochs')
+att_kl_axis.set_ylabel('loss (att_kl)')
+att_kl_axis.set_title('att_kl')
+att_kl_axis.legend(['test', 'train'])
+
+################## idm_kl LOSS ##################
+idm_kl_axis.plot(model_trainer.test_idm_klloss)
+idm_kl_axis.plot(model_trainer.train_idm_klloss)
+
+idm_kl_axis.grid()
+idm_kl_axis.set_xlabel('epochs')
+idm_kl_axis.set_ylabel('loss (idm_kl)')
+idm_kl_axis.set_title('idm_kl')
+idm_kl_axis.legend(['test', 'train'])
+
+# %%
+ 
 
 
 
@@ -407,16 +433,31 @@ sampled_att_z, sampled_idm_z = sampled_att_z.numpy(), sampled_idm_z.numpy()
 sampled_att_z
 # %%
 bad_episodes = []
+bad_447 = []
+bad_498 = []
 bad_zs = np.where(sampled_att_z[:, 0] > 20)[0]
 for bad_z in bad_zs:
     exmp_indx = val_examples[bad_z]
-    bad_episodes.append([history_future_usc[exmp_indx, 0, 0], exmp_indx])
-    print(history_future_usc[exmp_indx, 0, 0])
-
+    epis = history_future_usc[exmp_indx, 0, 0]
+    bad_episodes.append([epis, exmp_indx])
+    if epis == 447:
+        bad_447.append(exmp_indx)
+    if epis == 498:
+        bad_498.append(exmp_indx)
+min(bad_447)
+min(bad_498)
 # val_examples[2910]
-# _ = plt.hist(bad_episodes, bins=150)
+_ = plt.hist(np.array(bad_episodes)[:, 0], bins=150)
 
 bad_episodes
+87113
+history_future_usc[93353, :, 1]
+history_future_usc[93353, 0, :]
+# %%
+for bad_indx in bad_447:
+    plt.figure()
+    plt.plot(history_future_usc[bad_indx, :, 6])
+
 # %%
 def get_animation():
     plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
@@ -690,8 +731,8 @@ future_idm_s[i, :, :]
 
 
 model_trainer.model.arbiter.attention_temp = 5
-traces_n = 50
-sample_index = [44611]
+traces_n = 20
+sample_index = [93353]
 ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]

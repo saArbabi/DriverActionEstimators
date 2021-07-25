@@ -22,10 +22,12 @@ class NeurIDMModel(AbstractModel):
         # self.vae_loss_weight = 0.01
 
     def callback_def(self):
-        self.train_klloss = tf.keras.metrics.Mean(name='train_loss')
-        self.train_mseloss = tf.keras.metrics.Mean(name='train_loss')
-        self.test_klloss = tf.keras.metrics.Mean(name='train_loss')
-        self.test_mseloss = tf.keras.metrics.Mean(name='train_loss')
+        self.train_mseloss = tf.keras.metrics.Mean()
+        self.test_mseloss = tf.keras.metrics.Mean()
+        self.train_att_klloss = tf.keras.metrics.Mean()
+        self.test_att_klloss = tf.keras.metrics.Mean()
+        self.train_idm_klloss = tf.keras.metrics.Mean()
+        self.test_idm_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
         # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
@@ -50,26 +52,32 @@ class NeurIDMModel(AbstractModel):
         with tf.GradientTape() as tape:
             act_pred, pri_params, pos_params = self(states)
             mse_loss = self.mse(targets, act_pred)
-            kl_loss = self.kl_loss(pri_params, pos_params)
+            kl_att, kl_idm = self.kl_loss(pri_params, pos_params)
+            kl_loss = kl_att + kl_idm
             loss = self.vae_loss(mse_loss, kl_loss)
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         self.train_mseloss.reset_states()
-        self.train_klloss.reset_states()
+        self.train_att_klloss.reset_states()
+        self.train_idm_klloss.reset_states()
         self.train_mseloss(mse_loss)
-        self.train_klloss(kl_loss)
+        self.train_att_klloss(kl_att)
+        self.train_idm_klloss(kl_idm)
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
         act_pred, pri_params, pos_params = self(states)
         mse_loss = self.mse(targets, act_pred)
-        kl_loss = self.kl_loss(pri_params, pos_params)
+        kl_att, kl_idm = self.kl_loss(pri_params, pos_params)
+        kl_loss = kl_att + kl_idm
         loss = self.vae_loss(mse_loss, kl_loss)
-        self.test_klloss.reset_states()
         self.test_mseloss.reset_states()
+        self.test_att_klloss.reset_states()
+        self.test_idm_klloss.reset_states()
         self.test_mseloss(mse_loss)
-        self.test_klloss(kl_loss)
+        self.test_att_klloss(kl_att)
+        self.test_idm_klloss(kl_idm)
 
     def kl_loss(self, pri_params, pos_params):
         pri_att_mean, pri_idm_mean, pri_att_logsigma, pri_idm_logsigma = pri_params
@@ -83,7 +91,7 @@ class NeurIDMModel(AbstractModel):
         posterior_idm = tfd.Normal(loc=pos_idm_mean, scale=tf.exp(pos_idm_logsigma))
         kl_idm = tf.reduce_mean(tfp.distributions.kl_divergence(posterior_idm, prior_idm))
 
-        return kl_att + kl_idm
+        return kl_att, kl_idm
 
     def vae_loss(self, mse_loss, kl_loss):
         return  self.vae_loss_weight*kl_loss + mse_loss
