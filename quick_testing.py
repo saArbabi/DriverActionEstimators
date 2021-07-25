@@ -66,6 +66,8 @@ np.unique(this[:, 0])
 
 np.unique(this[:, 0])
 # %%
+features_origin[(features_origin[:, indxs['ego_decision']] == 1) & \
+                    (features_origin[:, indxs['ego_att']] == 0) ].shape
 # %%
 
 features_origin[:, indxs['ego_action']].min()
@@ -164,19 +166,19 @@ EPISODE EVALUATION
 """
 # %%
 
-np.unique(features[features[:, 2] == 21][:, 0])
+# np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 458]
-# veh_arr[:, indxs['time_step']][26]
+veh_arr = features[features[:, 0] == 464]
+veh_arr[:, indxs['time_step']]
 veh_arr[:, indxs['leader_id']]
 veh_arr[:, indxs['time_step']]
 veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 # veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 1742
-time_snap_2 = 1767
+time_snap_1 = 1677
+time_snap_2 = time_snap_1 + 40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
@@ -212,7 +214,7 @@ for i in range(future_sca.shape[-1]):
     to_plot = history_sca[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
-    plt.grid()
+    # plt.grid()
 # %%
 
 col_names = ['episode_id', 'time_step', 'ego_id',
@@ -396,6 +398,26 @@ def latent_vis():
 att_axis, idm_axis = latent_vis()
 
 # %%
+"""
+Choose cars based on the latent for debugging
+"""
+sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
+sampled_att_z, sampled_idm_z = sampled_att_z.numpy(), sampled_idm_z.numpy()
+
+sampled_att_z
+# %%
+bad_episodes = []
+bad_zs = np.where(sampled_att_z[:, 0] > 20)[0]
+for bad_z in bad_zs:
+    exmp_indx = val_examples[bad_z]
+    bad_episodes.append([history_future_usc[exmp_indx, 0, 0], exmp_indx])
+    print(history_future_usc[exmp_indx, 0, 0])
+
+# val_examples[2910]
+# _ = plt.hist(bad_episodes, bins=150)
+
+bad_episodes
+# %%
 def get_animation():
     plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
     from matplotlib.animation import FuncAnimation, writers
@@ -507,7 +529,7 @@ while Example_pred < 10:
         enc_acts = model_trainer.model.act_encoder(sdv_actions)
         prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        att_scores =  model_trainer.model.arbiter(sampled_att_z)
+        att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
 
         idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
         idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
@@ -572,9 +594,7 @@ while Example_pred < 10:
         desired_tgaps = idm_params.numpy()[:, 0, 1]
         plt.scatter(desired_vs, desired_tgaps, color='grey')
 
-        # plt.scatter(19.4, 2, color='green')
-        plt.scatter(24.7, 1.5, color='orange')
-        # plt.scatter(30, 1, color='red')
+        plt.scatter(24.7, 1.5, color='red')
         plt.xlim(15, 40)
         plt.ylim(0, 3)
         #
@@ -671,7 +691,7 @@ future_idm_s[i, :, :]
 
 model_trainer.model.arbiter.attention_temp = 5
 traces_n = 50
-sample_index = [77327]
+sample_index = [44611]
 ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
@@ -687,7 +707,7 @@ enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-att_scores =  model_trainer.model.arbiter(sampled_att_z)
+att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
 
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 idm_params = tf.reshape(idm_params, [traces_n, 1, 5])

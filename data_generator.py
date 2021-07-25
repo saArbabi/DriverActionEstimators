@@ -96,9 +96,24 @@ class DataGenerator:
         # print(raw_recordings[47])
         def trace_back(merger_id, time_step):
             """
-            When a merger is found, trace back while merger exists.
+            When a merger is found, trace back while:
+            - merger exists
+            - follower keeps lane
+            - follower leader unchanged
+
             """
             nonlocal epis_features
+            att_veh_id = ego_ts[time_step]['att_veh_id']
+            if att_veh_id:
+                # if attending to a car during trace back
+                # assume it is a lead vehicle.
+                leader_ts = raw_recordings[att_veh_id]
+                leader_id = att_veh_id
+            else:
+                leader = None
+                leader_id = None
+                ml_delta_x = 1 # dummy
+
             while True:
                 try:
                     ego = ego_ts[time_step]
@@ -112,17 +127,13 @@ class DataGenerator:
                     # merger performing an other lane change
                     break
                 att_veh_id = ego['att_veh_id']
-                if att_veh_id:
-                    # if attending to a car during trace back
-                    #, assume it is a lead vehicle.
-                    leader = raw_recordings[att_veh_id][time_step]
-                    leader_id = att_veh_id
+                if att_veh_id != leader_id:
+                    # leader has chagned
+                    break
+
+                elif att_veh_id:
+                    leader = leader_ts[time_step]
                     ml_delta_x = leader['glob_x'] - merger['glob_x']
-                else:
-                    leader = None
-                    leader_id = None
-                    ml_delta_x = 1 # dummy
-                    # break
 
                 fm_delta_x = merger['glob_x'] - ego['glob_x']
                 if fm_delta_x > 0 and ml_delta_x > 0 and \
