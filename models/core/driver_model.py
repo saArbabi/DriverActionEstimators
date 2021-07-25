@@ -97,7 +97,7 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_acts, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-        att_scores = self.arbiter(sampled_att_z)
+        att_scores = self.arbiter([sampled_att_z, enc_h])
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
@@ -211,11 +211,12 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
+        self.linear_layer = Dense(50)
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
-        x = self.linear_layer(inputs)
+        sampled_att_z, enc_h = inputs
+        x = self.linear_layer(sampled_att_z) + enc_h
         x = self.attention_neu(x)
         x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.)
         return 1/(1+tf.exp(-self.attention_temp*x))
@@ -258,7 +259,7 @@ class IDMForwardSim(tf.keras.Model):
         batch_size = tf.shape(idm_s)[0]
 
         vel = idm_s[:, :, 0:1]
-        # these to deal with missing cars 
+        # these to deal with missing cars
         leader_exists = idm_s[:, :, 5:6]
         merger_exists = idm_s[:, :, 6:]
 
