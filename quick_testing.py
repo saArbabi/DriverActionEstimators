@@ -262,7 +262,7 @@ EPISODE EVALUATION
 # np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 456]
+veh_arr = features[features[:, 0] == 504]
 veh_arr[:, indxs['time_step']]
 veh_arr[:, indxs['leader_id']]
 
@@ -270,8 +270,8 @@ veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 # veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 394
-time_snap_2 = 434
+time_snap_1 = 1671
+time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
@@ -472,6 +472,7 @@ train_epis = all_epis[:int(len(all_epis)*0.8)]
 
 val_epis = np.setdiff1d(all_epis, train_epis)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
+np.where(train_indxs == 37964)
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 
 history_sca.shape
@@ -526,7 +527,7 @@ sampled_att_z
 bad_episodes = []
 bad_504 = []
 bad_498 = []
-bad_zs = np.where(sampled_att_z[:, 0] > 20)[0]
+bad_zs = np.where(sampled_att_z[:, 0] > 15)[0]
 for bad_z in bad_zs:
     exmp_indx = val_examples[bad_z]
     epis = history_future_usc[exmp_indx, 0, 0]
@@ -757,7 +758,6 @@ while Example_pred < 10:
         ############
 
         Example_pred += 1
-
 # %%
 """Sample anayis
 """
@@ -768,7 +768,7 @@ min_jamx = 2.
 max_act = 0.8
 min_act = 1.4
 
-i = 14408
+i = 44366
 # vel = future_idm_s[i, :, 2]
 # dv = future_idm_s[i, :, 3]
 # dx = future_idm_s[i, :, 4]
@@ -826,7 +826,7 @@ future_idm_s[i, :, :]
 
 model_trainer.model.arbiter.attention_temp = 20
 traces_n = 5
-sample_index = [39611]
+sample_index = [71667]
 ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
@@ -928,7 +928,6 @@ plt.legend(['True', 'Predicted'])
 
 
 # %%
-
 
 ##########
 plt.figure(figsize=(4, 4))

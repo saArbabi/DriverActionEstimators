@@ -105,7 +105,6 @@ class IDMMOBILVehicle(Vehicle):
         # elif 0.66 < self.driver_params['aggressiveness']:
         #     # aggressive driver
         #     attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
-        # self.driver_params['attentiveness'] = round(attentiveness, 1)
 
         self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
 
