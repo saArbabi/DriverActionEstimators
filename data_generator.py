@@ -100,10 +100,12 @@ class DataGenerator:
             - merger exists
             - follower keeps lane
             - follower leader unchanged
-
             """
             nonlocal epis_features
-            att_veh_id = ego_ts[time_step]['att_veh_id']
+            try:
+                att_veh_id = ego_ts[time_step]['att_veh_id']
+            except:
+                return
             if att_veh_id:
                 # if attending to a car during trace back
                 # assume it is a lead vehicle.
@@ -137,7 +139,7 @@ class DataGenerator:
 
                 fm_delta_x = merger['glob_x'] - ego['glob_x']
                 if fm_delta_x > 0 and ml_delta_x > 0 and \
-                                        ego['lane_decision'] == 'keep_lane':
+                            ego['lane_decision'] == 'keep_lane' and merger_id != leader_id:
                     step_feature = self.get_step_feature(ego, leader, merger, ego_att=0)
                     step_feature[0:0] = add_info(leader_id, merger_id, time_step)
                     epis_features.append(step_feature)
@@ -201,7 +203,7 @@ class DataGenerator:
         print(len(vehicle_ids))
         np.random.shuffle(vehicle_ids)
         for ego_id in vehicle_ids:
-            # if ego_id != 14:
+            # if ego_id != 155:
             #     continue
             reset_episode()
             ego_ts = raw_recordings[ego_id]
@@ -241,15 +243,11 @@ class DataGenerator:
                             leader = leader_ts[time_step]
                         except:
                             leader = None
-                            merger_ts = None
                             leader_id = None
-                            if not merger_id:
-                                end_episode()
-                                continue
 
                     elif leader_id == merger_id:
+                        # happens when eg0 (follower) and merger are both changing lane
                         leader = None
-                        merger_ts = None
                         leader_id = None
                 # print('time_step')
                 # print(time_step)
@@ -337,9 +335,9 @@ class DataGenerator:
         history_future_usc = np.append(history_usc, future_usc, axis=1)
 
         # future states - fed to idm_layer
-        col_names = ['episode_id', 'time_step', 'ego_speed',
-                        'fl_delta_v', 'fl_delta_x',
-                        'fm_delta_v', 'fm_delta_x',
+        col_names = ['episode_id', 'time_step',
+                        'ego_speed', 'leader_speed', 'merger_speed',
+                        'fl_delta_x', 'fm_delta_x',
                         'leader_exists', 'merger_exists']
         history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]

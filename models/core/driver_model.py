@@ -108,8 +108,7 @@ class NeurIDMModel(AbstractModel):
         att_scores = self.arbiter([sampled_att_z, enc_h])
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
-        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        idm_params = tf.repeat(idm_params, 40, axis=1)
+        # idm_params = tf.repeat(idm_params, 40, axis=1)
 
         act_seq = self.idm_sim.rollout([att_scores, idm_params, inputs[2]])
         #
@@ -262,27 +261,60 @@ class IDMForwardSim(tf.keras.Model):
         "this helps with avoiding vanishing gradients"
         return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
 
+    @tf.function
     def rollout(self, inputs):
         att_scores, idm_params, idm_s = inputs
         batch_size = tf.shape(idm_s)[0]
-
-        vel = idm_s[:, :, 0:1]
-        # these to deal with missing cars
-        leader_exists = idm_s[:, :, 5:6]
-        merger_exists = idm_s[:, :, 6:]
-
-        dv = idm_s[:, :, 1:2]*leader_exists
-        dx = idm_s[:, :, 2:3]*leader_exists + 1000*(1-leader_exists)
-        # tf.print('############ fl_act ############')
-        fl_act = self.idm_driver(vel, dv, dx, idm_params)
-
-        dv = idm_s[:, :, 3:4]*merger_exists
-        dx = idm_s[:, :, 4:5]*merger_exists + 1000*(1-merger_exists)
-        # tf.print('############ fm_act ############')
-        fm_act = self.idm_driver(vel, dv, dx, idm_params)
-
+        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         att_scores = tf.reshape(att_scores, [batch_size, 40, 1])
-        act_seq = (1-att_scores)*fl_act + att_scores*fm_act
+
+        # Initialize vals
+        act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
+        ego_v = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
+        fl_delta_x = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
+        fm_delta_x = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
+        _act = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
+
+        for step in tf.range(40):
+            tf.autograph.experimental.set_loop_options(shape_invariants=[
+                                (act_seq, tf.TensorShape([None,None,None])),
+                                (fl_delta_x, tf.TensorShape([None,None,None])),
+                                (fm_delta_x, tf.TensorShape([None,None,None])),
+                                (ego_v, tf.TensorShape([None,None,None])),
+                                (_act, tf.TensorShape([None,None,None]))])
+
+            leader_v = idm_s[:, step:step+1, 1:2]
+            merger_v = idm_s[:, step:step+1, 2:3]
+            # these to deal with missing cars
+            leader_exists = idm_s[:, step:step+1, -2:-1]
+            merger_exists = idm_s[:, step:step+1, -1:]
+            if step == 0:
+                ego_v = idm_s[:, step:step+1, 0:1]
+                fl_delta_x = idm_s[:, step:step+1, 3:4]
+                fm_delta_x = idm_s[:, step:step+1, 4:5]
+                fl_dv = ego_v - leader_v
+                fm_dv = ego_v - merger_v
+            else:
+                ego_v += _act*0.1
+                fl_dv = ego_v - leader_v
+                fm_dv = ego_v - merger_v
+                fl_delta_x -= fl_dv*0.1
+                fm_delta_x -= fm_dv*0.1
+
+            dv = fl_dv*leader_exists
+            dx = fl_delta_x*leader_exists + 1000*(1-leader_exists)
+            # tf.print('############ fl_act ############')
+            fl_act = self.idm_driver(ego_v, dv, dx, idm_params)
+
+            dv = fm_dv*merger_exists
+            dx = fm_delta_x*merger_exists + 1000*(1-merger_exists)
+            # tf.print('############ fm_act ############')
+            fm_act = self.idm_driver(ego_v, dv, dx, idm_params)
+
+            att_score = att_scores[:, step:step+1, :]
+            _act = (1-att_score)*fl_act + att_score*fm_act
+            act_seq = tf.concat([act_seq, _act], axis=1)
+
         return act_seq
 
 class IDMLayer(tf.keras.Model):
