@@ -16,7 +16,7 @@ from highway import Env
 
 import vehicle_handler
 reload(vehicle_handler)
-
+import time
 from viewer import Viewer
 
 config = {'lanes_n':6,
@@ -105,7 +105,7 @@ data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in
 np.count_nonzero(cond)/future_ego_a.shape[0]
 # %%
 future_ego_a.shape
-future_ego_a.shape
+future_idm_s.shape
 
 # %%
 """
@@ -399,7 +399,10 @@ class Trainer():
                     future_merger_a[val_indxs, :, 2:],
                     future_ego_a[val_indxs, :, 2:]]
 
+        avg_training_time = epochs * 100/60
+        print('it will take about ' , round(avg_training_time), ' mins to complete')
         for epoch in range(epochs):
+            t0 = time.time()
             self.model.train_loop(train_input)
             self.model.test_loop(val_input, epoch)
             if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
@@ -412,7 +415,9 @@ class Trainer():
             else:
                 self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+            t1 = time.time()
             print(self.epoch_count, 'epochs completed')
+            print('Epoch took: ', round(t1-t0), ' seconds')
             self.epoch_count += 1
 
     def save_model(self, model_name):
@@ -422,8 +427,7 @@ class Trainer():
 model_trainer = Trainer(model_type='driver_model')
 
 # %%
-
-model_trainer.model.vae_loss_weight = 0.5
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
@@ -462,7 +466,7 @@ idm_kl_axis.set_title('idm_kl')
 idm_kl_axis.legend(['test', 'train'])
 
 # %%
-
+5*100/60
 all_epis = np.unique(history_sca[:, 0, 0])
 train_epis = all_epis[:int(len(all_epis)*0.8)]
 
@@ -663,10 +667,8 @@ while Example_pred < 10:
         prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
         att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
-
         idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-        idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
-        idm_params = tf.repeat(idm_params, 40, axis=1)
+
         act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -681,7 +683,7 @@ while Example_pred < 10:
                         'ego_id: '+ info[2] +
                         'aggressiveness: '+ info[3]
                             , fontsize=10)
-        plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
+        plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 
         plt.figure(figsize=(4, 4))
@@ -723,8 +725,8 @@ while Example_pred < 10:
         # plt.plot(desired_tgaps)
         # plt.grid()
         plt.figure(figsize=(4, 4))
-        desired_vs = idm_params.numpy()[:, 0, 0]
-        desired_tgaps = idm_params.numpy()[:, 0, 1]
+        desired_vs = idm_params.numpy()[:, 0]
+        desired_tgaps = idm_params.numpy()[:, 1]
         plt.scatter(desired_vs, desired_tgaps, color='grey')
 
         plt.scatter(24.7, 1.5, color='red')
@@ -842,8 +844,8 @@ prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior'
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
 att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-idm_params = tf.reshape(idm_params, [traces_n, 1, 5])
-idm_params = tf.repeat(idm_params, 40, axis=1)
+
+
 act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -860,7 +862,7 @@ plt.text(0.5, 0.5,
                 'ego_id: '+ info[2] +\
                 'aggressiveness: '+ info[3]
                     , fontsize = 15)
-plt.text(0.1, 0.1, str(idm_params.numpy()[:, 0, :].mean(axis=0)))
+plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 ##########
 # %%
@@ -905,9 +907,9 @@ att_axis.set_xlabel('$z_2$')
 
 # %%
 ##########
-desired_vs = idm_params.numpy()[:, 0, 0]
-desired_tgaps = idm_params.numpy()[:, 0, 1]
-min_jamx = idm_params.numpy()[:, 0, 2]
+desired_vs = idm_params.numpy()[:, 0]
+desired_tgaps = idm_params.numpy()[:, 1]
+min_jamx = idm_params.numpy()[:, 2]
 fig = pyplot.figure()
 ax = Axes3D(fig)
 

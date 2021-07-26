@@ -335,9 +335,9 @@ class DataGenerator:
         history_future_usc = np.append(history_usc, future_usc, axis=1)
 
         # future states - fed to idm_layer
-        col_names = ['episode_id', 'time_step', 'ego_speed',
-                        'fl_delta_v', 'fl_delta_x',
-                        'fm_delta_v', 'fm_delta_x',
+        col_names = ['episode_id', 'time_step',
+                        'ego_speed', 'leader_speed', 'merger_speed',
+                        'fl_delta_x', 'fm_delta_x',
                         'leader_exists', 'merger_exists']
         history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
