@@ -71,7 +71,11 @@ features_origin[(features_origin[:, indxs['merger_id']] != -1) & \
 # %%
 features_origin[(features_origin[:, indxs['ego_id']] == 59)]
 # %%
-features_origin[(features_origin[:, indxs['merger_id']] == features_origin[:, indxs['leader_id']])].shape
+features_origin[(features_origin[:, indxs['aggressiveness']] == 1) & \
+                    (features_origin[:, indxs['ego_att']] == 1) ].shape
+features_origin[(features_origin[:, indxs['aggressiveness']] == 0) & \
+                    (features_origin[:, indxs['ego_att']] == 1) ].shape
+
 # %%
 
 features_origin[:, indxs['ego_action']].min()
@@ -168,7 +172,8 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 39611
+i = 40273
+# history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
     desired_v = 19.4
@@ -190,12 +195,13 @@ elif aggressiveness == 1:
     min_act = 3
 
 vel = future_idm_s[i, :, 2]
+leader_v = future_idm_s[i, :, 3]
+merger_v = future_idm_s[i, :, 4]
 leader_exists = future_idm_s[i, :, -2]
 merger_exists = future_idm_s[i, :, -1]
 
-dv = future_idm_s[i, :, 3]*leader_exists
-dx = future_idm_s[i, :, 4]*leader_exists + 1000*(1-leader_exists)
-
+dv = (vel - leader_v)*leader_exists
+dx = future_idm_s[i, :, 5]*leader_exists + 1000*(1-leader_exists)
 
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
@@ -203,8 +209,7 @@ np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=No
 fl_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 fl_act = np.clip(fl_act, -3, 3)
 
-
-dv = future_idm_s[i, :, 5]*merger_exists
+dv = (vel - merger_v)*merger_exists
 dx = future_idm_s[i, :, 6]*merger_exists + 1000*(1-merger_exists)
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
@@ -216,20 +221,60 @@ history_future_usc[i, :, -5]
 act = (1-att_scores)*fl_act + att_scores*fm_act
 plt.plot(act)
 # %%
-
-att_scores_pred = np.array([3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 3.0590220e-07, 3.0590220e-07, 3.0590220e-07,
-        3.0590220e-07, 4.1835592e-05, 5.1622083e-03, 1.8928352e-01,
-        9.8600292e-01, 9.9519902e-01, 9.9977940e-01, 9.9999738e-01,
-        9.9999964e-01, 9.9999964e-01, 9.9999964e-01, 9.9999964e-01])
-act = (1-att_scores_pred)*fl_act + att_scores_pred*fm_act
+att_scores_pred = np.array([1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
+        1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
+        1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
+        1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
+        1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
+        1.0000000e+00, 1.0000000e+00, 9.9999881e-01, 9.9386734e-01,
+        8.9486158e-01, 7.3602140e-02, 5.1468670e-01, 2.8113881e-01,
+        3.3656999e-01, 9.9013418e-01, 9.4325203e-01, 8.9705032e-01,
+        9.8999459e-01, 9.9275535e-01, 4.8926911e-01, 9.8763371e-01,
+        5.1339842e-02, 9.3817367e-04, 2.2541439e-04, 3.2734834e-03])
+act_pred = (1-att_scores_pred)*fl_act + att_scores_pred*fm_act
+plt.plot(act_pred)
 plt.plot(act)
-
+plt.plot(bad_act)
+bad_act = np.array( [[-2.8600504 ],
+        [-2.5390313 ],
+        [-2.2685897 ],
+        [-2.0381284 ],
+        [-1.8397862 ],
+        [-1.6676115 ],
+        [-1.5170228 ],
+        [-1.3844308 ],
+        [-1.2669896 ],
+        [-1.162413  ],
+        [-1.0688463 ],
+        [-0.98476726],
+        [-0.9089168 ],
+        [-0.84024453],
+        [-0.77786756],
+        [-0.7210376 ],
+        [-0.66912824],
+        [-0.6216008 ],
+        [-0.57798433],
+        [-0.5378689 ],
+        [-0.50089854],
+        [-0.46676242],
+        [-0.43518108],
+        [-0.3595602 ],
+        [ 0.07035895],
+        [ 0.06437152],
+        [ 0.06745518],
+        [ 0.06165537],
+        [ 0.05996983],
+        [ 0.1993992 ],
+        [ 0.09106313],
+        [ 0.06849393],
+        [ 0.17215483],
+        [ 0.1972932 ],
+        [ 0.03617135],
+        [ 0.16665894],
+        [ 0.29320046],
+        [ 0.28753597],
+        [ 0.2819547 ],
+        [ 0.27645677]])
 # %%
 plt.plot(att_scores_pred[28:40])
 plt.plot(att_scores[28:40])
@@ -262,7 +307,7 @@ EPISODE EVALUATION
 # np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 504]
+veh_arr = features[features[:, 0] == 463]
 veh_arr[:, indxs['time_step']]
 veh_arr[:, indxs['leader_id']]
 
@@ -270,7 +315,7 @@ veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
 # veh_arr[:, indxs['ego_att']][25]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 1671
+time_snap_1 = 332
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -466,7 +511,6 @@ idm_kl_axis.set_title('idm_kl')
 idm_kl_axis.legend(['test', 'train'])
 
 # %%
-5*100/60
 all_epis = np.unique(history_sca[:, 0, 0])
 train_epis = all_epis[:int(len(all_epis)*0.8)]
 
@@ -667,7 +711,7 @@ while Example_pred < 10:
         enc_acts = model_trainer.model.act_encoder(sdv_actions)
         prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
+        att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h, enc_acts])
         idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 
         act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
@@ -826,7 +870,7 @@ future_idm_s[i, :, :]
 
 model_trainer.model.arbiter.attention_temp = 20
 traces_n = 5
-sample_index = [71667]
+sample_index = [40273]
 ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
@@ -842,7 +886,7 @@ enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h])
+att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h, enc_acts])
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 
 
