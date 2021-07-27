@@ -205,7 +205,7 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='mul')
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='sum')
 
     def call(self, inputs):
         enc_acts = self.lstm_layer(inputs)
@@ -218,13 +218,13 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer_1 = Dense(100)
-        self.linear_layer_2 = Dense(100)
+        self.linear_layer = Dense(100)
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
         sampled_att_z, enc_h, enc_acts = inputs
-        x = self.linear_layer_2(self.linear_layer_1(sampled_att_z) + enc_h + enc_acts)
+        # x = self.linear_layer_2(self.linear_layer_1(sampled_att_z) + enc_h + enc_acts)
+        x = self.linear_layer_1(sampled_att_z)
         x = self.attention_neu(x)
         x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.)
         return 1/(1+tf.exp(-self.attention_temp*x))
@@ -269,33 +269,25 @@ class IDMForwardSim(tf.keras.Model):
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         att_scores = tf.reshape(att_scores, [batch_size, 40, 1])
 
-        # Initialize vals
-
-        # act_seq = tf.TensorArray(tf.float32, size=40)
-        act_seq = tf.constant([[[0.0, 0.0, 0.0]]])
-        ego_v = tf.constant([[[0.0, 0.0, 0.0]]])
-        fl_delta_x = tf.constant([[[0.0, 0.0, 0.0]]])
-        fm_delta_x = tf.constant([[[0.0, 0.0, 0.0]]])
-        _act = tf.constant([[[0.0, 0.0, 0.0]]])
-
         for step in range(40):
             leader_v = idm_s[:, step:step+1, 1:2]
             merger_v = idm_s[:, step:step+1, 2:3]
+            leader_glob_x = idm_s[:, step:step+1, 4:5]
+            merger_glob_x = idm_s[:, step:step+1, 5:6]
             # these to deal with missing cars
             leader_exists = idm_s[:, step:step+1, -2:-1]
             merger_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
-                fl_delta_x = idm_s[:, step:step+1, 3:4]
-                fm_delta_x = idm_s[:, step:step+1, 4:5]
-                fl_dv = ego_v - leader_v
-                fm_dv = ego_v - merger_v
+                ego_glob_x = idm_s[:, step:step+1, 3:4]
             else:
                 ego_v += _act*0.1
-                fl_dv = ego_v - leader_v
-                fm_dv = ego_v - merger_v
-                fl_delta_x -= fl_dv*0.1
-                fm_delta_x -= fm_dv*0.1
+                ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+
+            fl_delta_x = leader_glob_x - ego_glob_x
+            fm_delta_x = merger_glob_x - ego_glob_x
+            fl_dv = ego_v - leader_v
+            fm_dv = ego_v - merger_v
 
             dv = fl_dv*leader_exists
             dx = fl_delta_x*leader_exists + 1000*(1-leader_exists)

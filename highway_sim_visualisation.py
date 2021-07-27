@@ -13,7 +13,7 @@ def main():
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 320:
+        if env.time_step > 1390:
             decision = input()
             if decision == 'n':
                 sys.exit()

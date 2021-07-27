@@ -18,7 +18,7 @@ class Vehicle(object):
     def step(self, actions):
         act_long, act_lat = actions
         self.glob_x +=  self.speed * self.STEP_SIZE \
-                                    + 0.5 * act_long * self.STEP_SIZE **2
+                                    + 0.5 * act_long * self.STEP_SIZE**2
         self.speed +=  act_long * self.STEP_SIZE
         if act_lat != 0:
             self.glob_y +=  act_lat*self.STEP_SIZE

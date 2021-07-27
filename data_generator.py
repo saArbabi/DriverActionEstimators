@@ -23,6 +23,7 @@ class DataGenerator:
                  'ego_id', 'leader_id', 'merger_id',
                  'ego_decision', 'leader_exists', 'merger_exists',
                  'aggressiveness', 'lane_y', 'ego_att',
+                 'ego_glob_x', 'leader_glob_x', 'merger_glob_x',
                  'ego_speed', 'leader_speed', 'merger_speed',
                  'ego_action', 'leader_action', 'merger_action',
                  'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
@@ -68,6 +69,7 @@ class DataGenerator:
         ego_aggressiveness = ego['aggressiveness']
         step_feature = [ego_decision, leader_exists, merger_exists,
                         ego_aggressiveness, merger['lane_y'], ego_att,
+                        ego['glob_x'], leader['glob_x'], merger['glob_x'],
                         ego['speed'], leader['speed'], merger['speed'],
                         ego['act_long'], leader['act_long'], merger['act_long']]
 
@@ -281,7 +283,8 @@ class DataGenerator:
             features[nan_indx, indx] = dummy_value
 
         cols_with_nans = ['lane_y', 'leader_speed', 'merger_speed', 'leader_action', \
-                'merger_action', 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
+                'merger_action', 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x', \
+                'leader_glob_x', 'merger_glob_x']
         for col in cols_with_nans:
             fill_with_dummy(self.indxs[col])
 
@@ -337,7 +340,7 @@ class DataGenerator:
         # future states - fed to idm_layer
         col_names = ['episode_id', 'time_step',
                         'ego_speed', 'leader_speed', 'merger_speed',
-                        'fl_delta_x', 'fm_delta_x',
+                        'ego_glob_x', 'leader_glob_x', 'merger_glob_x',
                         'leader_exists', 'merger_exists']
         history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
