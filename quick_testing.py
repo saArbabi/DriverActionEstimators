@@ -8,6 +8,7 @@ reload(data_generator)
 # reload(plt)
 from data_generator import DataGenerator
 import numpy as np
+np.set_printoptions(suppress=True)
 import tensorflow as tf
 
 import highway
@@ -44,6 +45,7 @@ feature_names = [
          'ego_id', 'leader_id', 'merger_id',
          'ego_decision', 'leader_exists', 'merger_exists',
          'aggressiveness', 'lane_y', 'ego_att',
+         'ego_glob_x', 'leader_glob_x', 'merger_glob_x',
          'ego_speed', 'leader_speed', 'merger_speed',
          'ego_action', 'leader_action', 'merger_action',
          'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x']
@@ -172,7 +174,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 40273
+i = 38789
 # history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -197,11 +199,14 @@ elif aggressiveness == 1:
 vel = future_idm_s[i, :, 2]
 leader_v = future_idm_s[i, :, 3]
 merger_v = future_idm_s[i, :, 4]
+ego_glob_x = future_idm_s[i, :, 5]
+leader_glob_x = future_idm_s[i, :, 6]
+merger_glob_x = future_idm_s[i, :, 7]
 leader_exists = future_idm_s[i, :, -2]
 merger_exists = future_idm_s[i, :, -1]
 
 dv = (vel - leader_v)*leader_exists
-dx = future_idm_s[i, :, 5]*leader_exists + 1000*(1-leader_exists)
+dx = (leader_glob_x - ego_glob_x)*leader_exists + 1000*(1-leader_exists)
 
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
@@ -210,7 +215,7 @@ fl_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 fl_act = np.clip(fl_act, -3, 3)
 
 dv = (vel - merger_v)*merger_exists
-dx = future_idm_s[i, :, 6]*merger_exists + 1000*(1-merger_exists)
+dx = (leader_glob_x - ego_glob_x)*merger_exists + 1000*(1-merger_exists)
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
@@ -220,6 +225,7 @@ att_scores = history_future_usc[i, :, -5]
 history_future_usc[i, :, -5]
 act = (1-att_scores)*fl_act + att_scores*fm_act
 plt.plot(act)
+
 # %%
 att_scores_pred = np.array([1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
         1.0000000e+00, 1.0000000e+00, 1.0000000e+00, 1.0000000e+00,
@@ -307,15 +313,24 @@ EPISODE EVALUATION
 # np.unique(features[features[:, 2] == 21][:, 0])
 
 # features[features[:, 2] == 34]
-veh_arr = features[features[:, 0] == 463]
 veh_arr[:, indxs['time_step']]
+np.where(veh_arr[:, indxs['ego_att']] == 1)
 veh_arr[:, indxs['leader_id']]
+veh_arr[:, indxs['lane_y']][13]
+veh_arr[:, indxs['lane_y']][85+39]
+future_merger_a[37964, :, -1]
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_merger_a, future_ego_a = data_arrays
+history_future_usc[37964, :, -6]
 
 veh_arr[:, indxs['merger_id']]
 veh_arr[:, indxs['ego_id']]
+veh_arr[:, indxs['merger_action']]
 # veh_arr[:, indxs['ego_att']][25]
+# %%
+veh_arr = features[features[:, 0] == 447]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 332
+time_snap_1 = 1401
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -511,6 +526,8 @@ idm_kl_axis.set_title('idm_kl')
 idm_kl_axis.legend(['test', 'train'])
 
 # %%
+future_idm_s[1000, 0, :]
+
 all_epis = np.unique(history_sca[:, 0, 0])
 train_epis = all_epis[:int(len(all_epis)*0.8)]
 
