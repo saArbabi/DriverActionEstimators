@@ -96,17 +96,18 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
 
-        # if 0 <= self.driver_params['aggressiveness'] < 0.33:
-        #     # timid driver
-        #     attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
-        # elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
-        #     # normal driver
-        #     attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
-        # elif 0.66 < self.driver_params['aggressiveness']:
-        #     # aggressive driver
-        #     attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
+        if 0 <= self.driver_params['aggressiveness'] < 0.33:
+            # timid driver
+            attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
+        elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
+            # normal driver
+            attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
+        elif 0.66 < self.driver_params['aggressiveness']:
+            # aggressive driver
+            attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
 
-        self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
+        self.driver_params['attentiveness'] = attentiveness
+        # self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
 
     def get_idm_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:

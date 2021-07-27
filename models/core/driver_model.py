@@ -137,8 +137,10 @@ class BeliefModel(tf.keras.Model):
         self.pos_idm_mean = Dense(self.latent_dim)
         self.pos_idm_logsigma = Dense(self.latent_dim)
 
-        self.pri_linear = Dense(100)
-        self.pos_linear = Dense(100)
+        self.pri_linear_att = Dense(100)
+        self.pri_linear_idm = Dense(100)
+        self.pos_linear_att = Dense(100)
+        self.pos_linear_idm = Dense(100)
 
     def sample_z(self, dis_params):
         z_att_mean, z_idm_mean, z_att_logsigma, z_idm_logsigma = dis_params
@@ -156,17 +158,20 @@ class BeliefModel(tf.keras.Model):
         if dis_type == 'both':
             enc_h, enc_acts, enc_f = inputs
             # prior
-            context = self.pri_linear(enc_h+enc_acts)
-            pri_att_mean = self.pri_att_mean(context)
-            pri_att_logsigma = self.pri_att_logsigma(context)
-            pri_idm_mean = self.pri_idm_mean(context)
-            pri_idm_logsigma = self.pri_idm_logsigma(context)
+            context_att = self.pri_linear_att(enc_h+enc_acts)
+            context_idm = self.pri_linear_idm(enc_h)
+            pri_att_mean = self.pri_att_mean(context_att)
+            pri_att_logsigma = self.pri_att_logsigma(context_att)
+            pri_idm_mean = self.pri_idm_mean(context_idm)
+            pri_idm_logsigma = self.pri_idm_logsigma(context_idm)
+
             # posterior
-            context = self.pos_linear(enc_h+enc_acts+enc_f)
-            pos_att_mean = self.pos_att_mean(context)
-            pos_att_logsigma = self.pos_att_logsigma(context)
-            pos_idm_mean = self.pos_idm_mean(context)
-            pos_idm_logsigma = self.pos_idm_logsigma(context)
+            context_att = self.pos_linear_att(enc_h+enc_acts+enc_f)
+            context_idm = self.pos_linear_idm(enc_h+enc_f)
+            pos_att_mean = self.pos_att_mean(context_att)
+            pos_att_logsigma = self.pos_att_logsigma(context_att)
+            pos_idm_mean = self.pos_idm_mean(context_idm)
+            pos_idm_logsigma = self.pos_idm_logsigma(context_idm)
 
             pri_params = [pri_att_mean, pri_idm_mean, pri_att_logsigma, pri_idm_logsigma]
             pos_params = [pos_att_mean, pos_idm_mean, pos_att_logsigma, pos_idm_logsigma]
@@ -174,14 +179,15 @@ class BeliefModel(tf.keras.Model):
 
         elif dis_type == 'prior':
             enc_h, enc_acts = inputs
-            context = self.pri_linear(enc_h+enc_acts)
 
-            pri_att_mean = self.pri_att_mean(context)
-            pri_att_logsigma = self.pri_att_logsigma(context)
-            pri_idm_mean = self.pri_idm_mean(context)
-            pri_idm_logsigma = self.pri_idm_logsigma(context)
+            context_att = self.pri_linear_att(enc_h+enc_acts)
+            context_idm = self.pri_linear_idm(enc_h)
+            pri_att_mean = self.pri_att_mean(context_att)
+            pri_att_logsigma = self.pri_att_logsigma(context_att)
+            pri_idm_mean = self.pri_idm_mean(context_idm)
+            pri_idm_logsigma = self.pri_idm_logsigma(context_idm)
+
             pri_params = [pri_att_mean, pri_idm_mean, pri_att_logsigma, pri_idm_logsigma]
-
             return pri_params
 
 class HistoryEncoder(tf.keras.Model):
@@ -218,13 +224,16 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
+        self.linear_layer_1 = Dense(100)
+        self.linear_layer_2 = Dense(100)
+        self.linear_layer_3 = Dense(100)
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
         sampled_att_z, enc_h, enc_acts = inputs
-        # x = self.linear_layer_2(self.linear_layer_1(sampled_att_z) + enc_h + enc_acts)
-        x = self.linear_layer_1(sampled_att_z)
+        x = self.linear_layer_1(sampled_att_z) + self.linear_layer_2(enc_h) + self.linear_layer_3(enc_acts)
+        # x = self.linear_layer(sampled_att_z) + enc_h
+        # x = self.linear_layer(sampled_att_z)
         x = self.attention_neu(x)
         x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.)
         return 1/(1+tf.exp(-self.attention_temp*x))
@@ -316,7 +325,8 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
+        self.linear_layer_1 = Dense(100)
+        self.linear_layer_2 = Dense(100)
         self.des_v_neu = Dense(1)
         self.des_tgap_neu = Dense(1)
         self.min_jamx_neu = Dense(1)
@@ -355,7 +365,8 @@ class IDMLayer(tf.keras.Model):
         batch_size = tf.shape(sampled_idm_z)[0]
 
         # x = enc_h
-        x = self.linear_layer(sampled_idm_z) + enc_h
+        x = self.linear_layer_1(sampled_idm_z) + self.linear_layer_2(enc_h)
+        # x = self.linear_layer(sampled_idm_z)
         # desired_v = tf.fill([batch_size, 1], 19.4)
         # desired_tgap = tf.fill([batch_size, 1], 2.0)
         # min_jamx = tf.fill([batch_size, 1], 4.0)
