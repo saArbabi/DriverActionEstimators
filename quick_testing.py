@@ -79,6 +79,10 @@ features_origin[(features_origin[:, indxs['aggressiveness']] == 0) & \
                     (features_origin[:, indxs['ego_att']] == 1) ].shape
 
 # %%
+features_origin[(features_origin[:, indxs['merger_exists']] == 1)].shape
+features_origin[(features_origin[:, indxs['leader_exists']] == 1)].shape
+
+# %%
 
 features_origin[:, indxs['ego_action']].min()
 features_origin[:, indxs['ego_action']].std()

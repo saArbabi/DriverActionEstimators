@@ -224,14 +224,12 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer_1 = Dense(100)
-        self.linear_layer_2 = Dense(100)
-        self.linear_layer_3 = Dense(100)
+        self.linear_layer = Dense(100)
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
         sampled_att_z, enc_h, enc_acts = inputs
-        x = self.linear_layer_1(sampled_att_z) + self.linear_layer_2(enc_h) + self.linear_layer_3(enc_acts)
+        x = self.linear_layer(sampled_att_z) + enc_h + enc_acts
         # x = self.linear_layer(sampled_att_z) + enc_h
         # x = self.linear_layer(sampled_att_z)
         x = self.attention_neu(x)
@@ -325,8 +323,7 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer_1 = Dense(100)
-        self.linear_layer_2 = Dense(100)
+        self.linear_layer = Dense(100)
         self.des_v_neu = Dense(1)
         self.des_tgap_neu = Dense(1)
         self.min_jamx_neu = Dense(1)
@@ -365,7 +362,7 @@ class IDMLayer(tf.keras.Model):
         batch_size = tf.shape(sampled_idm_z)[0]
 
         # x = enc_h
-        x = self.linear_layer_1(sampled_idm_z) + self.linear_layer_2(enc_h)
+        x = self.linear_layer(sampled_idm_z) + enc_h
         # x = self.linear_layer(sampled_idm_z)
         # desired_v = tf.fill([batch_size, 1], 19.4)
         # desired_tgap = tf.fill([batch_size, 1], 2.0)
