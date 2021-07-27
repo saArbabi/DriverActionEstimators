@@ -105,7 +105,7 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_acts, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-        att_scores = self.arbiter([sampled_att_z, enc_h])
+        att_scores = self.arbiter([sampled_att_z, enc_h, enc_acts])
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         # idm_params = tf.repeat(idm_params, 40, axis=1)
@@ -187,7 +187,7 @@ class BeliefModel(tf.keras.Model):
 class HistoryEncoder(tf.keras.Model):
     def __init__(self):
         super(HistoryEncoder, self).__init__(name="HistoryEncoder")
-        self.enc_units = 50
+        self.enc_units = 100
         self.architecture_def()
 
     def architecture_def(self):
@@ -201,7 +201,7 @@ class HistoryEncoder(tf.keras.Model):
 class FutureEncoder(tf.keras.Model):
     def __init__(self):
         super(FutureEncoder, self).__init__(name="FutureEncoder")
-        self.enc_units = 50
+        self.enc_units = 100
         self.architecture_def()
 
     def architecture_def(self):
@@ -218,12 +218,13 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(50)
+        self.linear_layer_1 = Dense(100)
+        self.linear_layer_2 = Dense(100)
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
-        sampled_att_z, enc_h = inputs
-        x = self.linear_layer(sampled_att_z) + enc_h
+        sampled_att_z, enc_h, enc_acts = inputs
+        x = self.linear_layer_2(self.linear_layer_1(sampled_att_z) + enc_h + enc_acts)
         x = self.attention_neu(x)
         x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.)
         return 1/(1+tf.exp(-self.attention_temp*x))
@@ -261,7 +262,7 @@ class IDMForwardSim(tf.keras.Model):
         "this helps with avoiding vanishing gradients"
         return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
 
-    @tf.function
+    @tf.function(experimental_relax_shapes=True)
     def rollout(self, inputs):
         att_scores, idm_params, idm_s = inputs
         batch_size = tf.shape(idm_s)[0]
@@ -269,20 +270,15 @@ class IDMForwardSim(tf.keras.Model):
         att_scores = tf.reshape(att_scores, [batch_size, 40, 1])
 
         # Initialize vals
-        act_seq = tf.zeros([batch_size, 0, 1], dtype=tf.float32)
-        ego_v = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
-        fl_delta_x = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
-        fm_delta_x = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
-        _act = tf.zeros([batch_size, 1, 1], dtype=tf.float32)
 
-        for step in tf.range(40):
-            tf.autograph.experimental.set_loop_options(shape_invariants=[
-                                (act_seq, tf.TensorShape([None,None,None])),
-                                (fl_delta_x, tf.TensorShape([None,None,None])),
-                                (fm_delta_x, tf.TensorShape([None,None,None])),
-                                (ego_v, tf.TensorShape([None,None,None])),
-                                (_act, tf.TensorShape([None,None,None]))])
+        # act_seq = tf.TensorArray(tf.float32, size=40)
+        act_seq = tf.constant([[[0.0, 0.0, 0.0]]])
+        ego_v = tf.constant([[[0.0, 0.0, 0.0]]])
+        fl_delta_x = tf.constant([[[0.0, 0.0, 0.0]]])
+        fm_delta_x = tf.constant([[[0.0, 0.0, 0.0]]])
+        _act = tf.constant([[[0.0, 0.0, 0.0]]])
 
+        for step in range(40):
             leader_v = idm_s[:, step:step+1, 1:2]
             merger_v = idm_s[:, step:step+1, 2:3]
             # these to deal with missing cars
@@ -313,18 +309,22 @@ class IDMForwardSim(tf.keras.Model):
 
             att_score = att_scores[:, step:step+1, :]
             _act = (1-att_score)*fl_act + att_score*fm_act
-            act_seq = tf.concat([act_seq, _act], axis=1)
+            if step == 0:
+                act_seq = _act
+            else:
+                act_seq = tf.concat([act_seq, _act], axis=1)
+            # act_seq = act_seq.write(step, _act)
 
         return act_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
-        self.enc_units = 50
+        self.enc_units = 100
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(50)
+        self.linear_layer = Dense(100)
         self.des_v_neu = Dense(1)
         self.des_tgap_neu = Dense(1)
         self.min_jamx_neu = Dense(1)
