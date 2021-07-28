@@ -98,14 +98,13 @@ class NeurIDMModel(AbstractModel):
 
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
-        enc_acts = self.act_encoder(inputs[-1])
-        batch_size = tf.shape(inputs[0])[0]
-
         enc_f = self.f_seq_encoder(inputs[1])
+        enc_acts = self.act_encoder(inputs[-1])
+
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_acts, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-        att_scores = self.arbiter([sampled_att_z, enc_h, enc_acts])
+        att_scores = self.arbiter(sampled_att_z)
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         # idm_params = tf.repeat(idm_params, 40, axis=1)
@@ -126,7 +125,6 @@ class BeliefModel(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-
         self.pri_att_mean = Dense(self.latent_dim)
         self.pri_att_logsigma = Dense(self.latent_dim)
         self.pos_att_mean = Dense(self.latent_dim)
@@ -144,13 +142,11 @@ class BeliefModel(tf.keras.Model):
 
     def sample_z(self, dis_params):
         z_att_mean, z_idm_mean, z_att_logsigma, z_idm_logsigma = dis_params
-        att_epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
+        _epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
 
-        idm_epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
-                                 self.latent_dim), mean=0., stddev=1)
-        sampled_att_z = z_att_mean + K.exp(z_att_logsigma) * att_epsilon
-        sampled_idm_z = z_idm_mean + K.exp(z_idm_logsigma) * idm_epsilon
+        sampled_att_z = z_att_mean + K.exp(z_att_logsigma) * _epsilon
+        sampled_idm_z = z_idm_mean + K.exp(z_idm_logsigma) * _epsilon
 
         return sampled_att_z, sampled_idm_z
 
@@ -158,7 +154,7 @@ class BeliefModel(tf.keras.Model):
         if dis_type == 'both':
             enc_h, enc_acts, enc_f = inputs
             # prior
-            context_att = self.pri_linear_att(enc_h+enc_acts)
+            context_att = self.pri_linear_att(tf.concat([enc_h, enc_acts], axis=-1))
             context_idm = self.pri_linear_idm(enc_h)
             pri_att_mean = self.pri_att_mean(context_att)
             pri_att_logsigma = self.pri_att_logsigma(context_att)
@@ -166,8 +162,8 @@ class BeliefModel(tf.keras.Model):
             pri_idm_logsigma = self.pri_idm_logsigma(context_idm)
 
             # posterior
-            context_att = self.pos_linear_att(enc_h+enc_acts+enc_f)
-            context_idm = self.pos_linear_idm(enc_h+enc_f)
+            context_att = self.pos_linear_att(tf.concat([enc_h, enc_acts, enc_f], axis=-1))
+            context_idm = self.pos_linear_idm(tf.concat([enc_h, enc_f], axis=-1))
             pos_att_mean = self.pos_att_mean(context_att)
             pos_att_logsigma = self.pos_att_logsigma(context_att)
             pos_idm_mean = self.pos_idm_mean(context_idm)
@@ -180,7 +176,7 @@ class BeliefModel(tf.keras.Model):
         elif dis_type == 'prior':
             enc_h, enc_acts = inputs
 
-            context_att = self.pri_linear_att(enc_h+enc_acts)
+            context_att = self.pri_linear_att(tf.concat([enc_h, enc_acts], axis=-1))
             context_idm = self.pri_linear_idm(enc_h)
             pri_att_mean = self.pri_att_mean(context_att)
             pri_att_logsigma = self.pri_att_logsigma(context_att)
@@ -211,7 +207,7 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='sum')
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
 
     def call(self, inputs):
         enc_acts = self.lstm_layer(inputs)
@@ -228,10 +224,7 @@ class Arbiter(tf.keras.Model):
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
-        sampled_att_z, enc_h, enc_acts = inputs
-        x = self.linear_layer(sampled_att_z) + enc_h + enc_acts
-        # x = self.linear_layer(sampled_att_z) + enc_h
-        # x = self.linear_layer(sampled_att_z)
+        x = self.linear_layer(inputs)
         x = self.attention_neu(x)
         x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.)
         return 1/(1+tf.exp(-self.attention_temp*x))
@@ -361,8 +354,8 @@ class IDMLayer(tf.keras.Model):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
 
-        # x = enc_h
         x = self.linear_layer(sampled_idm_z) + enc_h
+
         # x = self.linear_layer(sampled_idm_z)
         # desired_v = tf.fill([batch_size, 1], 19.4)
         # desired_tgap = tf.fill([batch_size, 1], 2.0)

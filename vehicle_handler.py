@@ -65,5 +65,5 @@ class VehicleHandler:
         if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':
-            max_glob_x, min_glob_x = round(vehicle.glob_x) + 30, round(vehicle.glob_x) - 30
+            max_glob_x, min_glob_x = round(vehicle.glob_x) + 60, round(vehicle.glob_x) - 60
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
