@@ -10,7 +10,7 @@ class Vehicle(object):
         # self.glob_y = glob_y
         self.speed = speed
         self.lane_y = 0
-        self.lane_width = 3.7
+        self.lane_width = 3.75
 
     def observe(self):
         raise NotImplementedError
@@ -46,12 +46,12 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_decision = 'keep_lane'
         self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr']}
         self.perception_range = 100 #m
-        self.lane_width = 3.8
+        self.lane_width = 3.75
         self.act_long = 0
         self.steps_since_lc_desired = 0
 
-        self.lateral_actions = {'move_left':0.7,
-                                'move_right':-0.7,
+        self.lateral_actions = {'move_left':0.75,
+                                'move_right':-0.75,
                                 'keep_lane':0
                                 }
         self.set_idm_params(aggressiveness)
@@ -96,18 +96,18 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
 
-        if 0 <= self.driver_params['aggressiveness'] < 0.33:
-            # timid driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
-        elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
-            # normal driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
-        elif 0.66 < self.driver_params['aggressiveness']:
-            # aggressive driver
-            attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
-
-        self.driver_params['attentiveness'] = attentiveness
-        # self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
+        # if 0 <= self.driver_params['aggressiveness'] < 0.33:
+        #     # timid driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(2, 10)
+        # elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
+        #     # normal driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(3, 3)
+        # elif 0.66 < self.driver_params['aggressiveness']:
+        #     # aggressive driver
+        #     attentiveness = 0.5*self.lane_width*np.random.beta(10, 2)
+        #
+        # self.driver_params['attentiveness'] = attentiveness
+        self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
 
     def get_idm_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
@@ -302,20 +302,19 @@ class IDMMOBILVehicle(Vehicle):
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours
         act_long = self.idm_action(self.observe(self, neighbours['f']))
+        return [act_long, self.lateral_actions[self.lane_decision]]
         if self.lane_decision == 'move_left':
             if self.lane_id == self.target_lane :
-                if self.lane_y >= 0:
+                if round(self.lane_y, 1) == 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-                    self.lane_y = 0
                     self.steps_since_lc_desired = 0
 
         elif self.lane_decision == 'move_right':
             if self.lane_id == self.target_lane :
-                if self.lane_y <= 0:
+                if round(self.lane_y, 1) == 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-                    self.lane_y = 0
                     self.steps_since_lc_desired = 0
 
         elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \

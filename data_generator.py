@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 2000 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 500 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -124,7 +124,7 @@ class DataGenerator:
                     break
 
                 fm_delta_x = merger['glob_x'] - ego['glob_x']
-                if fm_delta_x > 0 and ml_delta_x > 0 and \
+                if fm_delta_x > 1 and ml_delta_x > 1 and \
                             ego['lane_decision'] == 'keep_lane' and merger_id != leader_id:
                     step_feature = self.get_step_feature(ego, leader, merger, ego_att=0)
                     step_feature[0:0] = add_info(leader_id, merger_id, time_step)
@@ -221,28 +221,17 @@ class DataGenerator:
                                 leader = None
                                 leader_id = None
                     else:
-                        if merger_id == att_veh_id:
-                            # merger has arrived in its target lane
-                            merger = merger_ts[time_step]
-                            if leader_id:
-                                leader = None
-                                leader_id = None
+                        if merger_id:
+                            end_episode()
+
+                        if leader_id == att_veh_id:
+                            leader = leader_ts[time_step]
+
                         else:
-                            # paying attention to a leader
-                            if merger_id:
-                                ego_att = 0
-                                merger = None
-                                merger_id = None
-                                merger_ts = None
-
-                            if leader_id == att_veh_id:
-                                leader = leader_ts[time_step]
-
-                            else:
-                                # new leader
-                                leader_id = att_veh_id
-                                leader_ts = raw_recordings[att_veh_id]
-                                leader = leader_ts[time_step]
+                            # new leader
+                            leader_id = att_veh_id
+                            leader_ts = raw_recordings[att_veh_id]
+                            leader = leader_ts[time_step]
 
 
 
@@ -348,14 +337,13 @@ class DataGenerator:
         # future states - fed to idm_layer
         col_names = ['episode_id', 'time_step',
                         'ego_speed', 'leader_speed', 'merger_speed',
-                        'ego_glob_x', 'leader_glob_x', 'merger_glob_x',
-                        'leader_exists', 'merger_exists']
+                        'ego_glob_x', 'leader_glob_x', 'merger_glob_x', 'ego_att']
         history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
 
         # future action of merger - fed to LSTMs
-        col_names = ['episode_id', 'time_step', 'merger_exists', 'merger_action', 'fm_delta_y']
+        col_names = ['episode_id', 'time_step', 'fm_delta_y', 'leader_exists', 'merger_exists']
         future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
 
         # future action of ego - used as target
