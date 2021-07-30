@@ -39,7 +39,7 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['fm_delta_y']]
 features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['merger_exists']] == 1]
-800/13000
+1500/13000
 # %%
 indxs = {}
 feature_names = [
@@ -203,7 +203,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 908
+i = 8499
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -224,7 +224,12 @@ elif aggressiveness == 1:
     min_jamx = 0
     max_act = 2
     min_act = 3
-
+#
+# desired_v = 26.5
+# desired_tgap = 1.3
+# min_jamx = 0.6
+# max_act = 1.7
+# min_act = 2.3
 vel = future_idm_s[i, :, 2]
 leader_v = future_idm_s[i, :, 3]
 merger_v = future_idm_s[i, :, 4]
@@ -360,9 +365,9 @@ veh_arr[:, indxs['ego_id']]
 veh_arr[:, indxs['merger_action']]
 # veh_arr[:, indxs['ego_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 91]
+veh_arr = features[features[:, 0] == 126]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 192
+time_snap_1 = 336
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -519,6 +524,22 @@ model_trainer = Trainer(model_type='driver_model')
 # 1/(1+np.exp(-5*1))
 
 # %%
+val_input = [history_sca[val_examples, :, 2:],
+            future_sca[val_examples, :, 2:],
+            future_idm_s[val_examples, :, 2:],
+            future_merger_a[val_examples, :, 2:],
+            future_ego_a[val_examples, :, 2:]]
+
+act_pred, pri_params, pos_params = model_trainer.model(val_input)
+mse_loss = model_trainer.model.mse(val_input[-1], act_pred)
+loss = (tf.square(tf.subtract(act_pred, val_input[-1])))
+loss.shape
+loss = tf.reduce_mean(loss, axis=1).numpy()
+np.where(loss > 0.5)
+_ = plt.hist(loss, bins=150)
+
+# %%
+
 x = np.linspace(-4, 4, 100)
 y = 1/(1+tf.exp(-5*x))
 plt.plot(x, y)
@@ -629,8 +650,8 @@ sampled_att_z
 bad_episodes = []
 bad_504 = []
 bad_498 = []
-# bad_zs = np.where((sampled_idm_z[:, 1] > 4) & (sampled_idm_z[:, 0] < -4))[0]
-bad_zs = np.where((sampled_att_z[:, 1] > 2.5))[0]
+bad_zs = np.where((sampled_idm_z[:, 1] > 2.5) & (sampled_idm_z[:, 0] > 0))[0]
+# bad_zs = np.where((sampled_att_z[:, 1] > 2.5))[0]
 for bad_z in bad_zs:
     exmp_indx = val_examples[bad_z]
     epis = history_future_usc[exmp_indx, 0, 0]
@@ -690,9 +711,21 @@ for item_name in col_names:
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.arbiter.attention_temp = 5
+model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
-while Example_pred < 5:
+bad_examples = [   0,    2,    3,    4,    5,    6,    9,   10,   11,   12,   13,
+          14,   15,   16,   17,   18,   19,   20,   21,   22,  660,  661,
+         662,  666,  670,  671,  672,  673,  679,  682,  687,  695,  713,
+         893,  894,  895,  896,  939,  943,  958, 1110, 1111, 1112, 1114,
+        1116, 1117, 1119, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128,
+        1129, 1130, 1131, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140,
+        1143, 1145, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155,
+        1156, 1157, 1177, 1178, 1180, 1181, 1182, 1184, 1185, 1186, 1187,
+        1188, 1190, 1191, 1192, 1193, 1194, 1613, 1719, 1720, 1721, 1722,
+        1724, 1725, 1726, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734,
+        1735, 1736, 1737, 1738, 1739, 1740, 1741, 2118, 2119, 2120]
+# for i in bad_examples:
+while Example_pred < 20:
     # sample_index = [timid_drivers[i]]
     sample_index = [val_examples[i]]
     # sample_index = [aggressive_drivers[i]]
@@ -710,7 +743,9 @@ while Example_pred < 5:
     fm_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['fm_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     #
-    if episode not in covered_episodes and ego_att.mean() == 1:
+    # if episode not in covered_episodes and merger_exists.mean() == 1 and aggressiveness == 0.:
+    # if episode not in covered_episodes:
+    if episode not in covered_episodes and ego_att.mean() > 0:
 
     # if episode not in covered_episodes:
     # if episode not in covered_episodes and aggressiveness == 1:
@@ -723,7 +758,7 @@ while Example_pred < 5:
         enc_acts = model_trainer.model.act_encoder(sdv_actions)
         prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_acts])
+        att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h, enc_acts])
         idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 
         act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
@@ -815,72 +850,13 @@ while Example_pred < 5:
 
         Example_pred += 1
 # %%
-"""Sample anayis
-"""
-########################
-desired_v = 20
-desired_tgap = 2
-min_jamx = 2.
-max_act = 0.8
-min_act = 1.4
 
-i = 44947
-# vel = future_idm_s[i, :, 2]
-# dv = future_idm_s[i, :, 3]
-# dx = future_idm_s[i, :, 4]
-#
-vel = future_idm_s[i, :, 2]
-dv = future_idm_s[i, :, 5]
-dx = future_idm_s[i, :, 6]
-desired_gap = min_jamx + \
- np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
-
-act_pred = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-
-desired_v = 19.4
-desired_tgap = 2.
-min_jamx = 4
-max_act = 0.8
-min_act = 1
-
-desired_gap = min_jamx + \
- np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
-
-act_true = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-# ego_act = future_ego_a[i, :, -1]
-
-plt.plot(act_pred)
-plt.plot(act_true, color='red')
-# plt.plot(ego_act, color='red')
-plt.grid()
-
-# %%
-
-desired_gap = min_jamx + desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act))
-act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-plt.plot(act)
-plt.legend(['with clip', 'without clip'])
-
-act_1 = future_ego_a[i, :, -1]
-plt.plot(act)
-plt.plot(act)
-plt.plot(model_act)
-plt.scatter(range(20), model_act)
-plt.plot(act_1)
-
-plt.grid()
-plt.legend(['model output', 'data'])
-# features = features[features[:, 6]==0] # merger exists
-loss = abs(act-future_ego_a[i, :, -1])
-loss
-future_idm_s[i, :, :]
-# sdv_actions.shape
 # %%
 """Single sample Anticipation visualisation
 """
 model_trainer.model.arbiter.attention_temp = 5
 traces_n = 20
-sample_index = [8538]
+sample_index = [8584]
 ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
@@ -898,7 +874,7 @@ enc_h = model_trainer.model.h_seq_encoder(h_seq)
 enc_acts = model_trainer.model.act_encoder(sdv_actions)
 prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_acts])
+att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h, enc_acts])
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
 act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()

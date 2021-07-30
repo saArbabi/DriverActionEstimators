@@ -170,8 +170,7 @@ class DataGenerator:
             return [episode_id, time_step, ego_id, leader_id, merger_id]
 
         def is_merger(att_veh, ego):
-            if att_veh['lane_decision'] != 'keep_lane' and \
-                                ego['lane_decision'] == 'keep_lane':
+            if att_veh['lane_decision'] != 'keep_lane':
                 return True
             return False
 
@@ -221,21 +220,28 @@ class DataGenerator:
                                 leader = None
                                 leader_id = None
                     else:
-                        if merger_id:
-                            ego_att = 0
-                            merger = None
-                            merger_id = None
-                            merger_ts = None
-
-                        if leader_id == att_veh_id:
-                            leader = leader_ts[time_step]
-
+                        if merger_id == att_veh_id:
+                            # merger has arrived in its target lane
+                            merger = merger_ts[time_step]
+                            if leader_id:
+                                leader = None
+                                leader_id = None
                         else:
-                            # new leader
-                            leader_id = att_veh_id
-                            leader_ts = raw_recordings[att_veh_id]
-                            leader = leader_ts[time_step]
+                            # paying attention to a leader
+                            if merger_id:
+                                ego_att = 0
+                                merger = None
+                                merger_id = None
+                                merger_ts = None
 
+                            if leader_id == att_veh_id:
+                                leader = leader_ts[time_step]
+
+                            else:
+                                # new leader
+                                leader_id = att_veh_id
+                                leader_ts = raw_recordings[att_veh_id]
+                                leader = leader_ts[time_step]
 
 
                     # if leader_id and leader_id != merger_id:

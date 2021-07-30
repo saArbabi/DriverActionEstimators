@@ -148,7 +148,6 @@ class IDMMOBILVehicle(Vehicle):
                         elif self.will_i_lead(vehicle.lane_id, delta_x, delta_xs_r):
                             delta_xs_r.append(abs(delta_x))
                             candidate_r = vehicle
-                        continue
 
                     elif self.lane_decision == 'keep_lane':
                         if delta_x > 0:
@@ -219,8 +218,8 @@ class IDMMOBILVehicle(Vehicle):
     def am_i_following(self, vehicle, delta_x, delta_xs):
         """Am I following 'vehicle' in my target lane?
         """
-        if vehicle.lane_id == vehicle.target_lane == self.target_lane and  delta_x > 0 \
-                and delta_x < delta_xs[-1] and vehicle.lane_decision:
+        if vehicle.target_lane == self.target_lane and  delta_x > 0 \
+                and delta_x < delta_xs[-1]:
             return True
         return False
 
@@ -269,8 +268,6 @@ class IDMMOBILVehicle(Vehicle):
         # print(reservations)
         if not reservations:
             return True
-        elif self.steps_since_lc_desired < 5:
-            return False
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
@@ -308,14 +305,12 @@ class IDMMOBILVehicle(Vehicle):
                 if round(self.lane_y, 1) == 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-                    self.steps_since_lc_desired = 0
 
         elif self.lane_decision == 'move_right':
             if self.lane_id == self.target_lane :
                 if round(self.lane_y, 1) == 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-                    self.steps_since_lc_desired = 0
 
         elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
                                             self.check_neighbours(neighbours):
@@ -347,7 +342,6 @@ class IDMMOBILVehicle(Vehicle):
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
-                self.steps_since_lc_desired += 1
                 if lc_left_condition > lc_right_condition:
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):

@@ -84,7 +84,7 @@ class Viewer():
                 print('ego_act: ', vehicle.act_long)
                 print('lane_y: ', vehicle.lane_y)
                 print('driver_params: ', vehicle.driver_params)
-                print('steps_since_lc_desired: ', vehicle.steps_since_lc_desired)
+                # print('steps_since_lc_desired: ', vehicle.steps_since_lc_desired)
 
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)

@@ -104,7 +104,7 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_acts, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-        att_scores = self.arbiter([sampled_att_z, enc_acts])
+        att_scores = self.arbiter([sampled_att_z, enc_h, enc_acts])
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         # idm_params = tf.repeat(idm_params, 40, axis=1)
@@ -221,14 +221,19 @@ class Arbiter(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer_1 = Dense(100)
-        self.linear_layer_2 = Dense(100)
+        self.linear_layer = Dense(100)
+        self.dense_layer_1 = Dense(100, activation=K.relu)
+        self.dense_layer_2 = Dense(100, activation=K.relu)
+        self.dense_layer_3 = Dense(100, activation=K.relu)
         self.attention_neu = Dense(40)
 
     def call(self, inputs):
-        sampled_att_z, enc_acts = inputs
+        sampled_att_z, enc_h, enc_acts = inputs
         # x = self.linear_layer(sampled_att_z)
-        x = self.linear_layer_2(tf.concat([self.linear_layer_1(sampled_att_z), enc_acts], axis=-1))
+        x = tf.concat([self.linear_layer(sampled_att_z), enc_h, enc_acts], axis=-1)
+        x = self.dense_layer_1(x)
+        x = self.dense_layer_2(x)
+        x = self.dense_layer_3(x)
         x = self.attention_neu(x)
         x = tf.clip_by_value(x, clip_value_min=-2., clip_value_max=2.) # to avoid inf
         return 1/(1+tf.exp(-self.attention_temp*x))
@@ -248,7 +253,7 @@ class IDMForwardSim(tf.keras.Model):
         # tf.print('desired_v_max: ', tf.reduce_max(desired_v))
         # tf.print('desired_v_min: ', tf.reduce_min(desired_v))
         # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
+        # tf.print('min_jamx: ', tf.reduce_min(min_jamx))
         # tf.print('max_act: ', tf.reduce_mean(max_act))
         # tf.print('min_act: ', tf.reduce_mean(min_act))
         desired_gap = min_jamx + K.relu(desired_tgap*vel+(vel*dv)/ \
@@ -305,19 +310,19 @@ class IDMForwardSim(tf.keras.Model):
             fm_dv = ego_v - merger_v
 
             dv = fl_dv
-            dx = fl_delta_x
+            dx = fl_delta_x*leader_exists + 50*(1-leader_exists)
             # tf.print('############ fl_act ############')
             fl_act = self.idm_driver(ego_v, dv, dx, idm_params)
-            fl_act = self.add_noise(fl_act, leader_exists, batch_size)
+            # fl_act = self.add_noise(fl_act, leader_exists, batch_size)
 
             dv = fm_dv
-            dx = fm_delta_x
+            dx = fm_delta_x*merger_exists + 50*(1-merger_exists)
             # tf.print('############ fm_act ############')
             fm_act = self.idm_driver(ego_v, dv, dx, idm_params)
-            fm_act = self.add_noise(fm_act, merger_exists, batch_size)
+            # fm_act = self.add_noise(fm_act, merger_exists, batch_size)
 
-            # att_score = att_scores[:, step:step+1, :]
-            att_score = idm_s[:, step:step+1, -3:-2]
+            att_score = att_scores[:, step:step+1, :]
+            # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*fl_act + att_score*fm_act
             if step == 0:
                 act_seq = _act
@@ -371,9 +376,9 @@ class IDMLayer(tf.keras.Model):
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
-        x = self.linear_layer_2(tf.concat([self.linear_layer_1(sampled_idm_z), enc_h], axis=-1))
-        # x = tf.concat([self.linear_layer_1(sampled_idm_z),
-        #                             self.linear_layer_2(enc_h)], axis=-1)
+        # x = self.linear_layer_2(tf.concat([self.linear_layer_1(sampled_idm_z), enc_h], axis=-1))
+        x = tf.concat([self.linear_layer_1(sampled_idm_z),
+                                    self.linear_layer_2(enc_h)], axis=-1)
         # x = enc_h
         # x = self.linear_layer_1(sampled_idm_z)
         # x = self.linear_layer_1(sampled_idm_z) + enc_h
