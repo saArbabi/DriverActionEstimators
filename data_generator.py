@@ -222,7 +222,10 @@ class DataGenerator:
                                 leader_id = None
                     else:
                         if merger_id:
-                            end_episode()
+                            ego_att = 0
+                            merger = None
+                            merger_id = None
+                            merger_ts = None
 
                         if leader_id == att_veh_id:
                             leader = leader_ts[time_step]
@@ -337,7 +340,8 @@ class DataGenerator:
         # future states - fed to idm_layer
         col_names = ['episode_id', 'time_step',
                         'ego_speed', 'leader_speed', 'merger_speed',
-                        'ego_glob_x', 'leader_glob_x', 'merger_glob_x', 'ego_att']
+                        'ego_glob_x', 'leader_glob_x', 'merger_glob_x',
+                        'ego_att', 'leader_exists', 'merger_exists']
         history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)

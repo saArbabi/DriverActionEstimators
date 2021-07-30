@@ -39,7 +39,7 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['fm_delta_y']]
 features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['merger_exists']] == 1]
-
+800/13000
 # %%
 indxs = {}
 feature_names = [
@@ -88,6 +88,7 @@ features_origin[(features_origin[:, indxs['aggressiveness']] == 0) & \
 
 # %%
 features_origin[(features_origin[:, indxs['merger_exists']] == 1)].shape
+features_origin[(features_origin[:, indxs['ego_att']] == 1)].shape
 features_origin[(features_origin[:, indxs['leader_exists']] == 0)].shape
 features_origin[(features_origin[:, indxs['leader_exists']] == 0)]
 features_origin[(features_origin[:, indxs['leader_exists']] == 0)]
@@ -115,7 +116,7 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_merger_a, future_ego_a = data_arrays
 future_merger_a[future_merger_a[:, :, 2] == 1]
 
-data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
+# data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
 future_idm_s[0:10, 0, :]
 # %%
 """
@@ -359,9 +360,9 @@ veh_arr[:, indxs['ego_id']]
 veh_arr[:, indxs['merger_action']]
 # veh_arr[:, indxs['ego_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 116]
+veh_arr = features[features[:, 0] == 91]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 303
+time_snap_1 = 192
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -515,7 +516,12 @@ class Trainer():
         self.model.save_weights(exp_dir)
 
 model_trainer = Trainer(model_type='driver_model')
+# 1/(1+np.exp(-5*1))
 
+# %%
+x = np.linspace(-4, 4, 100)
+y = 1/(1+tf.exp(-5*x))
+plt.plot(x, y)
 # %%
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(data_arrays, epochs=5)
@@ -548,12 +554,13 @@ att_kl_axis.legend(['test', 'train'])
 ################## idm_kl LOSS ##################
 idm_kl_axis.plot(model_trainer.test_idm_klloss)
 idm_kl_axis.plot(model_trainer.train_idm_klloss)
-
 idm_kl_axis.grid()
 idm_kl_axis.set_xlabel('epochs')
 idm_kl_axis.set_ylabel('loss (idm_kl)')
 idm_kl_axis.set_title('idm_kl')
 idm_kl_axis.legend(['test', 'train'])
+att_axis, idm_axis = latent_vis()
+
 
 # %%
 
@@ -580,8 +587,8 @@ future_merger_a = np.float32(future_merger_a)
 
 # %%
 def latent_samples(model_trainer, sample_index):
-    sdv_actions = future_merger_a[sample_index, :, 2:]
     h_seq = history_sca[sample_index, :, 2:]
+    sdv_actions = future_merger_a[sample_index, :, 2:]
     enc_h = model_trainer.model.h_seq_encoder(h_seq)
     enc_acts = model_trainer.model.act_encoder(sdv_actions)
     prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
@@ -622,7 +629,8 @@ sampled_att_z
 bad_episodes = []
 bad_504 = []
 bad_498 = []
-bad_zs = np.where(sampled_att_z[:, 0] > 50)[0]
+# bad_zs = np.where((sampled_idm_z[:, 1] > 4) & (sampled_idm_z[:, 0] < -4))[0]
+bad_zs = np.where((sampled_att_z[:, 1] > 2.5))[0]
 for bad_z in bad_zs:
     exmp_indx = val_examples[bad_z]
     epis = history_future_usc[exmp_indx, 0, 0]
@@ -651,52 +659,7 @@ for bad_indx in bad_504:
     plt.grid()
 
 # %%
-def get_animation():
-    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
-    from matplotlib.animation import FuncAnimation, writers
 
-    def latent_samples(model_trainer, sample_index):
-        sdv_actions = future_merger_a[sample_index, :, 2:]
-        h_seq = history_sca[sample_index, :, 2:]
-        enc_h = model_trainer.model.h_seq_encoder(h_seq)
-        enc_acts = model_trainer.model.act_encoder(sdv_actions)
-        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
-        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        return sampled_att_z, sampled_idm_z
-
-    fig = plt.figure(figsize=(7, 7))
-    plt.style.use('ggplot')
-    att_axis = fig.add_subplot(211)
-    idm_axis = fig.add_subplot(212)
-
-
-    def animation_frame(i):
-        model_trainer.model.vae_loss_weight = 0.1
-        model_trainer.train(data_arrays, epochs=1)
-        sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
-        aggressiveness = history_future_usc[val_examples, 0, -1]
-        color_shade = aggressiveness
-        att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
-                                                    c=color_shade, cmap='rainbow')
-        idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
-                                                    c=color_shade, cmap='rainbow')
-
-        att_axis.set_title('Iteration ' + str(i))
-        att_axis.set_ylabel('$z_{att_1}$')
-        att_axis.set_xlabel('$z_{att_2}$')
-        idm_axis.set_ylabel('$z_{idm_1}$')
-        idm_axis.set_xlabel('$z_{idm_1}$')
-
-    animation = FuncAnimation(fig, func=animation_frame, \
-                              frames=range(1, 81), interval=1)
-
-    # setting up wrtiers object
-    Writer = writers['ffmpeg']
-    writer = Writer(fps=4, metadata={'artist': 'Me'}, bitrate=3000)
-    animation.save('latent_evolution.mp4', writer, dpi=250)
-
-
-# get_animation()
 # %%
 """Anticipation visualisation
 """
@@ -729,7 +692,7 @@ i = 0
 covered_episodes = []
 model_trainer.model.arbiter.attention_temp = 5
 traces_n = 20
-while Example_pred < 20:
+while Example_pred < 5:
     # sample_index = [timid_drivers[i]]
     sample_index = [val_examples[i]]
     # sample_index = [aggressive_drivers[i]]
@@ -746,10 +709,12 @@ while Example_pred < 20:
     # plt.plot(ego_decision)
     fm_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['fm_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
+    #
+    if episode not in covered_episodes and ego_att.mean() == 1:
 
-    if episode not in covered_episodes and merger_exists.mean() == 1\
-                     and ego_att.mean() > 0:
-    # if episode not in covered_episodes and ego_att[:].mean() > 0:
+    # if episode not in covered_episodes:
+    # if episode not in covered_episodes and aggressiveness == 1:
+    # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_merger_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -913,11 +878,9 @@ future_idm_s[i, :, :]
 # %%
 """Single sample Anticipation visualisation
 """
-
-
 model_trainer.model.arbiter.attention_temp = 5
 traces_n = 20
-sample_index = [5709]
+sample_index = [8538]
 ego_decision = history_future_usc[sample_index, :, hf_usc_indexs['ego_decision']][0]
 ego_att = history_future_usc[sample_index, :, hf_usc_indexs['ego_att']][0]
 merger_exists = history_future_usc[sample_index, :, hf_usc_indexs['merger_exists']][0]
@@ -937,12 +900,8 @@ prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior'
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
 att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_acts])
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-att_scores.shape
-att_scores = att_scores.numpy()
-att_scores[:, :] = 0
 act_seq = model_trainer.model.idm_sim.rollout([att_scores, idm_params, future_idm_ss])
-# act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-act_seq = act_seq.numpy()
+act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
 time_axis = np.linspace(0., 4., 40)
 plt.figure(figsize=(4, 4))
@@ -1043,3 +1002,53 @@ plt.grid()
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 import random
+
+"""
+LATENT ANIMATION
+"""
+def get_animation():
+    plt.rcParams['animation.ffmpeg_path'] = 'C:/Users/sa00443/ffmpeg_programs/ffmpeg.exe'
+    from matplotlib.animation import FuncAnimation, writers
+
+    def latent_samples(model_trainer, sample_index):
+        sdv_actions = future_merger_a[sample_index, :, 2:]
+        h_seq = history_sca[sample_index, :, 2:]
+        enc_h = model_trainer.model.h_seq_encoder(h_seq)
+        enc_acts = model_trainer.model.act_encoder(sdv_actions)
+        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+        return sampled_att_z, sampled_idm_z
+
+    fig = plt.figure(figsize=(7, 7))
+    plt.style.use('ggplot')
+    att_axis = fig.add_subplot(211)
+    idm_axis = fig.add_subplot(212)
+
+
+    def animation_frame(i):
+        model_trainer.model.vae_loss_weight = 0.1
+        model_trainer.train(data_arrays, epochs=1)
+        sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
+        aggressiveness = history_future_usc[val_examples, 0, -1]
+        color_shade = aggressiveness
+        att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
+                                                    c=color_shade, cmap='rainbow')
+        idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
+                                                    c=color_shade, cmap='rainbow')
+
+        att_axis.set_title('Iteration ' + str(i))
+        att_axis.set_ylabel('$z_{att_1}$')
+        att_axis.set_xlabel('$z_{att_2}$')
+        idm_axis.set_ylabel('$z_{idm_1}$')
+        idm_axis.set_xlabel('$z_{idm_1}$')
+
+    animation = FuncAnimation(fig, func=animation_frame, \
+                              frames=range(1, 81), interval=1)
+
+    # setting up wrtiers object
+    Writer = writers['ffmpeg']
+    writer = Writer(fps=4, metadata={'artist': 'Me'}, bitrate=3000)
+    animation.save('latent_evolution.mp4', writer, dpi=250)
+
+
+# get_animation()

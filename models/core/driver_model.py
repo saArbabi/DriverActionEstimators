@@ -30,8 +30,8 @@ class NeurIDMModel(AbstractModel):
         self.test_idm_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
         act_true = (act_true+0.2)/0.1
+        # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
         act_pred = (act_pred+0.2)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
@@ -230,7 +230,7 @@ class Arbiter(tf.keras.Model):
         # x = self.linear_layer(sampled_att_z)
         x = self.linear_layer_2(tf.concat([self.linear_layer_1(sampled_att_z), enc_acts], axis=-1))
         x = self.attention_neu(x)
-        x = tf.clip_by_value(x, clip_value_min=-3., clip_value_max=3.) # to avoid inf
+        x = tf.clip_by_value(x, clip_value_min=-2., clip_value_max=2.) # to avoid inf
         return 1/(1+tf.exp(-self.attention_temp*x))
 
 class IDMForwardSim(tf.keras.Model):
@@ -259,15 +259,22 @@ class IDMForwardSim(tf.keras.Model):
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
 
-        return act
-        # return self.action_clip(act)
+        # return act
+        return self.action_clip(act) # action in simulator are also clipped
         # return act
 
     def action_clip(self, action):
         "this helps with avoiding vanishing gradients"
         return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
+    #
+    def add_noise(self, idm_action, idm_veh_exists, batch_size):
+        """
+        To deal with nonexisting cars
+        """
+        idm_action = idm_veh_exists*(idm_action) + \
+                (1-idm_veh_exists)*tf.random.uniform((batch_size, 1, 1), -3, 3)
+        return idm_action
 
-    @tf.function(experimental_relax_shapes=True)
     def rollout(self, inputs):
         att_scores, idm_params, idm_s = inputs
         batch_size = tf.shape(idm_s)[0]
@@ -280,8 +287,9 @@ class IDMForwardSim(tf.keras.Model):
             leader_glob_x = idm_s[:, step:step+1, 4:5]
             merger_glob_x = idm_s[:, step:step+1, 5:6]
             # these to deal with missing cars
-            # leader_exists = idm_s[:, step:step+1, -2:-1]
-            # merger_exists = idm_s[:, step:step+1, -1:]
+            leader_exists = idm_s[:, step:step+1, -2:-1]
+            merger_exists = idm_s[:, step:step+1, -1:]
+
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
                 ego_glob_x = idm_s[:, step:step+1, 3:4]
@@ -290,9 +298,9 @@ class IDMForwardSim(tf.keras.Model):
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
             fl_delta_x = leader_glob_x - ego_glob_x
-            fl_delta_x = tf.clip_by_value(fl_delta_x, clip_value_min=1., clip_value_max=100.)
+            # fl_delta_x = tf.clip_by_value(fl_delta_x, clip_value_min=1., clip_value_max=100.)
             fm_delta_x = merger_glob_x - ego_glob_x
-            fm_delta_x = tf.clip_by_value(fm_delta_x, clip_value_min=1., clip_value_max=100.)
+            # fm_delta_x = tf.clip_by_value(fm_delta_x, clip_value_min=1., clip_value_max=100.)
             fl_dv = ego_v - leader_v
             fm_dv = ego_v - merger_v
 
@@ -300,20 +308,21 @@ class IDMForwardSim(tf.keras.Model):
             dx = fl_delta_x
             # tf.print('############ fl_act ############')
             fl_act = self.idm_driver(ego_v, dv, dx, idm_params)
+            fl_act = self.add_noise(fl_act, leader_exists, batch_size)
 
             dv = fm_dv
             dx = fm_delta_x
             # tf.print('############ fm_act ############')
             fm_act = self.idm_driver(ego_v, dv, dx, idm_params)
+            fm_act = self.add_noise(fm_act, merger_exists, batch_size)
 
             # att_score = att_scores[:, step:step+1, :]
-            att_score = idm_s[:, step:step+1, -1:]
+            att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*fl_act + att_score*fm_act
             if step == 0:
                 act_seq = _act
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
-            # act_seq = act_seq.write(step, _act)
 
         return act_seq
 
@@ -362,8 +371,12 @@ class IDMLayer(tf.keras.Model):
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
-        # x = self.linear_layer_2(tf.concat([self.linear_layer_1(sampled_idm_z), enc_h], axis=-1))
-        x = self.linear_layer_1(sampled_idm_z) + enc_h
+        x = self.linear_layer_2(tf.concat([self.linear_layer_1(sampled_idm_z), enc_h], axis=-1))
+        # x = tf.concat([self.linear_layer_1(sampled_idm_z),
+        #                             self.linear_layer_2(enc_h)], axis=-1)
+        # x = enc_h
+        # x = self.linear_layer_1(sampled_idm_z)
+        # x = self.linear_layer_1(sampled_idm_z) + enc_h
 
         # x = self.linear_layer(sampled_idm_z)
         # desired_v = tf.fill([batch_size, 1], 19.4)

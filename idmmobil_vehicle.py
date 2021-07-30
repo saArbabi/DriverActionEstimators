@@ -302,7 +302,7 @@ class IDMMOBILVehicle(Vehicle):
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours
         act_long = self.idm_action(self.observe(self, neighbours['f']))
-        return [act_long, self.lateral_actions[self.lane_decision]]
+        # return [act_long, self.lateral_actions[self.lane_decision]]
         if self.lane_decision == 'move_left':
             if self.lane_id == self.target_lane :
                 if round(self.lane_y, 1) == 0:
