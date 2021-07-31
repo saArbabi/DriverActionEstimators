@@ -309,13 +309,13 @@ class IDMForwardSim(tf.keras.Model):
             fl_dv = ego_v - leader_v
             fm_dv = ego_v - merger_v
 
-            dv = fl_dv
+            dv = fl_dv*leader_exists + 2*(1-leader_exists)
             dx = fl_delta_x*leader_exists + 50*(1-leader_exists)
             # tf.print('############ fl_act ############')
             fl_act = self.idm_driver(ego_v, dv, dx, idm_params)
             # fl_act = self.add_noise(fl_act, leader_exists, batch_size)
 
-            dv = fm_dv
+            dv = fm_dv*merger_exists + 2*(1-merger_exists)
             dx = fm_delta_x*merger_exists + 50*(1-merger_exists)
             # tf.print('############ fm_act ############')
             fm_act = self.idm_driver(ego_v, dv, dx, idm_params)
@@ -334,8 +334,8 @@ class IDMForwardSim(tf.keras.Model):
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
-        self.enc_units = 100
         self.architecture_def()
+
 
     def architecture_def(self):
         self.linear_layer_1 = Dense(100)
@@ -354,24 +354,28 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x, batch_size):
         output = self.des_v_neu(x)
-        # return  10 + 30*(1/(1+tf.exp(-1*output)))
-        return 15 + 15*(1/(1+tf.exp(-1*output)))
+        # return 15 + 15*(1/(1+tf.exp(-1*output)))
+        return 15 + 20*(1/(1+tf.exp(-1*output)))
 
     def get_des_tgap(self, x, batch_size):
         output = self.des_tgap_neu(x)
-        return 1 + 1*(1/(1+tf.exp(-1*output)))
+        # return 1 + 1*(1/(1+tf.exp(-1*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
 
     def get_min_jamx(self, x, batch_size):
         output = self.min_jamx_neu(x)
-        return 4*(1/(1+tf.exp(-1*output)))
+        # return 4*(1/(1+tf.exp(-1*output)))
+        return 5*(1/(1+tf.exp(-1*output)))
 
     def get_max_act(self, x, batch_size):
         output = self.max_act_neu(x)
-        return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
+        # return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
 
     def get_min_act(self, x, batch_size):
         output = self.min_act_neu(x)
-        return 1 + 2*(1/(1+tf.exp(-1*output)))
+        # return 1 + 2*(1/(1+tf.exp(-1*output)))
+        return 0.5 + 3*(1/(1+tf.exp(-1*output)))
 
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs
