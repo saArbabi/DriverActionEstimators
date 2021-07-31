@@ -201,16 +201,20 @@ class DataGenerator:
                 else:
                     att_veh = raw_recordings[att_veh_id][time_step]
                     if is_merger(att_veh, ego):
-                        if merger_id != att_veh_id:
+                        if merger_id == leader_id:
+                            # can happen when two cars simultaneously perform lc
+                            leader = None
+                            leader_id = None
+                        if not merger_id:
                             # there is a new merger
                             end_episode()
                             merger_ts = raw_recordings[att_veh_id]
+                            merger_id = att_veh_id
                             ego_att = 1
                             trace_back(att_veh_id, time_step-1)
+                        elif merger_id != att_veh_id:
+                            merger_ts = raw_recordings[att_veh_id]
                             merger_id = att_veh_id
-                            if merger_id == leader_id:
-                                leader = None
-                                leader_id = None
 
                         merger = merger_ts[time_step]
                         if leader_id:
@@ -226,6 +230,7 @@ class DataGenerator:
                             if leader_id:
                                 leader = None
                                 leader_id = None
+
                         else:
                             # paying attention to a leader
                             if merger_id:
@@ -233,6 +238,7 @@ class DataGenerator:
                                 merger = None
                                 merger_id = None
                                 merger_ts = None
+                                end_episode()
 
                             if leader_id == att_veh_id:
                                 leader = leader_ts[time_step]
@@ -353,7 +359,7 @@ class DataGenerator:
         future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
 
         # future action of merger - fed to LSTMs
-        col_names = ['episode_id', 'time_step', 'fm_delta_y', 'leader_exists', 'merger_exists']
+        col_names = ['episode_id', 'time_step', 'fm_delta_y', 'merger_exists']
         future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
 
         # future action of ego - used as target

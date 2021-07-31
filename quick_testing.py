@@ -39,7 +39,6 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['fm_delta_y']]
 features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['merger_exists']] == 1]
-1500/13000
 # %%
 indxs = {}
 feature_names = [
@@ -345,8 +344,7 @@ if not loss.max() < 0.001:
 EPISODE EVALUATION
 """
 # %%
-
-# np.unique(features[features[:, 2] == 21][:, 0])
+np.unique(features[features[:, 2] == 159][:, 0])
 
 # features[features[:, 2] == 34]
 veh_arr[:, indxs['time_step']]
@@ -365,9 +363,9 @@ veh_arr[:, indxs['ego_id']]
 veh_arr[:, indxs['merger_action']]
 # veh_arr[:, indxs['ego_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 126]
+veh_arr = features[features[:, 0] == 101]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 336
+time_snap_1 = 333
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -713,19 +711,34 @@ i = 0
 covered_episodes = []
 model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
-bad_examples = [   0,    2,    3,    4,    5,    6,    9,   10,   11,   12,   13,
-          14,   15,   16,   17,   18,   19,   20,   21,   22,  660,  661,
-         662,  666,  670,  671,  672,  673,  679,  682,  687,  695,  713,
-         893,  894,  895,  896,  939,  943,  958, 1110, 1111, 1112, 1114,
-        1116, 1117, 1119, 1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128,
-        1129, 1130, 1131, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140,
-        1143, 1145, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155,
-        1156, 1157, 1177, 1178, 1180, 1181, 1182, 1184, 1185, 1186, 1187,
-        1188, 1190, 1191, 1192, 1193, 1194, 1613, 1719, 1720, 1721, 1722,
-        1724, 1725, 1726, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734,
-        1735, 1736, 1737, 1738, 1739, 1740, 1741, 2118, 2119, 2120]
-# for i in bad_examples:
-while Example_pred < 20:
+bad_examples = [  59,   61,   62,   64,   65,   66,   67,   68,   69,   70,   71,
+          72,   73,   74,   75,   76,   77,   78,   79,   80,   81,   82,
+          83,   84,   85,   86,   87,   88,   89,   90,   91,   92,   93,
+          94,   95,   96,   97,   98,   99,  100,  101,  102,  477,  478,
+         479,  480,  481,  482,  483,  484,  485,  486,  487,  488,  489,
+         490,  972,  973, 1224, 1225, 1226, 1227, 1228, 1229, 1230, 1231,
+        1232, 1233, 1234, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242,
+        1243, 1244, 1245, 1246, 1247, 1248, 1249, 1250, 1251, 1252, 1253,
+        1254, 1255, 1256, 1257, 1258, 1259, 1260, 1261, 1262, 1263, 1264,
+        1265, 1266, 1267, 1268, 1269, 1270, 1271, 1272, 1273, 1408, 1409,
+        1433, 1434, 1435, 1436, 1437, 1438, 1439, 1440, 1441, 1442, 1443,
+        1444, 1445, 1446, 1447, 1448, 1449, 1450, 1451, 1452, 1453, 1454,
+        1455, 1456, 1457, 1458, 1459, 1460, 1461, 1462, 1463, 1464, 1465,
+        1466, 1467, 1468, 1469, 1470, 1471, 1472, 1473, 1474, 1475, 1476,
+        1477, 1478, 1479, 1480, 1481, 1482, 1483, 1484, 1485, 1486, 1487,
+        1488, 1489, 1490, 1491, 1492, 1493, 1494, 1495, 1496, 1497, 1498,
+        1499, 1500, 1501, 1502, 1503, 1504, 1505, 1506, 1507, 1508, 1509,
+        1510, 1511, 1512, 1513, 1514, 1515, 1516, 1517, 1518, 1519, 1520,
+        1521, 1522, 1523, 1524, 1525, 1526, 1527, 1528, 1529, 1530, 1531,
+        1532, 1533, 1534, 1535, 1536, 1537, 1538, 1539, 1540, 1541, 1542,
+        1543, 1544, 1545, 1546, 1547, 1548, 1549, 1550, 1551, 1552, 1553,
+        1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1564, 1565, 1566,
+        1567, 1568, 1623, 1624, 1625, 1626, 1627, 1628, 1629, 1630, 1631,
+        1632, 1633, 1634, 1635, 1636, 1637, 1638, 1639, 1640, 1641, 1642,
+        1644, 1647, 1801, 1802, 1803, 1805, 1949, 1950, 1951, 1952, 1953,
+        2098, 2099, 2100, 2101, 2102, 2103]
+for i in bad_examples:
+# while Example_pred < 20:
     # sample_index = [timid_drivers[i]]
     sample_index = [val_examples[i]]
     # sample_index = [aggressive_drivers[i]]
@@ -743,9 +756,9 @@ while Example_pred < 20:
     fm_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['fm_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     #
-    # if episode not in covered_episodes and merger_exists.mean() == 1 and aggressiveness == 0.:
-    # if episode not in covered_episodes:
-    if episode not in covered_episodes and ego_att.mean() > 0:
+    # if episode not in covered_episodes and aggressiveness == 1.:
+    if episode not in covered_episodes:
+    # if episode not in covered_episodes and ego_att.mean() > 0:
 
     # if episode not in covered_episodes:
     # if episode not in covered_episodes and aggressiveness == 1:
