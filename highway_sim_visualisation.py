@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 def main():
     config = {'lanes_n':6,
-            'lane_width':3.7, # m
-            'lane_length':400 # m
+            'lane_width':3.75, # m
+            'lane_length':600 # m
             }
     env = Env(config)
     viewer = Viewer(config)
@@ -13,7 +13,7 @@ def main():
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 400:
+        if env.time_step > 200:
             decision = input()
             if decision == 'n':
                 sys.exit()

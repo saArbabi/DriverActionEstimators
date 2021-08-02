@@ -10,7 +10,7 @@ class Vehicle(object):
         # self.glob_y = glob_y
         self.speed = speed
         self.lane_y = 0
-        self.lane_width = 3.7
+        self.lane_width = 3.75
 
     def observe(self):
         raise NotImplementedError
@@ -45,13 +45,13 @@ class IDMMOBILVehicle(Vehicle):
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
         self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr']}
-        self.perception_range = 100 #m
-        self.lane_width = 3.8
+        self.perception_range = 200 #m
+        self.lane_width = 3.75
         self.act_long = 0
         self.steps_since_lc_desired = 0
 
-        self.lateral_actions = {'move_left':0.7,
-                                'move_right':-0.7,
+        self.lateral_actions = {'move_left':0.75,
+                                'move_right':-0.75,
                                 'keep_lane':0
                                 }
         self.set_idm_params(aggressiveness)
@@ -68,7 +68,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'max_act':2, # m/s^2
                                         'min_act':3, # m/s^2
                                         'politeness':0,
-                                        'safe_braking':-3,
+                                        'safe_braking':-2.5,
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
@@ -133,11 +133,13 @@ class IDMMOBILVehicle(Vehicle):
                         delta_xs_rr, delta_xs_fr = ([self.perception_range] for i in range(6))
         candidate_f, candidate_fl, candidate_rl, candidate_r, \
                         candidate_rr, candidate_fr = (None for i in range(6))
+        right_lane_id = self.lane_id + 1
+        left_lane_id = self.lane_id - 1
 
         for vehicle in vehicles:
             if vehicle.id != self.id:
                 delta_x = vehicle.glob_x-self.glob_x
-                if vehicle.lane_id in [self.lane_id, self.lane_id+1, self.lane_id-1] and \
+                if vehicle.lane_id in [self.lane_id, right_lane_id, left_lane_id] and \
                                   abs(delta_x) < self.perception_range:
 
                     if self.lane_decision != 'keep_lane':
@@ -145,35 +147,49 @@ class IDMMOBILVehicle(Vehicle):
                             delta_xs_f.append(delta_x)
                             candidate_f = vehicle
 
-                        elif self.will_i_lead(vehicle.lane_id, delta_x, delta_xs_r):
+                        elif self.will_i_lead(vehicle, delta_x, delta_xs_r):
                             delta_xs_r.append(abs(delta_x))
                             candidate_r = vehicle
-                        continue
 
                     elif self.lane_decision == 'keep_lane':
                         if delta_x > 0:
-                            if vehicle.lane_id == self.lane_id+1:
-                                # right lane
+                            if vehicle.lane_id == right_lane_id:
                                 if self.am_i_attending(vehicle, delta_x, delta_xs_f):
+                                    # neighbour merging
                                     delta_xs_f.append(delta_x)
                                     candidate_f = vehicle
 
-                                elif delta_x < delta_xs_fr[-1]:
+                                elif delta_x < delta_xs_fr[-1] and \
+                                        (vehicle.lane_decision == 'keep_lane' or \
+                                         vehicle.target_lane == self.lane_id):
+                                    # neighbour keeping lane
                                     delta_xs_fr.append(delta_x)
                                     candidate_fr = vehicle
 
-                            elif vehicle.lane_id == self.lane_id-1:
-                                # left lane
+                            if vehicle.target_lane == right_lane_id:
+                                    # neighbour leavering lane
+                                if delta_x < delta_xs_fr[-1]:
+                                    delta_xs_fr.append(delta_x)
+                                    candidate_fr = vehicle
+
+                            if vehicle.lane_id == left_lane_id:
                                 if self.am_i_attending(vehicle, delta_x, delta_xs_f):
                                     delta_xs_f.append(delta_x)
                                     candidate_f = vehicle
 
-                                elif delta_x < delta_xs_fl[-1]:
+                                elif delta_x < delta_xs_fl[-1] and \
+                                            (vehicle.lane_decision == 'keep_lane' or \
+                                             vehicle.target_lane == self.lane_id):
                                     delta_xs_fl.append(delta_x)
                                     candidate_fl = vehicle
 
-                            elif vehicle.lane_id == self.lane_id and \
-                                vehicle.target_lane == self.lane_id:
+                            if vehicle.target_lane == left_lane_id:
+                                if delta_x < delta_xs_fl[-1]:
+                                    delta_xs_fl.append(delta_x)
+                                    candidate_fl = vehicle
+
+                            if vehicle.lane_id == self.lane_id and \
+                                        vehicle.target_lane == self.lane_id:
                                 # same lane
                                 if delta_x < delta_xs_f[-1]:
                                     delta_xs_f.append(delta_x)
@@ -181,18 +197,32 @@ class IDMMOBILVehicle(Vehicle):
 
                         elif delta_x < 0:
                             delta_x = abs(delta_x)
-                            if vehicle.lane_id == self.lane_id+1:
-                                # right lane
+                            if vehicle.lane_id == right_lane_id:
+                                if delta_x < delta_xs_rr[-1] and \
+                                            vehicle.lane_decision == 'keep_lane':
+                                    # neighbour keeping lane
+                                    delta_xs_rr.append(delta_x)
+                                    candidate_rr = vehicle
+
+                            if vehicle.target_lane == right_lane_id:
+                                    # neighbour leavering lane
                                 if delta_x < delta_xs_rr[-1]:
                                     delta_xs_rr.append(delta_x)
                                     candidate_rr = vehicle
-                            elif vehicle.lane_id == self.lane_id-1:
-                                # left lane
+
+                            if vehicle.lane_id == left_lane_id:
+                                if delta_x < delta_xs_rl[-1]  and \
+                                            vehicle.lane_decision == 'keep_lane':
+                                    delta_xs_rl.append(delta_x)
+                                    candidate_rl = vehicle
+
+                            if vehicle.target_lane == left_lane_id:
                                 if delta_x < delta_xs_rl[-1]:
                                     delta_xs_rl.append(delta_x)
                                     candidate_rl = vehicle
-                            elif vehicle.lane_id == self.lane_id and \
-                                vehicle.target_lane == self.lane_id:
+
+                            if vehicle.lane_id == self.lane_id and \
+                                    vehicle.target_lane == self.lane_id:
                                 # same lane
                                 if delta_x < delta_xs_r[-1]:
                                     delta_xs_r.append(delta_x)
@@ -210,7 +240,7 @@ class IDMMOBILVehicle(Vehicle):
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the merging car?
         """
-        if vehicle.target_lane == self.lane_id and \
+        if vehicle.target_lane == self.lane_id and\
                 abs(vehicle.lane_y) >= self.driver_params['attentiveness'] \
                 and delta_x < delta_xs[-1]:
             return True
@@ -219,16 +249,17 @@ class IDMMOBILVehicle(Vehicle):
     def am_i_following(self, vehicle, delta_x, delta_xs):
         """Am I following 'vehicle' in my target lane?
         """
-        if vehicle.lane_id == vehicle.target_lane == self.target_lane and  delta_x > 0 \
-                and delta_x < delta_xs[-1] and vehicle.lane_decision:
+        if vehicle.target_lane == self.target_lane and  delta_x > 0 \
+                and delta_x < delta_xs[-1]:
             return True
         return False
 
-    def will_i_lead(self, vehicle_lane_id, delta_x, delta_xs):
+    def will_i_lead(self, vehicle, delta_x, delta_xs):
         """Will I be leading 'vehicle' at some point?
         """
-        if vehicle_lane_id == self.target_lane and delta_x < 0 \
-                                            and abs(delta_x) < delta_xs[-1]:
+        if vehicle.target_lane == self.target_lane and \
+                                        delta_x < 0 and \
+                                        abs(delta_x) < delta_xs[-1]:
             return True
         return False
 
@@ -267,10 +298,10 @@ class IDMMOBILVehicle(Vehicle):
         its lane.
         """
         # print(reservations)
-        if not reservations:
-            return True
-        elif self.steps_since_lc_desired < 5:
+        if self.steps_since_lc_desired < 5:
             return False
+        elif not reservations:
+            return True
         else:
             for reserved in reservations.values():
                 reserved_lane, max_glob_x, min_glob_x = reserved
@@ -302,22 +333,23 @@ class IDMMOBILVehicle(Vehicle):
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours
         act_long = self.idm_action(self.observe(self, neighbours['f']))
+        steps_since_lc_desired = self.steps_since_lc_desired
+        # return [act_long, self.lateral_actions[self.lane_decision]]
         if self.lane_decision == 'move_left':
             if self.lane_id == self.target_lane :
-                if self.lane_y >= 0:
+                if round(self.lane_y, 1) == 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-                    self.lane_y = 0
                     self.steps_since_lc_desired = 0
+                    self.lane_y = 0
 
         elif self.lane_decision == 'move_right':
             if self.lane_id == self.target_lane :
-                if self.lane_y <= 0:
+                if round(self.lane_y, 1) == 0:
                     # manoeuvre completed
                     self.lane_decision = 'keep_lane'
-                    self.lane_y = 0
                     self.steps_since_lc_desired = 0
-
+                    self.lane_y = 0
         elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
                                             self.check_neighbours(neighbours):
             lc_left_condition = 0
@@ -364,5 +396,7 @@ class IDMMOBILVehicle(Vehicle):
                         self.neighbours['f'] = self.neighbours['fr']
                         self.target_lane += 1
                         return [act_ego_lc_r, self.lateral_actions[self.lane_decision]]
-
+        if steps_since_lc_desired != 0:
+            if steps_since_lc_desired == self.steps_since_lc_desired:
+                self.steps_since_lc_desired = 0
         return [act_long, self.lateral_actions[self.lane_decision]]
