@@ -12,7 +12,7 @@ class VehicleHandler:
         # self.queuing_vehicles =
         self.lanes_n = config['lanes_n']
         self.lane_length = config['lane_length']
-        self.next_vehicle_id = 0
+        self.next_vehicle_id = 1
         self.lane_width = 3.7
         self.reservations = {}
 
@@ -23,15 +23,11 @@ class VehicleHandler:
         glob_x = np.random.uniform(-30, 0)
         # aggressiveness = np.random.uniform(0, 1)
         # aggressiveness = 0.5
-        if lane_id == 1:
-            aggressiveness = 1
-        elif lane_id in [2, 3]:
-            aggressiveness = np.random.choice([0.5, 1])
-        elif lane_id in [4, 5]:
-            aggressiveness = np.random.choice([0, 0.5, 1])
-        elif lane_id == 6:
-            aggressiveness = np.random.choice([0, 0.5])
 
+        if lane_id in [1, 2]:
+            aggressiveness = np.random.uniform(0.7, 1)
+        else:
+            aggressiveness = np.random.uniform(0, 1)
 
         speed = aggressiveness*10 + 20 + np.random.normal(0, 1)
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
@@ -59,7 +55,7 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             # coin_flip = np.random.random()
-            if delta_x > np.random.uniform(50, 80):
+            if delta_x > np.random.uniform(70, 120):
                 # check if cars are not too close
                 new_entries.append(queuing_entries[lane_id])
                 last_entries[lane_id] = queuing_entries[lane_id]

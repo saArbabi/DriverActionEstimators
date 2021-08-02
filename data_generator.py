@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 500 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 3000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -105,21 +105,31 @@ class DataGenerator:
             - follower leader unchanged
             """
             nonlocal epis_features
+            leader_id = None
+            leader_ts = None
 
             while True:
                 try:
-                    leader_id = ego_ts[time_step]['att_veh_id']
                     ego = ego_ts[time_step]
                     merger = merger_ts[time_step]
                     merger_decision_tt = merger['lane_decision']
                     merger_decision_t = merger_ts[time_step-1]['lane_decision']
-                    leader = raw_recordings[leader_id][time_step]
-                    ml_delta_x = leader['glob_x'] - merger['glob_x']
                 except:
                     break
 
-                if merger_decision_tt == 'keep_lane' and \
-                                        merger_decision_t != 'keep_lane':
+                att_veh_id = ego_ts[time_step]['att_veh_id']
+                if not leader_id and att_veh_id:
+                    leader_ts = raw_recordings[att_veh_id]
+                    leader_id = att_veh_id
+
+                elif leader_id != att_veh_id or not att_veh_id:
+                    break
+
+                leader = leader_ts[time_step]
+                ml_delta_x = leader['glob_x'] - merger['glob_x']
+
+                if  merger['lane_decision'] != 'keep_lane' and \
+                            merger['target_lane'] != ego['target_lane']:
                     # merger performing an other lane change
                     break
 
@@ -133,6 +143,7 @@ class DataGenerator:
                 else:
                     break
             epis_features = list(reversed(epis_features))
+            return leader_ts, leader_id
             # print(len(epis_features))
 
         def end_episode():
@@ -153,7 +164,7 @@ class DataGenerator:
             nonlocal leader_id, merger_id, \
                         leader, merger, ego_att, leader_ts, merger_ts
 
-            end_episode()
+            # end_episode()
             leader_id = None
             merger_id = None
             leader = None
@@ -170,7 +181,8 @@ class DataGenerator:
             return [episode_id, time_step, ego_id, leader_id, merger_id]
 
         def is_merger(att_veh, ego):
-            if att_veh['lane_decision'] != 'keep_lane':
+            if att_veh['lane_decision'] != 'keep_lane' and \
+                                    ego['lane_decision'] == 'keep_lane':
                 return True
             return False
 
@@ -190,89 +202,48 @@ class DataGenerator:
         for ego_id in vehicle_ids:
             # if ego_id != 155:
             #     continue
+            end_episode()
             reset_episode()
             ego_ts = raw_recordings[ego_id]
             for time_step, ego in ego_ts.items():
                 att_veh_id = ego['att_veh_id']
                 if not att_veh_id:
-                    # no point if ego is not attending to anyone
-                    reset_episode()
                     continue
                 else:
                     att_veh = raw_recordings[att_veh_id][time_step]
                     if is_merger(att_veh, ego):
-                        if merger_id == leader_id:
-                            # can happen when two cars simultaneously perform lc
-                            leader = None
-                            leader_id = None
-                        if not merger_id:
+                        if merger_id != att_veh_id:
                             # there is a new merger
                             end_episode()
                             merger_ts = raw_recordings[att_veh_id]
                             merger_id = att_veh_id
                             ego_att = 1
-                            trace_back(att_veh_id, time_step-1)
-                        elif merger_id != att_veh_id:
-                            merger_ts = raw_recordings[att_veh_id]
-                            merger_id = att_veh_id
+                            leader_ts, leader_id = trace_back(att_veh_id, time_step-1)
+                            lc_clock_tick = 0
+                            if merger_id == leader_id or not leader_id:
+                                # former can happen when two cars simultaneously perform lc
+                                end_episode()
+                                continue
 
                         merger = merger_ts[time_step]
-                        if leader_id:
-                            try:
-                                leader = leader_ts[time_step]
-                            except:
-                                leader = None
-                                leader_id = None
                     else:
-                        if merger_id == att_veh_id:
+                        if merger_id == att_veh_id and lc_clock_tick < 40:
+                            lc_clock_tick += 1
                             # merger has arrived in its target lane
                             merger = merger_ts[time_step]
-                            if leader_id:
-                                leader = None
-                                leader_id = None
-
                         else:
-                            # paying attention to a leader
-                            if merger_id:
-                                ego_att = 0
-                                merger = None
-                                merger_id = None
-                                merger_ts = None
-                                end_episode()
+                            end_episode()
+                            continue
 
-                            if leader_id == att_veh_id:
-                                leader = leader_ts[time_step]
+                    try:
+                        leader = leader_ts[time_step]
+                    except:
+                        end_episode()
+                        continue
 
-                            else:
-                                # new leader
-                                leader_id = att_veh_id
-                                leader_ts = raw_recordings[att_veh_id]
-                                leader = leader_ts[time_step]
-
-
-                    # if leader_id and leader_id != merger_id:
-                    #     try:
-                    #         leader = leader_ts[time_step]
-                    #     except:
-                    #         leader = None
-                    #         leader_id = None
-                    #
-                    # elif leader_id == merger_id:
-                    #     # happens when eg0 (follower) and merger are both changing lane
-                    #     leader = None
-                    #     leader_id = None
-                # print('time_step')
-                # print(time_step)
-                # # print(epis_features)
-                # print(str(leader_id), leader)
-                # print(str(merger_id), merger)
-                # print(merger)
-
-
-                step_feature = self.get_step_feature(ego, leader, merger, ego_att)
-                step_feature[0:0] = add_info(leader_id, merger_id, time_step)
-                epis_features.append(step_feature)
-
+                    step_feature = self.get_step_feature(ego, leader, merger, ego_att)
+                    step_feature[0:0] = add_info(leader_id, merger_id, time_step)
+                    epis_features.append(step_feature)
         return np.array(features)
 
     def fill_missing_values(self, features):
@@ -333,7 +304,7 @@ class DataGenerator:
                 'ego_speed', 'leader_speed', 'merger_speed',
                 'ego_action', 'leader_action', 'merger_action',
                 'fl_delta_v', 'fl_delta_x', 'fm_delta_v', 'fm_delta_x',
-                'fm_delta_y', 'leader_exists', 'merger_exists']
+                'fm_delta_y']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
@@ -353,14 +324,16 @@ class DataGenerator:
         col_names = ['episode_id', 'time_step',
                         'ego_speed', 'leader_speed', 'merger_speed',
                         'ego_glob_x', 'leader_glob_x', 'merger_glob_x',
-                        'ego_att', 'leader_exists', 'merger_exists']
+                        'ego_att']
         history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
 
         # future action of merger - fed to LSTMs
-        col_names = ['episode_id', 'time_step', 'fm_delta_y', 'merger_exists']
-        future_merger_a = future_seqs[:, :, self.names_to_index(col_names)]
+        col_names = ['episode_id', 'time_step', 'fm_delta_y', 'merger_action']
+        history_merger_a = history_seqs_scaled[:, :, self.names_to_index(col_names)]
+        future_merger_a = future_seqs_scaled[:, :, self.names_to_index(col_names)]
+        future_merger_a = np.append(history_merger_a, future_merger_a, axis=1)
 
         # future action of ego - used as target
         col_names = ['episode_id', 'time_step', 'ego_action']
