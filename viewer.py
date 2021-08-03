@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(15, 4))
+        self.fig = plt.figure(figsize=(10, 2))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         # self.att_ax = self.fig.add_subplot(212)
@@ -56,7 +56,7 @@ class Viewer():
 
 
         for vehicle in vehicles:
-            if vehicle.id == self.focus_on_this_vehicle:
+            if str(vehicle.id) == self.focus_on_this_vehicle:
                 for key, neighbour in vehicle.neighbours.items():
                     if neighbour:
                         # if key == 'f':

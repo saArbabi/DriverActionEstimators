@@ -1,17 +1,6 @@
 # import os
 # import pickle
-'''
-all scnearios shall have mergers and leader
-va;idatopm will be afopted to suit the problem
-see myk paper for details on validation
-get a pretyyy latent and get writing.
-be be be radically curious ... why does it look the way it does? this
-way you foind bugs faste + earlier.
 
-increase road length
-remove the notion of merger exists /not exists ... jusus
-
-'''
 import matplotlib.pyplot as plt
 from importlib import reload
 import sys
@@ -79,7 +68,7 @@ episode_info = []
 episs = np.unique(features_origin[:, 0])
 for epis in episs:
     episode_info.append([epis, np.where(features_origin[:, 0] == epis)[0].shape[0]])
-
+episode_info
 # %%
 features_origin[(features_origin[:, indxs['ego_att']] == 1) & \
                     (features_origin[:, indxs['merger_exists']] == 0) ].shape

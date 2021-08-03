@@ -36,7 +36,6 @@ class Vehicle(object):
     def act(self):
         raise NotImplementedError
 
-
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
@@ -54,13 +53,11 @@ class IDMMOBILVehicle(Vehicle):
                                 'move_right':-0.75,
                                 'keep_lane':0
                                 }
-        self.set_idm_params(aggressiveness)
 
+        if  aggressiveness:
+            self.set_idm_params(aggressiveness)
 
     def set_idm_params(self, aggressiveness):
-        if aggressiveness == None:
-            raise ValueError('No aggressiveness specified!')
-
         Parameter_range = {'most_aggressive': {
                                         'desired_v':30, # m/s
                                         'desired_tgap':1, # s

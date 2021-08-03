@@ -4,6 +4,9 @@ import copy
 import vehicle_handler
 reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
+import copy
+from neural_idm_vehicle import NeuralIDMVehicle
+import types
 
 class Env:
     def __init__(self, config):
@@ -68,7 +71,6 @@ class Env:
                 # vehicle has left the highway
                 if vehicle.id in self.handler.reservations:
                     del self.handler.reservations[vehicle.id]
-
                 continue
             vehicles.append(vehicle)
         self.vehicles = vehicles
@@ -88,4 +90,77 @@ class Env:
                                                           self.last_entries)
         if new_entries:
             self.vehicles.extend(new_entries)
+        self.time_step += 1
+
+class EnvMC(Env):
+    def __init__(self, config):
+        super().__init__(config)
+        self.real_vehicles = []
+        self.imagined_vehicles = []
+
+    def prohibit_lane_change(self, vehicle):
+        """
+        For cars to be modelled for MC
+        """
+        def _act(self, reservations):
+            act_long = self.idm_action(self.observe(self, self.neighbours['f']))
+            return [max(-3, min(act_long, 3)), 0]
+        vehicle.act = types.MethodType(_act, vehicle)
+
+    def idm_to_neural_vehicle(self, vehicle):
+        neural_vehicle = NeuralIDMVehicle()
+        for attrname, attrvalue in list(vehicle.__dict__.items()):
+            setattr(neural_vehicle, attrname, attrvalue)
+        return neural_vehicle
+
+    def add_new_vehicles(self):
+        new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
+                                                          self.last_entries)
+        for vehicle in new_entries:
+            if vehicle.id in [1, 15]:
+                self.prohibit_lane_change(vehicle)
+                neural_vehicle = self.idm_to_neural_vehicle(vehicle)
+                neural_vehicle.id = 'neur_'+str(vehicle.id)
+                imagined_vehicle = neural_vehicle
+                imagined_vehicle.vehicle_type = 'neural'
+            else:
+                imagined_vehicle = copy.copy(vehicle)
+                imagined_vehicle.vehicle_type = 'idmmobil'
+
+            self.imagined_vehicles.append(imagined_vehicle)
+            self.real_vehicles.append(vehicle)
+
+
+
+    def get_joint_action(self, vehicles):
+        """
+        Returns the joint action of all vehicles on the road
+        """
+        joint_action = []
+        for vehicle in vehicles:
+            vehicle.neighbours = vehicle.my_neighbours(vehicles)
+            actions = vehicle.act(self.handler.reservations)
+            joint_action.append(actions)
+            vehicle.act_long = actions[0]
+            self.handler.update_reservations(vehicle)
+        return joint_action
+
+    def step(self, actions=None):
+        """ steps the environment forward in time.
+        """
+        # self.remove_vehicles_outside_bound()
+        # joint_action = self.get_joint_action(self.real_vehicles+self.imagined_vehicles)
+        # if self.usage == 'data generation':
+        #     self.recorder()
+        joint_action = self.get_joint_action(self.real_vehicles)
+        for vehicle, actions in zip(self.real_vehicles, joint_action):
+            vehicle.step(actions)
+
+        joint_action = self.get_joint_action(self.imagined_vehicles)
+        for vehicle, actions in zip(self.imagined_vehicles, joint_action):
+            # if vehicle_type == 'neural':
+                #
+            vehicle.step(actions)
+
+        self.add_new_vehicles()
         self.time_step += 1
