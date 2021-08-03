@@ -40,18 +40,17 @@ def main():
 
         env.step()
         viewer_real.render(env.real_vehicles)
-        viewer_imagined.render(env.imagined_vehicles)
-        print(env.imagined_vehicles[0].vehicle_type)
-        print(env.imagined_vehicles[0].act_long)
-        print(env.imagined_vehicles[0].speed)
-        # print(env.imagined_vehicles[0].id)
+        viewer_imagined.render(env.ima_vehicles)
+        print(env.ima_vehicles[0].vehicle_type)
+        print(env.ima_vehicles[0].act_long)
+        print(env.ima_vehicles[0].speed)
+        # print(env.ima_vehicles[0].id)
         # print(env.time_step)
 
-# env.imagined_vehicles[1].__dict__.items()
+# env.ima_vehicles[1].__dict__.items()
 
 if __name__=='__main__':
     main()
-#
 # list(env.vehicles[0].__dict__.items())[0]
 # vehicle_dir = dir(env.vehicles[0])
 # %%

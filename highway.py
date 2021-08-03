@@ -96,7 +96,7 @@ class EnvMC(Env):
     def __init__(self, config):
         super().__init__(config)
         self.real_vehicles = []
-        self.imagined_vehicles = []
+        self.ima_vehicles = []
 
     def prohibit_lane_change(self, vehicle):
         """
@@ -127,40 +127,55 @@ class EnvMC(Env):
                 imagined_vehicle = copy.copy(vehicle)
                 imagined_vehicle.vehicle_type = 'idmmobil'
 
-            self.imagined_vehicles.append(imagined_vehicle)
+            self.ima_vehicles.append(imagined_vehicle)
             self.real_vehicles.append(vehicle)
 
 
+    def set_ima_veh_decision(self, veh_real, veh_ima):
+        for attrname in ['lane_decision', 'lane_y', 'target_lane']:
+            attrvalue = getattr(veh_real, attrname)
+            setattr(veh_ima, attrname, attrvalue)
 
-    def get_joint_action(self, vehicles):
+    def get_joint_action(self):
         """
         Returns the joint action of all vehicles on the road
         """
-        joint_action = []
-        for vehicle in vehicles:
-            vehicle.neighbours = vehicle.my_neighbours(vehicles)
-            actions = vehicle.act(self.handler.reservations)
-            joint_action.append(actions)
-            vehicle.act_long = actions[0]
-            self.handler.update_reservations(vehicle)
-        return joint_action
+        acts_real = []
+        acts_ima = []
+        for veh_real, veh_ima in zip(self.real_vehicles, self.ima_vehicles):
+            veh_real.neighbours = veh_real.my_neighbours(self.real_vehicles)
+            act_long, act_lat = veh_real.act(self.handler.reservations)
+            acts_real.append([act_long, act_lat])
+            veh_real.act_long = act_long
+            self.handler.update_reservations(veh_real)
+            if veh_ima.vehicle_type == 'neural':
+                acts_ima.append([0, 0])
+
+            elif veh_ima.vehicle_type == 'idmmobil':
+                veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
+                self.set_ima_veh_decision(veh_real, veh_ima)
+                act_long, _ = veh_ima.act(self.handler.reservations)
+                acts_ima.append([act_long, act_lat]) # act lat is true
+                veh_ima.act_long = act_long
+
+        return acts_real, acts_ima
+
 
     def step(self, actions=None):
         """ steps the environment forward in time.
         """
         # self.remove_vehicles_outside_bound()
-        # joint_action = self.get_joint_action(self.real_vehicles+self.imagined_vehicles)
-        # if self.usage == 'data generation':
-        #     self.recorder()
-        joint_action = self.get_joint_action(self.real_vehicles)
-        for vehicle, actions in zip(self.real_vehicles, joint_action):
-            vehicle.step(actions)
+        # joint_action = self.get_joint_action(self.real_vehicles+self.ima_vehicles)
 
-        joint_action = self.get_joint_action(self.imagined_vehicles)
-        for vehicle, actions in zip(self.imagined_vehicles, joint_action):
-            # if vehicle_type == 'neural':
-                #
-            vehicle.step(actions)
+        acts_real, acts_ima = self.get_joint_action()
+        for veh_real, veh_ima, act_real, act_ima in zip(
+                                                    self.real_vehicles,
+                                                    self.ima_vehicles,
+                                                    acts_real,
+                                                    acts_ima):
+
+            veh_real.step(act_real)
+            veh_ima.step(act_ima)
 
         self.add_new_vehicles()
         self.time_step += 1

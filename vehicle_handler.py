@@ -6,6 +6,7 @@ from idmmobil_vehicle import IDMMOBILVehicle
 import numpy as np
 np.random.seed(2020)
 
+
 class VehicleHandler:
     def __init__(self, config=None):
         # self.entry_vehicles =
@@ -72,3 +73,21 @@ class VehicleHandler:
         elif vehicle.lane_decision != 'keep_lane':
             max_glob_x, min_glob_x = round(vehicle.glob_x) + 30, round(vehicle.glob_x) - 30
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
+
+# class VehicleHandlerMC(VehicleHandler):
+#     def __init__(self, config=None):
+#         super().__init__(config)
+#
+#     def create_vehicle(self, lane_id):
+#         """Creates a new vehicle.
+#         """
+#         id = self.next_vehicle_id
+#         glob_x = np.random.uniform(-30, 0)
+#         aggressiveness = np.random.uniform(0, 1)
+#
+#         speed = aggressiveness*10 + 20 + np.random.normal(0, 1)
+#         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
+#         new_vehicle.lanes_n = self.lanes_n
+#         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
+#         self.next_vehicle_id += 1
+#         return new_vehicle
