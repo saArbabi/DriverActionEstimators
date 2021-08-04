@@ -42,8 +42,6 @@ features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
-not (None or 1)
-not None or not 1
 # %%
 indxs = {}
 feature_names = [
@@ -99,9 +97,11 @@ features_origin[(features_origin[:, indxs['em_delta_y']] < 1.5) & \
                     (features_origin[:, indxs['e_veh_att']] == 0) ].shape
 
 # %%
-features_origin[(features_origin[:, indxs['aggressiveness']] == 1) & \
+features_origin[(features_origin[:, indxs['aggressiveness']] > 0.7) & \
                     (features_origin[:, indxs['e_veh_att']] == 1) ].shape
-features_origin[(features_origin[:, indxs['aggressiveness']] == 0) & \
+# %%
+
+features_origin[(features_origin[:, indxs['aggressiveness']] < 0.5) & \
                     (features_origin[:, indxs['e_veh_att']] == 1) ].shape
 
 # %%
@@ -320,7 +320,7 @@ if not loss.max() < 0.001:
 EPISODE EVALUATION
 """
 # %%
-np.unique(features[features[:, 2] == 17][:, 0])
+np.unique(features[features[:, 2] == 47][:, 0])
 # features[features[:, 2] == 34]
 veh_arr[:, -1]
 veh_arr[:, indxs['time_step']]
@@ -341,9 +341,9 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 60]
+veh_arr = features[features[:, 0] == 73]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 77
+time_snap_1 = 327
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -726,11 +726,11 @@ while Example_pred < 10:
     #
     # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
-    if  e_veh_att.mean() > 0:
+    # if  e_veh_att.mean() > 0:
     # if episode not in covered_episodes:
 
     # if episode not in covered_episodes:
-    # if episode not in covered_episodes and aggressiveness == 1:
+    if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)

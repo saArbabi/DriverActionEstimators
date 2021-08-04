@@ -23,8 +23,10 @@ class VehicleHandler:
         id = self.next_vehicle_id
         glob_x = np.random.uniform(-30, 0)
         # aggressiveness = 0.5
-
-        # if lane_id in [1, 2]:
+        #
+        # if lane_id == 1:
+        #     aggressiveness = np.random.uniform(0.9, 1)
+        # elif lane_id == 2:
         #     aggressiveness = np.random.uniform(0.7, 1)
         # else:
         #     aggressiveness = np.random.uniform(0, 1)
@@ -71,7 +73,7 @@ class VehicleHandler:
         if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':
-            max_glob_x = round(vehicle.glob_x)
+            max_glob_x = round(vehicle.glob_x) + 40
             if vehicle.neighbours['r']:
                 min_glob_x = round(vehicle.neighbours['r'].glob_x)
             else:
