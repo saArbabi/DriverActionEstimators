@@ -29,22 +29,22 @@ class NeurIDMModel(AbstractModel):
         self.test_idm_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true)/0.1
+        act_true = (act_true)/0.2
         # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
-        act_pred = (act_pred)/0.1
+        act_pred = (act_pred)/0.2
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
         # tf.print('######## TRAIN #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a in train_ds:
-            self.train_step([history_sca, future_sca, future_idm_s, future_merger_a], future_ego_a)
+        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
+            self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
 
     def test_loop(self, data_objs, epoch):
         # tf.print('######## TEST #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_merger_a, future_ego_a in train_ds:
-            self.test_step([history_sca, future_sca, future_idm_s, future_merger_a], future_ego_a)
+        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
+            self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -273,12 +273,15 @@ class IDMForwardSim(tf.keras.Model):
         att_context = tf.reshape(att_projection, [batch_size, 1, 100])
         # att_context = self.att_context([att_projection, enc_h], batch_size)
         state_h, state_c = att_projection, att_projection
-        for step in range(40):
-            leader_v = idm_s[:, step:step+1, 1:2]
-            merger_v = idm_s[:, step:step+1, 2:3]
-            leader_glob_x = idm_s[:, step:step+1, 4:5]
-            merger_glob_x = idm_s[:, step:step+1, 5:6]
 
+        for step in range(40):
+            f_veh_v = idm_s[:, step:step+1, 1:2]
+            m_veh_v = idm_s[:, step:step+1, 2:3]
+            f_veh_glob_x = idm_s[:, step:step+1, 4:5]
+            m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+            # these to deal with missing cars
+            f_veh_exists = idm_s[:, step:step+1, -2:-1]
+            m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
                 ego_glob_x = idm_s[:, step:step+1, 3:4]
@@ -286,23 +289,26 @@ class IDMForwardSim(tf.keras.Model):
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            fl_delta_x = leader_glob_x - ego_glob_x
-            fm_delta_x = merger_glob_x - ego_glob_x
-            fl_dv = ego_v - leader_v
-            fm_dv = ego_v - merger_v
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)
+            ef_delta_x = tf.clip_by_value(ef_delta_x, clip_value_min=1., clip_value_max=200.)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)
+            em_delta_x = tf.clip_by_value(em_delta_x, clip_value_min=1., clip_value_max=200.)
+            ef_dv = (ego_v - f_veh_v)
+            em_dv = (ego_v - m_veh_v)
+            # tf.print('############ ef_act ############')
+            ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
 
-            # tf.print('############ fl_act ############')
-            fl_act = self.idm_driver(ego_v, fl_dv, fl_delta_x, idm_params)
-
-            # tf.print('############ fm_act ############')
-            fm_act = self.idm_driver(ego_v, fm_dv, fm_delta_x, idm_params)
+            # tf.print('############ em_act ############')
+            # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
+            # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
+            em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
             sdv_act = sdv_acts[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([att_context, sdv_act], axis=-1), \
                                                             initial_state=[state_h, state_c])
             att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
-            # att_score = idm_s[:, step:step+1, -1:]
-            _act = (1-att_score)*fl_act + att_score*fm_act
+            # att_score = idm_s[:, step:step+1, -3:-2]
+            _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
@@ -359,7 +365,7 @@ class IDMLayer(tf.keras.Model):
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
-        x = self.linear_layer(sampled_idm_z)
+        x = self.linear_layer(sampled_idm_z) + enc_h
 
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)

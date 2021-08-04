@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(10, 2))
+        self.fig = plt.figure(figsize=(13, 3))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         # self.att_ax = self.fig.add_subplot(212)
@@ -53,48 +53,29 @@ class Viewer():
             ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
             ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
 
-
-
         for vehicle in vehicles:
-            if str(vehicle.id) == self.focus_on_this_vehicle:
+            if vehicle.id == self.focus_on_this_vehicle:
+                print('#############  ', vehicle.id, '  ##############')
+                print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
                     if neighbour:
-                        # if key == 'f':
-                        # if vehicle.lane_decision != 'keep_lane':
-                        #     ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                        #             [vehicle.glob_y, neighbour.glob_y], linestyle=':',
-                        #                 color='red', linewidth=5, alpha=0.5)
-                        # else:
+                        print(key+': ', neighbour.id)
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                 [vehicle.glob_y, neighbour.glob_y], linestyle='-',
-                                    color='grey', linewidth=5, alpha=0.3)
+                                    color='black', linewidth=1, alpha=0.3)
+                    else:
+                        print(key+': ', None)
 
-                        delta_x = round(neighbour.glob_x-vehicle.glob_x, 2)
-                        pos_x = vehicle.glob_x + (delta_x)/2
-                        delta_y = round(neighbour.glob_y-vehicle.glob_y, 2)
-                        pos_y = vehicle.glob_y + (delta_y)/2
-                        # ax.annotate(delta_x, (pos_x, pos_y+5))
-                        ax.annotate(key, (pos_x, pos_y))
-                        # print(delta_x)
-                        # print('delta_x :', delta_x)
-                print('###########################')
-                # print('lane_id: ', vehicle.lane_id)
+
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_act: ', vehicle.act_long)
-                print('lane_y: ', vehicle.lane_y)
-                print('driver_params: ', vehicle.driver_params)
-                print('steps_since_lc_desired: ', vehicle.steps_since_lc_desired)
+                # print('lane_y: ', vehicle.lane_y)
+                # print('driver_params: ', vehicle.driver_params)
 
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)
                 # print('lane_y: ', vehicle.lane_y)
-                try:
-                    print('att_veh_id: ', vehicle.neighbours['f'].id)
-                    print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
-
-                except:
-                    pass
                 print('###########################')
 
                 # print('lane_decision: ', vehicle.lane_decision)
@@ -106,8 +87,8 @@ class Viewer():
                 # print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
                 # print('###########################')
 
-            if 'f' in vehicle.neighbours:
-                neighbour = vehicle.neighbours['f']
+            if 'att' in vehicle.neighbours:
+                neighbour = vehicle.neighbours['att']
                 if neighbour:
                     line_1 = [vehicle.glob_y, neighbour.glob_y+.6]
                     line_2 = [vehicle.glob_y, neighbour.glob_y-.6]
