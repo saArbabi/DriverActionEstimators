@@ -43,7 +43,7 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
-        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr']}
+        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'ml', 'mr']}
         self.perception_range = 200 #m
         self.lane_width = 3.75
         self.act_long = 0
@@ -127,9 +127,12 @@ class IDMMOBILVehicle(Vehicle):
         """
         neighbours = {}
         delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
-                        delta_xs_rr, delta_xs_fr = ([self.perception_range] for i in range(6))
+        delta_xs_rr, delta_xs_fr, delta_xs_ml, delta_xs_mr \
+                                    = ([self.perception_range] for i in range(8))
         candidate_f, candidate_fl, candidate_rl, candidate_r, \
-                        candidate_rr, candidate_fr = (None for i in range(6))
+        candidate_rr, candidate_fr, candidate_ml, candidate_mr \
+                                    = (None for i in range(8))
+
         right_lane_id = self.lane_id + 1
         left_lane_id = self.lane_id - 1
 
@@ -151,10 +154,15 @@ class IDMMOBILVehicle(Vehicle):
                     elif self.lane_decision == 'keep_lane':
                         if delta_x > 0:
                             if vehicle.lane_id == right_lane_id:
-                                if self.am_i_attending(vehicle, delta_x, delta_xs_f):
-                                    # neighbour merging
-                                    delta_xs_f.append(delta_x)
-                                    candidate_f = vehicle
+                                if vehicle.target_lane == self.lane_id:
+                                    if delta_x < delta_xs_mr[-1]:
+                                        delta_xs_mr.append(delta_x)
+                                        candidate_mr = vehicle
+
+                                    if self.am_i_attending(vehicle, delta_x, delta_xs_f):
+                                        # neighbour merging
+                                        delta_xs_f.append(delta_x)
+                                        candidate_f = vehicle
 
                                 elif delta_x < delta_xs_fr[-1] and \
                                         (vehicle.lane_decision == 'keep_lane' or \
@@ -170,9 +178,14 @@ class IDMMOBILVehicle(Vehicle):
                                     candidate_fr = vehicle
 
                             if vehicle.lane_id == left_lane_id:
-                                if self.am_i_attending(vehicle, delta_x, delta_xs_f):
-                                    delta_xs_f.append(delta_x)
-                                    candidate_f = vehicle
+                                if vehicle.target_lane == self.lane_id:
+                                    if delta_x < delta_xs_ml[-1]:
+                                        delta_xs_ml.append(delta_x)
+                                        candidate_ml = vehicle
+
+                                    if self.am_i_attending(vehicle, delta_x, delta_xs_f):
+                                        delta_xs_f.append(delta_x)
+                                        candidate_f = vehicle
 
                                 elif delta_x < delta_xs_fl[-1] and \
                                             (vehicle.lane_decision == 'keep_lane' or \
@@ -231,14 +244,15 @@ class IDMMOBILVehicle(Vehicle):
         neighbours['r'] = candidate_r
         neighbours['rr'] = candidate_rr
         neighbours['fr'] = candidate_fr
+        neighbours['ml'] = candidate_ml
+        neighbours['mr'] = candidate_mr
 
         return neighbours
 
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the merging car?
         """
-        if vehicle.target_lane == self.lane_id and\
-                abs(vehicle.lane_y) >= self.driver_params['attentiveness'] \
+        if abs(vehicle.lane_y) >= self.driver_params['attentiveness'] \
                 and delta_x < delta_xs[-1]:
             return True
         return False

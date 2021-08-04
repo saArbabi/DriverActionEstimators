@@ -89,3 +89,4 @@ modify(boby)
 x = boby.bark() # WoOoOoF!!
 x
 boby.a
+2 == (3 or 5)

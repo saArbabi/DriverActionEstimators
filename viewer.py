@@ -56,7 +56,7 @@ class Viewer():
 
 
         for vehicle in vehicles:
-            if str(vehicle.id) == self.focus_on_this_vehicle:
+            if vehicle.id == self.focus_on_this_vehicle:
                 for key, neighbour in vehicle.neighbours.items():
                     if neighbour:
                         # if key == 'f':
@@ -65,9 +65,14 @@ class Viewer():
                         #             [vehicle.glob_y, neighbour.glob_y], linestyle=':',
                         #                 color='red', linewidth=5, alpha=0.5)
                         # else:
-                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                [vehicle.glob_y, neighbour.glob_y], linestyle='-',
-                                    color='grey', linewidth=5, alpha=0.3)
+                        if neighbour == ('ml' or 'mr'):
+                            ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                    [vehicle.glob_y, neighbour.glob_y], linestyle='-',
+                                        color='red', linewidth=1, alpha=0.3)
+                        else:
+                            ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                    [vehicle.glob_y, neighbour.glob_y], linestyle='-',
+                                        color='black', linewidth=1, alpha=0.3)
 
                         delta_x = round(neighbour.glob_x-vehicle.glob_x, 2)
                         pos_x = vehicle.glob_x + (delta_x)/2
@@ -92,6 +97,7 @@ class Viewer():
                 try:
                     print('att_veh_id: ', vehicle.neighbours['f'].id)
                     print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
+                    print('att_veh_id: ', vehicle.neighbours)
 
                 except:
                     pass
