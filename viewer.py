@@ -70,20 +70,12 @@ class Viewer():
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_act: ', vehicle.act_long)
-                print('lane_y: ', vehicle.lane_y)
-                print('driver_params: ', vehicle.driver_params)
-                print('steps_since_lc_desired: ', vehicle.steps_since_lc_desired)
+                # print('lane_y: ', vehicle.lane_y)
+                # print('driver_params: ', vehicle.driver_params)
 
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)
                 # print('lane_y: ', vehicle.lane_y)
-                try:
-                    print('att_veh_id: ', vehicle.neighbours['f'].id)
-                    print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
-                    print('att_veh_id: ', vehicle.neighbours)
-
-                except:
-                    pass
                 print('###########################')
 
                 # print('lane_decision: ', vehicle.lane_decision)
