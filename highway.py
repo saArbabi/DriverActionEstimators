@@ -38,6 +38,7 @@ class Env:
                 self.recordings[ego.id] = {}
             log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
             log['att_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
+
             log['aggressiveness'] = ego.driver_params['aggressiveness']
             log['act_long'] = ego.act_long
             self.recordings[ego.id][self.time_step] = log

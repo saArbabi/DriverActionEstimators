@@ -7,15 +7,14 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 3000 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 200 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
     def initiate(self):
         self.env.usage = 'data generation'
         self.env.recordings = {}
-        self.env.veh_log = ['lane_decision', 'lane_id',
-                             'target_lane', 'glob_x', 'glob_y', 'speed', 'act_long']
+        self.env.veh_log = ['glob_x', 'glob_y', 'speed', 'act_long']
         self.indxs = {}
 
         feature_names = [
