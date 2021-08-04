@@ -65,14 +65,10 @@ class Viewer():
                         #             [vehicle.glob_y, neighbour.glob_y], linestyle=':',
                         #                 color='red', linewidth=5, alpha=0.5)
                         # else:
-                        if neighbour == ('ml' or 'mr'):
-                            ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                    [vehicle.glob_y, neighbour.glob_y], linestyle='-',
-                                        color='red', linewidth=1, alpha=0.3)
-                        else:
-                            ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                                    [vehicle.glob_y, neighbour.glob_y], linestyle='-',
-                                        color='black', linewidth=1, alpha=0.3)
+
+                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                [vehicle.glob_y, neighbour.glob_y], linestyle='-',
+                                    color='black', linewidth=1, alpha=0.3)
 
                         delta_x = round(neighbour.glob_x-vehicle.glob_x, 2)
                         pos_x = vehicle.glob_x + (delta_x)/2

@@ -43,7 +43,7 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
-        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'ml', 'mr']}
+        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm']}
         self.perception_range = 200 #m
         self.lane_width = 3.75
         self.act_long = 0
@@ -127,11 +127,9 @@ class IDMMOBILVehicle(Vehicle):
         """
         neighbours = {}
         delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
-        delta_xs_rr, delta_xs_fr, delta_xs_ml, delta_xs_mr \
-                                    = ([self.perception_range] for i in range(8))
+        delta_xs_rr, delta_xs_fr, delta_xs_m = ([self.perception_range] for i in range(7))
         candidate_f, candidate_fl, candidate_rl, candidate_r, \
-        candidate_rr, candidate_fr, candidate_ml, candidate_mr \
-                                    = (None for i in range(8))
+        candidate_rr, candidate_fr, candidate_m = (None for i in range(7))
 
         right_lane_id = self.lane_id + 1
         left_lane_id = self.lane_id - 1
@@ -155,9 +153,9 @@ class IDMMOBILVehicle(Vehicle):
                         if delta_x > 0:
                             if vehicle.lane_id == right_lane_id:
                                 if vehicle.target_lane == self.lane_id:
-                                    if delta_x < delta_xs_mr[-1]:
-                                        delta_xs_mr.append(delta_x)
-                                        candidate_mr = vehicle
+                                    if delta_x < delta_xs_m[-1]:
+                                        delta_xs_m.append(delta_x)
+                                        candidate_m = vehicle
 
                                     if self.am_i_attending(vehicle, delta_x, delta_xs_f):
                                         # neighbour merging
@@ -179,9 +177,9 @@ class IDMMOBILVehicle(Vehicle):
 
                             if vehicle.lane_id == left_lane_id:
                                 if vehicle.target_lane == self.lane_id:
-                                    if delta_x < delta_xs_ml[-1]:
-                                        delta_xs_ml.append(delta_x)
-                                        candidate_ml = vehicle
+                                    if delta_x < delta_xs_m[-1]:
+                                        delta_xs_m.append(delta_x)
+                                        candidate_m = vehicle
 
                                     if self.am_i_attending(vehicle, delta_x, delta_xs_f):
                                         delta_xs_f.append(delta_x)
@@ -204,6 +202,8 @@ class IDMMOBILVehicle(Vehicle):
                                 if delta_x < delta_xs_f[-1]:
                                     delta_xs_f.append(delta_x)
                                     candidate_f = vehicle
+                                if vehicle.lane_decision != 'keep_lane':
+                                    candidate_m = vehicle
 
                         elif delta_x < 0:
                             delta_x = abs(delta_x)
@@ -244,8 +244,7 @@ class IDMMOBILVehicle(Vehicle):
         neighbours['r'] = candidate_r
         neighbours['rr'] = candidate_rr
         neighbours['fr'] = candidate_fr
-        neighbours['ml'] = candidate_ml
-        neighbours['mr'] = candidate_mr
+        neighbours['m'] = candidate_m
 
         return neighbours
 
