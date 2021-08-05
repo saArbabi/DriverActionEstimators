@@ -274,7 +274,7 @@ class IDMForwardSim(tf.keras.Model):
         # att_context = self.att_context([att_projection, enc_h], batch_size)
         state_h, state_c = att_projection, att_projection
 
-        for step in range(40):
+        for step in range(20):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]

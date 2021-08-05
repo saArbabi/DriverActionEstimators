@@ -42,6 +42,10 @@ features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
+features_origin[9940]
+np.where(features_origin[:, indxs['e_veh_action']] == features_origin[:, indxs['e_veh_action']].min())
+features_origin[:, indxs['ef_delta_x']].min()
+features_origin[:, indxs['em_delta_y']].min()
 # %%
 indxs = {}
 feature_names = [
@@ -145,9 +149,9 @@ future_m_veh_a.shape
 BALANCE DATA
 """
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+cond = (future_idm_s[:, :, -1] == 1).any(axis=1)
 data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-_ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
+_ = plt.hist(future_idm_s[:, :, -1].flatten(), bins=150)
 
 # %%
 np.count_nonzero(cond)/future_e_veh_a.shape[0]
@@ -209,8 +213,7 @@ for i in range(10000000):
 
     em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
     em_act = np.clip(em_act, -3, 3)
-    att_scores = history_future_usc[i, :, -5]
-    history_future_usc[i, :, -5]
+    att_scores = future_idm_s[i, :, -3]
     act = (1-att_scores)*ef_act + att_scores*em_act
     # features = features[features[:, 6]==0] # merger exists
     loss = abs(act-future_e_veh_a[i, :, -1])
@@ -225,7 +228,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 7984
+i = 2439
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -276,7 +279,7 @@ np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=No
 em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 em_act = np.clip(em_act, -3, 3)
 
-att_scores = history_future_usc[i, :, -5].copy()
+att_scores = future_idm_s[i, :, -3].copy()
 history_future_usc[i, :, :]
 
 history_future_usc[i, :, -6]
@@ -344,9 +347,9 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 73]
+veh_arr = features[features[:, 0] == 18]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 327
+time_snap_1 = 192
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -358,6 +361,12 @@ for i in range(veh_arr.shape[-1]):
     plt.grid()
 
 
+# %%
+a = []
+def add_to_list(this_list):
+    this_list.append(5)
+add_to_list(a)
+a
 # %%
 round(0.111, 1)
 """
@@ -550,7 +559,7 @@ att_kl_axis.grid()
 att_kl_axis.set_xlabel('epochs')
 att_kl_axis.set_ylabel('loss (att_kl)')
 att_kl_axis.set_title('att_kl')
-att_kl_axis.legend(['test', 'train'])
+att_kl_axis.legend(['test', 'trai n'])
 
 ################## idm_kl LOSS ##################
 idm_kl_axis.plot(model_trainer.test_idm_klloss)
@@ -772,7 +781,7 @@ for i in bad_examples[0]:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 40), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -784,7 +793,7 @@ for i in bad_examples[0]:
         # plt.plot(e_veh_att[:40] , color='black')
         plt.plot(range(0, 40), e_veh_att, color='red')
         for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
         plt.grid()

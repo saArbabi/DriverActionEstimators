@@ -69,7 +69,10 @@ class Viewer():
 
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
-                print('ego_act: ', vehicle.act_long)
+                print('ego_lane_id: ', vehicle.lane_id)
+                print('lane_y: ', round(vehicle.lane_y, 2))
+                print('ego_act: ', self.act_long)
+                print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
                 # print('lane_y: ', vehicle.lane_y)
                 print('driver_params: ', vehicle.driver_params)
 
