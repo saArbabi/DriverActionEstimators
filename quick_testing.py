@@ -103,6 +103,9 @@ features_origin[(features_origin[:, indxs['aggressiveness']] > 0.7) & \
 
 features_origin[(features_origin[:, indxs['aggressiveness']] < 0.5) & \
                     (features_origin[:, indxs['e_veh_att']] == 1) ].shape
+features_origin[(features_origin[:, indxs['aggressiveness']] == 0.5)].shape
+features_origin[(features_origin[:, indxs['aggressiveness']] > 0.7)].shape
+features_origin[(features_origin[:, indxs['aggressiveness']] < 0.3)].shape
 
 # %%
 features_origin[(features_origin[:, indxs['m_veh_exists']] == 1)].shape
@@ -531,7 +534,7 @@ mse_axis = fig.add_subplot(131)
 att_kl_axis = fig.add_subplot(132)
 idm_kl_axis = fig.add_subplot(133)
 mse_axis.plot(model_trainer.test_mseloss)
-mse_axis.plot(model_trainer.train_mseloss)
+mse_axis.plot(model_trainer.train_mseloss) 
 
 mse_axis.grid()
 mse_axis.set_xlabel('epochs')
@@ -708,7 +711,7 @@ model_trainer.model.idm_sim.attention_temp = 20
 traces_n = 5
 
 # for i in bad_examples[0]:
-while Example_pred < 10:
+while Example_pred < 20:
     sample_index = [val_examples[i]]
     i += 1
     # e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']]
@@ -726,11 +729,11 @@ while Example_pred < 10:
     #
     # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
-    # if  e_veh_att.mean() > 0:
-    # if episode not in covered_episodes:
+    if  e_veh_att.mean() > 0:
+    # if episode not in covered_episodes and  e_veh_att.mean() > 0:
 
     # if episode not in covered_episodes:
-    if  aggressiveness == 0.5:
+    # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)

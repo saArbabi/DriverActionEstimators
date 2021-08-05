@@ -48,6 +48,7 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_width = 3.75
         self.act_long = 0
         self.steps_since_indicators_on = 0
+        self.steps_since_arrival = 0
         self.lateral_actions = {'move_left':0.75,
                                 'move_right':-0.75,
                                 'keep_lane':0
@@ -356,20 +357,26 @@ class IDMMOBILVehicle(Vehicle):
         return [max(-3, min(act_long, 3)), act_lat]
 
     def lateral_action(self):
-        if self.lane_decision != 'keep_lane':
-            if self.steps_since_indicators_on >= 10:
-                return self.lateral_actions[self.lane_decision]
-            else:
-                self.steps_since_indicators_on += 1
-        return 0
+        if self.lane_decision == 'keep_lane':
+            return 0
+
+        if self.lane_id == self.target_lane and round(self.lane_y, 1) == 0:
+            self.steps_since_arrival += 1
+            return 0
+
+        if self.steps_since_indicators_on >= 10:
+            return self.lateral_actions[self.lane_decision]
+        else:
+            self.steps_since_indicators_on += 1
+            return 0
 
     def is_lane_change_complete(self):
-        if self.lane_id == self.target_lane :
-            if round(self.lane_y, 1) == 0:
-                # manoeuvre completed
-                self.lane_decision = 'keep_lane'
-                self.lane_y = 0
-                self.steps_since_indicators_on = 0
+        if self.steps_since_arrival >= 30:
+            # manoeuvre completed
+            self.lane_decision = 'keep_lane'
+            self.lane_y = 0
+            self.steps_since_indicators_on = 0
+            self.steps_since_arrival = 0
 
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours

@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 300 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 500 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 

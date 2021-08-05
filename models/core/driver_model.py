@@ -365,7 +365,7 @@ class IDMLayer(tf.keras.Model):
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
-        x = self.linear_layer(sampled_idm_z) + enc_h
+        x = self.linear_layer(sampled_idm_z)
 
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)
