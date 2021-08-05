@@ -534,7 +534,7 @@ mse_axis = fig.add_subplot(131)
 att_kl_axis = fig.add_subplot(132)
 idm_kl_axis = fig.add_subplot(133)
 mse_axis.plot(model_trainer.test_mseloss)
-mse_axis.plot(model_trainer.train_mseloss) 
+mse_axis.plot(model_trainer.train_mseloss)
 
 mse_axis.grid()
 mse_axis.set_xlabel('epochs')
@@ -710,8 +710,8 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 5
 
-# for i in bad_examples[0]:
-while Example_pred < 20:
+for i in bad_examples[0]:
+# while Example_pred < 20:
     sample_index = [val_examples[i]]
     i += 1
     # e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']]
@@ -728,8 +728,8 @@ while Example_pred < 20:
     episode = future_idm_s[sample_index, 0, 0][0]
     #
     # if episode not in covered_episodes and aggressiveness == 1.:
-    # if episode not in covered_episodes:
-    if  e_veh_att.mean() > 0:
+    if episode not in covered_episodes:
+    # if  e_veh_att.mean() > 0:
     # if episode not in covered_episodes and  e_veh_att.mean() > 0:
 
     # if episode not in covered_episodes:
@@ -837,6 +837,9 @@ while Example_pred < 20:
 
         Example_pred += 1
 # %%
+
+
+
 
 # %%
 """Single sample Anticipation visualisation

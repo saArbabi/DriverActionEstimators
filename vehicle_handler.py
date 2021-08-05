@@ -58,9 +58,12 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             # coin_flip = np.random.random()
-            min_delta_x = 70
-            max_delta_x = 120
-
+            if lane_id == 1:
+                min_delta_x = 100
+                max_delta_x = 120
+            else:
+                min_delta_x = 70
+                max_delta_x = 100
 
             if delta_x > np.random.uniform(min_delta_x, max_delta_x):
                 # check if cars are not too close

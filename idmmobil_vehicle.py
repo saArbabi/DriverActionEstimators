@@ -47,8 +47,9 @@ class IDMMOBILVehicle(Vehicle):
         self.perception_range = 200 #m
         self.lane_width = 3.75
         self.act_long = 0
-        self.steps_since_indicators_on = 0
-        self.steps_since_arrival = 0
+        self.steps_since_lc_initiation = 0
+        self.steps_prior_lc = 10 # steps
+        self.steps_since_new_lane_arrival = 0
         self.lateral_actions = {'move_left':0.75,
                                 'move_right':-0.75,
                                 'keep_lane':0
@@ -92,16 +93,17 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['safe_braking'] = self.get_idm_param(Parameter_range, 'safe_braking')
         self.driver_params['act_threshold'] = self.get_idm_param(Parameter_range, 'act_threshold')
 
-        steps_to_complete_lc = 10 + (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
+        steps_to_new_lane_entry = self.steps_prior_lc + \
+                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
         if 0 <= self.driver_params['aggressiveness'] < 0.33:
             # timid driver
-            attentiveness = steps_to_complete_lc*np.random.beta(2, 10)
+            attentiveness = steps_to_new_lane_entry*np.random.beta(2, 10)
         elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
             # normal driver
-            attentiveness = steps_to_complete_lc*np.random.beta(3, 3)
+            attentiveness = steps_to_new_lane_entry*np.random.beta(12, 12)
         elif 0.66 < self.driver_params['aggressiveness']:
             # aggressive driver
-            attentiveness = steps_to_complete_lc*np.random.beta(10, 2)
+            attentiveness = steps_to_new_lane_entry*np.random.beta(10, 2)
 
         self.driver_params['attentiveness'] = attentiveness
         # self.driver_params['attentiveness'] = aggressiveness*0.5*self.lane_width
@@ -269,7 +271,7 @@ class IDMMOBILVehicle(Vehicle):
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the vehicle?
         """
-        if vehicle.steps_since_indicators_on >= self.driver_params['attentiveness'] \
+        if vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
                                             and delta_x < delta_xs[-1]:
             return True
         return False
@@ -361,22 +363,22 @@ class IDMMOBILVehicle(Vehicle):
             return 0
 
         if self.lane_id == self.target_lane and round(self.lane_y, 1) == 0:
-            self.steps_since_arrival += 1
+            self.steps_since_new_lane_arrival += 1
             return 0
 
-        if self.steps_since_indicators_on >= 10:
+        if self.steps_since_lc_initiation >= self.steps_prior_lc:
             return self.lateral_actions[self.lane_decision]
         else:
-            self.steps_since_indicators_on += 1
+            self.steps_since_lc_initiation += 1
             return 0
 
     def is_lane_change_complete(self):
-        if self.steps_since_arrival >= 30:
+        if self.steps_since_new_lane_arrival >= 30:
             # manoeuvre completed
             self.lane_decision = 'keep_lane'
             self.lane_y = 0
-            self.steps_since_indicators_on = 0
-            self.steps_since_arrival = 0
+            self.steps_since_lc_initiation = 0
+            self.steps_since_new_lane_arrival = 0
 
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours

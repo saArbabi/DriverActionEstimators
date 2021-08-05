@@ -280,8 +280,8 @@ class IDMForwardSim(tf.keras.Model):
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
             # these to deal with missing cars
-            f_veh_exists = idm_s[:, step:step+1, -2:-1]
-            m_veh_exists = idm_s[:, step:step+1, -1:]
+            # f_veh_exists = idm_s[:, step:step+1, -2:-1]
+            # m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
                 ego_glob_x = idm_s[:, step:step+1, 3:4]

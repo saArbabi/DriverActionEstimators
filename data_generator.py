@@ -216,7 +216,7 @@ class DataGenerator:
                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                 'e_veh_action', 'f_veh_action', 'm_veh_action',
                 'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-                'em_delta_y', 'f_veh_exists', 'm_veh_exists']
+                'em_delta_y', 'm_veh_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
@@ -243,7 +243,7 @@ class DataGenerator:
 
         # future action of m_veh - fed to LSTMs
         col_names = ['episode_id', 'time_step', 'em_delta_y', 'm_veh_action',\
-                                                    'f_veh_exists', 'm_veh_exists']
+                                                    'm_veh_exists']
         history_m_veh_a = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_m_veh_a = future_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_m_veh_a = np.append(history_m_veh_a, future_m_veh_a, axis=1)
