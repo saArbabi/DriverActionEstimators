@@ -189,6 +189,13 @@ class IDMMOBILVehicle(Vehicle):
                                     if delta_x < min(delta_xs_att):
                                         delta_xs_att.append(delta_x)
                                         candidate_att = vehicle
+                        if self.lane_id == vehicle.target_lane and \
+                                vehicle.lane_decision != 'keep_lane' and \
+                                        round(self.lane_y, 2) == 0 and \
+                                        vehicle.glob_x > self.glob_x and \
+                            delta_x < min(delta_xs_m):
+                            delta_xs_m.append(delta_x)
+                            candidate_m = vehicle
 
                     else:
                         if vehicle.glob_x > self.glob_x:
@@ -213,28 +220,30 @@ class IDMMOBILVehicle(Vehicle):
                                         delta_xs_att.append(delta_x)
                                         candidate_att = vehicle
 
-                            if vehicle.target_lane == right_lane_id:
-                                if delta_x < min(delta_xs_fr):
-                                    # neighbour keeping lane
-                                    delta_xs_fr.append(delta_x)
-                                    candidate_fr = vehicle
+                            if vehicle_lane_y == 0:
+                                if vehicle.lane_id == right_lane_id:
+                                    if delta_x < min(delta_xs_fr):
+                                        # neighbour keeping lane
+                                        delta_xs_fr.append(delta_x)
+                                        candidate_fr = vehicle
 
-                            elif vehicle.target_lane == left_lane_id:
-                                if delta_x < min(delta_xs_fl):
-                                    delta_xs_fl.append(delta_x)
-                                    candidate_fl = vehicle
+                                elif vehicle.lane_id == left_lane_id:
+                                    if delta_x < min(delta_xs_fl):
+                                        delta_xs_fl.append(delta_x)
+                                        candidate_fl = vehicle
 
                         else:
-                            if vehicle.target_lane == right_lane_id:
-                                if delta_x < min(delta_xs_rr):
-                                    # neighbour keeping lane
-                                    delta_xs_rr.append(delta_x)
-                                    candidate_rr = vehicle
+                            if vehicle_lane_y == 0:
+                                if vehicle.lane_id == right_lane_id:
+                                    if delta_x < min(delta_xs_rr):
+                                        # neighbour keeping lane
+                                        delta_xs_rr.append(delta_x)
+                                        candidate_rr = vehicle
 
-                            if vehicle.target_lane == left_lane_id:
-                                if delta_x < min(delta_xs_rl):
-                                    delta_xs_rl.append(delta_x)
-                                    candidate_rl = vehicle
+                                elif vehicle.lane_id == left_lane_id:
+                                    if delta_x < min(delta_xs_rl):
+                                        delta_xs_rl.append(delta_x)
+                                        candidate_rl = vehicle
 
                             if vehicle.lane_id == self.lane_id == vehicle.target_lane:
                                 # same lane

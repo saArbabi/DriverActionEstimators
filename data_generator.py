@@ -129,11 +129,12 @@ class DataGenerator:
                 f_veh_id = e_veh['f_veh_id']
                 m_veh_id = e_veh['m_veh_id']
                 try:
-                    m_veh_id_last = e_veh_ts[time_step-1]['m_veh_id']
+                    m_veh_id_next = e_veh_ts[time_step+1]['m_veh_id']
                 except:
-                    m_veh_id_last = None
+                    m_veh_id_next = None
 
-                if not att_veh_id or not f_veh_id or m_veh_id != m_veh_id_last:
+                if (not att_veh_id or not f_veh_id) or \
+                                        (m_veh_id and not m_veh_id_next):
                     if epis_features:
                         end_episode()
                     continue

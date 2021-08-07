@@ -122,6 +122,7 @@ features_origin[features_origin[:, indxs['em_delta_y']] > 3.85]
 features_origin[:, indxs['e_veh_action']].min()
 features_origin[:, indxs['e_veh_action']].std()
 future_e_veh_a[:, :, -1].std()
+future_e_veh_a[:, :, -1].mean()
 features_origin[:, indxs['e_veh_action']].mean()
 # %%
 """
@@ -229,7 +230,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 895
+i = 4624
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -283,7 +284,6 @@ em_act = np.clip(em_act, -3, 3)
 att_scores = future_idm_s[i, :, -3].copy()
 future_idm_s[i, :, :]
 
-history_future_usc[i, :, -6]
 
 # att_scores+=1
 # att_scores[0] = 1
@@ -349,15 +349,15 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 36]
+veh_arr = features[features[:, 0] == 62]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 190
+time_snap_1 = 425
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
@@ -720,8 +720,8 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 5
 
-# for i in bad_examples[0]:
-for i in bad_zs:
+for i in bad_examples[0]:
+# for i in bad_zs:
 # for i in bad_examples[0][0:10]:
 # while Example_pred < 20:
     sample_index = [val_examples[i]]
