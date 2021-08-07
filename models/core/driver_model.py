@@ -290,9 +290,9 @@ class IDMForwardSim(tf.keras.Model):
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            ef_delta_x = tf.clip_by_value(ef_delta_x, clip_value_min=1., clip_value_max=200.)
+            ef_delta_x = tf.clip_by_value(ef_delta_x, clip_value_min=0.5, clip_value_max=200.)
             em_delta_x = (m_veh_glob_x - ego_glob_x)
-            em_delta_x = tf.clip_by_value(em_delta_x, clip_value_min=1., clip_value_max=200.)
+            em_delta_x = tf.clip_by_value(em_delta_x, clip_value_min=0.5, clip_value_max=200.)
             ef_dv = (ego_v - f_veh_v)
             em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
@@ -366,6 +366,7 @@ class IDMLayer(tf.keras.Model):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
         x = self.linear_layer(sampled_idm_z)
+        # x = tf.concat([self.linear_layer(sampled_idm_z), enc_h], axis=-1)
 
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)

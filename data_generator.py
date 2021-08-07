@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 500 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 1000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -128,20 +128,18 @@ class DataGenerator:
                 att_veh_id = e_veh['att_veh_id']
                 f_veh_id = e_veh['f_veh_id']
                 m_veh_id = e_veh['m_veh_id']
+                try:
+                    m_veh_id_last = e_veh_ts[time_step-1]['m_veh_id']
+                except:
+                    m_veh_id_last = None
 
-                if not att_veh_id or not f_veh_id:
+                if not att_veh_id or not f_veh_id or m_veh_id != m_veh_id_last:
                     if epis_features:
                         end_episode()
                     continue
 
                 att_veh = raw_recordings[att_veh_id][time_step]
-                f_veh_id = e_veh['f_veh_id']
-                m_veh_id = e_veh['m_veh_id']
-
-                if f_veh_id:
-                    f_veh = raw_recordings[f_veh_id][time_step]
-                else:
-                    f_veh = None
+                f_veh = raw_recordings[f_veh_id][time_step]
 
                 if m_veh_id:
                     m_veh = raw_recordings[m_veh_id][time_step]

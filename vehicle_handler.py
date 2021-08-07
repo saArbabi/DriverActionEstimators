@@ -93,7 +93,7 @@ class VehicleHandler:
                 max_glob_x = vehicle.glob_x + 50
 
             if follower_neighbour:
-                min_glob_x = round(follower_neighbour.glob_x) + 5
+                min_glob_x = round(follower_neighbour.glob_x) - 5
             else:
                 min_glob_x = vehicle.glob_x - 50
 

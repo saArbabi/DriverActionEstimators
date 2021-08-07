@@ -36,12 +36,11 @@ data_config = {
 data_gen = DataGenerator(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
-features_origin[:, indxs['em_delta_y']]
-features_origin[:, indxs['em_delta_y']]
-features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
+# %%
+
 features_origin[9940]
 np.where(features_origin[:, indxs['e_veh_action']] == features_origin[:, indxs['e_veh_action']].min())
 features_origin[:, indxs['ef_delta_x']].min()
@@ -101,7 +100,7 @@ features_origin[(features_origin[:, indxs['em_delta_y']] < 1.5) & \
                     (features_origin[:, indxs['e_veh_att']] == 0) ].shape
 
 # %%
-features_origin[(features_origin[:, indxs['aggressiveness']] > 0.7) & \
+features_origin[(features_origin[:, indxs['aggressiveness']] == 1.) & \
                     (features_origin[:, indxs['e_veh_att']] == 1) ].shape
 # %%
 
@@ -114,6 +113,7 @@ features_origin[(features_origin[:, indxs['aggressiveness']] < 0.3)].shape
 # %%
 features_origin[(features_origin[:, indxs['m_veh_exists']] == 1)].shape
 features_origin[(features_origin[:, indxs['e_veh_att']] == 1)].shape
+features_origin[(features_origin[:, indxs['e_veh_att']] == 1)].shape
 features_origin[(features_origin[:, indxs['f_veh_exists']] == 0)].shape
 features_origin[(features_origin[:, indxs['f_veh_exists']] == 0)]
 features_origin[(features_origin[:, indxs['f_veh_exists']] == 0)]
@@ -121,6 +121,7 @@ features_origin[features_origin[:, indxs['em_delta_y']] > 3.85]
 # %%
 features_origin[:, indxs['e_veh_action']].min()
 features_origin[:, indxs['e_veh_action']].std()
+future_e_veh_a[:, :, -1].std()
 features_origin[:, indxs['e_veh_action']].mean()
 # %%
 """
@@ -149,9 +150,9 @@ future_m_veh_a.shape
 BALANCE DATA
 """
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (future_idm_s[:, :, -1] == 1).any(axis=1)
+cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
 data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-_ = plt.hist(future_idm_s[:, :, -1].flatten(), bins=150)
+_ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
 
 # %%
 np.count_nonzero(cond)/future_e_veh_a.shape[0]
@@ -197,8 +198,8 @@ for i in range(10000000):
     f_veh_exists = future_idm_s[i, :, -2]
     m_veh_exists = future_idm_s[i, :, -1]
 
-    dv = (vel - f_veh_v)*f_veh_exists
-    dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
+    dv = (vel - f_veh_v)
+    dx = (f_veh_glob_x - e_veh_glob_x)
 
     desired_gap = min_jamx + \
     np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
@@ -228,7 +229,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 2439
+i = 895
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -264,8 +265,8 @@ m_veh_glob_x = future_idm_s[i, :, 7]
 f_veh_exists = future_idm_s[i, :, -2]
 m_veh_exists = future_idm_s[i, :, -1]
 
-dv = (vel - f_veh_v)*f_veh_exists
-dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
+dv = (vel - f_veh_v)
+dx = (f_veh_glob_x - e_veh_glob_x)
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
@@ -280,7 +281,7 @@ em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 em_act = np.clip(em_act, -3, 3)
 
 att_scores = future_idm_s[i, :, -3].copy()
-history_future_usc[i, :, :]
+future_idm_s[i, :, :]
 
 history_future_usc[i, :, -6]
 
@@ -288,6 +289,7 @@ history_future_usc[i, :, -6]
 # att_scores[0] = 1
 history_future_usc[i, :, -5]
 act = (1-att_scores)*ef_act + att_scores*em_act
+future_e_veh_a[i, :, -1].shape
 plt.plot(future_e_veh_a[i, :, -1], color='red')
 plt.plot(act)
 
@@ -326,7 +328,7 @@ if not loss.max() < 0.001:
 EPISODE EVALUATION
 """
 # %%
-np.unique(features[features[:, 2] == 47][:, 0])
+np.unique(features[features[:, 2] == 28][:, 0])
 # features[features[:, 2] == 34]
 veh_arr[:, -1]
 veh_arr[:, indxs['time_step']]
@@ -347,15 +349,15 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 18]
+veh_arr = features[features[:, 0] == 36]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 192
+time_snap_1 = 190
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
@@ -522,9 +524,7 @@ train_epis = all_epis[:int(len(all_epis)*0.8)]
 
 val_epis = np.setdiff1d(all_epis, train_epis)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
-np.where(train_indxs == 37964)
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
-np.where(train_indxs == 40710)
 history_sca.shape
 train_indxs.shape
 val_examples.shape
@@ -575,7 +575,7 @@ att_axis, idm_axis = latent_vis()
 
 # %%
 
-val_input = [history_sca[val_examples, :, 2:],
+val_input = [history_sca[val_examples , :, 2:],
             future_sca[val_examples, :, 2:],
             future_idm_s[val_examples, :, 2:],
             future_m_veh_a[val_examples, :, 2:]]
@@ -586,10 +586,11 @@ loss.shape
 
 
 _ = plt.hist(loss, bins=150)
+bad_examples = np.where(loss > 0.1)
+
 # %%
 
 
-bad_examples = np.where(loss > 0.1)
 np.where(loss < 0.01)
 np.where(loss == loss.max())
 loss[918]
@@ -655,7 +656,7 @@ bad_episodes = []
 bad_504 = []
 bad_498 = []
 # bad_zs = np.where((sampled_idm_z[:, 0] < -2) & (sampled_idm_z[:, 0] > -5))[0]
-bad_zs = np.where((sampled_att_z[:, 0] < -10))[0]
+bad_zs = np.where((sampled_att_z[:, 1] > 5))[0]
 for bad_z in bad_zs:
     exmp_indx = val_examples[bad_z]
     epis = history_future_usc[exmp_indx, 0, 0]
@@ -719,7 +720,9 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 5
 
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
+for i in bad_zs:
+# for i in bad_examples[0][0:10]:
 # while Example_pred < 20:
     sample_index = [val_examples[i]]
     i += 1
@@ -738,6 +741,7 @@ for i in bad_examples[0]:
     #
     # if episode not in covered_episodes and aggressiveness == 1.:
     if episode not in covered_episodes:
+    # if 4 == 4:
     # if  e_veh_att.mean() > 0:
     # if episode not in covered_episodes and  e_veh_att.mean() > 0:
 
