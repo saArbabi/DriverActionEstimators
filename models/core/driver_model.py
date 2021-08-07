@@ -278,7 +278,7 @@ class IDMForwardSim(tf.keras.Model):
         # att_context = self.att_context([att_projection, enc_h], batch_size)
         state_h, state_c = att_projection, att_projection
 
-        for step in range(20):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -304,6 +304,7 @@ class IDMForwardSim(tf.keras.Model):
             # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
+            # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             sdv_act = sdv_acts[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([att_context, sdv_act], axis=-1), \
@@ -341,28 +342,28 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x, batch_size):
         output = self.des_v_neu(x)
-        # return 15 + 15*(1/(1+tf.exp(-0.5*output)))
-        return 15 + 20*(1/(1+tf.exp(-0.5*output)))
+        # return 15 + 15*(1/(1+tf.exp(-1*output)))
+        return 15 + 20*(1/(1+tf.exp(-1*output)))
 
     def get_des_tgap(self, x, batch_size):
         output = self.des_tgap_neu(x)
-        # return 1 + 1*(1/(1+tf.exp(-0.5*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-0.5*output)))
+        # return 1 + 1*(1/(1+tf.exp(-1*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
 
     def get_min_jamx(self, x, batch_size):
         output = self.min_jamx_neu(x)
-        # return 4*(1/(1+tf.exp(-0.5*output)))
-        return 5*(1/(1+tf.exp(-0.5*output)))
+        # return 4*(1/(1+tf.exp(-1*output)))
+        return 5*(1/(1+tf.exp(-1*output)))
 
     def get_max_act(self, x, batch_size):
         output = self.max_act_neu(x)
-        # return 0.8 + 1.2*(1/(1+tf.exp(-0.5*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-0.5*output)))
+        # return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
 
     def get_min_act(self, x, batch_size):
         output = self.min_act_neu(x)
-        # return 1 + 2*(1/(1+tf.exp(-0.5*output)))
-        return 0.5 + 3*(1/(1+tf.exp(-0.5*output)))
+        # return 1 + 2*(1/(1+tf.exp(-1*output)))
+        return 0.5 + 3*(1/(1+tf.exp(-1*output)))
 
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs

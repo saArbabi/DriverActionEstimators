@@ -106,10 +106,10 @@ features_origin[(features_origin[:, indxs['aggressiveness']] == 1.) & \
 
 features_origin[(features_origin[:, indxs['aggressiveness']] < 0.5) & \
                     (features_origin[:, indxs['e_veh_att']] == 1) ].shape
-features_origin[(features_origin[:, indxs['aggressiveness']] == 0.5)].shape
-features_origin[(features_origin[:, indxs['aggressiveness']] > 0.7)].shape
-features_origin[(features_origin[:, indxs['aggressiveness']] < 0.3)].shape
+# %%
 
+features_origin[(features_origin[:, indxs['aggressiveness']] > 0.5) & \
+                    (features_origin[:, indxs['e_veh_att']] == 1) ].shape
 # %%
 features_origin[(features_origin[:, indxs['m_veh_exists']] == 1)].shape
 features_origin[(features_origin[:, indxs['e_veh_att']] == 1)].shape
@@ -133,8 +133,8 @@ features = features_origin.copy()
 # features[features[:, indxs['m_veh_exists']] == 1].shape
 features = data_gen.fill_missing_values(features)
 features_scaled = data_gen.scale_data(features)
-history_future_seqs = data_gen.sequence(features, 20, 20)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
+history_future_seqs = data_gen.sequence(features, 20, 40)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
@@ -349,9 +349,9 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 62]
+veh_arr = features[features[:, 0] == 33]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 425
+time_snap_1 = 763
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -589,12 +589,16 @@ _ = plt.hist(loss, bins=150)
 bad_examples = np.where(loss > 0.1)
 
 # %%
+future_m_veh_a[3508, 0, 0]
+np.where(future_m_veh_a[:, 0, 0] == 33)
+# %%
 
 
 np.where(loss < 0.01)
 np.where(loss == loss.max())
-loss[918]
-np.where(val_examples == 3984)
+loss[5157]
+val_examples[5157]
+np.where(val_examples == 24896)
 np.where(loss == loss.min())
 
 # %%
@@ -719,8 +723,9 @@ covered_episodes = []
 model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 5
-
+sepcific_examples = [5157]
 for i in bad_examples[0]:
+# for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
 # while Example_pred < 20:
@@ -740,12 +745,12 @@ for i in bad_examples[0]:
     episode = future_idm_s[sample_index, 0, 0][0]
     #
     # if episode not in covered_episodes and aggressiveness == 1.:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
     # if episode not in covered_episodes and  e_veh_att.mean() > 0:
 
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -785,7 +790,7 @@ for i in bad_examples[0]:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(20, 40), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(20, 60), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -795,9 +800,9 @@ for i in bad_examples[0]:
 
         plt.figure(figsize=(4, 4))
         # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(0, 40), e_veh_att, color='red')
+        plt.plot(range(0, 60), e_veh_att, color='red')
         for sample_trace_i in range(traces_n):
-           plt.plot(range(20, 40), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(20, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
         plt.grid()
@@ -840,7 +845,7 @@ for i in bad_examples[0]:
         ############
         plt.figure(figsize=(4, 4))
         plt.plot(em_delta_y[:20], color='black')
-        plt.plot(range(0, 40), em_delta_y, color='red')
+        plt.plot(range(0, 60), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1.5], color='red')
@@ -972,7 +977,7 @@ plt.grid()
 ############
 plt.figure(figsize=(4, 4))
 plt.plot(em_delta_y[:20], color='black')
-plt.plot(range(0, 40), em_delta_y, color='red')
+plt.plot(range(0, 60), em_delta_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')
