@@ -7,7 +7,7 @@ import time
 class DataGenerator:
     def __init__(self, env, config):
         self.config = config
-        self.env_steps_n = 500 # number of data samples. Not all of it is useful.
+        self.env_steps_n = 1000 # number of data samples. Not all of it is useful.
         self.env = env
         self.initiate()
 
@@ -128,20 +128,19 @@ class DataGenerator:
                 att_veh_id = e_veh['att_veh_id']
                 f_veh_id = e_veh['f_veh_id']
                 m_veh_id = e_veh['m_veh_id']
+                try:
+                    m_veh_id_next = e_veh_ts[time_step+1]['m_veh_id']
+                except:
+                    m_veh_id_next = None
 
-                if not att_veh_id or not f_veh_id:
+                if (not att_veh_id or not f_veh_id) or \
+                                        (m_veh_id and not m_veh_id_next):
                     if epis_features:
                         end_episode()
                     continue
 
                 att_veh = raw_recordings[att_veh_id][time_step]
-                f_veh_id = e_veh['f_veh_id']
-                m_veh_id = e_veh['m_veh_id']
-
-                if f_veh_id:
-                    f_veh = raw_recordings[f_veh_id][time_step]
-                else:
-                    f_veh = None
+                f_veh = raw_recordings[f_veh_id][time_step]
 
                 if m_veh_id:
                     m_veh = raw_recordings[m_veh_id][time_step]
@@ -216,11 +215,11 @@ class DataGenerator:
                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                 'e_veh_action', 'f_veh_action', 'm_veh_action',
                 'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-                'em_delta_y', 'f_veh_exists', 'm_veh_exists']
+                'em_delta_y', 'm_veh_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
-        #  history+future info for debugging/ visualisation
+        #  history and future info for debugging/ visualisation
         col_names = ['episode_id', 'time_step', 'e_veh_id',
                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                 'e_veh_action', 'f_veh_action', 'm_veh_action',
@@ -237,22 +236,22 @@ class DataGenerator:
                         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                         'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
                         'e_veh_att','f_veh_exists', 'm_veh_exists']
-        history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
+        # history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
-        future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
+        # future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
 
         # future action of m_veh - fed to LSTMs
         col_names = ['episode_id', 'time_step', 'em_delta_y', 'm_veh_action',\
-                                                    'f_veh_exists', 'm_veh_exists']
-        history_m_veh_a = history_seqs_scaled[:, :, self.names_to_index(col_names)]
+                                                    'm_veh_exists']
+        # history_m_veh_a = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_m_veh_a = future_seqs_scaled[:, :, self.names_to_index(col_names)]
-        future_m_veh_a = np.append(history_m_veh_a, future_m_veh_a, axis=1)
+        # future_m_veh_a = np.append(history_m_veh_a, future_m_veh_a, axis=1)
 
         # future action of e_veh - used as target
         col_names = ['episode_id', 'time_step', 'e_veh_action']
-        history_e_veh_a = history_seqs[:, :, self.names_to_index(col_names)]
+        # history_e_veh_a = history_seqs[:, :, self.names_to_index(col_names)]
         future_e_veh_a = future_seqs[:, :, self.names_to_index(col_names)]
-        future_e_veh_a = np.append(history_e_veh_a, future_e_veh_a, axis=1)
+        # future_e_veh_a = np.append(history_e_veh_a, future_e_veh_a, axis=1)
 
         data_arrays = [history_future_usc, history_sca, future_sca, future_idm_s, \
                         future_m_veh_a, future_e_veh_a]

@@ -24,14 +24,14 @@ class VehicleHandler:
         glob_x = np.random.uniform(-30, 0)
         # aggressiveness = 0.5
         #
-        if lane_id == 1:
-            aggressiveness = np.random.uniform(0.9, 1)
-        elif lane_id == 2:
-            aggressiveness = np.random.uniform(0.7, 1)
-        else:
-            aggressiveness = np.random.uniform(0, 1)
+        # if lane_id == 1:
+        #     aggressiveness = np.random.uniform(0.9, 1)
+        # elif lane_id == 2:
+        #     aggressiveness = np.random.uniform(0.7, 1)
+        # else:
+        #     aggressiveness = np.random.uniform(0, 1)
 
-        # aggressiveness = np.random.choice([0, 0.5, 1])
+        aggressiveness = np.random.choice([0, 0.5, 1])
         speed = aggressiveness*10 + 20 + np.random.normal(0, 1)
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
@@ -58,9 +58,12 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             # coin_flip = np.random.random()
-            min_delta_x = 70
-            max_delta_x = 120
-
+            if lane_id == 1:
+                min_delta_x = 100
+                max_delta_x = 120
+            else:
+                min_delta_x = 70
+                max_delta_x = 100
 
             if delta_x > np.random.uniform(min_delta_x, max_delta_x):
                 # check if cars are not too close
@@ -77,11 +80,23 @@ class VehicleHandler:
         if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':
-            max_glob_x = round(vehicle.glob_x) + 40
-            if vehicle.neighbours['r']:
-                min_glob_x = round(vehicle.neighbours['r'].glob_x)
+            if vehicle.lane_decision == 'move_left':
+                leader_neighbour = vehicle.neighbours['fl']
+                follower_neighbour = vehicle.neighbours['rl']
+            elif vehicle.lane_decision == 'move_right':
+                leader_neighbour = vehicle.neighbours['fr']
+                follower_neighbour = vehicle.neighbours['rr']
+
+            if leader_neighbour:
+                max_glob_x = round(leader_neighbour.glob_x) + 5
             else:
-                min_glob_x = max_glob_x - 30
+                max_glob_x = vehicle.glob_x + 50
+
+            if follower_neighbour:
+                min_glob_x = round(follower_neighbour.glob_x) - 5
+            else:
+                min_glob_x = vehicle.glob_x - 50
+
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
 
 # class VehicleHandlerMC(VehicleHandler):

@@ -154,16 +154,18 @@ class BeliefModel(tf.keras.Model):
         if dis_type == 'both':
             enc_h, enc_acts, enc_f = inputs
             # prior
-            context_att = self.pri_linear_att(tf.concat([enc_h, enc_acts], axis=-1))
-            context_idm = self.pri_linear_idm(enc_h)
+            pri_context = tf.concat([enc_h, enc_acts], axis=-1)
+            context_att = self.pri_linear_att(pri_context)
+            context_idm = self.pri_linear_idm(pri_context)
             pri_att_mean = self.pri_att_mean(context_att)
             pri_att_logsigma = self.pri_att_logsigma(context_att)
             pri_idm_mean = self.pri_idm_mean(context_idm)
             pri_idm_logsigma = self.pri_idm_logsigma(context_idm)
 
             # posterior
-            context_att = self.pos_linear_att(tf.concat([enc_h, enc_acts, enc_f], axis=-1))
-            context_idm = self.pos_linear_idm(tf.concat([enc_h, enc_f], axis=-1))
+            pos_context = tf.concat([enc_h, enc_acts, enc_f], axis=-1)
+            context_att = self.pos_linear_att(pos_context)
+            context_idm = self.pos_linear_idm(pos_context)
             pos_att_mean = self.pos_att_mean(context_att)
             pos_att_logsigma = self.pos_att_logsigma(context_att)
             pos_idm_mean = self.pos_idm_mean(context_idm)
@@ -175,9 +177,9 @@ class BeliefModel(tf.keras.Model):
 
         elif dis_type == 'prior':
             enc_h, enc_acts = inputs
-
-            context_att = self.pri_linear_att(tf.concat([enc_h, enc_acts], axis=-1))
-            context_idm = self.pri_linear_idm(enc_h)
+            pri_context = tf.concat([enc_h, enc_acts], axis=-1)
+            context_att = self.pri_linear_att(pri_context)
+            context_idm = self.pri_linear_idm(pri_context)
             pri_att_mean = self.pri_att_mean(context_att)
             pri_att_logsigma = self.pri_att_logsigma(context_att)
             pri_idm_mean = self.pri_idm_mean(context_idm)
@@ -193,11 +195,12 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
+        self.linear_layer = TimeDistributed(Dense(100))
         self.lstm_layer = LSTM(self.enc_units)
         # self.masking = Masking()
     def call(self, inputs):
         # enc_h = self.lstm_layer(self.masking(inputs))
-        enc_h = self.lstm_layer(inputs)
+        enc_h = self.lstm_layer(self.linear_layer(inputs))
         return enc_h
 
 class FutureEncoder(tf.keras.Model):
@@ -207,10 +210,11 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
+        self.linear_layer = TimeDistributed(Dense(100))
         self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
 
     def call(self, inputs):
-        enc_acts = self.lstm_layer(inputs)
+        enc_acts = self.lstm_layer(self.linear_layer(inputs))
         return enc_acts
 
 class IDMForwardSim(tf.keras.Model):
@@ -225,7 +229,7 @@ class IDMForwardSim(tf.keras.Model):
         self.attention_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        # desired_v, desired_tgap, min_jamx, max_act, min_act = idm_param
+        dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=200.)
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -274,13 +278,13 @@ class IDMForwardSim(tf.keras.Model):
         # att_context = self.att_context([att_projection, enc_h], batch_size)
         state_h, state_c = att_projection, att_projection
 
-        for step in range(40):
+        for step in range(20):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
             # these to deal with missing cars
-            f_veh_exists = idm_s[:, step:step+1, -2:-1]
+            # f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
@@ -290,11 +294,9 @@ class IDMForwardSim(tf.keras.Model):
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            ef_delta_x = tf.clip_by_value(ef_delta_x, clip_value_min=1., clip_value_max=200.)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)
-            em_delta_x = tf.clip_by_value(em_delta_x, clip_value_min=1., clip_value_max=200.)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists + 50*(1-m_veh_exists)
             ef_dv = (ego_v - f_veh_v)
-            em_dv = (ego_v - m_veh_v)
+            em_dv = (ego_v - m_veh_v)*m_veh_exists
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
 
@@ -339,33 +341,34 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x, batch_size):
         output = self.des_v_neu(x)
-        # return 15 + 15*(1/(1+tf.exp(-1*output)))
-        return 15 + 20*(1/(1+tf.exp(-1*output)))
+        # return 15 + 15*(1/(1+tf.exp(-0.5*output)))
+        return 15 + 20*(1/(1+tf.exp(-0.5*output)))
 
     def get_des_tgap(self, x, batch_size):
         output = self.des_tgap_neu(x)
-        # return 1 + 1*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
+        # return 1 + 1*(1/(1+tf.exp(-0.5*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-0.5*output)))
 
     def get_min_jamx(self, x, batch_size):
         output = self.min_jamx_neu(x)
-        # return 4*(1/(1+tf.exp(-1*output)))
-        return 5*(1/(1+tf.exp(-1*output)))
+        # return 4*(1/(1+tf.exp(-0.5*output)))
+        return 5*(1/(1+tf.exp(-0.5*output)))
 
     def get_max_act(self, x, batch_size):
         output = self.max_act_neu(x)
-        # return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
+        # return 0.8 + 1.2*(1/(1+tf.exp(-0.5*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-0.5*output)))
 
     def get_min_act(self, x, batch_size):
         output = self.min_act_neu(x)
-        # return 1 + 2*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 3*(1/(1+tf.exp(-1*output)))
+        # return 1 + 2*(1/(1+tf.exp(-0.5*output)))
+        return 0.5 + 3*(1/(1+tf.exp(-0.5*output)))
 
     def call(self, inputs):
         sampled_idm_z, enc_h = inputs
         batch_size = tf.shape(sampled_idm_z)[0]
         x = self.linear_layer(sampled_idm_z)
+        # x = tf.concat([self.linear_layer(sampled_idm_z), enc_h], axis=-1)
 
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)
