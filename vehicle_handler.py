@@ -97,7 +97,7 @@ class VehicleHandler:
                 min_glob_x = round(follower_neighbour.glob_x) - 5
             else:
                 min_glob_x = vehicle.glob_x - 50
-
+                
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
 
 # class VehicleHandlerMC(VehicleHandler):

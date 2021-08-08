@@ -29,9 +29,9 @@ class NeurIDMModel(AbstractModel):
         self.test_idm_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true)/0.2
+        act_true = (act_true)/0.1
         # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
-        act_pred = (act_pred)/0.2
+        act_pred = (act_pred)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
@@ -259,7 +259,7 @@ class IDMForwardSim(tf.keras.Model):
         To deal with nonexisting cars
         """
         idm_action = idm_veh_exists*(idm_action) + \
-                (1-idm_veh_exists)*tf.random.uniform((batch_size, 1, 1), -3, 3)
+                (1-idm_veh_exists)*tf.random.uniform((batch_size, 1, 1), -2, 2)
         return idm_action
 
     def att_context(self, inputs, batch_size):
@@ -284,7 +284,7 @@ class IDMForwardSim(tf.keras.Model):
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
             # these to deal with missing cars
-            # f_veh_exists = idm_s[:, step:step+1, -2:-1]
+            f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
@@ -293,18 +293,19 @@ class IDMForwardSim(tf.keras.Model):
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists + 50*(1-m_veh_exists)
-            ef_dv = (ego_v - f_veh_v)
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
+            ef_dv = (ego_v - f_veh_v)*f_veh_exists
             em_dv = (ego_v - m_veh_v)*m_veh_exists
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
+            ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
 
             # tf.print('############ em_act ############')
             # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
+            em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             sdv_act = sdv_acts[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([att_context, sdv_act], axis=-1), \

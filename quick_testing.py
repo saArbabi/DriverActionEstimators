@@ -199,8 +199,8 @@ for i in range(10000000):
     f_veh_exists = future_idm_s[i, :, -2]
     m_veh_exists = future_idm_s[i, :, -1]
 
-    dv = (vel - f_veh_v)
-    dx = (f_veh_glob_x - e_veh_glob_x)
+    dv = (vel - f_veh_v)*f_veh_exists
+    dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
 
     desired_gap = min_jamx + \
     np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
@@ -230,7 +230,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 4624
+i = 4252
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -328,7 +328,7 @@ if not loss.max() < 0.001:
 EPISODE EVALUATION
 """
 # %%
-np.unique(features[features[:, 2] == 28][:, 0])
+np.unique(features[features[:, 2] == 8][:, 0])
 # features[features[:, 2] == 34]
 veh_arr[:, -1]
 veh_arr[:, indxs['time_step']]
@@ -351,7 +351,7 @@ veh_arr[:, indxs['m_veh_action']]
 # %%
 veh_arr = features[features[:, 0] == 33]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 763
+time_snap_1 = 712
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -572,6 +572,21 @@ idm_kl_axis.legend(['test', 'train'])
 att_axis, idm_axis = latent_vis()
 
 # %%
+from scipy.stats import beta, gamma, norm
+x = np.linspace(0, 1, 100)
+p = beta.pdf(x, 2, 10)
+plt.plot(x*35, p, color='green')
+p = beta.pdf(x,  12, 12)
+plt.plot(x*35, p, color='orange')
+p = beta.pdf(x, 10, 2)
+plt.plot(x*35, p, color='red')
+mean, var, skew, kurt = beta.stats(2, 10, moments='mvsk')
+mean
+driver_types = ['Timid', 'Normal', 'Aggressive']
+plt.legend(driver_types)
+plt.xlabel('Lateral displacement (%)')
+plt.ylabel('Attention pdf')
+
 
 # %%
 
@@ -720,15 +735,15 @@ for item_name in col_names:
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.idm_sim.attention_temp = 20
+model_trainer.model.idm_sim.attention_temp = 5
 # model_trainer.model.arbiter.attention_temp = 20
-traces_n = 5
+traces_n = 20
 sepcific_examples = [5157]
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 20:
+while Example_pred < 20:
     sample_index = [val_examples[i]]
     i += 1
     # e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']]
@@ -744,13 +759,12 @@ for i in bad_examples[0]:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     #
-    # if episode not in covered_episodes and aggressiveness == 1.:
+    if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and  e_veh_att.mean() > 0:
-
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes and  e_veh_att.mean() > 0 and aggressiveness == 0.5:
+    # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -865,7 +879,7 @@ for i in bad_examples[0]:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 20
 model_trainer.model.idm_sim.attention_temp = 5
-sample_index = [4400]
+sample_index = [16153]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
@@ -889,7 +903,7 @@ act_seq, att_scores = model_trainer.model.idm_sim.rollout([att_inputs, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
-time_axis = np.linspace(0., 4., 40)
+time_axis = np.linspace(0., 6., 60)
 plt.figure(figsize=(4, 4))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
@@ -913,7 +927,7 @@ plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['m_veh_act
 plt.legend(['Leader', 'Follower', 'Merger'])
 
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis, act_seq[sample_trace_i, :, :].flatten(), \
+   plt.plot(time_axis[20:], act_seq[sample_trace_i, :, :].flatten(), \
                                 color='grey', alpha=0.5)
 plt.title('Vehicle actions')
 plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
@@ -926,7 +940,7 @@ plt.grid()
 plt.figure(figsize=(4, 4))
 plt.plot(time_axis, e_veh_att, color='red', linewidth=3)
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis, att_scores[sample_trace_i, :].flatten(), color='grey', alpha=0.5)
+   plt.plot(time_axis[20:], att_scores[sample_trace_i, :].flatten(), color='grey', alpha=0.5)
 plt.ylim(-0.1, 1.1)
 plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
 plt.xlabel('Time (s)')

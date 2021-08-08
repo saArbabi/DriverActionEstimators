@@ -157,8 +157,14 @@ class IDMMOBILVehicle(Vehicle):
                             if self.target_lane == vehicle.target_lane and \
                                                 vehicle.glob_x > self.glob_x and \
                                                 delta_x < min(delta_xs_att):
-                                delta_xs_att.append(delta_x)
-                                candidate_att = vehicle
+
+                                if delta_x < min(delta_xs_f):
+                                    delta_xs_f.append(delta_x)
+                                    candidate_f = vehicle
+
+                                if delta_x < min(delta_xs_att):
+                                    delta_xs_att.append(delta_x)
+                                    candidate_att = vehicle
 
                             if vehicle_lane_y == 0:
                                 if vehicle.glob_x < self.glob_x:
@@ -189,13 +195,13 @@ class IDMMOBILVehicle(Vehicle):
                                     if delta_x < min(delta_xs_att):
                                         delta_xs_att.append(delta_x)
                                         candidate_att = vehicle
-                        if self.lane_id == vehicle.target_lane and \
-                                vehicle.lane_decision != 'keep_lane' and \
-                                        round(self.lane_y, 2) == 0 and \
-                                        vehicle.glob_x > self.glob_x and \
-                            delta_x < min(delta_xs_m):
-                            delta_xs_m.append(delta_x)
-                            candidate_m = vehicle
+                        # if self.lane_id == vehicle.target_lane and \
+                        #         vehicle.lane_decision != 'keep_lane' and \
+                        #                 round(self.lane_y, 2) == 0 and \
+                        #                 vehicle.glob_x > self.glob_x and \
+                        #     delta_x < min(delta_xs_m):
+                        #     delta_xs_m.append(delta_x)
+                        #     candidate_m = vehicle
 
                     else:
                         if vehicle.glob_x > self.glob_x:
