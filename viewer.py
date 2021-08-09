@@ -145,3 +145,59 @@ class Viewer():
         # plt.show()
     def render(self, vehicles):
         self.update_plots(vehicles)
+
+class ViewerLaneKeep(Viewer):
+    def __init__(self, config):
+        self.config  = config
+        self.fig = plt.figure(figsize=(10, 4))
+        self.env_ax = self.fig.add_subplot(111)
+        self.focus_on_this_vehicle = None
+
+    def draw_vehicles(self, ax, vehicles, env_type):
+        # vehicles = lisvehicles.values())
+
+        # xs_idm_mobil = [veh.glob_x for veh in vehicles if veh.capability == 'IDMMOBIL']
+        # ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
+        glob_xs = [veh.glob_x for veh in vehicles]
+        glob_ys = [veh.glob_y for veh in vehicles]
+        # annotation_mark_1 = [veh.id for veh in vehicles]
+        # annotation_mark_2 = [round(veh.speed, 2) for veh in vehicles]
+        # for i in range(len(annotation_mark_1)):
+        #     ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
+        #     ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
+        #
+
+        if env_type == 'real':
+            color_shade = [veh.driver_params['aggressiveness'] for veh in vehicles]
+            ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
+                                        c=color_shade, cmap='rainbow')
+        else:
+            ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
+                                        color='grey', alpha=0.5, edgecolors='black')
+
+        for vehicle in vehicles:
+            neighbour = vehicle.neighbours['att']
+            if neighbour:
+                point_1 = [vehicle.glob_x, neighbour.glob_x]
+                point_2 = [vehicle.glob_y, neighbour.glob_y]
+                if env_type == 'imagined':
+                    ax.plot(point_1, point_2, color='grey', linestyle='--')
+                    ax.scatter(point_1, point_2, color='black', s=30)
+
+            if vehicle.id == self.focus_on_this_vehicle:
+                print('#############  ', vehicle.id, '  ##############')
+                print('ego_act: ', vehicle.act_long)
+                print('driver_params: ', vehicle.driver_params)
+                print('###########################')
+
+    def draw_highway(self, ax, vehicles, env_type):
+        self.draw_road(ax)
+        self.draw_vehicles(ax, vehicles, env_type)
+        # self.draw_attention_line(ax, vehicles)
+
+    def render(self, real_vehicles, ima_vehicles):
+        self.env_ax.clear()
+        self.draw_highway(self.env_ax, real_vehicles, 'real')
+        if ima_vehicles:
+            self.draw_highway(self.env_ax, ima_vehicles, 'imagined')
+        plt.pause(1e-10)

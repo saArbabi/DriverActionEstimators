@@ -1,19 +1,21 @@
-from highway import Env
-from viewer import Viewer
+from highway import Env, EnvLaneKeep
+from viewer import Viewer, ViewerLaneKeep
 import matplotlib.pyplot as plt
 
 def main():
-    config = {'lanes_n':6,
+    config = {'lanes_n':1,
             'lane_width':3.75, # m
             'lane_length':600 # m
             }
-    env = Env(config)
-    viewer = Viewer(config)
+    # env = Env(config)
+    env = EnvLaneKeep(config)
+    # viewer = Viewer(config)
+    viewer = ViewerLaneKeep(config)
     # for i in range(100):
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 200:
+        if env.time_step > 0:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
@@ -21,7 +23,8 @@ def main():
                 viewer.focus_on_this_vehicle = int(user_input)
             except:
                 pass
-            viewer.render(env.vehicles)
+            # viewer.render(env.vehicles)
+            viewer.render(env.vehicles, None)
             print(env.time_step)
 
         env.step()

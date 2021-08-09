@@ -6,7 +6,7 @@ reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 
 class Encoder(AbstractModel):
-    def __init__(self, config):
+    def __init__(self, config=None):
         super(Encoder, self).__init__(config)
         self.enc_units = 50
         self.architecture_def()

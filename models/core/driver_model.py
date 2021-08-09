@@ -229,7 +229,7 @@ class IDMForwardSim(tf.keras.Model):
         self.attention_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=200.)
+        # dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=200.)
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -302,8 +302,8 @@ class IDMForwardSim(tf.keras.Model):
             ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
 
             # tf.print('############ em_act ############')
-            # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
-            # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
+            tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
+            tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
@@ -379,3 +379,39 @@ class IDMLayer(tf.keras.Model):
         min_act = self.get_min_act(x, batch_size)
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
+
+class IDMForwardSimLaneKeep(IDMForwardSim):
+    def __init__(self):
+        super().__init__()
+
+    def rollout(self, inputs):
+        att_inputs, idm_params, idm_s, sdv_acts = inputs
+        sampled_att_z, enc_h, enc_acts = att_inputs
+        batch_size = tf.shape(idm_s)[0]
+        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
+        for step in range(40):
+            f_veh_v = idm_s[:, step:step+1, 1:2]
+            f_veh_glob_x = idm_s[:, step:step+1, 3:4]
+
+            if step == 0:
+                ego_v = idm_s[:, step:step+1, 0:1]
+                ego_glob_x = idm_s[:, step:step+1, 2:3]
+            else:
+                ego_v += ef_act*0.1
+                ego_glob_x += ego_v*0.1 + 0.5*ef_act*0.1**2
+
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)
+            ef_dv = (ego_v - f_veh_v)
+            tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
+            ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
+            if step == 0:
+                act_seq = ef_act
+            else:
+                act_seq = tf.concat([act_seq, ef_act], axis=1)
+
+        return act_seq, act_seq
+
+class NeurIDMModelLaneKeep(NeurIDMModel):
+    def __init__(self, config=None):
+        super().__init__(config)
+        self.idm_sim = IDMForwardSimLaneKeep()

@@ -36,6 +36,7 @@ class Vehicle(object):
     def act(self):
         raise NotImplementedError
 
+
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
@@ -82,8 +83,8 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
         # IDM params
-        self.driver_params['desired_v'] = self.get_idm_param(\
-                                Parameter_range, 'desired_v')
+        self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
+        self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_idm_param(Parameter_range, 'max_act')
