@@ -132,7 +132,7 @@ class DataGenerator:
                 # except:
                 #     m_veh_id_next = None
 
-                if not att_veh_id:
+                if not att_veh_id or att_veh_id not in [f_veh_id, m_veh_id]:
                     if epis_features:
                         end_episode()
                     continue
@@ -193,21 +193,34 @@ class DataGenerator:
         """
         Sequence the data into history/future sequences.
         """
-        episode_ids = list(np.unique(features[:, 0]))
-        history_seqs, future_seqs = [], []
-        for episode_id in episode_ids:
-            epis_data = features[features[:, 0] == episode_id]
-            history_seq = deque(maxlen=history_length)
-            for step in range(len(epis_data)):
-                history_seq.append(epis_data[step])
-                if len(history_seq) == history_length:
-                    future_indx = step + future_length
-                    if future_indx + 1 > len(epis_data):
-                        break
+        if future_length == 1:
+            episode_ids = list(np.unique(features[:, 0]))
+            history_seqs, future_seqs = [], []
+            for episode_id in episode_ids:
+                epis_data = features[features[:, 0] == episode_id]
+                history_seq = deque(maxlen=history_length)
+                for step in range(len(epis_data)):
+                    history_seq.append(epis_data[step])
+                    if len(history_seq) == history_length:
+                        history_seqs.append(list(history_seq))
+                        future_seqs.append(epis_data[step:step+1])
+            return [np.array(history_seqs), np.array(future_seqs)]
+        else:
+            episode_ids = list(np.unique(features[:, 0]))
+            history_seqs, future_seqs = [], []
+            for episode_id in episode_ids:
+                epis_data = features[features[:, 0] == episode_id]
+                history_seq = deque(maxlen=history_length)
+                for step in range(len(epis_data)):
+                    history_seq.append(epis_data[step])
+                    if len(history_seq) == history_length:
+                        future_indx = step + future_length
+                        if future_indx + 1 > len(epis_data):
+                            break
 
-                    history_seqs.append(list(history_seq))
-                    future_seqs.append(epis_data[step+1:future_indx+1])
-        return [np.array(history_seqs), np.array(future_seqs)]
+                        history_seqs.append(list(history_seq))
+                        future_seqs.append(epis_data[step+1:future_indx+1])
+            return [np.array(history_seqs), np.array(future_seqs)]
 
     def names_to_index(self, col_names):
         return [self.indxs[item] for item in col_names]

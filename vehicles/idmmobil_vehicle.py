@@ -84,7 +84,7 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
         # IDM params
         self.driver_params['desired_v'] = self.get_idm_param(Parameter_range, 'desired_v')
-        self.driver_params['desired_v'] += np.random.normal()
+        # self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_idm_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_idm_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_idm_param(Parameter_range, 'max_act')

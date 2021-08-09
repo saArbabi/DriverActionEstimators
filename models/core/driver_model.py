@@ -229,7 +229,7 @@ class IDMForwardSim(tf.keras.Model):
         self.attention_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        # dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=200.)
+        dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -256,10 +256,10 @@ class IDMForwardSim(tf.keras.Model):
 
     def add_noise(self, idm_action, idm_veh_exists, batch_size):
         """
-        To deal with nonexisting cars
+        To deal with nonexisting cars.
         """
         idm_action = idm_veh_exists*(idm_action) + \
-                (1-idm_veh_exists)*tf.random.uniform((batch_size, 1, 1), -2, 2)
+                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 1)
         return idm_action
 
     def att_context(self, inputs, batch_size):
@@ -293,17 +293,17 @@ class IDMForwardSim(tf.keras.Model):
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
-            ef_dv = (ego_v - f_veh_v)*f_veh_exists
-            em_dv = (ego_v - m_veh_v)*m_veh_exists
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)
+            ef_dv = (ego_v - f_veh_v)
+            em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
 
             # tf.print('############ em_act ############')
-            tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
-            tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
+            # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
+            # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 

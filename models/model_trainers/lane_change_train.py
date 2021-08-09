@@ -15,10 +15,7 @@ import highway
 reload(highway)
 from highway import Env
 
-import vehicle_handler
-reload(vehicle_handler)
 import time
-from viewer import Viewer
 
 config = {'lanes_n':6,
         'lane_width':3.75, # m
@@ -29,7 +26,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'data_frames_n':100,
+                'env_steps_n':1000,
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
@@ -229,7 +226,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 4252
+i = 2550
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -265,8 +262,8 @@ m_veh_glob_x = future_idm_s[i, :, 7]
 f_veh_exists = future_idm_s[i, :, -2]
 m_veh_exists = future_idm_s[i, :, -1]
 
-dv = (vel - f_veh_v)
-dx = (f_veh_glob_x - e_veh_glob_x)
+dv = (vel - f_veh_v)*f_veh_exists
+dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
@@ -348,9 +345,9 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 33]
+veh_arr = features[features[:, 0] == 26]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 712
+time_snap_1 = 184
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
@@ -360,6 +357,7 @@ for i in range(veh_arr.shape[-1]):
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
+
 
 
 # %%
@@ -536,7 +534,7 @@ model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
-plt.style.use('default')
+# plt.style.use('default')
 
 mse_axis = fig.add_subplot(131)
 att_kl_axis = fig.add_subplot(132)
@@ -642,7 +640,7 @@ def latent_samples(model_trainer, sample_index):
 def latent_vis():
     fig = plt.figure(figsize=(4, 4))
     # plt.style.use('ggplot')
-    plt.style.use('default')
+    # plt.style.use('default')
     att_axis = fig.add_subplot(211)
     idm_axis = fig.add_subplot(212)
     sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
@@ -758,11 +756,11 @@ while Example_pred < 20:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     #
-    if episode not in covered_episodes and aggressiveness == 1.:
+    # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and  e_veh_att.mean() > 0 and aggressiveness == 0.5:
+    if episode not in covered_episodes and  e_veh_att[40:].mean() > 0:
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
