@@ -239,7 +239,11 @@ class Trainer():
 # model_trainer = Trainer(data_arrays, model_type='driver_model')
 
 model_trainer = Trainer(data_arrays, model_type='lstm_model')
-model_trainer.train(epochs=2)
+model_trainer.train(epochs=3)
+model_trainer.train_mseloss
+# %%
+
+
 fig = plt.figure(figsize=(15, 5))
 plt.style.use('default')
 
@@ -341,6 +345,6 @@ att_axis, idm_axis = latent_vis()
 # %%
 import pickle
 # model_trainer.save_model('driver_model_kl')
-model_trainer.save_model('lstm_kl')
+model_trainer.save_model('lstm_keep_lane')
 # with open('./models/experiments/scaler.pickle', 'wb') as handle:
 #     pickle.dump(scaler, handle)

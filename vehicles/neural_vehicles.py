@@ -105,7 +105,7 @@ class LSTMVehicle(IDMVehicle):
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
         # self.action_history = [[0., 0.]]*20
 
-        model_name = 'lstm_kl'
+        model_name = 'lstm_keep_lane'
         exp_dir = './models/experiments/'+model_name+'/model'
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
@@ -141,7 +141,8 @@ class LSTMVehicle(IDMVehicle):
             obs_history = self.scaler.transform(obs_history)
             obs_history.shape = (self.samples_n, 20, self.state_dim)
 
-            act_long = self.model(obs_history).numpy()[0][0]
+            pred_dis = self.model(obs_history)
+            act_long = pred_dis.sample().numpy()[0][0]
             print(act_long)
             return act_long
         elif self.time_lapse > 25:

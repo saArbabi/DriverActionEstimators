@@ -16,7 +16,7 @@ import copy
 def main():
     config = {'lanes_n':1,
             'lane_width':3.75, # m
-            'lane_length':1000 # m
+            'lane_length':400 # m
             }
     env = EnvLaneKeepMC(config)
     viewer = ViewerLaneKeep(config)
