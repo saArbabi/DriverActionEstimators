@@ -119,20 +119,13 @@ class DataGenerator:
         print(len(vehicle_ids))
         np.random.shuffle(vehicle_ids)
         for e_veh_id in vehicle_ids:
-            # if e_veh_id != 155:
-            #     continue
             end_episode()
             e_veh_ts = raw_recordings[e_veh_id]
             for time_step, e_veh in e_veh_ts.items():
                 att_veh_id = e_veh['att_veh_id']
                 f_veh_id = e_veh['f_veh_id']
                 m_veh_id = e_veh['m_veh_id']
-                # try:
-                #     m_veh_id_next = e_veh_ts[time_step+1]['m_veh_id']
-                # except:
-                #     m_veh_id_next = None
-
-                if not att_veh_id or att_veh_id not in [f_veh_id, m_veh_id]:
+                if not att_veh_id:
                     if epis_features:
                         end_episode()
                     continue

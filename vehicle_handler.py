@@ -30,7 +30,7 @@ class VehicleHandler:
         # else:
         # aggressiveness = np.random.uniform(0., 1)
         aggressiveness = np.random.choice([0, 0.5, 1])
-        speed = 25 + np.random.normal(0, 2)
+        speed = aggressiveness*10 + 20 + np.random.normal(0, 2)
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
@@ -56,7 +56,7 @@ class VehicleHandler:
             follower = queuing_entries[lane_id]
             delta_x = leader.glob_x - follower.glob_x
             if follower.driver_params['aggressiveness'] == 1:
-                max_delta_x = 170
+                max_delta_x = 120
             else:
                 max_delta_x = 60
 
@@ -72,7 +72,8 @@ class VehicleHandler:
         """
         Note: lane reservations have to be updated after each vehicle decides an action.
         """
-        if vehicle.id in self.reservations and vehicle.lane_decision == 'keep_lane':
+        if vehicle.id in self.reservations and \
+            vehicle.lane_id == vehicle.target_lane and round(vehicle.lane_y, 2) == 0:
             del self.reservations[vehicle.id]
         elif vehicle.lane_decision != 'keep_lane':
             if vehicle.lane_decision == 'move_left':
@@ -83,14 +84,14 @@ class VehicleHandler:
                 follower_neighbour = vehicle.neighbours['rr']
 
             if leader_neighbour:
-                max_glob_x = round(leader_neighbour.glob_x) + 5
+                max_glob_x = round(leader_neighbour.glob_x)
             else:
-                max_glob_x = vehicle.glob_x + 50
+                max_glob_x = vehicle.glob_x + 30
 
             if follower_neighbour:
-                min_glob_x = round(follower_neighbour.glob_x) - 5
+                min_glob_x = round(follower_neighbour.glob_x)
             else:
-                min_glob_x = vehicle.glob_x - 50
+                min_glob_x = vehicle.glob_x - 30
 
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
 

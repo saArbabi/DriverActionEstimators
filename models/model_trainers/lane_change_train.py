@@ -35,6 +35,8 @@ features_origin = data_gen.prep_data()
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
+
+
 # %%
 
 features_origin[9940]
@@ -71,7 +73,7 @@ for epis in episs:
 episode_info
 # %%
 features_origin[(features_origin[:, indxs['f_veh_id']] != -1) & \
-                    (features_origin[:, indxs['e_veh_decision']] == 1) ].shape
+                    (features_origin[:, indxs['e_veh_decision']] == 1)].shape
 
 # %%
 features_origin[(features_origin[:, indxs['e_veh_att']] == 1) & \
@@ -113,7 +115,10 @@ features_origin[(features_origin[:, indxs['e_veh_att']] == 1)].shape
 features_origin[(features_origin[:, indxs['f_veh_exists']] == 0)].shape
 features_origin[(features_origin[:, indxs['f_veh_exists']] == 0)]
 features_origin[(features_origin[:, indxs['f_veh_exists']] == 0)]
-features_origin[features_origin[:, indxs['em_delta_y']] > 3.85]
+features_origin[features_origin[:, indxs['e_veh_id']] == 58 %]
+# %%
+features_origin[(features_origin[:, indxs['e_veh_id']] == 58) & \
+                    (features_origin[:, indxs['aggressiveness']] == 0.5)]
 # %%
 features_origin[:, indxs['e_veh_action']].min()
 features_origin[:, indxs['e_veh_action']].std()
@@ -226,7 +231,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 2550
+i = 11062
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -283,7 +288,7 @@ future_idm_s[i, :, :]
 
 # att_scores+=1
 # att_scores[0] = 1
-history_future_usc[i, :, -5]
+history_future_usc[i, :, :]
 act = (1-att_scores)*ef_act + att_scores*em_act
 future_e_veh_a[i, :, -1].shape
 plt.plot(future_e_veh_a[i, :, -1], color='red')
@@ -324,7 +329,7 @@ if not loss.max() < 0.001:
 EPISODE EVALUATION
 """
 # %%
-np.unique(features[features[:, 2] == 8][:, 0])
+np.unique(features[features[:, 2] == 48][:, 0])
 # features[features[:, 2] == 34]
 veh_arr[:, -1]
 veh_arr[:, indxs['time_step']]
@@ -345,15 +350,15 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 26]
+veh_arr = features[features[:, 0] == 55]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 184
+time_snap_1 = 383
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
@@ -382,7 +387,6 @@ for i in range(features.shape[-1]):
 
 col_names = ['episode_id', 'time_step',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-        'e_veh_action', 'f_veh_action', 'm_veh_action',
         'ef_delta_v', 'ef_delta_x', 'em_delta_v', 'em_delta_x',
         'em_delta_y', 'f_veh_exists', 'm_veh_exists']
 
@@ -586,6 +590,7 @@ plt.ylabel('Attention pdf')
 
 
 # %%
+import tensorflow as tf
 
 val_input = [history_sca[val_examples , :, 2:],
             future_sca[val_examples, :, 2:],
@@ -755,12 +760,12 @@ while Example_pred < 20:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    #
+    if episode == 54:
     # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
-    if episode not in covered_episodes and  e_veh_att[40:].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:20].mean() == 0 and e_veh_att[:].mean() > 0:
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
@@ -876,7 +881,7 @@ while Example_pred < 20:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 20
 model_trainer.model.idm_sim.attention_temp = 5
-sample_index = [16153]
+sample_index = [12137]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]

@@ -1,5 +1,5 @@
-from highway import Env, EnvLaneKeep
-from viewer import Viewer, ViewerLaneKeep
+from highway import Env
+from viewer import Viewer
 import matplotlib.pyplot as plt
 
 def main():
@@ -12,7 +12,7 @@ def main():
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 150:
+        if env.time_step > 350:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
