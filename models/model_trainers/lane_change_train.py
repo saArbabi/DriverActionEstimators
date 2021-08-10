@@ -6,7 +6,9 @@ from importlib import reload
 import sys
 import data_generator
 reload(data_generator)
-# reload(plt)
+reload(plt)
+import matplotlib.pyplot as plt
+
 from data_generator import DataGenerator
 import numpy as np
 np.set_printoptions(suppress=True)
@@ -26,7 +28,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':1000,
+                'env_steps_n':2000,
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
@@ -34,6 +36,7 @@ features_origin = data_gen.prep_data()
 # features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 # features_origin[:, indxs['em_delta_y']].max()
+features_origin.shape
 features_origin.shape
 
 
@@ -120,7 +123,8 @@ features_origin[features_origin[:, indxs['e_veh_id']] == 58 %]
 features_origin[(features_origin[:, indxs['e_veh_id']] == 58) & \
                     (features_origin[:, indxs['aggressiveness']] == 0.5)]
 # %%
-features_origin[:, indxs['e_veh_action']].min()
+features_origin[:, indxs['e_veh_action']].mean()
+features_origin[:, indxs['e_veh_action']].std()
 features_origin[:, indxs['e_veh_action']].std()
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
@@ -231,7 +235,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 11062
+i = 9031
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -329,7 +333,7 @@ if not loss.max() < 0.001:
 EPISODE EVALUATION
 """
 # %%
-np.unique(features[features[:, 2] == 48][:, 0])
+np.unique(features[features[:, 2] == 95][:, 0])
 # features[features[:, 2] == 34]
 veh_arr[:, -1]
 veh_arr[:, indxs['time_step']]
@@ -350,15 +354,15 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 55]
+veh_arr = features[features[:, 0] == 77]
 time_snap_start = veh_arr[0, 1]
-time_snap_1 = 383
+time_snap_1 = 971
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()
@@ -397,6 +401,14 @@ for i in range(future_sca.shape[-1]):
     plt.title(col_names[i])
     # plt.grid()
 # %%
+col_names = ['episode_id', 'time_step', 'em_delta_y', 'm_veh_action',\
+                                            'f_veh_exists', 'm_veh_exists']
+for i in range(future_m_veh_a.shape[-1]):
+    plt.figure(figsize=(3, 3))
+    to_plot = future_m_veh_a[:, :, i].flatten()
+    _ = plt.hist(to_plot, bins=150)
+    plt.title(col_names[i])
+# %%
 
 col_names = ['episode_id', 'time_step', 'e_veh_id',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
@@ -408,7 +420,7 @@ col_names = ['episode_id', 'time_step', 'e_veh_id',
 
 for i in range(history_future_usc.shape[-1]):
     plt.figure(figsize=(3, 3))
-    to_plot = history_future_usc[:, :, i].flatten()
+    to_plot = history_future_usc[:10000, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
     # plt.grid()
@@ -516,13 +528,13 @@ class Trainer():
 model_trainer = Trainer(data_arrays, model_type='driver_model')
 # 1/(1+np.exp(-5*1))
 # model_trainer.train(data_arrays, epochs=2)
-
+# exp_dir = './models/experiments/'+'driver_model'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
 np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.8)]
-
 val_epis = np.setdiff1d(all_epis, train_epis)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
@@ -533,7 +545,33 @@ history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 
+
+
+
 # %%
+x = np.linspace(0, 1, 100)
+prec = 10
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+
+mean = 0.1
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+
+mean = 0.5
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+
+# %%
+
+
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
@@ -575,11 +613,11 @@ att_axis, idm_axis = latent_vis()
 # %%
 from scipy.stats import beta, gamma, norm
 x = np.linspace(0, 1, 100)
-p = beta.pdf(x, 2, 10)
+p = beta.pdf(x, 3, 10)
 plt.plot(x*35, p, color='green')
-p = beta.pdf(x,  12, 12)
+p = beta.pdf(x,  11, 11)
 plt.plot(x*35, p, color='orange')
-p = beta.pdf(x, 10, 2)
+p = beta.pdf(x, 10, 3)
 plt.plot(x*35, p, color='red')
 mean, var, skew, kurt = beta.stats(2, 10, moments='mvsk')
 mean
@@ -587,23 +625,25 @@ driver_types = ['Timid', 'Normal', 'Aggressive']
 plt.legend(driver_types)
 plt.xlabel('Lateral displacement (%)')
 plt.ylabel('Attention pdf')
+plt.grid()
 
 
 # %%
 import tensorflow as tf
+examples_to_vis = val_examples[0:1000]
 
-val_input = [history_sca[val_examples , :, 2:],
-            future_sca[val_examples, :, 2:],
-            future_idm_s[val_examples, :, 2:],
-            future_m_veh_a[val_examples, :, 2:]]
+val_input = [history_sca[examples_to_vis , :, 2:],
+            future_sca[examples_to_vis, :, 2:],
+            future_idm_s[examples_to_vis, :, 2:],
+            future_m_veh_a[examples_to_vis, :, 2:]]
 act_pred, pri_params, pos_params = model_trainer.model(val_input)
-loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[val_examples, :, 2:])))
+loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
 loss = tf.reduce_mean(loss, axis=1).numpy()
 loss.shape
 
 
 _ = plt.hist(loss, bins=150)
-bad_examples = np.where(loss > 0.1)
+bad_examples = np.where(loss > 0.2)
 
 # %%
 future_m_veh_a[3508, 0, 0]
@@ -626,10 +666,9 @@ plt.plot(x, y)
 # %%
 
 time.time()
-model_trainer.save_model('123')
+model_trainer.save_model('driver_model')
 
 # %%
-
 
 
 # %%
@@ -643,13 +682,14 @@ def latent_samples(model_trainer, sample_index):
     return sampled_att_z, sampled_idm_z
 
 def latent_vis():
-    fig = plt.figure(figsize=(4, 4))
+    fig = plt.figure(figsize=(4, 7))
     # plt.style.use('ggplot')
     # plt.style.use('default')
     att_axis = fig.add_subplot(211)
     idm_axis = fig.add_subplot(212)
-    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
-    aggressiveness = history_future_usc[val_examples, 0, -1]
+    examples_to_vis = np.random.choice(val_examples, 1000, replace=False)
+    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, examples_to_vis)
+    aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
     att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
                                                 c=color_shade, cmap='rainbow')
@@ -663,8 +703,19 @@ def latent_vis():
 
     return att_axis, idm_axis
 att_axis, idm_axis = latent_vis()
+# plt.savefig("latent.png", dpi=500)
+# %%
+
+# reload(plt)
+# import matplotlib.pyplot as plt
+#
+# plt.style.use('science')
+# plt.style.use(['science','ieee'])
 
 # %%
+ror: Failed to call ThenRnnForward with model config: [rnn_mode, rnn_input_mode, rnn_direction_mode]:
+ 2, 0, 0 , [num_layers, input_size, num_units, dir_count, max_seq_length, batch_size, cell_num_units]:
+ [1, 100, 100, 1, 40, 16944, 100]  [Op:CudnnRNN]
 """
 Choose cars based on the latent for debugging
 """
@@ -737,18 +788,20 @@ for item_name in col_names:
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.idm_sim.attention_temp = 5
+model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
-sepcific_examples = [5157]
+sepcific_examples = [100000]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 10:
+    "ENSURE ONLY VAL SAMPLES CONSIDERED"
+
     sample_index = [val_examples[i]]
+    # sample_index = [i]
     i += 1
-    # e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']]
     e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
     e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
     m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
@@ -760,12 +813,13 @@ while Example_pred < 20:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode == 54:
     # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh_att[:20].mean() == 0 and e_veh_att[:].mean() > 0:
+
+    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+                    e_veh_att[20:55].mean() > 0:
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
@@ -879,9 +933,9 @@ while Example_pred < 20:
 """Single sample Anticipation visualisation
 """
 # model_trainer.model.arbiter.attention_temp = 5
-traces_n = 20
+traces_n = 100
 model_trainer.model.idm_sim.attention_temp = 5
-sample_index = [12137]
+sample_index = [8526]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]

@@ -125,7 +125,25 @@ class DataGenerator:
                 att_veh_id = e_veh['att_veh_id']
                 f_veh_id = e_veh['f_veh_id']
                 m_veh_id = e_veh['m_veh_id']
-                if not att_veh_id:
+
+                if m_veh_id:
+                    try:
+                        m_veh_id_next = e_veh_ts[time_step+1]['m_veh_id']
+                    except:
+                        if epis_features:
+                            end_episode()
+                        continue
+
+                    m_veh = raw_recordings[m_veh_id][time_step]
+                    if m_veh_id == att_veh_id:
+                        e_veh_att = 1
+                    else:
+                        e_veh_att = 0
+                else:
+                    m_veh = None
+                    e_veh_att = 0
+
+                if not att_veh_id or (m_veh_id and not m_veh_id_next):
                     if epis_features:
                         end_episode()
                     continue
@@ -140,15 +158,7 @@ class DataGenerator:
                 else:
                     f_veh = None
 
-                if m_veh_id:
-                    m_veh = raw_recordings[m_veh_id][time_step]
-                    if m_veh_id == att_veh_id:
-                        e_veh_att = 1
-                    else:
-                        e_veh_att = 0
-                else:
-                    m_veh = None
-                    e_veh_att = 0
+
 
                 step_feature = self.get_step_feature(e_veh, f_veh, m_veh, e_veh_att)
                 step_feature[0:0] = add_info(f_veh_id, m_veh_id, time_step)

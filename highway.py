@@ -3,7 +3,7 @@ from importlib import reload
 import copy
 import vehicle_handler
 reload(vehicle_handler)
-from vehicle_handler import VehicleHandler, VehicleHandlerLaneKeep
+from vehicle_handler import VehicleHandler
 import copy
 from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle
 import types

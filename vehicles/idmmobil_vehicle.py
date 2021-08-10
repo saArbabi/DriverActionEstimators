@@ -84,7 +84,7 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param(Parameter_range, 'desired_v')
-        # self.driver_params['desired_v'] += np.random.normal()
+        self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_driver_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_driver_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_driver_param(Parameter_range, 'max_act')
@@ -98,17 +98,11 @@ class IDMMOBILVehicle(Vehicle):
         self.set_attentiveness()
 
     def set_attentiveness(self):
-        if 0 <= self.driver_params['aggressiveness'] < 0.33:
-            # timid driver
-            attentiveness = self.steps_to_new_lane_entry*np.random.beta(2, 10)
-        elif 0.33 <= self.driver_params['aggressiveness'] <= 0.66:
-            # normal driver
-            attentiveness = self.steps_to_new_lane_entry*np.random.beta(12, 12)
-        elif 0.66 < self.driver_params['aggressiveness']:
-            # aggressive driver
-            attentiveness = self.steps_to_new_lane_entry*np.random.beta(10, 2)
-
-        self.driver_params['attentiveness'] = attentiveness
+        var = 10
+        alpha_param = var*self.driver_params['aggressiveness']
+        beta_param = var*(1 - self.driver_params['aggressiveness'])
+        self.driver_params['attentiveness'] = \
+                    self.steps_to_new_lane_entry*np.random.beta(alpha_param, beta_param)
 
     def get_driver_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
@@ -197,17 +191,17 @@ class IDMMOBILVehicle(Vehicle):
                                     if delta_x < min(delta_xs_att):
                                         delta_xs_att.append(delta_x)
                                         candidate_att = vehicle
-                        if self.lane_id == vehicle.target_lane and \
-                                vehicle.lane_decision != 'keep_lane' and \
-                                        round(self.lane_y, 2) == 0 and \
-                                        vehicle.glob_x > self.glob_x and \
-                            delta_x < min(delta_xs_m):
-                            delta_xs_m.append(delta_x)
-                            candidate_m = vehicle
-                            if self.am_i_attending(vehicle, delta_x, delta_xs_att):
-                                # for merging cars
-                                delta_xs_att.append(delta_x)
-                                candidate_att = vehicle
+                        # if self.lane_id == vehicle.target_lane and \
+                        #         vehicle.lane_decision != 'keep_lane' and \
+                        #                 round(self.lane_y, 2) == 0 and \
+                        #                 vehicle.glob_x > self.glob_x and \
+                        #     delta_x < min(delta_xs_m):
+                        #     delta_xs_m.append(delta_x)
+                        #     candidate_m = vehicle
+                        #     if self.am_i_attending(vehicle, delta_x, delta_xs_att):
+                        #         # for merging cars
+                        #         delta_xs_att.append(delta_x)
+                        #         candidate_att = vehicle
 
                     else:
                         if vehicle.glob_x > self.glob_x:
