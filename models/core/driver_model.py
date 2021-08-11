@@ -98,18 +98,16 @@ class NeurIDMModel(AbstractModel):
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_f = self.f_seq_encoder(inputs[1])
-        enc_acts = self.act_encoder(inputs[-1])
 
         pri_params, pos_params = self.belief_net(\
-                                [enc_h, enc_acts, enc_f], dis_type='both')
+                                [enc_h, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-        att_inputs = [sampled_att_z, enc_h, enc_acts]
+        att_inputs = [sampled_att_z, enc_h]
 
         idm_params = self.idm_layer([sampled_idm_z, enc_h])
         # idm_params = tf.repeat(idm_params, 40, axis=1)
 
         act_seq, _ = self.idm_sim.rollout([att_inputs, idm_params, inputs[2], inputs[-1]])
-        #
         # tf.print('###############:')
         # tf.print('att_score_max: ', tf.reduce_max(att_scores))
         # tf.print('att_score_min: ', tf.reduce_min(att_scores))
@@ -152,18 +150,17 @@ class BeliefModel(tf.keras.Model):
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
-            enc_h, enc_acts, enc_f = inputs
+            enc_h, enc_f = inputs
             # prior
-            pri_context = tf.concat([enc_h, enc_acts], axis=-1)
-            context_att = self.pri_linear_att(pri_context)
-            context_idm = self.pri_linear_idm(pri_context)
+            context_att = self.pri_linear_att(enc_h)
+            context_idm = self.pri_linear_idm(enc_h)
             pri_att_mean = self.pri_att_mean(context_att)
             pri_att_logsigma = self.pri_att_logsigma(context_att)
             pri_idm_mean = self.pri_idm_mean(context_idm)
             pri_idm_logsigma = self.pri_idm_logsigma(context_idm)
 
             # posterior
-            pos_context = tf.concat([enc_h, enc_acts, enc_f], axis=-1)
+            pos_context = tf.concat([enc_h, enc_f], axis=-1)
             context_att = self.pos_linear_att(pos_context)
             context_idm = self.pos_linear_idm(pos_context)
             pos_att_mean = self.pos_att_mean(context_att)
@@ -176,10 +173,8 @@ class BeliefModel(tf.keras.Model):
             return pri_params, pos_params
 
         elif dis_type == 'prior':
-            enc_h, enc_acts = inputs
-            pri_context = tf.concat([enc_h, enc_acts], axis=-1)
-            context_att = self.pri_linear_att(pri_context)
-            context_idm = self.pri_linear_idm(pri_context)
+            context_att = self.pri_linear_att(inputs)
+            context_idm = self.pri_linear_idm(inputs)
             pri_att_mean = self.pri_att_mean(context_att)
             pri_att_logsigma = self.pri_att_logsigma(context_att)
             pri_idm_mean = self.pri_idm_mean(context_idm)
@@ -270,7 +265,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def rollout(self, inputs):
         att_inputs, idm_params, idm_s, sdv_acts = inputs
-        sampled_att_z, enc_h, enc_acts = att_inputs
+        sampled_att_z, enc_h = att_inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         att_projection = self.linear_layer(sampled_att_z)
@@ -386,7 +381,7 @@ class IDMForwardSimLaneKeep(IDMForwardSim):
 
     def rollout(self, inputs):
         att_inputs, idm_params, idm_s, sdv_acts = inputs
-        sampled_att_z, enc_h, enc_acts = att_inputs
+        sampled_att_z, enc_h = att_inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         for step in range(40):

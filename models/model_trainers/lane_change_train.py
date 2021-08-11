@@ -123,7 +123,7 @@ features_origin[features_origin[:, indxs['e_veh_id']] == 58 %]
 features_origin[(features_origin[:, indxs['e_veh_id']] == 58) & \
                     (features_origin[:, indxs['aggressiveness']] == 0.5)]
 # %%
-features_origin[:, indxs['e_veh_action']].mean()
+features_origin[:, indxs['m_veh_speed']].mean()
 features_origin[:, indxs['e_veh_action']].std()
 features_origin[:, indxs['e_veh_action']].std()
 future_e_veh_a[:, :, -1].std()
@@ -136,8 +136,8 @@ PREPARE DATA
 features = features_origin.copy()
 # features = features[features[:, indxs['aggressiveness']] == 0.5]
 # features[features[:, indxs['m_veh_exists']] == 1].shape
-features = data_gen.fill_missing_values(features)
-features_scaled = data_gen.scale_data(features)
+features, dummy_value_set = data_gen.fill_missing_values(features)
+features_scaled, scaler = data_gen.scale_data(features)
 history_future_seqs = data_gen.sequence(features, 20, 40)
 history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
@@ -664,25 +664,29 @@ x = np.linspace(-4, 4, 100)
 y = 15+ 2000*(1/(1+tf.exp(-2*x)))
 plt.plot(x, y)
 # %%
+import pickle
 
-time.time()
 model_trainer.save_model('driver_model')
+with open('./models/experiments/scaler.pickle', 'wb') as handle:
+    pickle.dump(scaler, handle)
+
 
 # %%
-
-
+a = []
+b = [2, 4]
+a.extend([3, b])
+a
 # %%
 def latent_samples(model_trainer, sample_index):
     h_seq = history_sca[sample_index, :, 2:]
     sdv_actions = future_m_veh_a[sample_index, :, 2:]
     enc_h = model_trainer.model.h_seq_encoder(h_seq)
-    enc_acts = model_trainer.model.act_encoder(sdv_actions)
-    prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+    prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
     sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
     return sampled_att_z, sampled_idm_z
 
 def latent_vis():
-    fig = plt.figure(figsize=(4, 7))
+    fig = plt.figure(figsize=(6, 11))
     # plt.style.use('ggplot')
     # plt.style.use('default')
     att_axis = fig.add_subplot(211)
@@ -691,27 +695,61 @@ def latent_vis():
     sampled_att_z, sampled_idm_z = latent_samples(model_trainer, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
-    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
+    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.2, \
                                                 c=color_shade, cmap='rainbow')
-    idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
+    idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.2, \
                                     c=color_shade, cmap='rainbow')
 
-    att_axis.set_ylabel('$z_{att_1}$')
-    att_axis.set_xlabel('$z_{att_2}$')
-    idm_axis.set_ylabel('$z_{idm_1}$')
-    idm_axis.set_xlabel('$z_{idm_1}$')
+    att_axis.set_ylabel('$z_{1}$')
+    att_axis.set_xlabel('$z_{2}$')
+    idm_axis.set_ylabel('$z_{1}$')
+    idm_axis.set_xlabel('$z_{2}$')
+    att_axis.set_title('Driver attention')
+    idm_axis.set_title('Driver disposition')
 
     return att_axis, idm_axis
 att_axis, idm_axis = latent_vis()
 # plt.savefig("latent.png", dpi=500)
+
+# %%
+plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+#Options
+params = {'text.usetex' : True,
+          'font.size' : 11,
+          'font.family' : 'lmodern',
+          'text.latex.unicode': True,
+          }
+plt.rcParams.update(params)
 # %%
 
-# reload(plt)
-# import matplotlib.pyplot as plt
-#
-# plt.style.use('science')
-# plt.style.use(['science','ieee'])
+import matplotlib.pyplot as plt
 
+#Direct input
+plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+#Options
+params = {
+          'font.size' : 20,
+          'font.family' : 'EB Garamond',
+          }
+plt.rcParams.update(params)
+plt.style.use(['science','ieee'])
+# %%
+
+fig = plt.figure()
+    att_axis.title('$Driver attention$')
+EB Garamond
+#You must select the correct size of the plot in advance
+fig.set_size_inches(3.54,3.54)
+
+plt.plot([1,2,3,4])
+plt.xlabel("Excitation-Energy")
+plt.ylabel("Intensität")
+plt.savefig("graph.pdf",
+            #This is simple recomendation for publication plots
+            dpi=1000,
+            # Plot will be occupy a maximum of available space
+            bbox_inches='tight',
+            )
 # %%
 ror: Failed to call ThenRnnForward with model config: [rnn_mode, rnn_input_mode, rnn_direction_mode]:
  2, 0, 0 , [num_layers, input_size, num_units, dir_count, max_seq_length, batch_size, cell_num_units]:
@@ -828,12 +866,10 @@ while Example_pred < 10:
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
-        enc_acts = model_trainer.model.act_encoder(sdv_actions)
-        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+        prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        # att_scores =  model_trainer.model.arbiter([sampled_att_z, enc_h, enc_acts])
         idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-        att_inputs = [sampled_att_z, enc_h, enc_acts]
+        att_inputs = [sampled_att_z, enc_h]
 
         act_seq, att_scores = model_trainer.model.idm_sim.rollout([att_inputs, \
                                                     idm_params, future_idm_ss, sdv_actions])
@@ -950,11 +986,10 @@ sdv_actions.shape
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
-enc_acts = model_trainer.model.act_encoder(sdv_actions)
-prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
 idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-att_inputs = [sampled_att_z, enc_h, enc_acts]
+att_inputs = [sampled_att_z, enc_h]
 act_seq, att_scores = model_trainer.model.idm_sim.rollout([att_inputs, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
@@ -1070,8 +1105,7 @@ def get_animation():
         sdv_actions = future_m_veh_a[sample_index, :, 2:]
         h_seq = history_sca[sample_index, :, 2:]
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
-        enc_acts = model_trainer.model.act_encoder(sdv_actions)
-        prior_param = model_trainer.model.belief_net([enc_h, enc_acts], dis_type='prior')
+        prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
         return sampled_att_z, sampled_idm_z
 
