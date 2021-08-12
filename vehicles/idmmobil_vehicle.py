@@ -99,8 +99,14 @@ class IDMMOBILVehicle(Vehicle):
 
     def set_attentiveness(self):
         var = 10
-        alpha_param = var*self.driver_params['aggressiveness']
-        beta_param = var*(1 - self.driver_params['aggressiveness'])
+        aggressiveness = self.driver_params['aggressiveness']
+        # if self.driver_params['aggressiveness'] == 0:
+        #     aggressiveness += 1e-3
+        # if self.driver_params['aggressiveness'] == 1:
+        #     aggressiveness -= 1e-3
+
+        alpha_param = var*aggressiveness
+        beta_param = var*(1 - aggressiveness)
         self.driver_params['attentiveness'] = \
                     self.steps_to_new_lane_entry*np.random.beta(alpha_param, beta_param)
 
@@ -371,6 +377,11 @@ class IDMMOBILVehicle(Vehicle):
     def is_lane_change_complete(self):
         if self.steps_since_new_lane_arrival >= 30:
             # manoeuvre completed
+            if self.lane_decision == 'move_left':
+                self.neighbours['rl'].neighbours['f'] = self
+            elif self.lane_decision == 'move_right':
+                self.neighbours['rr'].neighbours['f'] = self
+
             self.lane_decision = 'keep_lane'
             self.lane_y = 0
             self.steps_since_lc_initiation = 0
@@ -420,6 +431,7 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_left'
                         self.neighbours['att'] = self.neighbours['fl']
                         self.neighbours['f'] = self.neighbours['fl']
+                        self.neighbours['rl'].set_attentiveness()
                         self.target_lane -= 1
                         return [act_ego_lc_l, self.lateral_action()]
 
@@ -429,6 +441,7 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_right'
                         self.neighbours['att'] = self.neighbours['fr']
                         self.neighbours['f'] = self.neighbours['fr']
+                        self.neighbours['rr'].set_attentiveness()
                         self.target_lane += 1
                         return [act_ego_lc_r, self.lateral_action()]
 

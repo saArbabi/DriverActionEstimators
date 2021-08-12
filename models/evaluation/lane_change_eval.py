@@ -10,6 +10,10 @@ import numpy as np
 # print('directory: ' + os.getcwd())
 # directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
 from importlib import reload
+from vehicle_handler import VehicleHandler
+from vehicles import neural_vehicles
+reload(neural_vehicles)
+
 import highway
 reload(highway)
 from highway import EnvMC
@@ -24,7 +28,9 @@ env = EnvMC(config)
 for i in range(170):
     # print(env.time_step)
     env.step()
-
+plt.plot(att_real, color='red')
+mveh_ex = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
+plt.plot(mveh_ex, color='blue', linestyle='--')
 # %%
 
 
@@ -39,10 +45,14 @@ plt.plot(att_ima[0, :], color='grey')
 # plt.plot(env.real_mc_log[19]['att_log'])
 # plt.plot(env.ima_mc_log[19]['att_log'])
 samples_n = 20
+att_ima = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
 att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
 att_real = np.array(env.real_mc_log[19]['att_log'][25:])
 arrays = [att_ima[:, i, 0, 0] for i in range(samples_n)]
 att_ima = np.stack(arrays)
 plt.plot(att_real, color='red')
+mveh_ex = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
+plt.plot(mveh_ex, color='blue', linestyle='--')
 for i in range(samples_n):
     plt.plot(att_ima[i, :], color='grey')
+# %%

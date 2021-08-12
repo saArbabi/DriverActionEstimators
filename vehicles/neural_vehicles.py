@@ -65,13 +65,12 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
         obs_t0.extend([el_delta_v,
                              el_delta_x])
-
         obs_t0.extend([em_delta_v,
                              em_delta_x,
                              m_veh_delta_y])
 
         obs_t0.extend([f_veh_exists, m_veh_exists])
-
+        self.m_veh_exists = m_veh_exists
         m_veh_action_feature = [m_veh_delta_y, m_veh_action, f_veh_exists, m_veh_exists]
         idm_ss = [el_delta_v, el_delta_x, em_delta_v, em_delta_x]
         return [obs_t0, m_veh_action_feature, idm_ss]
@@ -109,7 +108,6 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
     def act(self, obs):
         obs_t0, m_veh_action_feature, idm_s = obs
         # if self.time_lapse > 5:
-        self.update_obs_history(obs_t0)
         # print(self.obs_history)
         # print(obs_history[:, -1, :])
         # if self.time_lapse_since_last_param_update % 10 == 0:

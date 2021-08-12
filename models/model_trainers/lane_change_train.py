@@ -41,7 +41,8 @@ features_origin.shape
 
 
 # %%
-
+a = 5
+a -= 3 if 3 == 3
 features_origin[9940]
 np.where(features_origin[:, indxs['e_veh_action']] == features_origin[:, indxs['e_veh_action']].min())
 features_origin[:, indxs['ef_delta_x']].min()
@@ -235,7 +236,7 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 9031
+i = 0
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -325,7 +326,7 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 147]
+veh_arr = features[features[:, 0] == 39]
 time_snap_start = veh_arr[0, 1]
 time_snap_1 = 971
 time_snap_2 = time_snap_1+40
@@ -799,11 +800,11 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 10:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -822,11 +823,11 @@ for i in bad_examples[0]:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
-    if 4 == 4:
+    # if 4 == 4:
     # if  e_veh_att.mean() > 0:
 
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #                 e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+                    e_veh_att[20:55].mean() > 0:
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:

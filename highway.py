@@ -4,11 +4,10 @@ import copy
 import vehicle_handler
 reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
-import copy
 
-from vehicles import neural_vehicles
-reload(neural_vehicles)
 from vehicles.neural_vehicles import NeuralIDMVehicle
+
+import copy
 import types
 
 class Env:
@@ -99,6 +98,7 @@ class Env:
 
 class EnvMC(Env):
     def __init__(self, config):
+
         super().__init__(config)
         self.real_vehicles = []
         self.ima_vehicles = []
@@ -129,6 +129,7 @@ class EnvMC(Env):
 
             if vehicle.id in [19]:
                 self.prohibit_lane_change(vehicle)
+                vehicle.m_veh_exists = 0
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                 # neural_vehicle.id = 'neur_'+str(vehicle.id)
                 imagined_vehicle = neural_vehicle
@@ -168,7 +169,6 @@ class EnvMC(Env):
 
                 if veh_ima.time_lapse > 25 and veh_ima.control_type != 'neural':
                     veh_ima.control_type = 'neural'
-
                 if veh_ima.control_type == 'neural':
                     act_long = veh_ima.act(obs)
                 else:
@@ -187,42 +187,36 @@ class EnvMC(Env):
 
     def mc_log_info(self, veh_real, veh_ima):
         if veh_real.id == 19:
+            veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:
                 att_real = 1
             else:
                 att_real = 0
 
-            if veh_real.id not in self.real_mc_log:
-                self.real_mc_log[veh_real.id] = {}
-                self.real_mc_log[veh_real.id] = {}
-                self.real_mc_log[veh_real.id] = {}
-                self.ima_mc_log[veh_real.id] = {}
-                self.ima_mc_log[veh_real.id] = {}
-                self.ima_mc_log[veh_real.id] = {}
+            if veh_id not in self.real_mc_log:
+                self.real_mc_log[veh_id] = {}
+                self.ima_mc_log[veh_id] = {}
 
-                self.real_mc_log[veh_real.id]['act_log'] = []
-                self.real_mc_log[veh_real.id]['att_log'] = []
-                self.real_mc_log[veh_real.id]['desvel_log'] = []
-                self.ima_mc_log[veh_real.id]['act_log'] = []
-                self.ima_mc_log[veh_real.id]['att_log'] = []
-                self.ima_mc_log[veh_real.id]['desvel_log'] = []
+                self.real_mc_log[veh_id]['act_log'] = []
+                self.real_mc_log[veh_id]['att_log'] = []
+                self.real_mc_log[veh_id]['desvel_log'] = []
 
-                self.real_mc_log[veh_real.id]['act_log'] = []
-                self.real_mc_log[veh_real.id]['att_log'] = []
-                self.real_mc_log[veh_real.id]['desvel_log'] = []
-                self.ima_mc_log[veh_real.id]['act_log'] = []
-                self.ima_mc_log[veh_real.id]['att_log'] = []
-                self.ima_mc_log[veh_real.id]['desvel_log'] = []
+                self.ima_mc_log[veh_id]['act_log'] = []
+                self.ima_mc_log[veh_id]['att_log'] = []
+                self.ima_mc_log[veh_id]['desvel_log'] = []
+                self.ima_mc_log[veh_id]['m_veh_exists'] = []
 
-            self.real_mc_log[veh_real.id]['act_log'].append(veh_real.act_long)
-            self.real_mc_log[veh_real.id]['att_log'].append(att_real)
-            self.real_mc_log[veh_real.id]['desvel_log'].append(\
+            self.real_mc_log[veh_id]['act_log'].append(veh_real.act_long)
+            self.real_mc_log[veh_id]['att_log'].append(att_real)
+            self.real_mc_log[veh_id]['desvel_log'].append(\
                                                veh_real.driver_params['desired_v'])
-            self.ima_mc_log[veh_real.id]['act_log'].append(veh_ima.act_long)
-            self.ima_mc_log[veh_real.id]['att_log'].append(veh_ima.att)
-            self.ima_mc_log[veh_real.id]['desvel_log'].append(\
+            self.ima_mc_log[veh_id]['act_log'].append(veh_ima.act_long)
+            self.ima_mc_log[veh_id]['att_log'].append(veh_ima.att)
+            self.ima_mc_log[veh_id]['desvel_log'].append(\
                                                 veh_ima.driver_params['desired_v'])
+            self.ima_mc_log[veh_id]['m_veh_exists'].append(\
+                                                veh_ima.m_veh_exists)
 
     def step(self, actions=None):
         """ steps the environment forward in time.
