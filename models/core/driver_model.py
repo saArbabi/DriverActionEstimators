@@ -255,19 +255,12 @@ class IDMForwardSim(tf.keras.Model):
                 (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 1)
         return idm_action
 
-    def att_context(self, inputs, batch_size):
-        att_projection, enc_h = inputs
-        att_projection = tf.reshape(att_projection, [batch_size, 1, 100])
-        enc_h = tf.reshape(enc_h, [batch_size, 1, 100])
-        return tf.concat([att_projection, enc_h], axis=-1)
-
     def rollout(self, inputs):
         sampled_att_z, idm_params, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         att_projection = self.linear_layer(sampled_att_z)
         att_context = tf.reshape(att_projection, [batch_size, 1, 100])
-        # att_context = self.att_context([att_projection, enc_h], batch_size)
         state_h, state_c = att_projection, att_projection
 
         for step in range(40):
@@ -369,39 +362,39 @@ class IDMLayer(tf.keras.Model):
         min_act = self.get_min_act(x, batch_size)
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
+#
+# class IDMForwardSimLaneKeep(IDMForwardSim):
+#     def __init__(self):
+#         super().__init__()
+#
+#     def rollout(self, inputs):
+#         att_inputs, idm_params, idm_s, sdv_acts = inputs
+#         sampled_att_z, enc_h = att_inputs
+#         batch_size = tf.shape(idm_s)[0]
+#         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
+#         for step in range(40):
+#             f_veh_v = idm_s[:, step:step+1, 1:2]
+#             f_veh_glob_x = idm_s[:, step:step+1, 3:4]
+#
+#             if step == 0:
+#                 ego_v = idm_s[:, step:step+1, 0:1]
+#                 ego_glob_x = idm_s[:, step:step+1, 2:3]
+#             else:
+#                 ego_v += ef_act*0.1
+#                 ego_glob_x += ego_v*0.1 + 0.5*ef_act*0.1**2
+#
+#             ef_delta_x = (f_veh_glob_x - ego_glob_x)
+#             ef_dv = (ego_v - f_veh_v)
+#             tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
+#             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
+#             if step == 0:
+#                 act_seq = ef_act
+#             else:
+#                 act_seq = tf.concat([act_seq, ef_act], axis=1)
+#
+#         return act_seq, act_seq
 
-class IDMForwardSimLaneKeep(IDMForwardSim):
-    def __init__(self):
-        super().__init__()
-
-    def rollout(self, inputs):
-        att_inputs, idm_params, idm_s, sdv_acts = inputs
-        sampled_att_z, enc_h = att_inputs
-        batch_size = tf.shape(idm_s)[0]
-        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        for step in range(40):
-            f_veh_v = idm_s[:, step:step+1, 1:2]
-            f_veh_glob_x = idm_s[:, step:step+1, 3:4]
-
-            if step == 0:
-                ego_v = idm_s[:, step:step+1, 0:1]
-                ego_glob_x = idm_s[:, step:step+1, 2:3]
-            else:
-                ego_v += ef_act*0.1
-                ego_glob_x += ego_v*0.1 + 0.5*ef_act*0.1**2
-
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            ef_dv = (ego_v - f_veh_v)
-            tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-            ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-            if step == 0:
-                act_seq = ef_act
-            else:
-                act_seq = tf.concat([act_seq, ef_act], axis=1)
-
-        return act_seq, act_seq
-
-class NeurIDMModelLaneKeep(NeurIDMModel):
-    def __init__(self, config=None):
-        super().__init__(config)
-        self.idm_sim = IDMForwardSimLaneKeep()
+# class NeurIDMModelLaneKeep(NeurIDMModel):
+#     def __init__(self, config=None):
+#         super().__init__(config)
+#         self.idm_sim = IDMForwardSimLaneKeep()

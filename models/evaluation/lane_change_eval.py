@@ -21,25 +21,28 @@ config = {'lanes_n':6,
         'lane_length':400 # m
         }
 env = EnvMC(config)
-
-for i in range(150):
+for i in range(170):
     # print(env.time_step)
     env.step()
 
-att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
-att_real = np.array(env.real_mc_log[19]['att_log'][25:])
-att_ima.shape = (1, 46, 1)
-plt.plot(att_real, color='red')
-plt.plot(att_ima[0, :, 0], color='grey')
 # %%
-# plt.plot(env.real_mc_log[19]['att_log'])
-# plt.plot(env.ima_mc_log[19]['att_log'])
+
 
 att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
 att_real = np.array(env.real_mc_log[19]['att_log'][25:])
-att_ima.shape = (5, 46, 1)
+arrays = [att_ima[:, i, 0, 0] for i in range(2)]
+att_ima = np.stack(arrays)
 plt.plot(att_real, color='red')
-plt.plot(att_ima[0, :, 0], color='grey')
-plt.figure()
-for i in range(5):
-    plt.plot(att_ima[i, :, 0], color='grey')
+plt.plot(att_ima[0, :], color='grey')
+
+# %%
+# plt.plot(env.real_mc_log[19]['att_log'])
+# plt.plot(env.ima_mc_log[19]['att_log'])
+samples_n = 20
+att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
+att_real = np.array(env.real_mc_log[19]['att_log'][25:])
+arrays = [att_ima[:, i, 0, 0] for i in range(samples_n)]
+att_ima = np.stack(arrays)
+plt.plot(att_real, color='red')
+for i in range(samples_n):
+    plt.plot(att_ima[i, :], color='grey')

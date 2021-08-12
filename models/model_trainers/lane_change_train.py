@@ -300,40 +300,11 @@ plt.plot(act)
 
 # %%
 
-plt.plot(em_act)
-plt.plot(ef_act)
-
-# %%
-
-# %%
-plt.plot(att_scores_pred[28:40])
-plt.plot(att_scores[28:40])
-# %%
-
-
-plt.plot(history_future_usc[i, :, 6])
-history_future_usc
-ef_act
-plt.plot(history_future_usc[i, :, 7])
-plt.plot(history_future_usc[i, :, 8])
-history_future_usc[i, 0, :]
-plt.plot(ef_act)
-plt.scatter(range(40), ef_act)
-plt.plot(em_act)
-# %%
-# features = features[features[:, 6]==0] # merger exists
-loss = abs(act-future_e_veh_a[i, :, -1])
-if not loss.max() < 0.001:
-    print('index:  ', i)
-    print(loss.max())
-########################################
-# %%
-
 """
 EPISODE EVALUATION
 """
 # %%
-np.unique(features[features[:, 2] == 95][:, 0])
+np.unique(features[features[:, 2] == 19][:, 0])
 # features[features[:, 2] == 34]
 veh_arr[:, -1]
 veh_arr[:, indxs['time_step']]
@@ -354,15 +325,15 @@ veh_arr[:, indxs['e_veh_id']]
 veh_arr[:, indxs['m_veh_action']]
 # veh_arr[:, indxs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 77]
+veh_arr = features[features[:, 0] == 147]
 time_snap_start = veh_arr[0, 1]
 time_snap_1 = 971
 time_snap_2 = time_snap_1+40
 for i in range(veh_arr.shape[-1]):
     plt.figure(figsize=(4, 4))
     plt.plot(veh_arr[:, 1], veh_arr[:, i])
-    plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
-    plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_1, time_snap_1],[veh_arr[:, i].min(), veh_arr[:, i].max()])
+    # plt.plot([time_snap_2, time_snap_2],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.plot([time_snap_start, time_snap_start],[veh_arr[:, i].min(), veh_arr[:, i].max()])
     plt.title(feature_names[i])
     plt.grid()

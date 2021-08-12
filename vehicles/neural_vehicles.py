@@ -13,11 +13,10 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         self.initialize_agent()
 
     def initialize_agent(self, config=None):
-        self.samples_n = 1
+        self.samples_n = 20
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        # self.action_history = [[0., 0.]]*20
 
         model_name = 'driver_model'
         exp_dir = './models/experiments/'+model_name+'/model'
@@ -32,7 +31,6 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         # self.model.idm_sim.attention_temp = 20
 
     def update_obs_history(self, o_t):
-        # print(self.obs_history)
         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
         self.obs_history[:, -1, :] = o_t
 
@@ -80,7 +78,6 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
     def driver_params_update(self, sampled_idm_z):
         idm_params = self.model.idm_layer(sampled_idm_z).numpy()[0]
-                # print('self.elapsed_time: ', round(self.elapsed_time, 1))
         self.driver_params['desired_v'] = idm_params[0]
         self.driver_params['desired_tgap'] = idm_params[1]
         self.driver_params['min_jamx'] = idm_params[2]
@@ -127,7 +124,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
             # self.time_lapse_since_last_param_update = 0
 
         # actions = np.float32(np.array(actions))
-        sdv_act = np.repeat([[m_veh_action_feature]], self.samples_n, axis=0)
+        sdv_act = np.repeat(np.array([[m_veh_action_feature]]), self.samples_n, axis=0)
         # sdv_act = [[m_veh_action_feature]]
 
         att_score = self.get_neur_att(sdv_act)
