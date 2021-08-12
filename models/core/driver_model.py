@@ -102,12 +102,10 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
         sampled_att_z, sampled_idm_z = self.belief_net.sample_z(pos_params)
-        att_inputs = [sampled_att_z, enc_h]
 
-        idm_params = self.idm_layer([sampled_idm_z, enc_h])
+        idm_params = self.idm_layer(sampled_idm_z)
         # idm_params = tf.repeat(idm_params, 40, axis=1)
-
-        act_seq, _ = self.idm_sim.rollout([att_inputs, idm_params, inputs[2], inputs[-1]])
+        act_seq, _ = self.idm_sim.rollout([sampled_att_z, idm_params, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_score_max: ', tf.reduce_max(att_scores))
         # tf.print('att_score_min: ', tf.reduce_min(att_scores))
@@ -264,8 +262,7 @@ class IDMForwardSim(tf.keras.Model):
         return tf.concat([att_projection, enc_h], axis=-1)
 
     def rollout(self, inputs):
-        att_inputs, idm_params, idm_s, sdv_acts = inputs
-        sampled_att_z, enc_h = att_inputs
+        sampled_att_z, idm_params, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         att_projection = self.linear_layer(sampled_att_z)
@@ -362,10 +359,8 @@ class IDMLayer(tf.keras.Model):
         return 0.5 + 3*(1/(1+tf.exp(-1*output)))
 
     def call(self, inputs):
-        sampled_idm_z, enc_h = inputs
-        batch_size = tf.shape(sampled_idm_z)[0]
-        x = self.linear_layer(sampled_idm_z)
-        # x = tf.concat([self.linear_layer(sampled_idm_z), enc_h], axis=-1)
+        batch_size = tf.shape(inputs)[0]
+        x = self.linear_layer(inputs)
 
         desired_v = self.get_des_v(x, batch_size)
         desired_tgap = self.get_des_tgap(x, batch_size)

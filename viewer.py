@@ -146,12 +146,16 @@ class Viewer():
     def render(self, vehicles):
         self.update_plots(vehicles)
 
-class ViewerLaneKeep(Viewer):
+class ViewerMC(Viewer):
     def __init__(self, config):
         self.config  = config
         self.fig = plt.figure(figsize=(10, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
+        self.fig = plt.figure(figsize=(4, 9))
+        self.act_ax = self.fig.add_subplot(311)
+        self.att_ax = self.fig.add_subplot(312)
+        self.desvel_ax = self.fig.add_subplot(313)
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -160,12 +164,12 @@ class ViewerLaneKeep(Viewer):
         # ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
         glob_xs = [veh.glob_x for veh in vehicles]
         glob_ys = [veh.glob_y for veh in vehicles]
-        # annotation_mark_1 = [veh.id for veh in vehicles]
+        annotation_mark_1 = [veh.id for veh in vehicles]
         # annotation_mark_2 = [round(veh.speed, 2) for veh in vehicles]
-        # for i in range(len(annotation_mark_1)):
-        #     ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
-        #     ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
-        #
+        for i in range(len(annotation_mark_1)):
+            ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
+            # ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
+
 
         if env_type == 'real':
             color_shade = [veh.driver_params['aggressiveness'] for veh in vehicles]
@@ -190,6 +194,17 @@ class ViewerLaneKeep(Viewer):
                 print('driver_params: ', vehicle.driver_params)
                 print('###########################')
 
+            if vehicle.id == 19:
+                if env_type == 'real':
+                    self.act_ax.plot(vehicle.act_log, color='red')
+                    self.att_ax.plot(vehicle.att_log, color='red')
+                    self.desvel_ax.plot(vehicle.desvel_log, color='red')
+                else:
+                    self.act_ax.plot(vehicle.act_log, color='grey')
+                    self.att_ax.plot(vehicle.att_log, color='grey')
+                    self.desvel_ax.plot(vehicle.desvel_log, color='grey')
+
+
     def draw_highway(self, ax, vehicles, env_type):
         self.draw_road(ax)
         self.draw_vehicles(ax, vehicles, env_type)
@@ -197,7 +212,17 @@ class ViewerLaneKeep(Viewer):
 
     def render(self, real_vehicles, ima_vehicles):
         self.env_ax.clear()
+        self.act_ax.clear()
+        self.att_ax.clear()
+        self.desvel_ax.clear()
         self.draw_highway(self.env_ax, real_vehicles, 'real')
         if ima_vehicles:
             self.draw_highway(self.env_ax, ima_vehicles, 'imagined')
+
+        self.act_ax.set_title('action')
+        self.att_ax.set_title('attention')
+        self.desvel_ax.set_title('desvel')
+        self.act_ax.legend(['true', 'pred'])
+        self.att_ax.legend(['true', 'pred'])
+        self.desvel_ax.legend(['true', 'pred'])
         plt.pause(1e-10)

@@ -53,10 +53,10 @@ class IDMMOBILVehicle(Vehicle):
         self.steps_since_new_lane_arrival = 0
         self.lateral_actions = {'move_left':0.75,
                                 'move_right':-0.75,
-                                'keep_lane':0
-                                }
+                                'keep_lane':0}
 
-        self.set_driver_params(aggressiveness)
+        if aggressiveness != None:
+            self.set_driver_params(aggressiveness)
 
     def set_driver_params(self, aggressiveness):
         Parameter_range = {'most_aggressive': {
@@ -270,8 +270,6 @@ class IDMMOBILVehicle(Vehicle):
         else:
             neighbours['m'] = None
         # neighbours['m'] = candidate_m
-        if neighbours['m'] and neighbours['m'] != self.neighbours['m']:
-            self.set_attentiveness()
         neighbours['att'] = candidate_att
 
         return neighbours

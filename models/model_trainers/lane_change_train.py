@@ -6,10 +6,10 @@ from importlib import reload
 import sys
 import data_generator
 reload(data_generator)
+from data_generator import DataGenerator
 reload(plt)
 import matplotlib.pyplot as plt
 
-from data_generator import DataGenerator
 import numpy as np
 np.set_printoptions(suppress=True)
 
@@ -629,6 +629,7 @@ plt.grid()
 
 
 # %%
+# %%
 import tensorflow as tf
 examples_to_vis = val_examples[0:1000]
 
@@ -672,10 +673,7 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 
 
 # %%
-a = []
-b = [2, 4]
-a.extend([3, b])
-a
+
 # %%
 def latent_samples(model_trainer, sample_index):
     h_seq = history_sca[sample_index, :, 2:]
@@ -830,11 +828,11 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
-# for i in bad_examples[0]:
+for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 10:
+# while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -853,11 +851,11 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness == 1.:
     # if episode not in covered_episodes:
-    # if 4 == 4:
+    if 4 == 4:
     # if  e_veh_att.mean() > 0:
 
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-                    e_veh_att[20:55].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #                 e_veh_att[20:55].mean() > 0:
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
@@ -868,10 +866,8 @@ while Example_pred < 10:
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-        att_inputs = [sampled_att_z, enc_h]
-
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([att_inputs, \
+        idm_params = model_trainer.model.idm_layer(sampled_idm_z)
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([sampled_att_z, \
                                                     idm_params, future_idm_ss, sdv_actions])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -988,9 +984,8 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-idm_params = model_trainer.model.idm_layer([sampled_idm_z, enc_h])
-att_inputs = [sampled_att_z, enc_h]
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([att_inputs, \
+idm_params = model_trainer.model.idm_layer(sampled_idm_z)
+act_seq, att_scores = model_trainer.model.idm_sim.rollout([sampled_att_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -1073,7 +1068,10 @@ plt.legend(['True', 'Predicted'])
 
 
 # %%
-
+a = 7
+b = a
+id(a)
+id(b)
 ##########
 plt.figure(figsize=(4, 4))
 plt.plot(m_veh_exists, color='black')

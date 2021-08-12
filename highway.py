@@ -5,7 +5,10 @@ import vehicle_handler
 reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
 import copy
-from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle
+
+from vehicles import neural_vehicles
+reload(neural_vehicles)
+from vehicles.neural_vehicles import NeuralIDMVehicle
 import types
 
 class Env:
@@ -94,91 +97,54 @@ class Env:
             self.vehicles.extend(new_entries)
         self.time_step += 1
 
-class EnvLaneKeep(Env):
+class EnvMC(Env):
     def __init__(self, config):
         super().__init__(config)
-        self.vehicles = []
-        self.handler = VehicleHandlerLaneKeep(config)
-
-    def add_new_vehicles(self):
-        new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
-                                                          self.last_entries)
-        for vehicle in new_entries:
-            self.vehicles.append(vehicle)
-
-    def recorder(self):
-        for ego in self.vehicles:
-            if ego.glob_x < 0:
-                continue
-            if not ego.id in self.recordings:
-                self.recordings[ego.id] = {}
-            log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
-            log['att_veh_id'] = None if not ego.neighbours['att'] else ego.neighbours['att'].id
-            log['aggressiveness'] = ego.driver_params['aggressiveness']
-            log['act_long'] = ego.act_long
-            self.recordings[ego.id][self.time_step] = log
-
-    def get_joint_action(self):
-        """
-        Returns the joint action of all vehicles on the road
-        """
-        acts_real = []
-        acts_ima = []
-        for veh_real in self.vehicles:
-            veh_real.neighbours = veh_real.my_neighbours(self.vehicles)
-            obs = veh_real.observe(veh_real, veh_real.neighbours['att'])
-            act_long = veh_real.idm_action(obs)
-            acts_real.append([act_long, 0])
-            veh_real.act_long = act_long
-
-        return acts_real
-
-    def step(self, actions=None):
-        """ steps the environment forward in time.
-        """
-        self.remove_vehicles_outside_bound()
-        acts_real = self.get_joint_action()
-        if self.usage == 'data generation':
-            self.recorder()
-
-        for veh_real, act_real in zip(self.vehicles, acts_real):
-            veh_real.step(act_real)
-
-        self.add_new_vehicles()
-        self.time_step += 1
-
-class EnvLaneKeepMC(Env):
-    def __init__(self, config):
-        self.config = config
-        self.time_step = 0
-        self.handler = VehicleHandlerLaneKeep(config)
-        self.usage = None
         self.real_vehicles = []
         self.ima_vehicles = []
-        self.initiate_environment()
+        self.real_mc_log = {}
+        self.ima_mc_log = {}
+
+
+    def prohibit_lane_change(self, vehicle):
+        """
+        For cars to be modelled for MC
+        """
+        def _act(self, reservations):
+            act_long = self.idm_action(self.observe(self, self.neighbours['f']))
+            return [max(-3, min(act_long, 3)), 0]
+        vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        # neural_vehicle = NeuralIDMVehicle()
-        neural_vehicle = LSTMVehicle()
+        neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
-            setattr(neural_vehicle, attrname, attrvalue)
+            if attrname != 'act':
+                setattr(neural_vehicle, attrname, copy.copy(attrvalue))
         return neural_vehicle
 
     def add_new_vehicles(self):
         new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
                                                           self.last_entries)
         for vehicle in new_entries:
-            if vehicle.id > 1:
+
+            if vehicle.id in [19]:
+                self.prohibit_lane_change(vehicle)
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
-                neural_vehicle.id = 'neur_'+str(vehicle.id)
+                # neural_vehicle.id = 'neur_'+str(vehicle.id)
                 imagined_vehicle = neural_vehicle
                 imagined_vehicle.vehicle_type = 'neural'
+                imagined_vehicle.att = 0
             else:
-                imagined_vehicle = copy.copy(vehicle)
-                imagined_vehicle.vehicle_type = 'idm'
+                imagined_vehicle = copy.deepcopy(vehicle)
+                imagined_vehicle.vehicle_type = 'idmmobil'
 
             self.ima_vehicles.append(imagined_vehicle)
             self.real_vehicles.append(vehicle)
+
+    def set_ima_veh_decision(self, veh_real, veh_ima):
+        for attrname in ['lane_decision', 'lane_y', 'target_lane']:
+            attrvalue = getattr(veh_real, attrname)
+            setattr(veh_ima, attrname, attrvalue)
 
     def get_joint_action(self):
         """
@@ -188,30 +154,82 @@ class EnvLaneKeepMC(Env):
         acts_ima = []
         for veh_real, veh_ima in zip(self.real_vehicles, self.ima_vehicles):
             veh_real.neighbours = veh_real.my_neighbours(self.real_vehicles)
-            obs = veh_real.observe(veh_real, veh_real.neighbours['att'])
-            act_long = veh_real.idm_action(obs)
-            acts_real.append([act_long, 0])
+            act_long, act_lat = veh_real.act(self.handler.reservations)
+            acts_real.append([act_long, act_lat])
             veh_real.act_long = act_long
-            if veh_ima.vehicle_type == 'neural':
-                veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
-                obs = veh_ima.observe(veh_ima, veh_ima.neighbours['att'])
-                act_long = veh_ima.act(obs)
-                acts_ima.append([act_long, 0])
-                veh_ima.act_long = act_long
+            self.handler.update_reservations(veh_real)
 
-            elif veh_ima.vehicle_type == 'idm':
+            if veh_ima.vehicle_type == 'neural':
+                veh_ima.time_lapse += 1
                 veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
-                obs = veh_ima.observe(veh_ima, veh_ima.neighbours['att'])
-                act_long = veh_ima.idm_action(obs)
-                acts_ima.append([act_long, 0])
-                veh_ima.act_long = act_long
+                obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
+                                                            veh_ima.neighbours['m'])
+                veh_ima.update_obs_history(obs[0])
+
+                if veh_ima.time_lapse > 25 and veh_ima.control_type != 'neural':
+                    veh_ima.control_type = 'neural'
+
+                if veh_ima.control_type == 'neural':
+                    act_long = veh_ima.act(obs)
+                else:
+                    act_long = veh_ima.idm_action(veh_ima.observe(\
+                                            veh_ima, veh_ima.neighbours['att']))
+            elif veh_ima.vehicle_type == 'idmmobil':
+                veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
+                self.set_ima_veh_decision(veh_real, veh_ima)
+                act_long, _ = veh_ima.act(self.handler.reservations)
+
+            veh_ima.act_long = act_long
+            acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
+            self.mc_log_info(veh_real, veh_ima)
 
         return acts_real, acts_ima
+
+    def mc_log_info(self, veh_real, veh_ima):
+        if veh_real.id == 19:
+            if veh_real.neighbours['m'] and\
+                                veh_real.neighbours['att'] == veh_real.neighbours['m']:
+                att_real = 1
+            else:
+                att_real = 0
+
+            if veh_real.id not in self.real_mc_log:
+                self.real_mc_log[veh_real.id] = {}
+                self.real_mc_log[veh_real.id] = {}
+                self.real_mc_log[veh_real.id] = {}
+                self.ima_mc_log[veh_real.id] = {}
+                self.ima_mc_log[veh_real.id] = {}
+                self.ima_mc_log[veh_real.id] = {}
+
+                self.real_mc_log[veh_real.id]['act_log'] = []
+                self.real_mc_log[veh_real.id]['att_log'] = []
+                self.real_mc_log[veh_real.id]['desvel_log'] = []
+                self.ima_mc_log[veh_real.id]['act_log'] = []
+                self.ima_mc_log[veh_real.id]['att_log'] = []
+                self.ima_mc_log[veh_real.id]['desvel_log'] = []
+
+                self.real_mc_log[veh_real.id]['act_log'] = []
+                self.real_mc_log[veh_real.id]['att_log'] = []
+                self.real_mc_log[veh_real.id]['desvel_log'] = []
+                self.ima_mc_log[veh_real.id]['act_log'] = []
+                self.ima_mc_log[veh_real.id]['att_log'] = []
+                self.ima_mc_log[veh_real.id]['desvel_log'] = []
+
+            self.real_mc_log[veh_real.id]['act_log'].append(veh_real.act_long)
+            self.real_mc_log[veh_real.id]['att_log'].append(att_real)
+            self.real_mc_log[veh_real.id]['desvel_log'].append(\
+                                               veh_real.driver_params['desired_v'])
+            self.ima_mc_log[veh_real.id]['act_log'].append(veh_ima.act_long)
+            self.ima_mc_log[veh_real.id]['att_log'].append(veh_ima.att)
+            self.ima_mc_log[veh_real.id]['desvel_log'].append(\
+                                                veh_ima.driver_params['desired_v'])
 
     def step(self, actions=None):
         """ steps the environment forward in time.
         """
         # self.remove_vehicles_outside_bound()
+        # joint_action = self.get_joint_action(self.real_vehicles+self.ima_vehicles)
+
         acts_real, acts_ima = self.get_joint_action()
         for veh_real, veh_ima, act_real, act_ima in zip(
                                                     self.real_vehicles,
@@ -225,24 +243,72 @@ class EnvLaneKeepMC(Env):
         self.add_new_vehicles()
         self.time_step += 1
 
-#
-# class EnvMCLC(Env):
+# class EnvLaneKeep(Env):
 #     def __init__(self, config):
 #         super().__init__(config)
+#         self.vehicles = []
+#         self.handler = VehicleHandlerLaneKeep(config)
+#
+#     def add_new_vehicles(self):
+#         new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
+#                                                           self.last_entries)
+#         for vehicle in new_entries:
+#             self.vehicles.append(vehicle)
+#
+#     def recorder(self):
+#         for ego in self.vehicles:
+#             if ego.glob_x < 0:
+#                 continue
+#             if not ego.id in self.recordings:
+#                 self.recordings[ego.id] = {}
+#             log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
+#             log['att_veh_id'] = None if not ego.neighbours['att'] else ego.neighbours['att'].id
+#             log['aggressiveness'] = ego.driver_params['aggressiveness']
+#             log['act_long'] = ego.act_long
+#             self.recordings[ego.id][self.time_step] = log
+#
+#     def get_joint_action(self):
+#         """
+#         Returns the joint action of all vehicles on the road
+#         """
+#         acts_real = []
+#         acts_ima = []
+#         for veh_real in self.vehicles:
+#             veh_real.neighbours = veh_real.my_neighbours(self.vehicles)
+#             obs = veh_real.observe(veh_real, veh_real.neighbours['att'])
+#             act_long = veh_real.idm_action(obs)
+#             acts_real.append([act_long, 0])
+#             veh_real.act_long = act_long
+#
+#         return acts_real
+#
+#     def step(self, actions=None):
+#         """ steps the environment forward in time.
+#         """
+#         self.remove_vehicles_outside_bound()
+#         acts_real = self.get_joint_action()
+#         if self.usage == 'data generation':
+#             self.recorder()
+#
+#         for veh_real, act_real in zip(self.vehicles, acts_real):
+#             veh_real.step(act_real)
+#
+#         self.add_new_vehicles()
+#         self.time_step += 1
+
+# class EnvLaneKeepMC(Env):
+#     def __init__(self, config):
+#         self.config = config
+#         self.time_step = 0
+#         self.handler = VehicleHandlerLaneKeep(config)
+#         self.usage = None
 #         self.real_vehicles = []
 #         self.ima_vehicles = []
-#
-#     def prohibit_lane_change(self, vehicle):
-#         """
-#         For cars to be modelled for MC
-#         """
-#         def _act(self, reservations):
-#             act_long = self.idm_action(self.observe(self, self.neighbours['f']))
-#             return [max(-3, min(act_long, 3)), 0]
-#         vehicle.act = types.MethodType(_act, vehicle)
+#         self.initiate_environment()
 #
 #     def idm_to_neural_vehicle(self, vehicle):
-#         neural_vehicle = NeuralIDMVehicle()
+#         # neural_vehicle = NeuralIDMVehicle()
+#         neural_vehicle = LSTMVehicle()
 #         for attrname, attrvalue in list(vehicle.__dict__.items()):
 #             setattr(neural_vehicle, attrname, attrvalue)
 #         return neural_vehicle
@@ -251,24 +317,17 @@ class EnvLaneKeepMC(Env):
 #         new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
 #                                                           self.last_entries)
 #         for vehicle in new_entries:
-#             if vehicle.id in [1, 15]:
-#                 self.prohibit_lane_change(vehicle)
+#             if vehicle.id > 1:
 #                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
 #                 neural_vehicle.id = 'neur_'+str(vehicle.id)
 #                 imagined_vehicle = neural_vehicle
 #                 imagined_vehicle.vehicle_type = 'neural'
 #             else:
 #                 imagined_vehicle = copy.copy(vehicle)
-#                 imagined_vehicle.vehicle_type = 'idmmobil'
+#                 imagined_vehicle.vehicle_type = 'idm'
 #
 #             self.ima_vehicles.append(imagined_vehicle)
 #             self.real_vehicles.append(vehicle)
-#
-#
-#     def set_ima_veh_decision(self, veh_real, veh_ima):
-#         for attrname in ['lane_decision', 'lane_y', 'target_lane']:
-#             attrvalue = getattr(veh_real, attrname)
-#             setattr(veh_ima, attrname, attrvalue)
 #
 #     def get_joint_action(self):
 #         """
@@ -278,29 +337,30 @@ class EnvLaneKeepMC(Env):
 #         acts_ima = []
 #         for veh_real, veh_ima in zip(self.real_vehicles, self.ima_vehicles):
 #             veh_real.neighbours = veh_real.my_neighbours(self.real_vehicles)
-#             act_long, act_lat = veh_real.act(self.handler.reservations)
-#             acts_real.append([act_long, act_lat])
+#             obs = veh_real.observe(veh_real, veh_real.neighbours['att'])
+#             act_long = veh_real.idm_action(obs)
+#             acts_real.append([act_long, 0])
 #             veh_real.act_long = act_long
-#             self.handler.update_reservations(veh_real)
 #             if veh_ima.vehicle_type == 'neural':
-#                 acts_ima.append([0, 0])
-#
-#             elif veh_ima.vehicle_type == 'idmmobil':
 #                 veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
-#                 self.set_ima_veh_decision(veh_real, veh_ima)
-#                 act_long, _ = veh_ima.act(self.handler.reservations)
-#                 acts_ima.append([act_long, act_lat]) # act lat is true
+#                 obs = veh_ima.observe(veh_ima, veh_ima.neighbours['att'])
+#                 act_long = veh_ima.act(obs)
+#                 acts_ima.append([act_long, 0])
+#                 veh_ima.act_long = act_long
+#
+#             elif veh_ima.vehicle_type == 'idm':
+#                 veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
+#                 obs = veh_ima.observe(veh_ima, veh_ima.neighbours['att'])
+#                 act_long = veh_ima.idm_action(obs)
+#                 acts_ima.append([act_long, 0])
 #                 veh_ima.act_long = act_long
 #
 #         return acts_real, acts_ima
-#
 #
 #     def step(self, actions=None):
 #         """ steps the environment forward in time.
 #         """
 #         # self.remove_vehicles_outside_bound()
-#         # joint_action = self.get_joint_action(self.real_vehicles+self.ima_vehicles)
-#
 #         acts_real, acts_ima = self.get_joint_action()
 #         for veh_real, veh_ima, act_real, act_ima in zip(
 #                                                     self.real_vehicles,
