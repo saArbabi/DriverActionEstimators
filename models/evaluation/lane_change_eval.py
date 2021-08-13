@@ -28,11 +28,20 @@ env = EnvMC(config)
 for i in range(170):
     # print(env.time_step)
     env.step()
+
+
 plt.plot(att_real, color='red')
 mveh_ex = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
 plt.plot(mveh_ex, color='blue', linestyle='--')
 # %%
+"""
+TODO:
+[] ensure history is diverse - state arrays rather than points
+[] ensrure you do not val on training set
+[] somehow detect collisions
 
+Note: in all this plan a few steps ahead.
+"""
 
 att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
 att_real = np.array(env.real_mc_log[19]['att_log'][25:])

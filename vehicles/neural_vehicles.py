@@ -13,7 +13,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         self.initialize_agent()
 
     def initialize_agent(self, config=None):
-        self.samples_n = 20
+        self.samples_n = 1
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])

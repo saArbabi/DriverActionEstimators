@@ -661,7 +661,7 @@ def latent_vis():
     # plt.style.use('default')
     att_axis = fig.add_subplot(211)
     idm_axis = fig.add_subplot(212)
-    examples_to_vis = np.random.choice(val_examples, 1000, replace=False)
+    examples_to_vis = np.random.choice(val_examples, 7000, replace=False)
     sampled_att_z, sampled_idm_z = latent_samples(model_trainer, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
