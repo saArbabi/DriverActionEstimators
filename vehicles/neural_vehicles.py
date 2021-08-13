@@ -110,8 +110,8 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         # if self.time_lapse > 5:
         # print(self.obs_history)
         # print(obs_history[:, -1, :])
-        # if self.time_lapse_since_last_param_update % 10 == 0:
-        if self.time_lapse_since_last_param_update == 0:
+        if self.time_lapse_since_last_param_update % 20 == 0:
+        # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
@@ -119,17 +119,16 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
             self.driver_params_update(sampled_idm_z)
             self.att_context_update(sampled_att_z)
-            # self.time_lapse_since_last_param_update = 0
+            self.time_lapse_since_last_param_update = 0
 
         # actions = np.float32(np.array(actions))
         sdv_act = np.repeat(np.array([[m_veh_action_feature]]), self.samples_n, axis=0)
         # sdv_act = [[m_veh_action_feature]]
 
-        att_score = self.get_neur_att(sdv_act)
-        self.att = att_score.tolist()
+        att_score = self.get_neur_att(sdv_act).tolist()[0][0][0]
+        self.att = att_score
         ef_act = self.idm_action(idm_s[0:2])
         em_act = self.idm_action(idm_s[2:])
-        att_score = att_score[0][0][0]
         act_long = (1-att_score)*ef_act + att_score*em_act
         # print('att_score', att_score)
         # print('act_long', act_long)
@@ -146,6 +145,33 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         - merger
         Note:
         """
+
+class LSTMVehicle(NeuralIDMVehicle):
+    def __init__(self):
+        super().__init__()
+
+    def initialize_agent(self, config=None):
+        self.samples_n = 1
+        history_len = 20 # steps
+        self.state_dim = 10
+        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
+        # self.action_history = [[0., 0.]]*20
+
+        model_name = 'lstm_model'
+        exp_dir = './models/experiments/'+model_name+'/model'
+        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+            self.scaler = pickle.load(handle)
+
+        from models.core.lstm import Encoder
+        self.model = Encoder()
+        self.model.load_weights(exp_dir).expect_partial()
+
+    def act(self, obs):
+        obs_history = self.prep_obs_seq(self.obs_history.copy())
+        pred_dis = self.model(obs_history)
+        act_long = pred_dis.sample().numpy()[0][0]
+        self.att = -1
+        return act_long
 #
 # class LSTMVehicle(IDMVehicle):
 #     def __init__(self):

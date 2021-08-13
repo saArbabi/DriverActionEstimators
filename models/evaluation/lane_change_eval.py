@@ -41,6 +41,9 @@ TODO:
 [] somehow detect collisions
 
 Note: in all this plan a few steps ahead.
+end episdoe if:
+20s gathered for all cars
+there is a collision
 """
 
 att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
@@ -49,6 +52,7 @@ arrays = [att_ima[:, i, 0, 0] for i in range(2)]
 att_ima = np.stack(arrays)
 plt.plot(att_real, color='red')
 plt.plot(att_ima[0, :], color='grey')
+print(1, 2)
 
 # %%
 # plt.plot(env.real_mc_log[19]['att_log'])

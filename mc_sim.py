@@ -25,9 +25,13 @@ def main():
             user_input = input()
             if user_input == 'n':
                 sys.exit()
-
+            try:
+                viewer.focus_on_this_vehicle = int(user_input)
+            except:
+                pass
             print(env.time_step)
             viewer.render(env.real_vehicles, env.ima_vehicles)
+            viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
         # print(env.ima_vehicles[0].vehicle_type)
         # print(env.ima_vehicles[0].act_long)

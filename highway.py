@@ -5,7 +5,7 @@ import vehicle_handler
 reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
 
-from vehicles.neural_vehicles import NeuralIDMVehicle
+from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle
 
 import copy
 import types
@@ -116,7 +116,8 @@ class EnvMC(Env):
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        neural_vehicle = NeuralIDMVehicle()
+        neural_vehicle = LSTMVehicle()
+        # neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))
@@ -147,6 +148,15 @@ class EnvMC(Env):
             attrvalue = getattr(veh_real, attrname)
             setattr(veh_ima, attrname, attrvalue)
 
+    def set_ima_veh_neighbours(self, veh_real, veh_ima):
+        for key, neighbour in veh_real.neighbours.items():
+            if neighbour:
+                for veh in self.ima_vehicles:
+                    if veh.id == neighbour.id:
+                        veh_ima.neighbours[key] = veh
+            else:
+                veh_ima.neighbours[key] = None
+
     def get_joint_action(self):
         """
         Returns the joint action of all vehicles on the road
@@ -154,19 +164,21 @@ class EnvMC(Env):
         acts_real = []
         acts_ima = []
         for veh_real, veh_ima in zip(self.real_vehicles, self.ima_vehicles):
+            # real vehicles
             veh_real.neighbours = veh_real.my_neighbours(self.real_vehicles)
             act_long, act_lat = veh_real.act(self.handler.reservations)
             acts_real.append([act_long, act_lat])
             veh_real.act_long = act_long
             self.handler.update_reservations(veh_real)
 
+            # imagined vehicles
+            veh_ima.neighbours = veh_real.neighbours
+            self.set_ima_veh_neighbours(veh_real, veh_ima)
             if veh_ima.vehicle_type == 'neural':
                 veh_ima.time_lapse += 1
-                veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
                 obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
                                                             veh_ima.neighbours['m'])
                 veh_ima.update_obs_history(obs[0])
-
                 if veh_ima.time_lapse > 25 and veh_ima.control_type != 'neural':
                     veh_ima.control_type = 'neural'
                 if veh_ima.control_type == 'neural':
@@ -175,9 +187,9 @@ class EnvMC(Env):
                     act_long = veh_ima.idm_action(veh_ima.observe(\
                                             veh_ima, veh_ima.neighbours['att']))
             elif veh_ima.vehicle_type == 'idmmobil':
-                veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles)
                 self.set_ima_veh_decision(veh_real, veh_ima)
-                act_long, _ = veh_ima.act(self.handler.reservations)
+                act_long = veh_ima.idm_action(veh_ima.observe(\
+                                        veh_ima, veh_ima.neighbours['att']))
 
             veh_ima.act_long = act_long
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
@@ -186,6 +198,12 @@ class EnvMC(Env):
         return acts_real, acts_ima
 
     def mc_log_info(self, veh_real, veh_ima):
+        """
+        Informatin to be logged:
+        - relative distance between imagined ego and att_veh and f_veh: collision detection
+        - ego (real and imagined) global_x for rwse
+        - ego (real and imagined) speed for rwse
+        """
         if veh_real.id == 19:
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\

@@ -131,8 +131,9 @@ future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 features_origin[:, indxs['e_veh_action']].mean()
 # %%
+
 """
-PREPARE DATA
+Driver model - neural idm
 """
 features = features_origin.copy()
 # features = features[features[:, indxs['aggressiveness']] == 0.5]
@@ -153,21 +154,35 @@ future_idm_s[0:10, 0, :]
 future_m_veh_a.shape
 future_m_veh_a.shape
 # %%
+
 """
-BALANCE DATA
+Driver model - lstm
 """
-history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-_ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
+history_future_seqs = data_gen.sequence(features, 20, 1)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 1)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_m_veh_a, future_e_veh_a = data_arrays
+
+future_e_veh_a.shape
+future_e_veh_a[0]
+history_future_usc[0, 20]
+history_sca[0]
+# data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
+future_idm_s[0:10, 0, :]
+# %%
+# """
+# BALANCE DATA
+# """
+# history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
+# cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# _ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
 
 # %%
-np.count_nonzero(cond)/future_e_veh_a.shape[0]
-np.count_nonzero(~cond)
-np.count_nonzero(cond)
-np.count_zeros(cond)
-future_e_veh_a.shape
-future_idm_s.shape
+
 
 # %%
 """
@@ -427,8 +442,6 @@ class Trainer():
     def __init__(self, training_data, model_type):
         self.model = None
         self.model_type = model_type
-        self.train_loss = []
-        self.valid_loss = []
 
         self.train_mseloss = []
         self.train_att_klloss = []
@@ -442,33 +455,50 @@ class Trainer():
         self.prep_data(training_data)
 
     def initiate_model(self, model_type=None):
-        from models.core import driver_model
-        reload(driver_model)
-        from models.core.driver_model import  NeurIDMModel
-        self.model = NeurIDMModel(config)
+        if self.model_type == 'driver_model':
+            from models.core import driver_model
+            reload(driver_model)
+            from models.core.driver_model import  NeurIDMModel
+            self.model = NeurIDMModel(config)
+
+        elif self.model_type == 'lstm_model':
+            from models.core import lstm
+            reload(lstm)
+            from models.core.lstm import  Encoder
+            self.model = Encoder(config)
 
     def prep_data(self, training_data):
-        _, history_sca, future_sca, future_idm_s,\
-                future_m_veh_a, future_e_veh_a = training_data
-        all_epis = np.unique(history_sca[:, 0, 0])
+        all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
         np.random.shuffle(all_epis)
         train_epis = all_epis[:int(len(all_epis)*0.8)]
         val_epis = np.setdiff1d(all_epis, train_epis)
-        train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
-        val_indxs = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
+        train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
+        val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
-        self.train_input = [history_sca[train_indxs, :, 2:],
-                    future_sca[train_indxs, :, 2:],
-                    future_idm_s[train_indxs, :, 2:],
-                    future_m_veh_a[train_indxs, :, 2:],
-                    future_e_veh_a[train_indxs, :, 2:]]
+        _, history_sca, future_sca, future_idm_s,\
+                    future_m_veh_a, future_e_veh_a = training_data
 
-        self.val_input = [history_sca[val_indxs, :, 2:],
-                    future_sca[val_indxs, :, 2:],
-                    future_idm_s[val_indxs, :, 2:],
-                    future_m_veh_a[val_indxs, :, 2:],
-                    future_e_veh_a[val_indxs, :, 2:]]
+        if self.model_type == 'driver_model':
+
+            self.train_input = [history_sca[train_indxs, :, 2:],
+                        future_sca[train_indxs, :, 2:],
+                        future_idm_s[train_indxs, :, 2:],
+                        future_m_veh_a[train_indxs, :, 2:],
+                        future_e_veh_a[train_indxs, :, 2:]]
+
+            self.val_input = [history_sca[val_indxs, :, 2:],
+                        future_sca[val_indxs, :, 2:],
+                        future_idm_s[val_indxs, :, 2:],
+                        future_m_veh_a[val_indxs, :, 2:],
+                        future_e_veh_a[val_indxs, :, 2:]]
+
+        elif self.model_type == 'lstm_model':
+            self.train_input = [history_sca[train_indxs, :, 2:],
+                                        future_e_veh_a[train_indxs, 0, -1]]
+
+            self.val_input = [history_sca[val_indxs, :, 2:],
+                                        future_e_veh_a[val_indxs, 0, -1]]
 
     def train(self, epochs):
         # self.model.epochs_n = epochs
@@ -486,8 +516,8 @@ class Trainer():
                 self.test_att_klloss.append(round(self.model.test_att_klloss.result().numpy().item(), 2))
                 self.test_idm_klloss.append(round(self.model.test_idm_klloss.result().numpy().item(), 2))
             else:
-                self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
-                self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+                self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
+                self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
             t1 = time.time()
             print(self.epoch_count, 'epochs completed')
             print('Epoch took: ', round(t1-t0), ' seconds')
@@ -497,11 +527,26 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-model_trainer = Trainer(data_arrays, model_type='driver_model')
+# model_trainer = Trainer(data_arrays, model_type='driver_model')
 # 1/(1+np.exp(-5*1))
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
+model_trainer = Trainer(data_arrays, model_type='lstm_model')
+# %%
+
+model_trainer.train(epochs=3)
+
+fig = plt.figure(figsize=(15, 5))
+plt.style.use('default')
+
+mse_axis = fig.add_subplot(131)
+att_kl_axis = fig.add_subplot(132)
+idm_kl_axis = fig.add_subplot(133)
+mse_axis.plot(model_trainer.test_mseloss)
+mse_axis.plot(model_trainer.train_mseloss)
+
+
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -639,7 +684,8 @@ plt.plot(x, y)
 # %%
 import pickle
 
-model_trainer.save_model('driver_model')
+# model_trainer.save_model('driver_model')
+model_trainer.save_model('lstm_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 
