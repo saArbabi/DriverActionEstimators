@@ -15,13 +15,13 @@ import numpy as np
 def main():
     config = {'lanes_n':6,
             'lane_width':3.75, # m
-            'lane_length':400 # m
+            'lane_length':800 # m
             }
     env = EnvMC(config)
     viewer = ViewerMC(config)
     np.random.seed(2021)
     while True:
-        if env.time_step > 50:
+        if env.time_step > 20:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
@@ -31,7 +31,7 @@ def main():
                 pass
             print(env.time_step)
             viewer.render(env.real_vehicles, env.ima_vehicles)
-            if 21 in env.real_mc_log:
+            if 17 in env.real_mc_log:
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
         # print(env.ima_vehicles[0].vehicle_type)

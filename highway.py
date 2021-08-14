@@ -116,8 +116,8 @@ class EnvMC(Env):
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        # neural_vehicle = LSTMVehicle()
-        neural_vehicle = NeuralIDMVehicle()
+        neural_vehicle = LSTMVehicle()
+        # neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))
@@ -128,8 +128,8 @@ class EnvMC(Env):
                                                           self.last_entries)
         for vehicle in new_entries:
 
-            if vehicle.id == 21:
-            # if vehicle.id in [21]:
+            if vehicle.id == 17:
+            # if vehicle.id in [5]:
                 # self.prohibit_lane_change(vehicle)
                 vehicle.m_veh_exists = 0
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
@@ -205,7 +205,7 @@ class EnvMC(Env):
         """
         For visualisation and debugging.
         """
-        if veh_real.id == 21:
+        if veh_real.id == 17:
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:
@@ -244,7 +244,7 @@ class EnvMC(Env):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
-        if veh_real.id == 21:
+        if veh_real.id == 17:
             veh_id =  veh_real.id
             if veh_id not in self.real_mc_log:
                 self.real_mc_log[veh_id] = {}

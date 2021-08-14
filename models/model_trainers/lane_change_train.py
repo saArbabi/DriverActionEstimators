@@ -28,7 +28,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':2000,
+                'env_steps_n':2500,
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
@@ -39,14 +39,6 @@ features_origin = data_gen.prep_data()
 features_origin.shape
 features_origin.shape
 
-
-# %%
-a = 5
-a -= 3 if 3 == 3
-features_origin[9940]
-np.where(features_origin[:, indxs['e_veh_action']] == features_origin[:, indxs['e_veh_action']].min())
-features_origin[:, indxs['ef_delta_x']].min()
-features_origin[:, indxs['em_delta_y']].min()
 # %%
 indxs = {}
 feature_names = [
@@ -169,19 +161,16 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 
 future_e_veh_a.shape
 # %%
-"""
-BALANCE DATA
-Note: You do not want the history always hold the answer to attention - this would
-enable the model to become overtly confident.
-balance_value = 0.267
-"""
-history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_sca[:, :, -1] == 1).any(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-# _ = plt.hist(history_sca[:, :, -1].flatten(), bins=150)
-balance_value = np.count_nonzero((history_sca[:, :, -1] == 1).any(axis=1))/\
-np.count_nonzero((history_sca[:, :, -1] != 1).any(axis=1))
-print(balance_value)
+# """
+# BALANCE DATA
+# """
+# history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
+# cond = (history_sca[:, :, -1] == 1).any(axis=1)
+# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# # _ = plt.hist(history_sca[:, :, -1].flatten(), bins=150)
+# balance_value = np.count_nonzero((history_sca[:, :, -1] == 1).any(axis=1))/\
+# np.count_nonzero((history_sca[:, :, -1] != 1).any(axis=1))
+# print(balance_value)
 
 # %%
 np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
@@ -533,24 +522,24 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-model_trainer = Trainer(data_arrays, model_type='driver_model')
+# model_trainer = Trainer(data_arrays, model_type='driver_model')
 # 1/(1+np.exp(-5*1))
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer = Trainer(data_arrays, model_type='lstm_model')
+model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
+#
+model_trainer.train(epochs=5)
 
-# model_trainer.train(epochs=17)
-#
-# fig = plt.figure(figsize=(15, 5))
-# plt.style.use('default')
-#
-# mse_axis = fig.add_subplot(131)
-# att_kl_axis = fig.add_subplot(132)
-# idm_kl_axis = fig.add_subplot(133)
-# mse_axis.plot(model_trainer.test_mseloss)
-# mse_axis.plot(model_trainer.train_mseloss)
+fig = plt.figure(figsize=(15, 5))
+plt.style.use('default')
+
+mse_axis = fig.add_subplot(131)
+att_kl_axis = fig.add_subplot(132)
+idm_kl_axis = fig.add_subplot(133)
+mse_axis.plot(model_trainer.test_mseloss)
+mse_axis.plot(model_trainer.train_mseloss)
 
 
 # %%
@@ -567,8 +556,6 @@ val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
-train_epis
-np.where(train_epis == 89)
 # %%
 model_trainer.model.vae_loss_weight = 1.
 model_trainer.train(epochs=5)
@@ -668,7 +655,6 @@ val_input = [history_sca[examples_to_vis , :, 2:],
 act_pred, pri_params, pos_params = model_trainer.model(val_input)
 loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
 loss = tf.reduce_mean(loss, axis=1).numpy()
-loss.shape
 
 
 _ = plt.hist(loss, bins=150)
@@ -697,8 +683,8 @@ import pickle
 
 # model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
-with open('./models/experiments/scaler.pickle', 'wb') as handle:
-    pickle.dump(scaler, handle)
+# with open('./models/experiments/scaler.pickle', 'wb') as handle:
+#     pickle.dump(scaler, handle)
 
 
 # %%

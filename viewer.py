@@ -149,7 +149,7 @@ class Viewer():
 class ViewerMC(Viewer):
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(10, 4))
+        self.fig = plt.figure(figsize=(20, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         self.fig = plt.figure(figsize=(4, 9))
@@ -241,7 +241,7 @@ class ViewerMC(Viewer):
         self.act_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
-        veh_id = 21
+        veh_id = 17
         self.act_ax.plot(real_mc_log[veh_id]['act'], color='red')
         self.att_ax.plot(real_mc_log[veh_id]['att'], color='red')
         self.desvel_ax.plot(real_mc_log[veh_id]['desvel'], color='red')
