@@ -127,6 +127,7 @@ features_origin[(features_origin[:, indxs['e_veh_id']] == 58) & \
 features_origin[:, indxs['m_veh_speed']].mean()
 features_origin[:, indxs['e_veh_action']].std()
 features_origin[:, indxs['e_veh_action']].std()
+features_origin[:, indxs['e_veh_action']].std()
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 features_origin[:, indxs['e_veh_action']].mean()
@@ -179,7 +180,7 @@ future_idm_s[0:10, 0, :]
 # history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
 # cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
 # data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-# _ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
+_ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
 
 # %%
 
@@ -407,7 +408,7 @@ col_names = ['episode_id', 'time_step', 'e_veh_id',
 
 for i in range(history_future_usc.shape[-1]):
     plt.figure(figsize=(3, 3))
-    to_plot = history_future_usc[:10000, :, i].flatten()
+    to_plot = history_future_usc[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
     # plt.grid()
@@ -527,24 +528,24 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-# model_trainer = Trainer(data_arrays, model_type='driver_model')
+model_trainer = Trainer(data_arrays, model_type='driver_model')
 # 1/(1+np.exp(-5*1))
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-model_trainer = Trainer(data_arrays, model_type='lstm_model')
+# model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
 
-model_trainer.train(epochs=3)
-
-fig = plt.figure(figsize=(15, 5))
-plt.style.use('default')
-
-mse_axis = fig.add_subplot(131)
-att_kl_axis = fig.add_subplot(132)
-idm_kl_axis = fig.add_subplot(133)
-mse_axis.plot(model_trainer.test_mseloss)
-mse_axis.plot(model_trainer.train_mseloss)
+# model_trainer.train(epochs=3)
+#
+# fig = plt.figure(figsize=(15, 5))
+# plt.style.use('default')
+#
+# mse_axis = fig.add_subplot(131)
+# att_kl_axis = fig.add_subplot(132)
+# idm_kl_axis = fig.add_subplot(133)
+# mse_axis.plot(model_trainer.test_mseloss)
+# mse_axis.plot(model_trainer.train_mseloss)
 
 
 # %%
@@ -563,32 +564,7 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 
 
-
-
 # %%
-x = np.linspace(0, 1, 100)
-prec = 10
-mean = 0.9
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
-
-mean = 0.1
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
-
-mean = 0.5
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
-
-# %%
-
-
 model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
@@ -643,12 +619,42 @@ plt.legend(driver_types)
 plt.xlabel('Lateral displacement (%)')
 plt.ylabel('Attention pdf')
 plt.grid()
+# %%
+x = np.linspace(0, 1, 100)
+prec = 5
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
 
+np.random.beta(alpha, beta_param)*35
+# %%
+
+prec = 10
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+
+mean = 0.1
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+# %%
+prec = 5
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
 
 # %%
 # %%
 import tensorflow as tf
-examples_to_vis = val_examples[0:1000]
+examples_to_vis = val_examples[:]
 
 val_input = [history_sca[examples_to_vis , :, 2:],
             future_sca[examples_to_vis, :, 2:],
@@ -767,9 +773,6 @@ plt.savefig("graph.pdf",
             bbox_inches='tight',
             )
 # %%
-ror: Failed to call ThenRnnForward with model config: [rnn_mode, rnn_input_mode, rnn_direction_mode]:
- 2, 0, 0 , [num_layers, input_size, num_units, dir_count, max_seq_length, batch_size, cell_num_units]:
- [1, 100, 100, 1, 40, 16944, 100]  [Op:CudnnRNN]
 """
 Choose cars based on the latent for debugging
 """
@@ -874,6 +877,9 @@ while Example_pred < 10:
 
     if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
                     e_veh_att[20:55].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
+    #                 e_veh_att[50:].mean() == 0:
+
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
@@ -962,7 +968,7 @@ while Example_pred < 10:
         plt.plot(m_veh_exists, color='black')
         plt.title(str(sample_index[0]) + ' -- m_veh_exists')
         plt.grid()
-        ############
+        ######\######
         plt.figure(figsize=(4, 4))
         plt.plot(em_delta_y[:20], color='black')
         plt.plot(range(0, 60), em_delta_y, color='red')

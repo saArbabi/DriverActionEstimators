@@ -29,9 +29,9 @@ class NeurIDMModel(AbstractModel):
         self.test_idm_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true)/0.1
+        act_true = (act_true)/0.2
         # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
-        act_pred = (act_pred)/0.1
+        act_pred = (act_pred)/0.2
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):

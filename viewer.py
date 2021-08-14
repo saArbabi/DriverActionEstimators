@@ -241,14 +241,14 @@ class ViewerMC(Viewer):
         self.act_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
+        veh_id = 21
+        self.act_ax.plot(real_mc_log[veh_id]['act'], color='red')
+        self.att_ax.plot(real_mc_log[veh_id]['att'], color='red')
+        self.desvel_ax.plot(real_mc_log[veh_id]['desvel'], color='red')
 
-        self.act_ax.plot(real_mc_log[19]['act_log'], color='red')
-        self.att_ax.plot(real_mc_log[19]['att_log'], color='red')
-        self.desvel_ax.plot(real_mc_log[19]['desvel_log'], color='red')
-
-        self.act_ax.plot(ima_mc_log[19]['act_log'], color='grey')
-        self.att_ax.plot(ima_mc_log[19]['att_log'], color='grey')
-        self.desvel_ax.plot(ima_mc_log[19]['desvel_log'], color='grey')
+        self.act_ax.plot(ima_mc_log[veh_id]['act'], color='grey')
+        self.att_ax.plot(ima_mc_log[veh_id]['att'], color='grey')
+        self.desvel_ax.plot(ima_mc_log[veh_id]['desvel'], color='grey')
 
         self.act_ax.set_title('action')
         self.att_ax.set_title('attention')

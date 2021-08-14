@@ -98,15 +98,10 @@ class IDMMOBILVehicle(Vehicle):
         self.set_attentiveness()
 
     def set_attentiveness(self):
-        var = 10
-        aggressiveness = self.driver_params['aggressiveness']
-        # if self.driver_params['aggressiveness'] == 0:
-        #     aggressiveness += 1e-3
-        # if self.driver_params['aggressiveness'] == 1:
-        #     aggressiveness -= 1e-3
-
-        alpha_param = var*aggressiveness
-        beta_param = var*(1 - aggressiveness)
+        var = 15
+        aggression_param = max(0.1, min(self.driver_params['aggressiveness'], 0.9))
+        alpha_param = var*aggression_param
+        beta_param = var*(1 - aggression_param)
         self.driver_params['attentiveness'] = \
                     self.steps_to_new_lane_entry*np.random.beta(alpha_param, beta_param)
 

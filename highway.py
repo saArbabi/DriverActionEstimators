@@ -111,13 +111,13 @@ class EnvMC(Env):
         For cars to be modelled for MC
         """
         def _act(self, reservations):
-            act_long = self.idm_action(self.observe(self, self.neighbours['f']))
+            act_long = self.idm_action(self.observe(self, self.neighbours['att']))
             return [max(-3, min(act_long, 3)), 0]
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        neural_vehicle = LSTMVehicle()
-        # neural_vehicle = NeuralIDMVehicle()
+        # neural_vehicle = LSTMVehicle()
+        neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))
@@ -128,8 +128,9 @@ class EnvMC(Env):
                                                           self.last_entries)
         for vehicle in new_entries:
 
-            if vehicle.id in [19]:
-                self.prohibit_lane_change(vehicle)
+            if vehicle.id == 21:
+            # if vehicle.id in [21]:
+                # self.prohibit_lane_change(vehicle)
                 vehicle.m_veh_exists = 0
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                 # neural_vehicle.id = 'neur_'+str(vehicle.id)
@@ -175,7 +176,8 @@ class EnvMC(Env):
             veh_ima.neighbours = veh_real.neighbours
             self.set_ima_veh_neighbours(veh_real, veh_ima)
             if veh_ima.vehicle_type == 'neural':
-                veh_ima.time_lapse += 1
+                if veh_ima.glob_x > 0:
+                    veh_ima.time_lapse += 1
                 obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
                                                             veh_ima.neighbours['m'])
                 veh_ima.update_obs_history(obs[0])
@@ -183,6 +185,8 @@ class EnvMC(Env):
                     veh_ima.control_type = 'neural'
                 if veh_ima.control_type == 'neural':
                     act_long = veh_ima.act(obs)
+                    # self.mc_log_info(veh_real, veh_ima)
+
                 else:
                     act_long = veh_ima.idm_action(veh_ima.observe(\
                                             veh_ima, veh_ima.neighbours['att']))
@@ -191,20 +195,17 @@ class EnvMC(Env):
                 act_long = veh_ima.idm_action(veh_ima.observe(\
                                         veh_ima, veh_ima.neighbours['att']))
 
+            act_long = max(-3, min(act_long, 3))
             veh_ima.act_long = act_long
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
-            self.mc_log_info(veh_real, veh_ima)
-
+            self.vis_log_info(veh_real, veh_ima)
         return acts_real, acts_ima
 
-    def mc_log_info(self, veh_real, veh_ima):
+    def vis_log_info(self, veh_real, veh_ima):
         """
-        Informatin to be logged:
-        - relative distance between imagined ego and att_veh and f_veh: collision detection
-        - ego (real and imagined) global_x for rwse
-        - ego (real and imagined) speed for rwse
+        For visualisation and debugging.
         """
-        if veh_real.id == 19:
+        if veh_real.id == 21:
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:
@@ -216,25 +217,54 @@ class EnvMC(Env):
                 self.real_mc_log[veh_id] = {}
                 self.ima_mc_log[veh_id] = {}
 
-                self.real_mc_log[veh_id]['act_log'] = []
-                self.real_mc_log[veh_id]['att_log'] = []
-                self.real_mc_log[veh_id]['desvel_log'] = []
+                self.real_mc_log[veh_id]['act'] = []
+                self.real_mc_log[veh_id]['att'] = []
+                self.real_mc_log[veh_id]['desvel'] = []
 
-                self.ima_mc_log[veh_id]['act_log'] = []
-                self.ima_mc_log[veh_id]['att_log'] = []
-                self.ima_mc_log[veh_id]['desvel_log'] = []
+                self.ima_mc_log[veh_id]['act'] = []
+                self.ima_mc_log[veh_id]['att'] = []
+                self.ima_mc_log[veh_id]['desvel'] = []
                 self.ima_mc_log[veh_id]['m_veh_exists'] = []
 
-            self.real_mc_log[veh_id]['act_log'].append(veh_real.act_long)
-            self.real_mc_log[veh_id]['att_log'].append(att_real)
-            self.real_mc_log[veh_id]['desvel_log'].append(\
+            self.real_mc_log[veh_id]['act'].append(veh_real.act_long)
+            self.real_mc_log[veh_id]['att'].append(att_real)
+            self.real_mc_log[veh_id]['desvel'].append(\
                                                veh_real.driver_params['desired_v'])
-            self.ima_mc_log[veh_id]['act_log'].append(veh_ima.act_long)
-            self.ima_mc_log[veh_id]['att_log'].append(veh_ima.att)
-            self.ima_mc_log[veh_id]['desvel_log'].append(\
+            self.ima_mc_log[veh_id]['act'].append(veh_ima.act_long)
+            self.ima_mc_log[veh_id]['att'].append(veh_ima.att)
+            self.ima_mc_log[veh_id]['desvel'].append(\
                                                 veh_ima.driver_params['desired_v'])
             self.ima_mc_log[veh_id]['m_veh_exists'].append(\
                                                 veh_ima.m_veh_exists)
+
+    def mc_log_info(self, veh_real, veh_ima):
+        """
+        Informatin to be logged:
+        - ego (real and imagined) global_x for rwse and collision detection
+        - ego (real and imagined) speed for rwse
+        - ego (real and imagined) action for comparing action distributions
+        """
+        if veh_real.id == 21:
+            veh_id =  veh_real.id
+            if veh_id not in self.real_mc_log:
+                self.real_mc_log[veh_id] = {}
+                self.ima_mc_log[veh_id] = {}
+
+                self.real_mc_log[veh_id]['glob_x'] = []
+                self.real_mc_log[veh_id]['speed'] = []
+                self.real_mc_log[veh_id]['action'] = []
+
+                self.ima_mc_log[veh_id]['glob_x'] = []
+                self.ima_mc_log[veh_id]['speed'] = []
+                self.ima_mc_log[veh_id]['action'] = []
+
+            self.real_mc_log[veh_id]['glob_x'].append(veh_real.glob_x)
+            self.real_mc_log[veh_id]['speed'].append(veh_real.speed)
+            self.real_mc_log[veh_id]['action'].append(veh_real.act_long)
+
+            self.ima_mc_log[veh_id]['glob_x'].append(veh_ima.glob_x)
+            self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
+            self.ima_mc_log[veh_id]['action'].append(veh_ima.act_long)
 
     def step(self, actions=None):
         """ steps the environment forward in time.
