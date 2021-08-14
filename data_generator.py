@@ -278,7 +278,7 @@ class DataGenerator:
                         future_m_veh_a, future_e_veh_a]
 
         return data_arrays
-                          
+
     def scale_data(self, features):
         col_names = ['f_veh_speed', 'e_veh_speed', 'm_veh_speed',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']

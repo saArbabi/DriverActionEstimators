@@ -252,7 +252,7 @@ class IDMForwardSim(tf.keras.Model):
         To deal with nonexisting cars.
         """
         idm_action = idm_veh_exists*(idm_action) + \
-                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 1)
+                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
         return idm_action
 
     def rollout(self, inputs):

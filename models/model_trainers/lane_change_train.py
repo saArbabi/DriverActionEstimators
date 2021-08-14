@@ -168,11 +168,6 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
 future_e_veh_a.shape
-future_e_veh_a[0]
-history_future_usc[0, 20]
-history_sca[0]
-# data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
-future_idm_s[0:10, 0, :]
 # %%
 """
 BALANCE DATA
@@ -546,7 +541,7 @@ model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
 
-# model_trainer.train(epochs=3)
+# model_trainer.train(epochs=17)
 #
 # fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
@@ -572,10 +567,10 @@ val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
-
-
+train_epis
+np.where(train_epis == 89)
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 1.
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
@@ -677,7 +672,7 @@ loss.shape
 
 
 _ = plt.hist(loss, bins=150)
-bad_examples = np.where(loss > 0.2)
+bad_examples = np.where(loss > 0.1)
 
 # %%
 future_m_veh_a[3508, 0, 0]
@@ -701,7 +696,7 @@ plt.plot(x, y)
 import pickle
 
 # model_trainer.save_model('driver_model')
-model_trainer.save_model('lstm_model')
+# model_trainer.save_model('lstm_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 

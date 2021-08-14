@@ -23,7 +23,7 @@ class VehicleHandler:
         id = self.next_vehicle_id
         glob_x = np.random.uniform(-30, 0)
         if lane_id in [1, 2]:
-            aggressiveness = np.random.uniform(0.5, 1)
+            aggressiveness = np.random.uniform(0.7, 1)
         else:
             aggressiveness = np.random.uniform(0., 1)
 
@@ -52,15 +52,17 @@ class VehicleHandler:
 
             leader = last_entries[lane_id]
             follower = queuing_entries[lane_id]
-            delta_x = leader.glob_x - follower.glob_x
 
-            max_delta_x = follower.driver_params['aggressiveness']*50 + \
-                                            (50 + 10*np.random.normal(0, 1))
-            if delta_x > max_delta_x:
-                # check if cars are not too close
-                new_entries.append(queuing_entries[lane_id])
-                last_entries[lane_id] = queuing_entries[lane_id]
-                queuing_entries[lane_id] = None
+            # ttc = delta_x/follower.speed
+            # max_delta_x = follower.driver_params['aggressiveness']*50 + \
+            #                                 (20 + 10*np.random.normal(0, 1))
+            if leader.glob_x - follower.glob_x > 50:
+                act_long = follower.idm_action(follower.observe(follower, leader))
+                if act_long > -1.:
+                    # check if cars are not too close
+                    new_entries.append(queuing_entries[lane_id])
+                    last_entries[lane_id] = queuing_entries[lane_id]
+                    queuing_entries[lane_id] = None
 
         return new_entries
 

@@ -110,20 +110,20 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         # if self.time_lapse > 5:
         # print(self.obs_history)
         # print(obs_history[:, -1, :])
-        if self.time_lapse_since_last_param_update % 20 == 0:
+        # if self.time_lapse_since_last_param_update % 20 == 0:
         # if self.time_lapse_since_last_param_update == 0:
-            obs_history = self.prep_obs_seq(self.obs_history.copy())
-            enc_h = self.model.h_seq_encoder(obs_history)
-            prior_param = self.model.belief_net(enc_h, dis_type='prior')
-            sampled_att_z, sampled_idm_z = self.model.belief_net.sample_z(prior_param)
+        obs_history = self.prep_obs_seq(self.obs_history.copy())
+        enc_h = self.model.h_seq_encoder(obs_history)
+        prior_param = self.model.belief_net(enc_h, dis_type='prior')
+        sampled_att_z, sampled_idm_z = self.model.belief_net.sample_z(prior_param)
 
-            self.driver_params_update(sampled_idm_z)
-            self.att_context_update(sampled_att_z)
-            self.time_lapse_since_last_param_update = 0
+        self.driver_params_update(sampled_idm_z)
+        self.att_context_update(sampled_att_z)
+            # self.time_lapse_since_last_param_update = 0
 
         # actions = np.float32(np.array(actions))
-        sdv_act = np.repeat(np.array([[m_veh_action_feature]]), self.samples_n, axis=0)
-        # sdv_act = [[m_veh_action_feature]]
+        # sdv_act = np.repeat(np.array([[m_veh_action_feature]]), self.samples_n, axis=0)
+        sdv_act = np.array([[m_veh_action_feature]])
 
         att_score = self.get_neur_att(sdv_act).tolist()[0][0][0]
         self.att = att_score

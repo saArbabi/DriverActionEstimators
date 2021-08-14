@@ -76,7 +76,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'max_act':0.8, # m/s^2
                                         'min_act':1, # m/s^2
                                         'politeness':1,
-                                        'safe_braking':-1,
+                                        'safe_braking':-2,
                                         'act_threshold':0.2
                                          }}
 
@@ -84,7 +84,7 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param(Parameter_range, 'desired_v')
-        self.driver_params['desired_v'] += np.random.normal()
+        # self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_driver_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_driver_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_driver_param(Parameter_range, 'max_act')
@@ -420,6 +420,7 @@ class IDMMOBILVehicle(Vehicle):
                 lc_right_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if max([lc_left_condition, lc_right_condition]) > self.driver_params['act_threshold']:
+
                 if lc_left_condition > lc_right_condition:
                     target_lane = self.target_lane - 1
                     if self.check_reservations(target_lane, reservations):
