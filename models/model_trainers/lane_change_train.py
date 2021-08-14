@@ -174,16 +174,26 @@ history_sca[0]
 # data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
 future_idm_s[0:10, 0, :]
 # %%
-# """
-# BALANCE DATA
-# """
-# history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-# cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
-# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-_ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
+"""
+BALANCE DATA
+Note: You do not want the history always hold the answer to attention - this would
+enable the model to become overtly confident.
+balance_value = 0.267
+"""
+history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
+cond = (history_sca[:, :, -1] == 1).any(axis=1)
+data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# _ = plt.hist(history_sca[:, :, -1].flatten(), bins=150)
+balance_value = np.count_nonzero((history_sca[:, :, -1] == 1).any(axis=1))/\
+np.count_nonzero((history_sca[:, :, -1] != 1).any(axis=1))
+print(balance_value)
 
 # %%
+np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
 
+a = np.zeros([100, 20, 3])
+a[34:36, 3:5, 1] = 1
+(a[:, :, 1] == 1).any(axis=1).shape
 
 # %%
 """
@@ -644,7 +654,7 @@ beta_param = prec*(1-mean)
 p = beta.pdf(x, alpha, beta_param)
 plt.plot(x*35, p)
 # %%
-prec = 5
+prec = 15
 mean = 0.9
 alpha = mean*prec
 beta_param = prec*(1-mean)
