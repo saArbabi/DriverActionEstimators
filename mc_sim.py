@@ -13,7 +13,7 @@ from viewer import ViewerMC
 import numpy as np
 
 def main():
-    config = {'lanes_n':6,
+    config = {'lanes_n':2,
             'lane_width':3.75, # m
             'lane_length':800 # m
             }
@@ -21,7 +21,7 @@ def main():
     viewer = ViewerMC(config)
     np.random.seed(2021)
     while True:
-        if env.time_step > 20:
+        if env.time_step > 300:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
@@ -31,7 +31,7 @@ def main():
                 pass
             print(env.time_step)
             viewer.render(env.real_vehicles, env.ima_vehicles)
-            if 17 in env.real_mc_log:
+            if 7 in env.real_mc_log:
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
         # print(env.ima_vehicles[0].vehicle_type)

@@ -241,7 +241,7 @@ class ViewerMC(Viewer):
         self.act_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
-        veh_id = 17
+        veh_id = 7
         self.act_ax.plot(real_mc_log[veh_id]['act'], color='red')
         self.att_ax.plot(real_mc_log[veh_id]['att'], color='red')
         self.desvel_ax.plot(real_mc_log[veh_id]['desvel'], color='red')

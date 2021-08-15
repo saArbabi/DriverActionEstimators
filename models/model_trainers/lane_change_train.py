@@ -522,12 +522,12 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-# model_trainer = Trainer(data_arrays, model_type='driver_model')
+model_trainer = Trainer(data_arrays, model_type='driver_model')
 # 1/(1+np.exp(-5*1))
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-model_trainer = Trainer(data_arrays, model_type='lstm_model')
+# model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
 #
 model_trainer.train(epochs=5)

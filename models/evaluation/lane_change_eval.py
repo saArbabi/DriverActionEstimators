@@ -26,7 +26,7 @@ config = {'lanes_n':6,
         'lane_length':400 # m
         }
 
-trace_n = 10
+trace_n = 1
 glob_x_collection = np.zeros([1, trace_n, 50]) # [epis_n, trace_n, steps_n]
 ima_act_collection = np.zeros([1, trace_n, 50])
 real_act_collection = np.zeros([1, 1, 50])
@@ -35,17 +35,22 @@ for trace in range(trace_n):
     env = EnvMC(config)
     np.random.seed(2005)
     tf.random.set_seed(trace)
-    for i in range(220):
+    for i in range(400):
         # print(env.time_step)
         env.step()
-        if 19 in env.real_mc_log:
-            if len(env.real_mc_log[19]['glob_x']) == 50:
-                # forward simulation for 20s
-                glob_x_collection[0, trace, :] = np.array(env.real_mc_log[19]['glob_x'])
-                ima_act_collection[0, trace, :] = np.array(env.ima_mc_log[19]['action'])
-                if trace == 0:
-                    real_act_collection[0, trace, :] = np.array(env.real_mc_log[19]['action'])
-                break
+
+
+    # glob_x_collection[0, trace, :] = np.array(env.real_mc_log[19]['glob_x'])
+    # ima_act_collection[0, trace, :] = np.array(env.ima_mc_log[19]['action'])
+    # if trace == 0:
+    #     real_act_collection[0, trace, :] = np.array(env.real_mc_log[19]['action'])
+    # break
+
+env.real_mc_log
+plt.plot(env.ima_mc_log[57]['action'])
+plt.plot(env.real_mc_log[57]['action'])
+
+# %%
 # %%
 plt.plot(real_act_collection[0, 0, :], color='red')
 for trace in range(trace_n):
@@ -73,7 +78,6 @@ plt.plot(mveh_ex, color='blue', linestyle='--')
 # %%
 """
 TODO:
-[] ensure history is diverse - state arrays rather than points
 [] ensrure you do not val on training set
 [] somehow detect collisions
 

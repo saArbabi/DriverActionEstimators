@@ -127,8 +127,8 @@ class EnvMC(Env):
         new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
                                                           self.last_entries)
         for vehicle in new_entries:
-
-            if vehicle.id == 17:
+            # if self.time_step > 300:
+            if vehicle.id == 7:
             # if vehicle.id in [5]:
                 # self.prohibit_lane_change(vehicle)
                 vehicle.m_veh_exists = 0
@@ -173,7 +173,6 @@ class EnvMC(Env):
             self.handler.update_reservations(veh_real)
 
             # imagined vehicles
-            veh_ima.neighbours = veh_real.neighbours
             self.set_ima_veh_neighbours(veh_real, veh_ima)
             if veh_ima.vehicle_type == 'neural':
                 if veh_ima.glob_x > 0:
@@ -205,7 +204,7 @@ class EnvMC(Env):
         """
         For visualisation and debugging.
         """
-        if veh_real.id == 17:
+        if veh_real.id == 7:
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:
@@ -244,27 +243,28 @@ class EnvMC(Env):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
-        if veh_real.id == 17:
-            veh_id =  veh_real.id
-            if veh_id not in self.real_mc_log:
-                self.real_mc_log[veh_id] = {}
-                self.ima_mc_log[veh_id] = {}
+        veh_id =  veh_real.id
+        if veh_id not in self.real_mc_log:
+            self.real_mc_log[veh_id] = {}
+            self.ima_mc_log[veh_id] = {}
 
-                self.real_mc_log[veh_id]['glob_x'] = []
-                self.real_mc_log[veh_id]['speed'] = []
-                self.real_mc_log[veh_id]['action'] = []
+            self.real_mc_log[veh_id]['glob_x'] = []
+            self.real_mc_log[veh_id]['speed'] = []
+            self.real_mc_log[veh_id]['action'] = []
+            self.real_mc_log[veh_id]['time_step'] = []
 
-                self.ima_mc_log[veh_id]['glob_x'] = []
-                self.ima_mc_log[veh_id]['speed'] = []
-                self.ima_mc_log[veh_id]['action'] = []
+            self.ima_mc_log[veh_id]['glob_x'] = []
+            self.ima_mc_log[veh_id]['speed'] = []
+            self.ima_mc_log[veh_id]['action'] = []
 
-            self.real_mc_log[veh_id]['glob_x'].append(veh_real.glob_x)
-            self.real_mc_log[veh_id]['speed'].append(veh_real.speed)
-            self.real_mc_log[veh_id]['action'].append(veh_real.act_long)
+        self.real_mc_log[veh_id]['glob_x'].append(veh_real.glob_x)
+        self.real_mc_log[veh_id]['speed'].append(veh_real.speed)
+        self.real_mc_log[veh_id]['action'].append(veh_real.act_long)
+        self.real_mc_log[veh_id]['time_step'].append(self.time_step)
 
-            self.ima_mc_log[veh_id]['glob_x'].append(veh_ima.glob_x)
-            self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
-            self.ima_mc_log[veh_id]['action'].append(veh_ima.act_long)
+        self.ima_mc_log[veh_id]['glob_x'].append(veh_ima.glob_x)
+        self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
+        self.ima_mc_log[veh_id]['action'].append(veh_ima.act_long)
 
     def step(self, actions=None):
         """ steps the environment forward in time.
