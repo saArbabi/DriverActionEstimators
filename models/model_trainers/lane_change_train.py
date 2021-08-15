@@ -550,10 +550,12 @@ model_trainer = Trainer(data_arrays, model_type='driver_model')
 
 # %%
 x = np.linspace(-5, 5, 1000)
-
-for i in [0.5, 1, 1.5]:
-    y = 15 + 20/(1+np.exp(-i*x))
+minval = 15
+maxval = 20
+for i in [0.25, 0.5, 1, 1.5]:
+    y = minval + maxval/(1+np.exp(-i*x))
     plt.plot(x, y)
+plt.plot(x, x + 25)
 plt.grid()
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
@@ -698,10 +700,11 @@ model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
-
-
+with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
+    pickle.dump(dummy_value_set, handle)
 # %%
-
+with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+    hello = pickle.load(handle)
 # %%
 def latent_samples(model_trainer, sample_index):
     h_seq = history_sca[sample_index, :, 2:]
@@ -878,9 +881,12 @@ while Example_pred < 5:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
+    # #
     #
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-                    e_veh_att[20:55].mean() > 0:
+    act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
+    if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #                 e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
     #                 e_veh_att[50:].mean() == 0:
 
@@ -933,7 +939,7 @@ while Example_pred < 5:
         plt.plot(range(0, 60), e_veh_att, color='red')
         for sample_trace_i in range(traces_n):
            plt.plot(range(20, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
-        plt.ylim(-0.1, 1.1)
+        # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
         plt.grid()
 

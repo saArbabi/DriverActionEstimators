@@ -329,28 +329,27 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x):
         output = self.des_v_neu(self.des_v_linear(x))
-        # return 15 + 15*(1/(1+tf.exp(-1*output)))
-        return 15 + 20*(1/(1+tf.exp(-1*output)))
+        return 15 + 15*(1/(1+tf.exp(-1.*output)))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
-        # return 1 + 1*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
+        # return 1 + 1*(1/(1+tf.exp(-1.*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1.*output)))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
-        # return 4*(1/(1+tf.exp(-1*output)))
-        return 5*(1/(1+tf.exp(-1*output)))
+        # return 4*(1/(1+tf.exp(-1.*output)))
+        return 5*(1/(1+tf.exp(-1.*output)))
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
-        # return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
+        # return 0.8 + 1.2*(1/(1+tf.exp(-1.*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1.*output)))
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
-        # return 1 + 2*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 3*(1/(1+tf.exp(-1*output)))
+        # return 1 + 2*(1/(1+tf.exp(-1.*output)))
+        return 0.5 + 3*(1/(1+tf.exp(-1.*output)))
 
     def call(self, x):
 

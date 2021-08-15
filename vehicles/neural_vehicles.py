@@ -23,6 +23,9 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
+        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+            self.dummy_value_set = pickle.load(handle)
+
         from models.core import driver_model
         reload(driver_model)
         from models.core.driver_model import  NeurIDMModel
@@ -37,11 +40,11 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
     def neur_observe(self, e_veh, f_veh, m_veh):
         if not m_veh:
             m_veh_exists = 0
-            m_veh_speed = 23.2
-            m_veh_action = 0
-            em_delta_x = 51.75
-            em_delta_y = 1.48
-            em_delta_v = -1.6
+            m_veh_speed = self.dummy_value_set['m_veh_speed']
+            m_veh_action = self.dummy_value_set['m_veh_action']
+            em_delta_x = self.dummy_value_set['em_delta_x']
+            em_delta_v = self.dummy_value_set['em_delta_v']
+            em_delta_y = self.dummy_value_set['em_delta_y']
         else:
             m_veh_exists = 1
             m_veh_speed = m_veh.speed
@@ -52,9 +55,9 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
         if not f_veh:
             f_veh_exists = 0
-            f_veh_speed = 23
-            el_delta_x = 67.5
-            el_delta_v = -0.22
+            f_veh_speed = self.dummy_value_set['f_veh_speed']
+            el_delta_x = self.dummy_value_set['el_delta_x']
+            el_delta_v = self.dummy_value_set['el_delta_v']
         else:
             f_veh_exists = 1
             f_veh_speed = f_veh.speed
@@ -110,11 +113,10 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         obs_t0, m_veh_action_feature, idm_s = obs
         # if self.time_lapse > 5:
         # print(self.obs_history)
-        # print(obs_history[:, -1, :])
         if self.time_lapse_since_last_param_update % 30 == 0:
         # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
-            print(self.obs_history[:,-1,:])
+            # print(self.obs_history[:,-1,:])
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_att_z, sampled_idm_z = self.model.belief_net.sample_z(prior_param)
@@ -133,12 +135,8 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         el_delta_v, el_delta_x, em_delta_v, \
                             em_delta_x, f_veh_exists, m_veh_exists = idm_s
 
-        print(idm_s)
-        el_delta_v = el_delta_v*f_veh_exists
-        el_delta_x = el_delta_x*f_veh_exists + 1000*(1-f_veh_exists)
+        print(sdv_act)
         ef_act = self.idm_action([el_delta_v, el_delta_x])
-        em_delta_v = em_delta_v*m_veh_exists
-        em_delta_x = em_delta_x*m_veh_exists + 1000*(1-m_veh_exists)
         em_act = self.idm_action([em_delta_v, em_delta_x])
         act_long = (1-att_score)*ef_act + att_score*em_act
         # print('att_score', att_score)
