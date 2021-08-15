@@ -37,24 +37,24 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
     def neur_observe(self, e_veh, f_veh, m_veh):
         if not m_veh:
             m_veh_exists = 0
-            m_veh_speed = 24.4
+            m_veh_speed = 23.2
             m_veh_action = 0
-            em_delta_x = 59
-            m_veh_delta_y = 1.54
-            em_delta_v = -1.57
+            em_delta_x = 51.75
+            em_delta_y = 1.48
+            em_delta_v = -1.6
         else:
             m_veh_exists = 1
             m_veh_speed = m_veh.speed
             m_veh_action = m_veh.act_long
             em_delta_x = m_veh.glob_x-e_veh.glob_x
-            m_veh_delta_y = abs(m_veh.glob_y-e_veh.glob_y)
+            em_delta_y = abs(m_veh.glob_y-e_veh.glob_y)
             em_delta_v = e_veh.speed-m_veh_speed
 
         if not f_veh:
             f_veh_exists = 0
-            f_veh_speed = 24.2
-            el_delta_x = 99.8
-            el_delta_v = -0.13
+            f_veh_speed = 23
+            el_delta_x = 67.5
+            el_delta_v = -0.22
         else:
             f_veh_exists = 1
             f_veh_speed = f_veh.speed
@@ -67,13 +67,14 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
                              el_delta_x])
         obs_t0.extend([em_delta_v,
                              em_delta_x,
-                             m_veh_delta_y])
+                             em_delta_y])
 
         obs_t0.extend([f_veh_exists, m_veh_exists])
         self.m_veh_exists = m_veh_exists
-        m_veh_action_feature = [m_veh_delta_y, m_veh_action, f_veh_exists, m_veh_exists]
-        idm_ss = [el_delta_v, el_delta_x, em_delta_v, em_delta_x]
-        return [obs_t0, m_veh_action_feature, idm_ss]
+        m_veh_action_feature = [em_delta_y, m_veh_action, f_veh_exists, m_veh_exists]
+
+        idm_s = [el_delta_v, el_delta_x, em_delta_v, em_delta_x, f_veh_exists, m_veh_exists]
+        return [obs_t0, m_veh_action_feature, idm_s]
 
     def driver_params_update(self, sampled_idm_z):
         idm_params = self.model.idm_layer(sampled_idm_z).numpy()[0]
@@ -110,9 +111,10 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         # if self.time_lapse > 5:
         # print(self.obs_history)
         # print(obs_history[:, -1, :])
-        if self.time_lapse_since_last_param_update % 10 == 0:
+        if self.time_lapse_since_last_param_update % 30 == 0:
         # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
+            print(self.obs_history[:,-1,:])
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_att_z, sampled_idm_z = self.model.belief_net.sample_z(prior_param)
@@ -127,8 +129,17 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
         att_score = self.get_neur_att(sdv_act).tolist()[0][0][0]
         self.att = att_score
-        ef_act = self.idm_action(idm_s[0:2])
-        em_act = self.idm_action(idm_s[2:])
+
+        el_delta_v, el_delta_x, em_delta_v, \
+                            em_delta_x, f_veh_exists, m_veh_exists = idm_s
+
+        print(idm_s)
+        el_delta_v = el_delta_v*f_veh_exists
+        el_delta_x = el_delta_x*f_veh_exists + 1000*(1-f_veh_exists)
+        ef_act = self.idm_action([el_delta_v, el_delta_x])
+        em_delta_v = em_delta_v*m_veh_exists
+        em_delta_x = em_delta_x*m_veh_exists + 1000*(1-m_veh_exists)
+        em_act = self.idm_action([em_delta_v, em_delta_x])
         act_long = (1-att_score)*ef_act + att_score*em_act
         # print('att_score', att_score)
         # print('act_long', act_long)

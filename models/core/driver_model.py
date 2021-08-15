@@ -276,9 +276,9 @@ class IDMForwardSim(tf.keras.Model):
             m_veh_exists = idm_s[:, step:step+1, -1:]
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)
             ef_dv = (ego_v - f_veh_v)*f_veh_exists
-            em_dv = (ego_v - m_veh_v)*m_veh_exists
+            em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             # ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
@@ -287,7 +287,7 @@ class IDMForwardSim(tf.keras.Model):
             # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
+            em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             sdv_act = sdv_acts[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([att_context, sdv_act], axis=-1), \
@@ -310,12 +310,16 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
         self.des_v_neu = Dense(1)
+        self.des_v_linear = Dense(100)
         self.des_tgap_neu = Dense(1)
+        self.des_tgap_linear = Dense(100)
         self.min_jamx_neu = Dense(1)
+        self.min_jamx_linear = Dense(100)
         self.max_act_neu = Dense(1)
+        self.max_act_linear = Dense(100)
         self.min_act_neu = Dense(1)
+        self.min_act_linear = Dense(100)
 
     def param_activation(self, x, min_val, max_val, batch_size):
         activation_function = tf.tanh(0.5*x)
@@ -323,40 +327,38 @@ class IDMLayer(tf.keras.Model):
         min_val = tf.fill([batch_size, 1], min_val)
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
-    def get_des_v(self, x, batch_size):
-        output = self.des_v_neu(x)
+    def get_des_v(self, x):
+        output = self.des_v_neu(self.des_v_linear(x))
         # return 15 + 15*(1/(1+tf.exp(-1*output)))
         return 15 + 20*(1/(1+tf.exp(-1*output)))
 
-    def get_des_tgap(self, x, batch_size):
-        output = self.des_tgap_neu(x)
+    def get_des_tgap(self, x):
+        output = self.des_tgap_neu(self.des_tgap_linear(x))
         # return 1 + 1*(1/(1+tf.exp(-1*output)))
         return 0.5 + 2*(1/(1+tf.exp(-1*output)))
 
-    def get_min_jamx(self, x, batch_size):
-        output = self.min_jamx_neu(x)
+    def get_min_jamx(self, x):
+        output = self.min_jamx_neu(self.min_jamx_linear(x))
         # return 4*(1/(1+tf.exp(-1*output)))
         return 5*(1/(1+tf.exp(-1*output)))
 
-    def get_max_act(self, x, batch_size):
-        output = self.max_act_neu(x)
+    def get_max_act(self, x):
+        output = self.max_act_neu(self.max_act_linear(x))
         # return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
         return 0.5 + 2*(1/(1+tf.exp(-1*output)))
 
-    def get_min_act(self, x, batch_size):
-        output = self.min_act_neu(x)
+    def get_min_act(self, x):
+        output = self.min_act_neu(self.min_act_linear(x))
         # return 1 + 2*(1/(1+tf.exp(-1*output)))
         return 0.5 + 3*(1/(1+tf.exp(-1*output)))
 
-    def call(self, inputs):
-        batch_size = tf.shape(inputs)[0]
-        x = self.linear_layer(inputs)
+    def call(self, x):
 
-        desired_v = self.get_des_v(x, batch_size)
-        desired_tgap = self.get_des_tgap(x, batch_size)
-        min_jamx = self.get_min_jamx(x, batch_size)
-        max_act = self.get_max_act(x, batch_size)
-        min_act = self.get_min_act(x, batch_size)
+        desired_v = self.get_des_v(x)
+        desired_tgap = self.get_des_tgap(x)
+        min_jamx = self.get_min_jamx(x)
+        max_act = self.get_max_act(x)
+        min_act = self.get_min_act(x)
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
 #

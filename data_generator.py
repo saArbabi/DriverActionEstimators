@@ -280,7 +280,7 @@ class DataGenerator:
         return data_arrays
 
     def scale_data(self, features):
-        col_names = ['f_veh_speed', 'e_veh_speed', 'm_veh_speed',
+        col_names = ['e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
 
         scalar_indexs = self.names_to_index(col_names)

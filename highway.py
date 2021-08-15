@@ -98,13 +98,11 @@ class Env:
 
 class EnvMC(Env):
     def __init__(self, config):
-
         super().__init__(config)
         self.real_vehicles = []
         self.ima_vehicles = []
         self.real_mc_log = {}
         self.ima_mc_log = {}
-
 
     def prohibit_lane_change(self, vehicle):
         """
@@ -128,7 +126,7 @@ class EnvMC(Env):
                                                           self.last_entries)
         for vehicle in new_entries:
             # if self.time_step > 300:
-            if vehicle.id == 7:
+            if vehicle.id == 9:
             # if vehicle.id in [5]:
                 # self.prohibit_lane_change(vehicle)
                 vehicle.m_veh_exists = 0
@@ -204,7 +202,7 @@ class EnvMC(Env):
         """
         For visualisation and debugging.
         """
-        if veh_real.id == 7:
+        if veh_real.id == 9:
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:

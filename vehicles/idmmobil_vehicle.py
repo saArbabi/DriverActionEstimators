@@ -36,7 +36,6 @@ class Vehicle(object):
     def act(self):
         raise NotImplementedError
 
-
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
@@ -84,7 +83,7 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param(Parameter_range, 'desired_v')
-        self.driver_params['desired_v'] += np.random.normal()
+        # self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_driver_param(Parameter_range, 'desired_tgap')
         self.driver_params['min_jamx'] = self.get_driver_param(Parameter_range, 'min_jamx')
         self.driver_params['max_act'] = self.get_driver_param(Parameter_range, 'max_act')
@@ -372,10 +371,12 @@ class IDMMOBILVehicle(Vehicle):
     def is_lane_change_complete(self):
         if self.steps_since_new_lane_arrival >= 30:
             # manoeuvre completed
-            if self.lane_decision == 'move_left':
+            if self.lane_decision == 'move_left' and self.neighbours['rl']:
                 self.neighbours['rl'].neighbours['f'] = self
-            elif self.lane_decision == 'move_right':
+                self.neighbours['rl'].neighbours['m'] = None
+            elif self.lane_decision == 'move_right' and self.neighbours['rr']:
                 self.neighbours['rr'].neighbours['f'] = self
+                self.neighbours['rr'].neighbours['m'] = None
 
             self.lane_decision = 'keep_lane'
             self.lane_y = 0
@@ -389,7 +390,7 @@ class IDMMOBILVehicle(Vehicle):
         if self.lane_decision != 'keep_lane':
             self.is_lane_change_complete()
 
-        elif self.lane_decision == 'keep_lane' and self.glob_x > 0 and \
+        elif self.lane_decision == 'keep_lane' and self.glob_x > 100 and \
                                             self.check_neighbours(neighbours):
             lc_left_condition = 0
             lc_right_condition = 0
@@ -400,8 +401,7 @@ class IDMMOBILVehicle(Vehicle):
             act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
             old_follower_gain = act_r_lc-act_r_lk
 
-            if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc and \
-                                                            neighbours['rl']:
+            if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
                 act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
                 act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
@@ -409,8 +409,7 @@ class IDMMOBILVehicle(Vehicle):
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            if self.lane_id < self.lanes_n and \
-                    self.driver_params['safe_braking'] < act_rr_lc and neighbours['rr']:
+            if self.lane_id < self.lanes_n and self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
                 act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
                 act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
@@ -427,8 +426,9 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_left'
                         self.neighbours['att'] = self.neighbours['fl']
                         self.neighbours['f'] = self.neighbours['fl']
-                        self.neighbours['rl'].set_attentiveness()
                         self.target_lane -= 1
+                        if self.neighbours['rl']:
+                            self.neighbours['rl'].set_attentiveness()
                         return [act_ego_lc_l, self.lateral_action()]
 
                 elif lc_left_condition < lc_right_condition:
@@ -437,8 +437,9 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_right'
                         self.neighbours['att'] = self.neighbours['fr']
                         self.neighbours['f'] = self.neighbours['fr']
-                        self.neighbours['rr'].set_attentiveness()
                         self.target_lane += 1
+                        if self.neighbours['rr']:
+                            self.neighbours['rr'].set_attentiveness()
                         return [act_ego_lc_r, self.lateral_action()]
 
         return [act_long, self.lateral_action()]

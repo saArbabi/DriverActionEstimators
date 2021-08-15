@@ -21,7 +21,7 @@ def main():
     viewer = ViewerMC(config)
     np.random.seed(2021)
     while True:
-        if env.time_step > 300:
+        if env.time_step > 120:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
@@ -31,7 +31,7 @@ def main():
                 pass
             print(env.time_step)
             viewer.render(env.real_vehicles, env.ima_vehicles)
-            if 7 in env.real_mc_log:
+            if 9 in env.real_mc_log:
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
         # print(env.ima_vehicles[0].vehicle_type)

@@ -1,6 +1,3 @@
-# import os
-# import pickle
-
 import matplotlib.pyplot as plt
 from importlib import reload
 import sys
@@ -28,7 +25,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':2500,
+                'env_steps_n':2000,
                 'model_type':'belief_net'
                 }
 data_gen = DataGenerator(env, data_config)
@@ -57,7 +54,11 @@ for item_name in feature_names:
     index += 1
 indxs['e_veh_att']
 # %%
-np.where(features_origin[:, indxs['m_veh_id']] == features_origin[:, indxs['f_veh_id']])
+np.where((features_origin[:, indxs['m_veh_id']] != -1)
+         & (features_origin[:, indxs['m_veh_id']] == features_origin[:, indxs['f_veh_id']]))
+# features_origin[2938, :]
+# %%
+
 np.where((features_origin[:, indxs['time_step']] == 408) & \
                         (features_origin[:, indxs['e_veh_id']] == 42))
 features_origin[324, indxs['e_veh_action']]
@@ -246,7 +247,13 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 0
+# (array([ 2938,  3806,  5163,  7907,  9053,  9428, 10068, 11380, 21039,
+#         23600, 24103, 27184, 33040, 34718, 36181, 39556, 41057, 43373,
+#         44243, 45802, 46875, 47244, 51806, 53337, 53914, 60293, 60831,
+#         63801, 64256, 64347, 66563, 67068, 68246, 72719, 75622, 78407,
+#         80217, 80345, 81882, 82192, 86496], dtype=int64),)
+
+i = 26075
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -522,12 +529,11 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-model_trainer = Trainer(data_arrays, model_type='driver_model')
-# 1/(1+np.exp(-5*1))
+# model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer = Trainer(data_arrays, model_type='lstm_model')
+model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
 #
 model_trainer.train(epochs=5)
@@ -542,6 +548,13 @@ mse_axis.plot(model_trainer.test_mseloss)
 mse_axis.plot(model_trainer.train_mseloss)
 
 
+# %%
+x = np.linspace(-5, 5, 1000)
+
+for i in [0.5, 1, 1.5]:
+    y = 15 + 20/(1+np.exp(-i*x))
+    plt.plot(x, y)
+plt.grid()
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -681,10 +694,10 @@ plt.plot(x, y)
 # %%
 import pickle
 
-# model_trainer.save_model('driver_model')
+model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
-# with open('./models/experiments/scaler.pickle', 'wb') as handle:
-#     pickle.dump(scaler, handle)
+with open('./models/experiments/scaler.pickle', 'wb') as handle:
+    pickle.dump(scaler, handle)
 
 
 # %%
@@ -844,7 +857,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 10:
+while Example_pred < 5:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -861,13 +874,13 @@ while Example_pred < 10:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes and aggressiveness == 1.:
+    if episode not in covered_episodes and aggressiveness > 0.9:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
-
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-                    e_veh_att[20:55].mean() > 0:
+    #
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #                 e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
     #                 e_veh_att[50:].mean() == 0:
 
