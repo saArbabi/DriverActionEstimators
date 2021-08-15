@@ -143,10 +143,10 @@ class DataGenerator:
                     m_veh = None
                     e_veh_att = 0
 
-                if not att_veh_id:
-                    if epis_features:
-                        end_episode()
-                    continue
+                # if not att_veh_id:
+                #     if epis_features:
+                #         end_episode()
+                #     continue
 
                 if f_veh_id:
                     try:
