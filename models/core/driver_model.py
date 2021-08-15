@@ -264,19 +264,22 @@ class IDMForwardSim(tf.keras.Model):
         state_h, state_c = att_projection, att_projection
 
         for step in range(40):
+            ego_v = idm_s[:, step:step+1, 0:1]
+            ego_glob_x = idm_s[:, step:step+1, 3:4]
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+
             # these to deal with missing cars
             f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
-            if step == 0:
-                ego_v = idm_s[:, step:step+1, 0:1]
-                ego_glob_x = idm_s[:, step:step+1, 3:4]
-            else:
-                ego_v += _act*0.1
-                ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+
+            # if step == 0:
+            #
+            # else:
+            #     ego_v += _act*0.1
+            #     ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)
