@@ -275,13 +275,13 @@ class IDMForwardSim(tf.keras.Model):
             f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
 
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)
-            ef_dv = (ego_v - f_veh_v)*f_veh_exists
+            ef_dv = (ego_v - f_veh_v)
             em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-            # ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
+            ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
 
             # tf.print('############ em_act ############')
             # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])

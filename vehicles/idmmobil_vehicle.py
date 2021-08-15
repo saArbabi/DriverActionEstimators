@@ -44,7 +44,7 @@ class IDMMOBILVehicle(Vehicle):
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
         self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm', 'att']}
-        self.perception_range = 100 #m
+        self.perception_range = 200 #m
         self.lane_width = 3.75
         self.act_long = 0
         self.steps_since_lc_initiation = 0

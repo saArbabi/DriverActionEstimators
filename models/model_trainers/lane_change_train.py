@@ -529,23 +529,23 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-# model_trainer = Trainer(data_arrays, model_type='driver_model')
+model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-model_trainer = Trainer(data_arrays, model_type='lstm_model')
+# model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
 #
-model_trainer.train(epochs=5)
-
-fig = plt.figure(figsize=(15, 5))
-plt.style.use('default')
-
-mse_axis = fig.add_subplot(131)
-att_kl_axis = fig.add_subplot(132)
-idm_kl_axis = fig.add_subplot(133)
-mse_axis.plot(model_trainer.test_mseloss)
-mse_axis.plot(model_trainer.train_mseloss)
+# model_trainer.train(epochs=5)
+#
+# fig = plt.figure(figsize=(15, 5))
+# plt.style.use('default')
+#
+# mse_axis = fig.add_subplot(131)
+# att_kl_axis = fig.add_subplot(132)
+# idm_kl_axis = fig.add_subplot(133)
+# mse_axis.plot(model_trainer.test_mseloss)
+# mse_axis.plot(model_trainer.train_mseloss)
 
 
 # %%
@@ -874,13 +874,13 @@ while Example_pred < 5:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode not in covered_episodes and aggressiveness > 0.9:
+    # if episode not in covered_episodes and aggressiveness > 0.9:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
     #
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #                 e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+                    e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
     #                 e_veh_att[50:].mean() == 0:
 

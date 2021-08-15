@@ -60,7 +60,7 @@ class VehicleHandler:
             delta_x = leader.glob_x - follower.glob_x
             if delta_x > 50:
                 act_long = follower.idm_action(follower.observe(follower, leader))
-                if act_long > -0.5 or delta_x > 100:
+                if act_long > -0.5. or delta_x > 100:
                     # check if cars are not too close
                     new_entries.append(queuing_entries[lane_id])
                     last_entries[lane_id] = queuing_entries[lane_id]

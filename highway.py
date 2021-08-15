@@ -114,8 +114,8 @@ class EnvMC(Env):
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        neural_vehicle = LSTMVehicle()
-        # neural_vehicle = NeuralIDMVehicle()
+        # neural_vehicle = LSTMVehicle()
+        neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))
@@ -126,7 +126,7 @@ class EnvMC(Env):
                                                           self.last_entries)
         for vehicle in new_entries:
             # if self.time_step > 300:
-            if vehicle.id == 9:
+            if vehicle.id == 10:
             # if vehicle.id in [5]:
                 # self.prohibit_lane_change(vehicle)
                 vehicle.m_veh_exists = 0
@@ -202,7 +202,7 @@ class EnvMC(Env):
         """
         For visualisation and debugging.
         """
-        if veh_real.id == 9:
+        if veh_real.id == 10:
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:
@@ -234,6 +234,7 @@ class EnvMC(Env):
             self.ima_mc_log[veh_id]['m_veh_exists'].append(\
                                                 veh_ima.m_veh_exists)
 
+
     def mc_log_info(self, veh_real, veh_ima):
         """
         Informatin to be logged:
@@ -251,6 +252,7 @@ class EnvMC(Env):
             self.real_mc_log[veh_id]['action'] = []
             self.real_mc_log[veh_id]['time_step'] = []
 
+            self.ima_mc_log[veh_id]['min_delta_x'] = []
             self.ima_mc_log[veh_id]['glob_x'] = []
             self.ima_mc_log[veh_id]['speed'] = []
             self.ima_mc_log[veh_id]['action'] = []
@@ -260,7 +262,19 @@ class EnvMC(Env):
         self.real_mc_log[veh_id]['action'].append(veh_real.act_long)
         self.real_mc_log[veh_id]['time_step'].append(self.time_step)
 
+        if veh_ima.neighbours['f']:
+            el_delta_x = veh_ima.neighbours['f'].glob_x - veh_ima.glob_x
+        else:
+            el_delta_x = 1000
+
+        if veh_ima.neighbours['m']:
+            em_delta_x = veh_ima.neighbours['m'].glob_x - veh_ima.glob_x
+        else:
+            em_delta_x = 1000
+
+        min_delta_x = min([el_delta_x, em_delta_x])# for collision detection
         self.ima_mc_log[veh_id]['glob_x'].append(veh_ima.glob_x)
+        self.ima_mc_log[veh_id]['min_delta_x'].append(min_delta_x)
         self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
         self.ima_mc_log[veh_id]['action'].append(veh_ima.act_long)
 
