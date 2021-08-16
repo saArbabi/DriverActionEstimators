@@ -103,6 +103,7 @@ class EnvMC(Env):
         self.ima_vehicles = []
         self.real_mc_log = {}
         self.ima_mc_log = {}
+        self.collision_detected = False
 
     def prohibit_lane_change(self, vehicle):
         """
@@ -114,8 +115,8 @@ class EnvMC(Env):
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        neural_vehicle = LSTMVehicle()
-        # neural_vehicle = NeuralIDMVehicle()
+        # neural_vehicle = LSTMVehicle()
+        neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))
@@ -195,29 +196,26 @@ class EnvMC(Env):
                                                     acts_ima):
 
             veh_real.step(act_real)
-            if veh_real.glob_x > 0:
-                veh_real.time_lapse += 1
-
             veh_ima.step(act_ima)
-            if veh_ima.glob_x > 0:
-                veh_ima.time_lapse += 1
+            veh_real.time_lapse += 1
+            veh_ima.time_lapse += 1
 
-        if self.time_step < 100:
-            self.add_new_vehicles()
-        elif self.time_step == 100:
+        if self.time_step > 100:
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
-                if vehicle.time_lapse < 50:
+                if 0 < vehicle.glob_x < 100 and vehicle.vehicle_type != 'neural':
                     neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                     # neural_vehicle.id = 'neur_'+str(vehicle.id)
                     imagined_vehicle = neural_vehicle
                     imagined_vehicle.vehicle_type = 'neural'
+                    imagined_vehicle.collision_detected = False
                     imagined_vehicle.time_lapse = 0
                     ima_vehicles.append(imagined_vehicle)
                 else:
                     ima_vehicles.append(vehicle)
             self.ima_vehicles = ima_vehicles
 
+        self.add_new_vehicles()
         self.time_step += 1
 
     def vis_log_info(self, veh_real, veh_ima):
@@ -264,6 +262,9 @@ class EnvMC(Env):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
+        if veh_ima.collision_detected:
+            return
+
         veh_id =  veh_real.id
         if veh_id not in self.real_mc_log:
             self.real_mc_log[veh_id] = {}
@@ -272,8 +273,12 @@ class EnvMC(Env):
             self.real_mc_log[veh_id] = []
             self.ima_mc_log[veh_id] = []
 
+        if veh_real.neighbours['att']:
+            min_delta_x = veh_real.neighbours['att'].glob_x - veh_real.glob_x
+        else:
+            min_delta_x = 1000
         real_mc_log = [self.time_step, veh_real.glob_x, \
-                                                veh_real.speed, veh_real.act_long]
+                                        veh_real.speed, veh_real.act_long, min_delta_x]
         self.real_mc_log[veh_id].append(real_mc_log)
 
         if veh_ima.neighbours['f']:
@@ -287,6 +292,10 @@ class EnvMC(Env):
             em_delta_x = 1000
 
         min_delta_x = min([el_delta_x, em_delta_x])# for collision detection
+        if min_delta_x <= 1:
+            self.collision_detected = True
+            self.collision_info = [self.time_step, veh_ima.id]
+            veh_ima.collision_detected = True
         ima_mc_log = [self.time_step, veh_ima.glob_x, \
                                         veh_ima.speed, veh_ima.act_long, min_delta_x]
         self.ima_mc_log[veh_id].append(ima_mc_log)

@@ -47,6 +47,8 @@ class IDMMOBILVehicle(Vehicle):
         self.perception_range = 200 #m
         self.lane_width = 3.75
         self.act_long = 0
+        self.time_lapse = 0 # since vehicle came to existance
+        self.vehicle_type = 'idmmobil'
         self.steps_since_lc_initiation = 0
         self.steps_prior_lc = 10 # steps
         self.steps_since_new_lane_arrival = 0
@@ -307,7 +309,7 @@ class IDMMOBILVehicle(Vehicle):
             return [0, 1000]
         delta_v = follower.speed-leader.speed
         delta_x = leader.glob_x-follower.glob_x
-        assert delta_x > 0
+        # assert delta_x > 0
         return [delta_v, delta_x]
 
     def idm_action(self, obs):

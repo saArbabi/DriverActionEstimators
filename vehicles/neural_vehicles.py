@@ -7,7 +7,6 @@ import tensorflow as tf
 class NeuralIDMVehicle(IDMMOBILVehicle):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
-        self.time_lapse = 0
         self.control_type = 'idmmobil'
         self.time_lapse_since_last_param_update = 0
         self.initialize_agent()

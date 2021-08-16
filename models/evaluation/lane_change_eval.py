@@ -1,11 +1,14 @@
 """
-Collisions
-Hard brakes
+Scripts for MC simulations. The episode and trace seeds are logged for reproducibility:
+Metrics are:
+Collision counts
+
 RWSE
 """
 import os
 import numpy as np
 
+import pickle
 # os.chdir('../../')
 # print('directory: ' + os.getcwd())
 # directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
@@ -20,102 +23,58 @@ reload(highway)
 from highway import EnvMC
 import matplotlib.pyplot as plt
 import copy
-
-config = {'lanes_n':2,
+import time
+config = {'lanes_n':6,
         'lane_width':3.75, # m
         'lane_length':800 # m
         }
 
 trace_n = 1
-glob_x_collection = np.zeros([1, trace_n, 50]) # [epis_n, trace_n, steps_n]
-ima_act_collection = np.zeros([1, trace_n, 50])
-real_act_collection = np.zeros([1, 1, 50])
-
+ima_collection = {}
+collision_log = []
+time_start = time.time()
 for trace in range(trace_n):
     env = EnvMC(config)
-    # np.random.seed(2021)
-    # tf.random.set_seed(trace)
-    for i in range(400):
+    np.random.seed(2021) # ensures environment remains the same
+    tf.random.set_seed(trace) # each trace has a unique seed
+    # tf.random.set_seed(2021)
+    for i in range(300):
         # print(env.time_step)
+        if env.collision_detected:
+            info = env.collision_info
+            info.append(trace)
+            collision_log.append(info)
         env.step()
 
+    for veh_id, data_log in env.ima_mc_log.items():
+        for step_log in data_log:
+            step_log[1:1] = [veh_id, trace]
+        if veh_id not in ima_collection:
+            ima_collection[veh_id] = [data_log]
+        else:
+            ima_collection[veh_id].append(data_log)
 
-    # glob_x_collection[0, trace, :] = np.array(env.real_mc_log[19]['glob_x'])
-    # ima_act_collection[0, trace, :] = np.array(env.ima_mc_log[19]['action'])
-    # if trace == 0:
-    #     real_act_collection[0, trace, :] = np.array(env.real_mc_log[19]['action'])
-    # break
-# %%
+real_collection = {}
+for veh_id, data_log in env.real_mc_log.items():
+    for step_log in data_log:
+        step_log[1:1] = [veh_id, trace]
+    if veh_id in real_collection:
+        real_collection[veh_id].append(data_log)
+    else:
+        real_collection[veh_id] = data_log
+time_end = time.time()
 
-env.real_mc_log
-plt.plot(env.ima_mc_log[10]['action'])
-plt.plot(env.real_mc_log[10]['action'])
+print(time_end-time_start)
 
-# %%
-xposition_error = np.array(env.real_mc_log[10]['glob_x']) -\
-                        np.array(env.ima_mc_log[10]['glob_x'])
-plt.plot(np.abs(xposition_error))
-
-# %%
-plt.plot(real_act_collection[0, 0, :], color='red')
-for trace in range(trace_n):
-    plt.plot(ima_act_collection[0, trace, :], color='grey')
-
-# %%
-delta_x = np.array(env.real_mc_log[19]['glob_x']) -\
-                        np.array(env.ima_mc_log[19]['glob_x'])
-plt.plot(delta_x)
-
-# %%
-
-plt.plot(env.ima_mc_log[19]['glob_x'])
-plt.plot(env.real_mc_log[19]['glob_x'])
-# %%
-plt.plot(env.ima_mc_log[19]['action'])
-plt.plot(env.real_mc_log[19]['action'])
-# %%
-
-env.ima_mc_log[19]
-
-plt.plot(att_real, color='red')
-mveh_ex = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
-plt.plot(mveh_ex, color='blue', linestyle='--')
 # %%
 """
-TODO:
-[] ensrure you do not val on training set
-[] somehow detect collisions
-
-Note: in all this plan a few steps ahead.
-end episdoe if:
-20s gathered for all cars
-there is a collision
----
-There are two loops (both needed for rwse):
-One for generating traces for the same episodes
-One for different episodes
+Save recordings
 """
+# model_name = 'driver_model'
+model_name = 'lstm_model'
 
-att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
-att_real = np.array(env.real_mc_log[19]['att_log'][25:])
-arrays = [att_ima[:, i, 0, 0] for i in range(2)]
-att_ima = np.stack(arrays)
-plt.plot(att_real, color='red')
-plt.plot(att_ima[0, :], color='grey')
-print(1, 2)
+with open('./publication_results/'+model_name+'/real_collection.pickle', 'wb') as handle:
+    pickle.dump(real_collection, handle)
 
-# %%
-# plt.plot(env.real_mc_log[19]['att_log'])
-# plt.plot(env.ima_mc_log[19]['att_log'])
-samples_n = 20
-att_ima = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
-att_ima = np.array(env.ima_mc_log[19]['att_log'][25:])
-att_real = np.array(env.real_mc_log[19]['att_log'][25:])
-arrays = [att_ima[:, i, 0, 0] for i in range(samples_n)]
-att_ima = np.stack(arrays)
-plt.plot(att_real, color='red')
-mveh_ex = np.array(env.ima_mc_log[19]['m_veh_exists'][25:])
-plt.plot(mveh_ex, color='blue', linestyle='--')
-for i in range(samples_n):
-    plt.plot(att_ima[i, :], color='grey')
-# %%
+with open('./publication_results/'+model_name+'/ima_collection.pickle', 'wb') as handle:
+    pickle.dump(ima_collection, handle)

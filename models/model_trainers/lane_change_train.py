@@ -703,8 +703,7 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
     pickle.dump(dummy_value_set, handle)
 # %%
-with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
-    hello = pickle.load(handle)
+
 # %%
 def latent_samples(model_trainer, sample_index):
     h_seq = history_sca[sample_index, :, 2:]

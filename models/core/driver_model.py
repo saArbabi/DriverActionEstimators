@@ -7,7 +7,6 @@ from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
-tf.random.set_seed(1234)
 
 class NeurIDMModel(AbstractModel):
     def __init__(self, config=None):
