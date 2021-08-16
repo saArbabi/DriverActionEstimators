@@ -1,5 +1,4 @@
 import numpy as np
-np.random.seed(2020)
 
 class Vehicle(object):
     STEP_SIZE = 0.1

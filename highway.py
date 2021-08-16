@@ -5,7 +5,6 @@ import vehicle_handler
 reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
 
-from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle
 
 import copy
 import types
@@ -115,8 +114,7 @@ class EnvMC(Env):
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        # neural_vehicle = LSTMVehicle()
-        neural_vehicle = NeuralIDMVehicle()
+        neural_vehicle = copy.deepcopy(self.neural_vehicle)
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))

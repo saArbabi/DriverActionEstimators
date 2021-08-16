@@ -14,9 +14,10 @@ import pickle
 # directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
 from importlib import reload
 from vehicle_handler import VehicleHandler
-from vehicles import neural_vehicles
 import tensorflow as tf
+from vehicles import neural_vehicles
 reload(neural_vehicles)
+from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle
 
 import highway
 reload(highway)
@@ -35,12 +36,15 @@ collision_log = []
 time_start = time.time()
 for trace in range(trace_n):
     env = EnvMC(config)
+    # env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle = LSTMVehicle()
     np.random.seed(2021) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed
     # tf.random.set_seed(2021)
     for i in range(300):
         # print(env.time_step)
         if env.collision_detected:
+            print('COLLISION')
             info = env.collision_info
             info.append(trace)
             collision_log.append(info)

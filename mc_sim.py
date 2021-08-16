@@ -11,6 +11,7 @@ import os
 from highway import EnvMC
 from viewer import ViewerMC
 import numpy as np
+from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle
 
 def main():
     config = {'lanes_n':6,
@@ -18,10 +19,11 @@ def main():
             'lane_length':800 # m
             }
     env = EnvMC(config)
+    env.neural_vehicle = NeuralIDMVehicle()
     viewer = ViewerMC(config)
     np.random.seed(2021)
     while True:
-        if env.time_step > 90:
+        if env.time_step > 50:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
