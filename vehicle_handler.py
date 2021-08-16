@@ -4,7 +4,7 @@ reload(idmmobil_vehicle)
 from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 from vehicles.idm_vehicle import IDMVehicle
 import numpy as np
-np.random.seed(2021)
+# np.random.seed(2021)
 
 
 class VehicleHandler:

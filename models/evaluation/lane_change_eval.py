@@ -71,6 +71,12 @@ time_end = time.time()
 print(time_end-time_start)
 
 # %%
+np.random.seed(2021)
+import numpy as np
+np.random.normal()
+st0 = 
+np.random.get_state()
+# %%
 """
 Save recordings
 """
