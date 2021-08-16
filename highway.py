@@ -114,8 +114,8 @@ class EnvMC(Env):
         vehicle.act = types.MethodType(_act, vehicle)
 
     def idm_to_neural_vehicle(self, vehicle):
-        # neural_vehicle = LSTMVehicle()
-        neural_vehicle = NeuralIDMVehicle()
+        neural_vehicle = LSTMVehicle()
+        # neural_vehicle = NeuralIDMVehicle()
         for attrname, attrvalue in list(vehicle.__dict__.items()):
             if attrname != 'act':
                 setattr(neural_vehicle, attrname, copy.copy(attrvalue))
@@ -126,7 +126,7 @@ class EnvMC(Env):
                                                           self.last_entries)
         for vehicle in new_entries:
             # if self.time_step > 300:
-            if vehicle.id == 10:
+            if vehicle.id in [7, 10]:
             # if vehicle.id in [5]:
                 # self.prohibit_lane_change(vehicle)
                 vehicle.m_veh_exists = 0
@@ -182,7 +182,7 @@ class EnvMC(Env):
                     veh_ima.control_type = 'neural'
                 if veh_ima.control_type == 'neural':
                     act_long = veh_ima.act(obs)
-                    # self.mc_log_info(veh_real, veh_ima)
+                    self.mc_log_info(veh_real, veh_ima)
 
                 else:
                     act_long = veh_ima.idm_action(veh_ima.observe(\
@@ -195,7 +195,7 @@ class EnvMC(Env):
             act_long = max(-3, min(act_long, 3))
             veh_ima.act_long = act_long
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
-            self.vis_log_info(veh_real, veh_ima)
+            # self.vis_log_info(veh_real, veh_ima)
         return acts_real, acts_ima
 
     def vis_log_info(self, veh_real, veh_ima):

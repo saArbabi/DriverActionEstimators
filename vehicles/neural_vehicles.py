@@ -135,7 +135,6 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         el_delta_v, el_delta_x, em_delta_v, \
                             em_delta_x, f_veh_exists, m_veh_exists = idm_s
 
-        print(sdv_act)
         ef_act = self.idm_action([el_delta_v, el_delta_x])
         em_act = self.idm_action([em_delta_v, em_delta_x])
         act_long = (1-att_score)*ef_act + att_score*em_act
@@ -170,6 +169,9 @@ class LSTMVehicle(NeuralIDMVehicle):
         exp_dir = './models/experiments/'+model_name+'/model'
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
+
+        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+            self.dummy_value_set = pickle.load(handle)
 
         from models.core.lstm import Encoder
         self.model = Encoder()

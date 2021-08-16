@@ -33,7 +33,7 @@ real_act_collection = np.zeros([1, 1, 50])
 
 for trace in range(trace_n):
     env = EnvMC(config)
-    np.random.seed(2021)
+    # np.random.seed(2021)
     # tf.random.set_seed(trace)
     for i in range(400):
         # print(env.time_step)
@@ -52,8 +52,8 @@ plt.plot(env.ima_mc_log[10]['action'])
 plt.plot(env.real_mc_log[10]['action'])
 
 # %%
-xposition_error = np.array(env.real_mc_log[9]['glob_x']) -\
-                        np.array(env.ima_mc_log[9]['glob_x'])
+xposition_error = np.array(env.real_mc_log[10]['glob_x']) -\
+                        np.array(env.ima_mc_log[10]['glob_x'])
 plt.plot(np.abs(xposition_error))
 
 # %%

@@ -529,23 +529,23 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-model_trainer = Trainer(data_arrays, model_type='driver_model')
+# model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer = Trainer(data_arrays, model_type='lstm_model')
+model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # %%
 #
-# model_trainer.train(epochs=5)
-#
-# fig = plt.figure(figsize=(15, 5))
-# plt.style.use('default')
-#
-# mse_axis = fig.add_subplot(131)
-# att_kl_axis = fig.add_subplot(132)
-# idm_kl_axis = fig.add_subplot(133)
-# mse_axis.plot(model_trainer.test_mseloss)
-# mse_axis.plot(model_trainer.train_mseloss)
+model_trainer.train(epochs=5)
+
+fig = plt.figure(figsize=(15, 5))
+plt.style.use('default')
+
+mse_axis = fig.add_subplot(131)
+att_kl_axis = fig.add_subplot(132)
+idm_kl_axis = fig.add_subplot(133)
+mse_axis.plot(model_trainer.test_mseloss)
+mse_axis.plot(model_trainer.train_mseloss)
 
 
 # %%
@@ -696,7 +696,7 @@ plt.plot(x, y)
 # %%
 import pickle
 
-model_trainer.save_model('driver_model')
+# model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
