@@ -8,9 +8,9 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-class Encoder(AbstractModel):
-    def __init__(self, config):
-        super(Encoder, self).__init__(config)
+class MLP(AbstractModel):
+    def __init__(self, config=None):
+        super(MLP, self).__init__(config)
         self.architecture_def()
 
     @tf.function(experimental_relax_shapes=True)
@@ -58,7 +58,7 @@ class Encoder(AbstractModel):
         x = self.layer_2(x)
         x = self.layer_3(x)
         x = self.layer_4(x)
-        neu_mean = self.neu_mean(h_t)
-        neu_var = self.neu_var(h_t)
+        neu_mean = self.neu_mean(x)
+        neu_var = self.neu_var(x)
         pred_dis = tfp.distributions.Normal(neu_mean, neu_var, name='Normal')
         return pred_dis

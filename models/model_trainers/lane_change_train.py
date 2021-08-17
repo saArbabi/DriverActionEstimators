@@ -147,6 +147,7 @@ future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
 future_idm_s[0:10, 0, :]
 future_m_veh_a.shape
 future_m_veh_a.shape
+np.squeeze(future_m_veh_a).shape
 # %%
 
 """
@@ -165,6 +166,20 @@ future_e_veh_a.shape
 """
 Driver model - mlp
 """
+history_future_seqs = data_gen.sequence(features, 1, 1)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 1, 1)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_m_veh_a, future_e_veh_a = data_arrays
+
+future_e_veh_a.shape
+
+history_sca.flatten().shape
+future_e_veh_a[0]
+history_future_usc[0]
+
 
 # %%
 # """
@@ -474,6 +489,12 @@ class Trainer():
             from models.core.lstm import  Encoder
             self.model = Encoder(config)
 
+        elif self.model_type == 'mlp_model':
+            from models.core import mlp
+            reload(mlp)
+            from models.core.mlp import  MLP
+            self.model = MLP(config)
+
     def prep_data(self, training_data):
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
@@ -507,6 +528,16 @@ class Trainer():
             self.val_input = [history_sca[val_indxs, :, 2:],
                                         future_e_veh_a[val_indxs, 0, -1]]
 
+        elif self.model_type == 'mlp_model':
+            history_sca = np.squeeze(history_sca)
+            future_e_veh_a = np.squeeze(future_e_veh_a)
+
+            self.train_input = [history_sca[train_indxs, 2:],
+                                        future_e_veh_a[train_indxs, -1]]
+
+            self.val_input = [history_sca[val_indxs, 2:],
+                                        future_e_veh_a[val_indxs, -1]]
+
     def train(self, epochs):
         # self.model.epochs_n = epochs
         avg_training_time = (45+epochs*15)/60
@@ -538,7 +569,8 @@ class Trainer():
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-model_trainer = Trainer(data_arrays, model_type='lstm_model')
+# model_trainer = Trainer(data_arrays, model_type='lstm_model')
+model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # %%
 #
 model_trainer.train(epochs=5)
@@ -703,6 +735,7 @@ import pickle
 
 # model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
+model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
