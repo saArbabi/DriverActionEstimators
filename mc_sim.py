@@ -23,8 +23,8 @@ def main():
     # env.neural_vehicle = LSTMVehicle()
     env.neural_vehicle = NeuralIDMVehicle()
     viewer = ViewerMC(config)
-    np.random.seed(2021)
-    tf.random.set_seed(2021)
+    np.random.seed(0)
+    tf.random.set_seed(0)
     while True:
         if env.time_step > 200:
             user_input = input()

@@ -36,9 +36,9 @@ collision_log = []
 time_start = time.time()
 for trace in range(trace_n):
     env = EnvMC(config)
-    # env.neural_vehicle = NeuralIDMVehicle()
-    env.neural_vehicle = LSTMVehicle()
-    np.random.seed(2021) # ensures environment remains the same
+    env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = LSTMVehicle()
+    np.random.seed(0) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed
     # tf.random.set_seed(2021)
     for i in range(300):
@@ -71,17 +71,13 @@ time_end = time.time()
 print(time_end-time_start)
 
 # %%
-np.random.seed(2021)
-import numpy as np
-np.random.normal()
-st0 = 
-np.random.get_state()
+
 # %%
 """
 Save recordings
 """
-# model_name = 'driver_model'
-model_name = 'lstm_model'
+model_name = 'driver_model'
+# model_name = 'lstm_model'
 
 with open('./publication_results/'+model_name+'/real_collection.pickle', 'wb') as handle:
     pickle.dump(real_collection, handle)
