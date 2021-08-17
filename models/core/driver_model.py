@@ -136,14 +136,15 @@ class BeliefModel(tf.keras.Model):
 
     def sample_z(self, dis_params):
         z_att_mean, z_idm_mean, z_att_logsigma, z_idm_logsigma = dis_params
-        _epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
+        _epsilon = tf.random.normal(shape=(tf.shape(z_att_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
         sampled_att_z = z_att_mean + K.exp(z_att_logsigma) * _epsilon
-        _epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
+
+        _epsilon = tf.random.normal(shape=(tf.shape(z_att_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
         sampled_idm_z = z_idm_mean + K.exp(z_idm_logsigma) * _epsilon
 
-        return sampled_att_z, sampled_idm_z
+        return z_att_mean, z_idm_mean
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':

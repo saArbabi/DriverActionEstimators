@@ -164,6 +164,7 @@ class EnvMC(Env):
                 veh_ima.update_obs_history(obs[0])
                 if veh_ima.time_lapse > 25 and veh_ima.control_type != 'neural':
                     veh_ima.control_type = 'neural'
+
                 if veh_ima.control_type == 'neural':
                     act_long = veh_ima.act(obs)
                     self.mc_log_info(veh_real, veh_ima)

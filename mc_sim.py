@@ -26,7 +26,7 @@ def main():
     np.random.seed(2021)
     tf.random.set_seed(2021)
     while True:
-        if env.time_step > 150:
+        if env.time_step > 200:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
