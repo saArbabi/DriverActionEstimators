@@ -99,24 +99,29 @@ class IDMMOBILVehicle(Vehicle):
 
     def set_attentiveness(self):
         var = 15
-        aggression_param = max(0.1, min(self.driver_params['aggressiveness'], 0.9))
-        alpha_param = var*aggression_param
-        beta_param = var*(1 - aggression_param)
+        alpha_param = var*self.driver_params['aggressiveness']
+        beta_param = var*(1 - self.driver_params['aggressiveness'])
+        aggression_param = np.random.beta(alpha_param, beta_param)
         self.driver_params['attentiveness'] = \
-                    self.steps_to_new_lane_entry*np.random.beta(alpha_param, beta_param)
+                            self.steps_to_new_lane_entry*aggression_param
 
     def get_driver_param(self, Parameter_range, param_name):
+        var = 15
+        alpha_param = var*self.driver_params['aggressiveness']
+        beta_param = var*(1 - self.driver_params['aggressiveness'])
+        aggression_param = np.random.beta(alpha_param, beta_param)
         if param_name in ['desired_v', 'max_act', 'min_act']:
             # the larger the param, the more aggressive the driver
             min_value = Parameter_range['least_aggressvie'][param_name]
             max_value = Parameter_range['most_aggressive'][param_name]
-            return  min_value + self.driver_params['aggressiveness']*(max_value-min_value)
+            return  min_value + aggression_param*(max_value-min_value)
 
-        elif param_name in ['desired_tgap', 'min_jamx', 'politeness', 'act_threshold', 'safe_braking']:
+        elif param_name in ['desired_tgap', 'min_jamx', 'politeness',
+                                                'act_threshold', 'safe_braking']:
             # the larger the param, the more timid the driver
             min_value = Parameter_range['most_aggressive'][param_name]
             max_value = Parameter_range['least_aggressvie'][param_name]
-            return  max_value - self.driver_params['aggressiveness']*(max_value-min_value)
+            return  max_value - aggression_param*(max_value-min_value)
 
     def my_neighbours(self, vehicles):
         """

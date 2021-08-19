@@ -147,7 +147,6 @@ future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
 future_idm_s[0:10, 0, :]
 future_m_veh_a.shape
 future_m_veh_a.shape
-np.squeeze(future_m_veh_a).shape
 # %%
 
 """
@@ -565,12 +564,12 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-# model_trainer = Trainer(data_arrays, model_type='driver_model')
+model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
-model_trainer = Trainer(data_arrays, model_type='mlp_model')
+# model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # %%
 #
 model_trainer.train(epochs=5)
@@ -591,6 +590,25 @@ minval = 15
 maxval = 20
 for i in [0.25, 0.5, 1, 1.5]:
     y = minval + maxval/(1+np.exp(-i*x))
+    plt.plot(x, y)
+plt.plot(x, x + 25)
+plt.grid()
+# %%
+x = np.linspace(-5, 5, 1000)
+minval = 15
+maxval = 20
+for i in [0.25, 0.5, 1, 1.5]:
+    y = minval + maxval/(1+np.exp(-i*x))
+    plt.plot(x, y)
+plt.plot(x, x + 25)
+plt.grid()
+
+plt.figure()
+x = np.linspace(-5, 5, 1000)
+minval = 15
+maxval = 20
+for i in [0.25, 0.5, 1, 1.5]:
+    y =  minval + maxval/(1+np.exp(-i*(x)))
     plt.plot(x, y)
 plt.plot(x, x + 25)
 plt.grid()
@@ -675,18 +693,18 @@ plt.plot(x*35, p)
 np.random.beta(alpha, beta_param)*35
 # %%
 
-prec = 10
-mean = 0.9
+prec = 15
+mean = 0.5
 alpha = mean*prec
 beta_param = prec*(1-mean)
 p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
+plt.plot(x, p)
 
 mean = 0.1
 alpha = mean*prec
 beta_param = prec*(1-mean)
 p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
+plt.plot(x, p)
 # %%
 prec = 15
 mean = 0.9
