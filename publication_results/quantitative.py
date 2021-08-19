@@ -1,6 +1,10 @@
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+from importlib import reload
+
+reload(plt)
+import matplotlib.pyplot as plt
 
 def rwse(pred_traces, true_trace):
     return np.mean((pred_traces - true_trace)**2, axis=0)*0.5
@@ -50,7 +54,7 @@ for model_name in model_names:
 
 # %%
 
-snip_collection_pred.shape
+snip_collection_pred['driver_model'].shape
 snip_collection_true.shape
 
 # %%
@@ -74,32 +78,51 @@ def get_rwse(index, model_name):
     error_total = np.mean(rwse_collection, axis=0)
     return error_total
 
+
+params = {
+          'font.size' : 20,
+          'font.family' : 'EB Garamond',
+          }
+plt.rcParams.update(params)
+plt.style.use(['science', 'ieee'])
+
 for model_name in model_names:
     error_total = get_rwse(3, model_name)
-    plt.plot(error_total)
+    plt.plot(np.linspace(0., 5., 50), error_total)
 
-plt.legend(model_names)
+legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
+plt.ylabel('RWSE position (m)')
+plt.xlabel('Time horizon (s)')
+plt.legend(legends)
+
 # %%
 """
 rwse speed
 """
 for model_name in model_names:
     error_total = get_rwse(4, model_name)
-    plt.plot(error_total)
+    plt.plot(np.linspace(0., 5., 50), error_total)
+
+legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
+plt.ylabel('RWSE speed ($ms^{-1}$)')
+plt.xlabel('Time horizon (s)')
+plt.legend(legends)
+
 
 # %%
 """
 gap dist
 """
-true_min_gaps = snip_collection_true['driver_model'][:, :, -1].flatten()
 plt.figure()
 model_name = 'driver_model'
+true_min_gaps = snip_collection_true[model_name][:, :, -1].flatten()
 _ = plt.hist(true_min_gaps, bins=30, color='white', edgecolor='black', linewidth=1.5)
 pred_min_gaps = np.mean(snip_collection_pred[model_name][:, :, :, -1], axis=1).flatten()
 _ = plt.hist(pred_min_gaps, bins=30, color='green', alpha=0.5)
 
 plt.figure()
 model_name = 'lstm_model'
+true_min_gaps = snip_collection_true[model_name][:, :, -1].flatten()
 _ = plt.hist(true_min_gaps, bins=30, color='white', edgecolor='black', linewidth=1.5)
 pred_min_gaps = np.mean(snip_collection_pred[model_name][:, :, :, -1], axis=1).flatten()
 _ = plt.hist(pred_min_gaps, bins=30, color='green', alpha=0.5)
