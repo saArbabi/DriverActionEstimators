@@ -1,6 +1,3 @@
-# import os
-# import pickle
-
 import matplotlib.pyplot as plt
 from importlib import reload
 import sys
@@ -39,14 +36,6 @@ features_origin = data_gen.prep_data()
 features_origin.shape
 features_origin.shape
 
-
-# %%
-a = 5
-a -= 3 if 3 == 3
-features_origin[9940]
-np.where(features_origin[:, indxs['e_veh_action']] == features_origin[:, indxs['e_veh_action']].min())
-features_origin[:, indxs['ef_delta_x']].min()
-features_origin[:, indxs['em_delta_y']].min()
 # %%
 indxs = {}
 feature_names = [
@@ -65,7 +54,11 @@ for item_name in feature_names:
     index += 1
 indxs['e_veh_att']
 # %%
-np.where(features_origin[:, indxs['m_veh_id']] == features_origin[:, indxs['f_veh_id']])
+np.where((features_origin[:, indxs['m_veh_id']] != -1)
+         & (features_origin[:, indxs['m_veh_id']] == features_origin[:, indxs['f_veh_id']]))
+# features_origin[2938, :]
+# %%
+
 np.where((features_origin[:, indxs['time_step']] == 408) & \
                         (features_origin[:, indxs['e_veh_id']] == 42))
 features_origin[324, indxs['e_veh_action']]
@@ -127,12 +120,14 @@ features_origin[(features_origin[:, indxs['e_veh_id']] == 58) & \
 features_origin[:, indxs['m_veh_speed']].mean()
 features_origin[:, indxs['e_veh_action']].std()
 features_origin[:, indxs['e_veh_action']].std()
+features_origin[:, indxs['e_veh_action']].std()
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 features_origin[:, indxs['e_veh_action']].mean()
 # %%
+
 """
-PREPARE DATA
+Driver model - neural idm
 """
 features = features_origin.copy()
 # features = features[features[:, indxs['aggressiveness']] == 0.5]
@@ -152,22 +147,58 @@ future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
 future_idm_s[0:10, 0, :]
 future_m_veh_a.shape
 future_m_veh_a.shape
+np.squeeze(future_m_veh_a).shape
+# %%
+
+"""
+Driver model - lstm
+"""
+history_future_seqs = data_gen.sequence(features, 20, 1)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 1)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_m_veh_a, future_e_veh_a = data_arrays
+
+future_e_veh_a.shape
 # %%
 """
-BALANCE DATA
+Driver model - mlp
 """
-history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-_ = plt.hist(history_future_usc[:, :, -3].flatten(), bins=150)
+history_future_seqs = data_gen.sequence(features, 1, 1)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 1, 1)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+# data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_m_veh_a, future_e_veh_a = data_arrays
+
+future_e_veh_a.shape
+
+history_sca.flatten().shape
+future_e_veh_a[0]
+history_future_usc[0]
+
 
 # %%
-np.count_nonzero(cond)/future_e_veh_a.shape[0]
-np.count_nonzero(~cond)
-np.count_nonzero(cond)
-np.count_zeros(cond)
-future_e_veh_a.shape
-future_idm_s.shape
+# """
+# BALANCE DATA
+# """
+# history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
+# cond = (history_sca[:, :, -1] == 1).any(axis=1)
+# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# # _ = plt.hist(history_sca[:, :, -1].flatten(), bins=150)
+# balance_value = np.count_nonzero((history_sca[:, :, -1] == 1).any(axis=1))/\
+# np.count_nonzero((history_sca[:, :, -1] != 1).any(axis=1))
+# print(balance_value)
+
+# %%
+np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
+
+a = np.zeros([100, 20, 3])
+a[34:36, 3:5, 1] = 1
+(a[:, :, 1] == 1).any(axis=1).shape
 
 # %%
 """
@@ -236,7 +267,13 @@ for i in range(10000000):
 """
 For debugging - single sample
 """
-i = 0
+# (array([ 2938,  3806,  5163,  7907,  9053,  9428, 10068, 11380, 21039,
+#         23600, 24103, 27184, 33040, 34718, 36181, 39556, 41057, 43373,
+#         44243, 45802, 46875, 47244, 51806, 53337, 53914, 60293, 60831,
+#         63801, 64256, 64347, 66563, 67068, 68246, 72719, 75622, 78407,
+#         80217, 80345, 81882, 82192, 86496], dtype=int64),)
+
+i = 26075
 history_future_usc[i, 0, :]
 aggressiveness = history_future_usc[i, 0, -1]
 if aggressiveness == 0:
@@ -392,7 +429,7 @@ col_names = ['episode_id', 'time_step', 'e_veh_id',
 
 for i in range(history_future_usc.shape[-1]):
     plt.figure(figsize=(3, 3))
-    to_plot = history_future_usc[:10000, :, i].flatten()
+    to_plot = history_future_usc[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
     # plt.grid()
@@ -427,8 +464,6 @@ class Trainer():
     def __init__(self, training_data, model_type):
         self.model = None
         self.model_type = model_type
-        self.train_loss = []
-        self.valid_loss = []
 
         self.train_mseloss = []
         self.train_att_klloss = []
@@ -442,33 +477,66 @@ class Trainer():
         self.prep_data(training_data)
 
     def initiate_model(self, model_type=None):
-        from models.core import driver_model
-        reload(driver_model)
-        from models.core.driver_model import  NeurIDMModel
-        self.model = NeurIDMModel(config)
+        if self.model_type == 'driver_model':
+            from models.core import driver_model
+            reload(driver_model)
+            from models.core.driver_model import  NeurIDMModel
+            self.model = NeurIDMModel(config)
+
+        elif self.model_type == 'lstm_model':
+            from models.core import lstm
+            reload(lstm)
+            from models.core.lstm import  Encoder
+            self.model = Encoder(config)
+
+        elif self.model_type == 'mlp_model':
+            from models.core import mlp
+            reload(mlp)
+            from models.core.mlp import  MLP
+            self.model = MLP(config)
 
     def prep_data(self, training_data):
-        _, history_sca, future_sca, future_idm_s,\
-                future_m_veh_a, future_e_veh_a = training_data
-        all_epis = np.unique(history_sca[:, 0, 0])
+        all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
         np.random.shuffle(all_epis)
         train_epis = all_epis[:int(len(all_epis)*0.8)]
         val_epis = np.setdiff1d(all_epis, train_epis)
-        train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
-        val_indxs = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
+        train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
+        val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
-        self.train_input = [history_sca[train_indxs, :, 2:],
-                    future_sca[train_indxs, :, 2:],
-                    future_idm_s[train_indxs, :, 2:],
-                    future_m_veh_a[train_indxs, :, 2:],
-                    future_e_veh_a[train_indxs, :, 2:]]
+        _, history_sca, future_sca, future_idm_s,\
+                    future_m_veh_a, future_e_veh_a = training_data
 
-        self.val_input = [history_sca[val_indxs, :, 2:],
-                    future_sca[val_indxs, :, 2:],
-                    future_idm_s[val_indxs, :, 2:],
-                    future_m_veh_a[val_indxs, :, 2:],
-                    future_e_veh_a[val_indxs, :, 2:]]
+        if self.model_type == 'driver_model':
+
+            self.train_input = [history_sca[train_indxs, :, 2:],
+                        future_sca[train_indxs, :, 2:],
+                        future_idm_s[train_indxs, :, 2:],
+                        future_m_veh_a[train_indxs, :, 2:],
+                        future_e_veh_a[train_indxs, :, 2:]]
+
+            self.val_input = [history_sca[val_indxs, :, 2:],
+                        future_sca[val_indxs, :, 2:],
+                        future_idm_s[val_indxs, :, 2:],
+                        future_m_veh_a[val_indxs, :, 2:],
+                        future_e_veh_a[val_indxs, :, 2:]]
+
+        elif self.model_type == 'lstm_model':
+            self.train_input = [history_sca[train_indxs, :, 2:],
+                                        future_e_veh_a[train_indxs, 0, -1]]
+
+            self.val_input = [history_sca[val_indxs, :, 2:],
+                                        future_e_veh_a[val_indxs, 0, -1]]
+
+        elif self.model_type == 'mlp_model':
+            history_sca = np.squeeze(history_sca)
+            future_e_veh_a = np.squeeze(future_e_veh_a)
+
+            self.train_input = [history_sca[train_indxs, 2:],
+                                        future_e_veh_a[train_indxs, -1]]
+
+            self.val_input = [history_sca[val_indxs, 2:],
+                                        future_e_veh_a[val_indxs, -1]]
 
     def train(self, epochs):
         # self.model.epochs_n = epochs
@@ -486,8 +554,8 @@ class Trainer():
                 self.test_att_klloss.append(round(self.model.test_att_klloss.result().numpy().item(), 2))
                 self.test_idm_klloss.append(round(self.model.test_idm_klloss.result().numpy().item(), 2))
             else:
-                self.train_loss.append(round(self.model.train_loss.result().numpy().item(), 2))
-                self.valid_loss.append(round(self.model.test_loss.result().numpy().item(), 2))
+                self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
+                self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
             t1 = time.time()
             print(self.epoch_count, 'epochs completed')
             print('Epoch took: ', round(t1-t0), ' seconds')
@@ -497,11 +565,35 @@ class Trainer():
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-model_trainer = Trainer(data_arrays, model_type='driver_model')
-# 1/(1+np.exp(-5*1))
+# model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(data_arrays, epochs=2)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
+# model_trainer = Trainer(data_arrays, model_type='lstm_model')
+model_trainer = Trainer(data_arrays, model_type='mlp_model')
+# %%
+#
+model_trainer.train(epochs=5)
+
+fig = plt.figure(figsize=(15, 5))
+plt.style.use('default')
+
+mse_axis = fig.add_subplot(131)
+att_kl_axis = fig.add_subplot(132)
+idm_kl_axis = fig.add_subplot(133)
+mse_axis.plot(model_trainer.test_mseloss)
+mse_axis.plot(model_trainer.train_mseloss)
+
+
+# %%
+x = np.linspace(-5, 5, 1000)
+minval = 15
+maxval = 20
+for i in [0.25, 0.5, 1, 1.5]:
+    y = minval + maxval/(1+np.exp(-i*x))
+    plt.plot(x, y)
+plt.plot(x, x + 25)
+plt.grid()
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -516,35 +608,8 @@ val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
-
-
-
-
 # %%
-x = np.linspace(0, 1, 100)
-prec = 10
-mean = 0.9
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
-
-mean = 0.1
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
-
-mean = 0.5
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
-
-# %%
-
-
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 1.
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
@@ -598,12 +663,42 @@ plt.legend(driver_types)
 plt.xlabel('Lateral displacement (%)')
 plt.ylabel('Attention pdf')
 plt.grid()
+# %%
+x = np.linspace(0, 1, 100)
+prec = 5
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
 
+np.random.beta(alpha, beta_param)*35
+# %%
+
+prec = 10
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+
+mean = 0.1
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
+# %%
+prec = 15
+mean = 0.9
+alpha = mean*prec
+beta_param = prec*(1-mean)
+p = beta.pdf(x, alpha, beta_param)
+plt.plot(x*35, p)
 
 # %%
 # %%
 import tensorflow as tf
-examples_to_vis = val_examples[0:1000]
+examples_to_vis = val_examples[:]
 
 val_input = [history_sca[examples_to_vis , :, 2:],
             future_sca[examples_to_vis, :, 2:],
@@ -612,11 +707,10 @@ val_input = [history_sca[examples_to_vis , :, 2:],
 act_pred, pri_params, pos_params = model_trainer.model(val_input)
 loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
 loss = tf.reduce_mean(loss, axis=1).numpy()
-loss.shape
 
 
 _ = plt.hist(loss, bins=150)
-bad_examples = np.where(loss > 0.2)
+bad_examples = np.where(loss > 0.1)
 
 # %%
 future_m_veh_a[3508, 0, 0]
@@ -639,11 +733,13 @@ plt.plot(x, y)
 # %%
 import pickle
 
-model_trainer.save_model('driver_model')
+# model_trainer.save_model('driver_model')
+# model_trainer.save_model('lstm_model')
+model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
-
-
+with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
+    pickle.dump(dummy_value_set, handle)
 # %%
 
 # %%
@@ -721,9 +817,6 @@ plt.savefig("graph.pdf",
             bbox_inches='tight',
             )
 # %%
-ror: Failed to call ThenRnnForward with model config: [rnn_mode, rnn_input_mode, rnn_direction_mode]:
- 2, 0, 0 , [num_layers, input_size, num_units, dir_count, max_seq_length, batch_size, cell_num_units]:
- [1, 100, 100, 1, 40, 16944, 100]  [Op:CudnnRNN]
 """
 Choose cars based on the latent for debugging
 """
@@ -804,7 +897,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 10:
+while Example_pred < 5:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -821,13 +914,19 @@ while Example_pred < 10:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes and aggressiveness == 1.:
+    # if episode not in covered_episodes and aggressiveness > 0.9:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
+    # #
+    #
+    act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
+    if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #                 e_veh_att[20:55].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
+    #                 e_veh_att[50:].mean() == 0:
 
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-                    e_veh_att[20:55].mean() > 0:
     # if sample_index[0] == 14841:
     # if  aggressiveness == 0.5:
     # if episode not in covered_episodes and aggressiveness == 0.5:
@@ -877,7 +976,7 @@ while Example_pred < 10:
         plt.plot(range(0, 60), e_veh_att, color='red')
         for sample_trace_i in range(traces_n):
            plt.plot(range(20, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
-        plt.ylim(-0.1, 1.1)
+        # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
         plt.grid()
 
@@ -916,7 +1015,7 @@ while Example_pred < 10:
         plt.plot(m_veh_exists, color='black')
         plt.title(str(sample_index[0]) + ' -- m_veh_exists')
         plt.grid()
-        ############
+        ######\######
         plt.figure(figsize=(4, 4))
         plt.plot(em_delta_y[:20], color='black')
         plt.plot(range(0, 60), em_delta_y, color='red')

@@ -10,24 +10,35 @@ import os
 
 from highway import EnvMC
 from viewer import ViewerMC
-import matplotlib.pyplot as plt
-import copy
+import numpy as np
+from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle, MLPVehicle
+import tensorflow as tf
 
 def main():
     config = {'lanes_n':6,
             'lane_width':3.75, # m
-            'lane_length':400 # m
+            'lane_length':800 # m
             }
     env = EnvMC(config)
+    # env.neural_vehicle = LSTMVehicle()
+    env.neural_vehicle = MLPVehicle()
+    # env.neural_vehicle = NeuralIDMVehicle()
     viewer = ViewerMC(config)
+    np.random.seed(0)
+    tf.random.set_seed(0)
     while True:
-        if env.time_step > 100:
+        if env.time_step > 200:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
-
+            try:
+                viewer.focus_on_this_vehicle = int(user_input)
+            except:
+                pass
             print(env.time_step)
             viewer.render(env.real_vehicles, env.ima_vehicles)
+            # if 10 in env.real_mc_log:
+            #     viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
         # print(env.ima_vehicles[0].vehicle_type)
         # print(env.ima_vehicles[0].act_long)

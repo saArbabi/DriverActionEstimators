@@ -1,3 +1,4 @@
+
 from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed, Masking
 from keras import backend as K
 from importlib import reload
@@ -7,7 +8,6 @@ from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
-tf.random.set_seed(1234)
 
 class NeurIDMModel(AbstractModel):
     def __init__(self, config=None):
@@ -137,14 +137,15 @@ class BeliefModel(tf.keras.Model):
 
     def sample_z(self, dis_params):
         z_att_mean, z_idm_mean, z_att_logsigma, z_idm_logsigma = dis_params
-        _epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
+        _epsilon = tf.random.normal(shape=(tf.shape(z_att_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
         sampled_att_z = z_att_mean + K.exp(z_att_logsigma) * _epsilon
-        _epsilon = K.random_normal(shape=(tf.shape(z_att_mean)[0],
+
+        _epsilon = tf.random.normal(shape=(tf.shape(z_att_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
         sampled_idm_z = z_idm_mean + K.exp(z_idm_logsigma) * _epsilon
 
-        return sampled_att_z, sampled_idm_z
+        return z_att_mean, z_idm_mean
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -252,7 +253,7 @@ class IDMForwardSim(tf.keras.Model):
         To deal with nonexisting cars.
         """
         idm_action = idm_veh_exists*(idm_action) + \
-                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 1)
+                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
         return idm_action
 
     def rollout(self, inputs):
@@ -264,19 +265,16 @@ class IDMForwardSim(tf.keras.Model):
         state_h, state_c = att_projection, att_projection
 
         for step in range(40):
+            ego_v = idm_s[:, step:step+1, 0:1]
+            ego_glob_x = idm_s[:, step:step+1, 3:4]
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+
             # these to deal with missing cars
             f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
-            if step == 0:
-                ego_v = idm_s[:, step:step+1, 0:1]
-                ego_glob_x = idm_s[:, step:step+1, 3:4]
-            else:
-                ego_v += _act*0.1
-                ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)
@@ -313,12 +311,16 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
         self.des_v_neu = Dense(1)
+        self.des_v_linear = Dense(100)
         self.des_tgap_neu = Dense(1)
+        self.des_tgap_linear = Dense(100)
         self.min_jamx_neu = Dense(1)
+        self.min_jamx_linear = Dense(100)
         self.max_act_neu = Dense(1)
+        self.max_act_linear = Dense(100)
         self.min_act_neu = Dense(1)
+        self.min_act_linear = Dense(100)
 
     def param_activation(self, x, min_val, max_val, batch_size):
         activation_function = tf.tanh(0.5*x)
@@ -326,40 +328,37 @@ class IDMLayer(tf.keras.Model):
         min_val = tf.fill([batch_size, 1], min_val)
         return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
-    def get_des_v(self, x, batch_size):
-        output = self.des_v_neu(x)
-        # return 15 + 15*(1/(1+tf.exp(-1*output)))
-        return 15 + 20*(1/(1+tf.exp(-1*output)))
+    def get_des_v(self, x):
+        output = self.des_v_neu(self.des_v_linear(x))
+        return 15 + 15*(1/(1+tf.exp(-1.*output)))
 
-    def get_des_tgap(self, x, batch_size):
-        output = self.des_tgap_neu(x)
-        # return 1 + 1*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
+    def get_des_tgap(self, x):
+        output = self.des_tgap_neu(self.des_tgap_linear(x))
+        # return 1 + 1*(1/(1+tf.exp(-1.*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1.*output)))
 
-    def get_min_jamx(self, x, batch_size):
-        output = self.min_jamx_neu(x)
-        # return 4*(1/(1+tf.exp(-1*output)))
-        return 5*(1/(1+tf.exp(-1*output)))
+    def get_min_jamx(self, x):
+        output = self.min_jamx_neu(self.min_jamx_linear(x))
+        # return 4*(1/(1+tf.exp(-1.*output)))
+        return 5*(1/(1+tf.exp(-1.*output)))
 
-    def get_max_act(self, x, batch_size):
-        output = self.max_act_neu(x)
-        # return 0.8 + 1.2*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1*output)))
+    def get_max_act(self, x):
+        output = self.max_act_neu(self.max_act_linear(x))
+        # return 0.8 + 1.2*(1/(1+tf.exp(-1.*output)))
+        return 0.5 + 2*(1/(1+tf.exp(-1.*output)))
 
-    def get_min_act(self, x, batch_size):
-        output = self.min_act_neu(x)
-        # return 1 + 2*(1/(1+tf.exp(-1*output)))
-        return 0.5 + 3*(1/(1+tf.exp(-1*output)))
+    def get_min_act(self, x):
+        output = self.min_act_neu(self.min_act_linear(x))
+        # return 1 + 2*(1/(1+tf.exp(-1.*output)))
+        return 0.5 + 3*(1/(1+tf.exp(-1.*output)))
 
-    def call(self, inputs):
-        batch_size = tf.shape(inputs)[0]
-        x = self.linear_layer(inputs)
+    def call(self, x):
 
-        desired_v = self.get_des_v(x, batch_size)
-        desired_tgap = self.get_des_tgap(x, batch_size)
-        min_jamx = self.get_min_jamx(x, batch_size)
-        max_act = self.get_max_act(x, batch_size)
-        min_act = self.get_min_act(x, batch_size)
+        desired_v = self.get_des_v(x)
+        desired_tgap = self.get_des_tgap(x)
+        min_jamx = self.get_min_jamx(x)
+        max_act = self.get_max_act(x)
+        min_act = self.get_min_act(x)
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
 #
