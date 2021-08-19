@@ -9,19 +9,19 @@ def main():
             }
     env = Env(config)
     viewer = Viewer(config)
-    # for i in range(100):
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 200:
-            decision = input()
-            if decision == 'n':
+        if env.time_step > 100:
+            user_input = input()
+            if user_input == 'n':
                 sys.exit()
             try:
-                viewer.focus_on_this_vehicle = int(decision)
+                viewer.focus_on_this_vehicle = int(user_input)
             except:
                 pass
             viewer.render(env.vehicles)
+            # viewer.render(env.vehicles, None)
             print(env.time_step)
 
         env.step()

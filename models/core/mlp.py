@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, LSTM
+from tensorflow.keras.layers import Dense
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -8,10 +8,9 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-class Encoder(AbstractModel):
+class MLP(AbstractModel):
     def __init__(self, config=None):
-        super(Encoder, self).__init__(config)
-        self.enc_units = 50
+        super(MLP, self).__init__(config)
         self.architecture_def()
 
     @tf.function(experimental_relax_shapes=True)
@@ -37,7 +36,10 @@ class Encoder(AbstractModel):
         return -tf.reduce_mean(likelihood)
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units, return_state=True)
+        self.layer_1 = Dense(60, activation=K.relu)
+        self.layer_2 = Dense(60, activation=K.relu)
+        self.layer_3 = Dense(60, activation=K.relu)
+        self.layer_4 = Dense(60, activation=K.relu)
         self.neu_mean = Dense(1)
         self.neu_var = Dense(1, activation=K.exp)
 
@@ -52,9 +54,11 @@ class Encoder(AbstractModel):
             self.test_step(s, t)
 
     def call(self, inputs):
-        _, h_t, c_t = self.lstm_layer(inputs)
-        neu_mean = self.neu_mean(h_t)
-        neu_var = self.neu_var(h_t)
+        x = self.layer_1(inputs)
+        x = self.layer_2(x)
+        x = self.layer_3(x)
+        x = self.layer_4(x)
+        neu_mean = self.neu_mean(x)
+        neu_var = self.neu_var(x)
         pred_dis = tfp.distributions.Normal(neu_mean, neu_var, name='Normal')
-
         return pred_dis

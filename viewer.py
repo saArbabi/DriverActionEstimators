@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 class Viewer():
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(15, 4))
+        self.fig = plt.figure(figsize=(13, 3))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         # self.att_ax = self.fig.add_subplot(212)
@@ -53,48 +53,32 @@ class Viewer():
             ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
             ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
 
-
-
         for vehicle in vehicles:
             if vehicle.id == self.focus_on_this_vehicle:
+                print('#############  ', vehicle.id, '  ##############')
+                print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
                     if neighbour:
-                        # if key == 'f':
-                        # if vehicle.lane_decision != 'keep_lane':
-                        #     ax.plot([vehicle.glob_x, neighbour.glob_x], \
-                        #             [vehicle.glob_y, neighbour.glob_y], linestyle=':',
-                        #                 color='red', linewidth=5, alpha=0.5)
-                        # else:
+                        print(key+': ', neighbour.id)
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                 [vehicle.glob_y, neighbour.glob_y], linestyle='-',
-                                    color='grey', linewidth=5, alpha=0.3)
+                                    color='black', linewidth=1, alpha=0.3)
+                    else:
+                        print(key+': ', None)
 
-                        delta_x = round(neighbour.glob_x-vehicle.glob_x, 2)
-                        pos_x = vehicle.glob_x + (delta_x)/2
-                        delta_y = round(neighbour.glob_y-vehicle.glob_y, 2)
-                        pos_y = vehicle.glob_y + (delta_y)/2
-                        # ax.annotate(delta_x, (pos_x, pos_y+5))
-                        ax.annotate(key, (pos_x, pos_y))
-                        # print(delta_x)
-                        # print('delta_x :', delta_x)
-                print('###########################')
-                # print('lane_id: ', vehicle.lane_id)
+
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
+                print('ego_lane_id: ', vehicle.lane_id)
+                print('lane_y: ', round(vehicle.lane_y, 2))
                 print('ego_act: ', vehicle.act_long)
-                print('lane_y: ', vehicle.lane_y)
+                print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
+                # print('lane_y: ', vehicle.lane_y)
                 print('driver_params: ', vehicle.driver_params)
-                print('steps_since_lc_desired: ', vehicle.steps_since_lc_desired)
 
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)
                 # print('lane_y: ', vehicle.lane_y)
-                try:
-                    print('att_veh_id: ', vehicle.neighbours['f'].id)
-                    print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
-
-                except:
-                    pass
                 print('###########################')
 
                 # print('lane_decision: ', vehicle.lane_decision)
@@ -106,8 +90,8 @@ class Viewer():
                 # print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
                 # print('###########################')
 
-            if 'f' in vehicle.neighbours:
-                neighbour = vehicle.neighbours['f']
+            if 'att' in vehicle.neighbours:
+                neighbour = vehicle.neighbours['att']
                 if neighbour:
                     line_1 = [vehicle.glob_y, neighbour.glob_y+.6]
                     line_2 = [vehicle.glob_y, neighbour.glob_y-.6]
@@ -161,3 +145,114 @@ class Viewer():
         # plt.show()
     def render(self, vehicles):
         self.update_plots(vehicles)
+
+class ViewerMC(Viewer):
+    def __init__(self, config):
+        self.config  = config
+        self.fig = plt.figure(figsize=(20, 4))
+        self.env_ax = self.fig.add_subplot(111)
+        self.focus_on_this_vehicle = None
+        self.fig = plt.figure(figsize=(4, 9))
+        self.act_ax = self.fig.add_subplot(311)
+        self.att_ax = self.fig.add_subplot(312)
+        self.desvel_ax = self.fig.add_subplot(313)
+
+    def draw_vehicles(self, ax, vehicles, env_type):
+        # vehicles = lisvehicles.values())
+
+        # xs_idm_mobil = [veh.glob_x for veh in vehicles if veh.capability == 'IDMMOBIL']
+        # ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
+        glob_xs = [veh.glob_x for veh in vehicles]
+        glob_ys = [veh.glob_y for veh in vehicles]
+        annotation_mark_1 = [veh.id for veh in vehicles]
+        annotation_mark_2 = [round(veh.speed, 2) for veh in vehicles]
+        for i in range(len(annotation_mark_1)):
+            ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
+            ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
+
+
+        if env_type == 'real':
+            color_shade = [veh.driver_params['aggressiveness'] for veh in vehicles]
+            ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
+                                        c=color_shade, cmap='rainbow')
+        else:
+            ax.scatter(glob_xs, glob_ys, s=100, marker=">", \
+                                        color='grey', alpha=0.5, edgecolors='black')
+
+        for vehicle in vehicles:
+            att_veh = vehicle.neighbours['att']
+            f_veh = vehicle.neighbours['f']
+            # if vehicle.id == 19:
+            #     if att_veh:
+            #         print(vehicle.id, ' ',vehicle.glob_x-att_veh.glob_x)
+            #     # point_1 = [vehicle.glob_x, neighbour.glob_x]
+            #     # point_2 = [vehicle.glob_y, neighbour.glob_y]
+            #     # if env_type == 'imagined':
+            #     #     ax.plot(point_1, point_2, color='grey', linestyle='--')
+            #     #     ax.scatter(point_1, point_2, color='black', s=30)
+            #
+            #     if f_veh:
+            #         print(vehicle.id, ' ',vehicle.glob_x-f_veh.glob_x)
+
+            if vehicle.id == self.focus_on_this_vehicle:
+                print('#############  ', vehicle.id, env_type, '  ##############')
+                print('My neighbours: ')
+                for key, neighbour in vehicle.neighbours.items():
+                    if neighbour:
+                        print(key+': ', neighbour.id)
+                        ax.plot([vehicle.glob_x, neighbour.glob_x], \
+                                [vehicle.glob_y, neighbour.glob_y], linestyle='-',
+                                    color='black', linewidth=1, alpha=0.3)
+
+                    else:
+                        print(key+': ', None)
+
+
+                # print('target_lane: ', vehicle.target_lane)
+                print('ego_decision: ', vehicle.lane_decision)
+                print('ego_lane_id: ', vehicle.lane_id)
+                print('lane_y: ', round(vehicle.lane_y, 2))
+                print('ego_act: ', vehicle.act_long)
+                print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
+                # print('lane_y: ', vehicle.lane_y)
+                print('driver_params: ', vehicle.driver_params)
+
+                # print('glob_x: ', vehicle.glob_x)
+                # print('glob_y: ', vehicle.glob_y)
+                # print('lane_y: ', vehicle.lane_y)
+                print('###########################')
+
+    def draw_highway(self, ax, vehicles, env_type):
+        self.draw_road(ax)
+        self.draw_vehicles(ax, vehicles, env_type)
+        # self.draw_attention_line(ax, vehicles)
+
+    def render(self, real_vehicles, ima_vehicles):
+        self.env_ax.clear()
+
+        self.draw_highway(self.env_ax, real_vehicles, 'real')
+        if ima_vehicles:
+            self.draw_highway(self.env_ax, ima_vehicles, 'imagined')
+
+
+        plt.pause(1e-10)
+
+    def info_plot(self, real_mc_log, ima_mc_log):
+        self.act_ax.clear()
+        self.att_ax.clear()
+        self.desvel_ax.clear()
+        veh_id = 10
+        self.act_ax.plot(real_mc_log[veh_id]['act'], color='red')
+        self.att_ax.plot(real_mc_log[veh_id]['att'], color='red')
+        self.desvel_ax.plot(real_mc_log[veh_id]['desvel'], color='red')
+
+        self.act_ax.plot(ima_mc_log[veh_id]['act'], color='grey')
+        self.att_ax.plot(ima_mc_log[veh_id]['att'], color='grey')
+        self.desvel_ax.plot(ima_mc_log[veh_id]['desvel'], color='grey')
+
+        self.act_ax.set_title('action')
+        self.att_ax.set_title('attention')
+        self.desvel_ax.set_title('desvel')
+        self.act_ax.legend(['true', 'pred'])
+        self.att_ax.legend(['true', 'pred'])
+        self.desvel_ax.legend(['true', 'pred'])
