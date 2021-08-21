@@ -8,15 +8,17 @@ from scipy.stats import beta
 """
 Driver generation - beta distribution with aggressiveness levels
 """
+35*0.2
+35*0.3
 x = np.linspace(0.01, 0.99, 100)
 color_i = 0
 range_means = np.linspace(0.01, 0.99, 10)
-var = 0.05
 colors = [cm.rainbow(i) for i in np.linspace(0, 1, len(range_means))]
 alpha_val_plot = 0.8
+precision = 15
+
 for mean in range_means:
-    # mean = 0.02
-    precision = 15
+    mean = 0.3
     alpha_param = mean*precision
     beta_param = precision*(1-mean)
     p = beta.pdf(x, alpha_param, beta_param)

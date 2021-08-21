@@ -21,13 +21,13 @@ def main():
             }
     env = EnvMC(config)
     # env.neural_vehicle = LSTMVehicle()
-    env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = MLPVehicle()
+    env.neural_vehicle = NeuralIDMVehicle()
     viewer = ViewerMC(config)
     np.random.seed(0)
     tf.random.set_seed(0)
     while True:
-        if env.time_step > 200:
+        if env.time_step > 150:
             user_input = input()
             if user_input == 'n':
                 sys.exit()

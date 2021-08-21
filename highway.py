@@ -4,8 +4,6 @@ import copy
 import vehicle_handler
 reload(vehicle_handler)
 from vehicle_handler import VehicleHandler
-
-
 import copy
 import types
 
@@ -285,7 +283,8 @@ class EnvMC(Env):
         else:
             el_delta_x = 1000
 
-        if veh_ima.neighbours['m']:
+        if veh_ima.neighbours['m'] and \
+                        veh_ima.lane_id == veh_ima.neighbours['m'].lane_id:
             em_delta_x = veh_ima.neighbours['m'].glob_x - veh_ima.glob_x
         else:
             em_delta_x = 1000

@@ -853,11 +853,11 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 10:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -875,15 +875,15 @@ for i in bad_examples[0]:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
     # #
     #
     # act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
     # if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #                 e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+                    e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
     #                 e_veh_att[50:].mean() == 0:
 
