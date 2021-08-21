@@ -97,26 +97,31 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
         self.set_attentiveness()
 
+
+    def sample_beta(self):
+        mean = self.driver_params['aggressiveness']
+        precision = 15
+        alpha_param = mean*precision
+        beta_param = precision*(1-mean)
+        return np.random.beta(alpha_param, beta_param)
+
     def set_attentiveness(self):
-        var = 15
-        aggression_param = max(0.1, min(self.driver_params['aggressiveness'], 0.9))
-        alpha_param = var*aggression_param
-        beta_param = var*(1 - aggression_param)
         self.driver_params['attentiveness'] = \
-                    self.steps_to_new_lane_entry*np.random.beta(alpha_param, beta_param)
+                            self.steps_to_new_lane_entry*self.sample_beta()
 
     def get_driver_param(self, Parameter_range, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
             # the larger the param, the more aggressive the driver
             min_value = Parameter_range['least_aggressvie'][param_name]
             max_value = Parameter_range['most_aggressive'][param_name]
-            return  min_value + self.driver_params['aggressiveness']*(max_value-min_value)
+            return  min_value + self.sample_beta()*(max_value-min_value)
 
-        elif param_name in ['desired_tgap', 'min_jamx', 'politeness', 'act_threshold', 'safe_braking']:
+        elif param_name in ['desired_tgap', 'min_jamx', 'politeness',
+                                                'act_threshold', 'safe_braking']:
             # the larger the param, the more timid the driver
             min_value = Parameter_range['most_aggressive'][param_name]
             max_value = Parameter_range['least_aggressvie'][param_name]
-            return  max_value - self.driver_params['aggressiveness']*(max_value-min_value)
+            return  max_value - self.sample_beta()*(max_value-min_value)
 
     def my_neighbours(self, vehicles):
         """

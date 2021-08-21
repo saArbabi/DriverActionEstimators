@@ -19,6 +19,7 @@ class NeurIDMModel(AbstractModel):
         self.idm_layer = IDMLayer()
         self.idm_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
+        # self.loss_function = tf.keras.losses.Huber()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -30,8 +31,8 @@ class NeurIDMModel(AbstractModel):
 
     def mse(self, act_true, act_pred):
         act_true = (act_true)/0.1
-        # act_true += tf.random.normal(shape=(256, 40, 1), mean=0, stddev=0.6)
         act_pred = (act_pred)/0.1
+        # return self.loss_function(act_true, act_pred)
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def train_loop(self, data_objs):
@@ -145,7 +146,7 @@ class BeliefModel(tf.keras.Model):
                                  self.latent_dim), mean=0., stddev=1)
         sampled_idm_z = z_idm_mean + K.exp(z_idm_logsigma) * _epsilon
 
-        return z_att_mean, z_idm_mean
+        return sampled_att_z, sampled_idm_z
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -330,27 +331,33 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x):
         output = self.des_v_neu(self.des_v_linear(x))
-        return 15 + 15*(1/(1+tf.exp(-1.*output)))
+        minval = 19
+        maxval = 30
+        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
-        # return 1 + 1*(1/(1+tf.exp(-1.*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1.*output)))
+        minval = 1
+        maxval = 2
+        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
-        # return 4*(1/(1+tf.exp(-1.*output)))
-        return 5*(1/(1+tf.exp(-1.*output)))
+        minval = 0
+        maxval = 4
+        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
-        # return 0.8 + 1.2*(1/(1+tf.exp(-1.*output)))
-        return 0.5 + 2*(1/(1+tf.exp(-1.*output)))
+        minval = 0.5
+        maxval = 2
+        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
-        # return 1 + 2*(1/(1+tf.exp(-1.*output)))
-        return 0.5 + 3*(1/(1+tf.exp(-1.*output)))
+        minval = 1
+        maxval = 3
+        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
 
     def call(self, x):
 
