@@ -147,6 +147,7 @@ class BeliefModel(tf.keras.Model):
         sampled_idm_z = z_idm_mean + K.exp(z_idm_logsigma) * _epsilon
 
         return sampled_att_z, sampled_idm_z
+        # return sampled_att_z, sampled_att_z for single latent
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':

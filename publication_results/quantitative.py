@@ -18,7 +18,7 @@ Load recordings
 # model_name = 'lstm_model'
 real_collections = {}
 ima_collections = {}
-model_names = ['driver_model', 'lstm_model', 'mlp_model']
+model_names = ['driver_model_l2_single', 'driver_model', 'lstm_model', 'mlp_model']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -90,7 +90,7 @@ for model_name in model_names:
     error_total = get_rwse(3, model_name)
     plt.plot(np.linspace(0., 5., 50), error_total)
 
-legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
+legends = ['NIDM-single-lat', 'NIDM', 'LSTM-MDN', 'MLP-MDN']
 plt.ylabel('RWSE position (m)')
 plt.xlabel('Time horizon (s)')
 plt.legend(legends)

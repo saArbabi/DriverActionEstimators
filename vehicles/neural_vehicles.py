@@ -16,8 +16,8 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-
-        model_name = 'driver_model'
+        model_name = 'driver_model_l2_single'
+        # model_name = 'driver_model'
         exp_dir = './models/experiments/'+model_name+'/model'
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
