@@ -97,31 +97,31 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
         self.set_attentiveness()
 
+
+    def sample_beta(self):
+        var = 0.1
+        mean = self.driver_params['aggressiveness']
+        alpha_param = (((1-mean)/var**2)-(1/mean))*mean**2
+        beta_param = ((1/mean)-1)*alpha_param
+        return np.random.beta(alpha_param, beta_param)
+
     def set_attentiveness(self):
-        var = 15
-        alpha_param = var*self.driver_params['aggressiveness']
-        beta_param = var*(1 - self.driver_params['aggressiveness'])
-        aggression_param = np.random.beta(alpha_param, beta_param)
         self.driver_params['attentiveness'] = \
-                            self.steps_to_new_lane_entry*aggression_param
+                            self.steps_to_new_lane_entry*self.sample_beta()
 
     def get_driver_param(self, Parameter_range, param_name):
-        var = 15
-        alpha_param = var*self.driver_params['aggressiveness']
-        beta_param = var*(1 - self.driver_params['aggressiveness'])
-        aggression_param = np.random.beta(alpha_param, beta_param)
         if param_name in ['desired_v', 'max_act', 'min_act']:
             # the larger the param, the more aggressive the driver
             min_value = Parameter_range['least_aggressvie'][param_name]
             max_value = Parameter_range['most_aggressive'][param_name]
-            return  min_value + aggression_param*(max_value-min_value)
+            return  min_value + self.sample_beta()*(max_value-min_value)
 
         elif param_name in ['desired_tgap', 'min_jamx', 'politeness',
                                                 'act_threshold', 'safe_braking']:
             # the larger the param, the more timid the driver
             min_value = Parameter_range['most_aggressive'][param_name]
             max_value = Parameter_range['least_aggressvie'][param_name]
-            return  max_value - aggression_param*(max_value-min_value)
+            return  max_value - self.sample_beta()*(max_value-min_value)
 
     def my_neighbours(self, vehicles):
         """
