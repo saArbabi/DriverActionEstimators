@@ -99,10 +99,10 @@ class IDMMOBILVehicle(Vehicle):
 
 
     def sample_beta(self):
-        var = 0.1
         mean = self.driver_params['aggressiveness']
-        alpha_param = (((1-mean)/var**2)-(1/mean))*mean**2
-        beta_param = ((1/mean)-1)*alpha_param
+        precision = 15
+        alpha_param = mean*precision
+        beta_param = precision*(1-mean)
         return np.random.beta(alpha_param, beta_param)
 
     def set_attentiveness(self):

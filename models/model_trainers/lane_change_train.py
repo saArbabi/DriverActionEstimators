@@ -585,30 +585,13 @@ mse_axis.plot(model_trainer.train_mseloss)
 
 
 # %%
-x = np.linspace(-5, 5, 1000)
-minval = 15
-maxval = 20
-for i in [0.25, 0.5, 1, 1.5]:
-    y = minval + maxval/(1+np.exp(-i*x))
-    plt.plot(x, y)
-plt.plot(x, x + 25)
-plt.grid()
-# %%
-x = np.linspace(-5, 5, 1000)
-minval = 15
-maxval = 20
-for i in [0.25, 0.5, 1, 1.5]:
-    y = minval + maxval/(1+np.exp(-i*x))
-    plt.plot(x, y)
-plt.plot(x, x + 25)
-plt.grid()
 
 plt.figure()
 x = np.linspace(-5, 5, 1000)
-minval = 15
-maxval = 20
-for i in [0.25, 0.5, 1, 1.5]:
-    y =  minval + maxval/(1+np.exp(-i*(x)))
+minval = 19
+maxval = 30
+for i in [0.5, 1, 5]:
+    y =  minval + (maxval-minval)/(1+np.exp(-i*(x)))
     plt.plot(x, y)
 plt.plot(x, x + 25)
 plt.grid()
@@ -666,52 +649,11 @@ idm_kl_axis.legend(['test', 'train'])
 att_axis, idm_axis = latent_vis()
 
 # %%
-from scipy.stats import beta, gamma, norm
-x = np.linspace(0, 1, 100)
-p = beta.pdf(x, 3, 10)
-plt.plot(x*35, p, color='green')
-p = beta.pdf(x,  11, 11)
-plt.plot(x*35, p, color='orange')
-p = beta.pdf(x, 10, 3)
-plt.plot(x*35, p, color='red')
-mean, var, skew, kurt = beta.stats(2, 10, moments='mvsk')
-mean
-driver_types = ['Timid', 'Normal', 'Aggressive']
-plt.legend(driver_types)
-plt.xlabel('Lateral displacement (%)')
-plt.ylabel('Attention pdf')
-plt.grid()
-# %%
-x = np.linspace(0, 1, 100)
-prec = 5
-mean = 0.9
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
 
-np.random.beta(alpha, beta_param)*35
 # %%
 
-prec = 15
-mean = 0.5
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x, p)
 
-mean = 0.1
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x, p)
 # %%
-prec = 15
-mean = 0.9
-alpha = mean*prec
-beta_param = prec*(1-mean)
-p = beta.pdf(x, alpha, beta_param)
-plt.plot(x*35, p)
 
 # %%
 # %%
@@ -750,10 +692,10 @@ y = 15+ 2000*(1/(1+tf.exp(-2*x)))
 plt.plot(x, y)
 # %%
 import pickle
-
-# model_trainer.save_model('driver_model')
+#
+model_trainer.save_model('driver_model_l2_dual')
 # model_trainer.save_model('lstm_model')
-model_trainer.save_model('mlp_model')
+# model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
     pickle.dump(scaler, handle)
 with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
@@ -911,11 +853,11 @@ model_trainer.model.idm_sim.attention_temp = 20
 # model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
-# for i in bad_examples[0]:
+for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 5:
+# while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -932,14 +874,14 @@ while Example_pred < 5:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes and aggressiveness > 0.9:
-    # if episode not in covered_episodes:
+    # if episode not in covered_episodes and aggressiveness > 0.8:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
     # #
     #
-    act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
-    if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
+    # act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
+    # if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
     # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
     #                 e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
