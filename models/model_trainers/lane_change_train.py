@@ -693,7 +693,7 @@ plt.plot(x, y)
 # %%
 import pickle
 #
-model_trainer.save_model('driver_model_l2_dual')
+model_trainer.save_model('driver_model_l2_single')
 # model_trainer.save_model('lstm_model')
 # model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
