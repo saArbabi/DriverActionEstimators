@@ -18,7 +18,7 @@ Load recordings
 # model_name = 'lstm_model'
 real_collections = {}
 ima_collections = {}
-model_names = ['driver_model_l2_single', 'driver_model', 'lstm_model', 'mlp_model']
+model_names = ['driver_model_l2_double', 'lstm_model', 'mlp_model']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -59,7 +59,7 @@ snip_collection_true.shape
 
 # %%
 """
-rwse x position
+rwse
 """
 # plt.plot(xposition_error)
 def per_veh_rwse(pred_traces, true_trace):
@@ -85,28 +85,44 @@ params = {
           }
 plt.rcParams.update(params)
 plt.style.use(['science', 'ieee'])
-
+# %%
+"""
+rwse x position
+"""
+fig = plt.figure(figsize=(6, 4))
+position_axis = fig.add_subplot(211)
+speed_axis = fig.add_subplot(212)
+fig.subplots_adjust(hspace=0.05)
 for model_name in model_names:
     error_total = get_rwse(3, model_name)
-    plt.plot(np.linspace(0., 5., 50), error_total)
+    position_axis.plot(np.linspace(0., 5., 50), error_total)
 
-legends = ['NIDM-single-lat', 'NIDM', 'LSTM-MDN', 'MLP-MDN']
-plt.ylabel('RWSE position (m)')
-plt.xlabel('Time horizon (s)')
-plt.legend(legends)
-
-# %%
+legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
+position_axis.set_ylabel('RWSE position (m)')
+# position_axis.set_xlabel('Time horizon (s)')
+# position_axis.selegend(legends)
+position_axis.minorticks_off()
+position_axis.set_ylim(0, 4)
+position_axis.set_xticklabels([])
+# s%%
 """
 rwse speed
 """
-for model_name in model_names:
-    error_total = get_rwse(4, model_name)
-    plt.plot(np.linspace(0., 5., 50), error_total)
+# legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 
-legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
-plt.ylabel('RWSE speed ($ms^{-1}$)')
-plt.xlabel('Time horizon (s)')
-plt.legend(legends)
+for model_name, label in zip(model_names, legends):
+    error_total = get_rwse(4, model_name)
+    speed_axis.plot(np.linspace(0., 5., 50), error_total, label=label)
+
+speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
+speed_axis.set_xlabel('Time horizon (s)')
+speed_axis.minorticks_off()
+speed_axis.set_ylim(0, 0.43)
+speed_axis.set_yticks([0, 0.2, 0.4])
+# speed_axis.legend(legends)
+speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
+plt.savefig("rwse.png", dpi=500)
+
 
 
 # %%

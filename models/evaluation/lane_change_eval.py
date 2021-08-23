@@ -78,7 +78,7 @@ print(time_end-time_start)
 """
 Save recordings
 """
-model_name = 'driver_model_l2_single'
+model_name = 'driver_model_l2_double'
 # model_name = 'driver_model'
 # model_name = 'lstm_model'
 # model_name = 'mlp_model'

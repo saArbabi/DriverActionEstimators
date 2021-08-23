@@ -35,7 +35,7 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
-
+70000*0.1/60**2
 # %%
 indxs = {}
 feature_names = [
@@ -693,7 +693,7 @@ plt.plot(x, y)
 # %%
 import pickle
 #
-model_trainer.save_model('driver_model_l2_single')
+model_trainer.save_model('driver_model_l2_double')
 # model_trainer.save_model('lstm_model')
 # model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
@@ -703,6 +703,7 @@ with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
 # %%
 
 # %%
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 def latent_samples(model_trainer, sample_index):
     h_seq = history_sca[sample_index, :, 2:]
     sdv_actions = future_m_veh_a[sample_index, :, 2:]
@@ -714,28 +715,53 @@ def latent_samples(model_trainer, sample_index):
 def latent_vis():
     fig = plt.figure(figsize=(6, 11))
     # plt.style.use('ggplot')
-    # plt.style.use('default')
+    plt.style.use('default')
     att_axis = fig.add_subplot(211)
     idm_axis = fig.add_subplot(212)
-    examples_to_vis = np.random.choice(val_examples, 7000, replace=False)
-    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, examples_to_vis)
+    # examples_to_vis = np.random.choice(train_indxs, 15000, replace=False)
+    # sampled_att_z, sampled_idm_z = latent_samples(examples_to_vis, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
-    att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.2, \
+    att_sc = att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.2, \
                                                 c=color_shade, cmap='rainbow')
-    idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.2, \
+
+
+
+    axins = inset_axes(att_axis,
+                        width="5%",
+                        height="100%",
+                        loc='right',
+                        borderpad=-2
+                       )
+
+    fig.colorbar(att_sc, cax=axins)
+
+    idm_sc = idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.2, \
                                     c=color_shade, cmap='rainbow')
 
-    att_axis.set_ylabel('$z_{1}$')
-    att_axis.set_xlabel('$z_{2}$')
-    idm_axis.set_ylabel('$z_{1}$')
-    idm_axis.set_xlabel('$z_{2}$')
-    att_axis.set_title('Driver attention')
-    idm_axis.set_title('Driver disposition')
+    cbar = fig.colorbar(idm_sc, cax=axins)
+    cbar.set_label('$\psi$')
+    att_axis.set_ylabel('$z_{1, att}$')
+    att_axis.set_xlabel('$z_{2, att}$')
+    idm_axis.set_ylabel('$z_{1, idm}$')
+    idm_axis.set_xlabel('$z_{2, idm}$')
+    # att_axis.set_title('Driver attention')
+    # idm_axis.set_title('Driver disposition')
 
     return att_axis, idm_axis
 att_axis, idm_axis = latent_vis()
-# plt.savefig("latent.png", dpi=500)
+# %%
+plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+#Options
+params = {
+          'font.size' : 20,
+          'font.family' : 'EB Garamond',
+          }
+plt.rcParams.update(params)
+plt.style.use(['science','ieee'])
+att_axis, idm_axis = latent_vis()
+
+plt.savefig("latent.png", dpi=500)
 
 # %%
 plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
@@ -996,9 +1022,9 @@ while Example_pred < 10:
 """Single sample Anticipation visualisation
 """
 # model_trainer.model.arbiter.attention_temp = 5
-traces_n = 100
-model_trainer.model.idm_sim.attention_temp = 5
-sample_index = [8526]
+traces_n = 50
+model_trainer.model.idm_sim.attention_temp = 20
+sample_index = [16637]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
@@ -1036,35 +1062,51 @@ plt.text(0.5, 0.5,
 plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 ##########
-#5 %%
+# %%
 plt.figure(figsize=(4, 4))
-plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['f_veh_action']][0], color='purple')
-plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['e_veh_action']][0], color='red')
-plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['m_veh_action']][0], color='black')
-plt.legend(['Leader', 'Follower', 'Merger'])
-
+# plt.legend(['Leader', 'Follower', 'Merger'])
 for sample_trace_i in range(traces_n):
    plt.plot(time_axis[20:], act_seq[sample_trace_i, :, :].flatten(), \
-                                color='grey', alpha=0.5)
-plt.title('Vehicle actions')
+                                color='grey', alpha=0.5, label='_nolegend_', linestyle='-')
+plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['e_veh_action']][0], color='red')
+plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['m_veh_action']][0], \
+                                                    linestyle='--', color='black')
+plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['f_veh_action']][0], color='purple',linestyle='-')
+
+# plt.title('Vehicle actions')
 plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
 plt.xlabel('Time (s)')
 plt.ylabel('Acceleration ($ms^{-2}$)')
-plt.ylim(-3, 1)
-plt.grid()
+plt.ylim(-3, 2)
+plt.yticks([1, 0., -1, -2, -3])
+plt.xticks([0., 2, 4, 6])
+
+plt.grid(alpha=0.1)
+plt.legend(['Ego', 'Merger', 'Leader'])
+
 ##########
-# s%%
+plt.savefig("example_actions.png", dpi=500)
+
+# %%
 plt.figure(figsize=(4, 4))
-plt.plot(time_axis, e_veh_att, color='red', linewidth=3)
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[20:], att_scores[sample_trace_i, :].flatten(), color='grey', alpha=0.5)
-plt.ylim(-0.1, 1.1)
+   plt.plot(time_axis[20:], att_scores[sample_trace_i, :].flatten(), \
+            color='grey', alpha=0.5, label='_nolegend_', linestyle='-')
+plt.plot(time_axis, e_veh_att, color='red', linewidth=1, linestyle='-')
+
+plt.ylim(-0.05, 1.05)
 plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
 plt.xlabel('Time (s)')
-plt.ylabel('Attentiveness (%)')
-plt.title('Driver attentiveness')
-plt.legend(['True', 'Predicted'])
-plt.grid()
+plt.ylabel('$w$')
+# plt.title('Driver attentiveness')
+plt.legend(['True attnetion'])
+plt.xticks([0., 2, 4, 6])
+plt.yticks([0., 0.5, 1])
+# plt.xlim(0, 1)
+plt.minorticks_off()
+plt.grid(alpha=0.1)
+plt.savefig("example_attention.png", dpi=500)
+
 # %%
 
 ##########
@@ -1080,22 +1122,30 @@ att_axis.set_xlabel('$z_2$')
 ##########
 desired_vs = idm_params.numpy()[:, 0]
 desired_tgaps = idm_params.numpy()[:, 1]
-min_jamx = idm_params.numpy()[:, 2]
+b_max = idm_params.numpy()[:, -1]
 fig = pyplot.figure()
 ax = Axes3D(fig)
 
-ax.scatter(24.7,  1.5, 2, color='red')
 # ax.scatter(19.4,  2, 4, color='red')
-ax.scatter(desired_vs, desired_tgaps, min_jamx, color='grey')
-ax.set_xlim(18, 30)
-ax.set_ylim(1, 2)
-ax.set_zlim(0, 4)
-ax.set_title('Driver disposition')
+ax.scatter(desired_vs, desired_tgaps, b_max, color='grey')
+ax.set_xlim(28, 30)
+ax.set_ylim(1.5, 2.5)
+ax.set_zlim(2.5, 3.5)
+ax.scatter(29.5,  1.5, 3, color='red')
+ax.set_xticks([28., 29, 30])
+ax.set_yticks([1.5, 2, 2.5])
+ax.set_zticks([2.5, 3, 3.5])
+# ax.set_title('Driver disposition')
+ax.minorticks_off()
 
-ax.set_xlabel('Desired speed')
-ax.set_ylabel('Desired time gap')
-ax.set_zlabel('Minimum jam distance')
-plt.legend(['True', 'Predicted'])
+ax.set_xlabel('$v_{des}$')
+ax.set_ylabel('$T_{des}$')
+ax.set_zlabel('$b_{max}$')
+ax.grid(False)
+
+plt.legend(['True parameter', 'Predicted parameters'])
+plt.savefig("example_params.png", dpi=500)
+
 
 
 # %%

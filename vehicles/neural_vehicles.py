@@ -16,7 +16,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        model_name = 'driver_model_l2_single'
+        model_name = 'driver_model_l2_double'
         # model_name = 'driver_model'
         exp_dir = './models/experiments/'+model_name+'/model'
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
@@ -112,7 +112,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         obs_t0, m_veh_action_feature, idm_s = obs
         # if self.time_lapse > 5:
         # print(self.obs_history)
-        if self.time_lapse_since_last_param_update % 30 == 0:
+        if self.time_lapse_since_last_param_update % 20 == 0:
         # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             # print(self.obs_history[:,-1,:])
