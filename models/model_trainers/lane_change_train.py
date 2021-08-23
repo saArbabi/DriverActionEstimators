@@ -35,6 +35,7 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
+
 # %%
 indxs = {}
 feature_names = [
@@ -464,12 +465,10 @@ class Trainer():
         self.model_type = model_type
 
         self.train_mseloss = []
-        self.train_att_klloss = []
-        self.train_idm_klloss = []
+        self.train_klloss = []
 
         self.test_mseloss = []
-        self.test_att_klloss = []
-        self.test_idm_klloss = []
+        self.test_klloss = []
         self.epoch_count = 0
         self.initiate_model()
         self.prep_data(training_data)
@@ -546,11 +545,9 @@ class Trainer():
             self.model.test_loop(self.val_input, epoch)
             if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
-                self.train_att_klloss.append(round(self.model.train_att_klloss.result().numpy().item(), 2))
-                self.train_idm_klloss.append(round(self.model.train_idm_klloss.result().numpy().item(), 2))
+                self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
-                self.test_att_klloss.append(round(self.model.test_att_klloss.result().numpy().item(), 2))
-                self.test_idm_klloss.append(round(self.model.test_idm_klloss.result().numpy().item(), 2))
+                self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
             else:
                 self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
@@ -569,31 +566,25 @@ model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
+model_trainer.train(epochs=2)
+
 # %%
 #
-model_trainer.train(epochs=5)
-
-fig = plt.figure(figsize=(15, 5))
-plt.style.use('default')
-
-mse_axis = fig.add_subplot(131)
-att_kl_axis = fig.add_subplot(132)
-idm_kl_axis = fig.add_subplot(133)
-mse_axis.plot(model_trainer.test_mseloss)
-mse_axis.plot(model_trainer.train_mseloss)
-
+# model_trainer.train(epochs=5)
+#
+# fig = plt.figure(figsize=(15, 5))
+# plt.style.use('default')
+#
+# mse_axis = fig.add_subplot(131)
+# kl_axis = fig.add_subplot(132)
+# idm_kl_axis = fig.add_subplot(133)
+# mse_axis.plot(model_trainer.test_mseloss)
+# mse_axis.plot(model_trainer.train_mseloss)
+#
 
 # %%
 
-plt.figure()
-x = np.linspace(-5, 5, 1000)
-minval = 19
-maxval = 30
-for i in [0.5, 1, 5]:
-    y =  minval + (maxval-minval)/(1+np.exp(-i*(x)))
-    plt.plot(x, y)
-plt.plot(x, x + 25)
-plt.grid()
+
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -615,9 +606,8 @@ model_trainer.train(epochs=5)
 fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
 
-mse_axis = fig.add_subplot(131)
-att_kl_axis = fig.add_subplot(132)
-idm_kl_axis = fig.add_subplot(133)
+mse_axis = fig.add_subplot(121)
+kl_axis = fig.add_subplot(122)
 mse_axis.plot(model_trainer.test_mseloss)
 mse_axis.plot(model_trainer.train_mseloss)
 
@@ -627,25 +617,18 @@ mse_axis.set_ylabel('loss (MSE)')
 mse_axis.set_title('MSE')
 mse_axis.legend(['test', 'train'])
 
-################## att_kl LOSS ##################
-att_kl_axis.plot(model_trainer.test_att_klloss)
-att_kl_axis.plot(model_trainer.train_att_klloss)
+################## kl LOSS ##################
+kl_axis.plot(model_trainer.test_klloss)
+kl_axis.plot(model_trainer.train_klloss)
 
-att_kl_axis.grid()
-att_kl_axis.set_xlabel('epochs')
-att_kl_axis.set_ylabel('loss (att_kl)')
-att_kl_axis.set_title('att_kl')
-att_kl_axis.legend(['test', 'trai n'])
+kl_axis.grid()
+kl_axis.set_xlabel('epochs')
+kl_axis.set_ylabel('loss (kl)')
+kl_axis.set_title('kl')
+kl_axis.legend(['test', 'trai n'])
 
-################## idm_kl LOSS ##################
-idm_kl_axis.plot(model_trainer.test_idm_klloss)
-idm_kl_axis.plot(model_trainer.train_idm_klloss)
-idm_kl_axis.grid()
-idm_kl_axis.set_xlabel('epochs')
-idm_kl_axis.set_ylabel('loss (idm_kl)')
-idm_kl_axis.set_title('idm_kl')
-idm_kl_axis.legend(['test', 'train'])
-att_axis, idm_axis = latent_vis()
+att_axis = latent_vis()
+
 
 # %%
 
@@ -708,21 +691,20 @@ def latent_samples(model_trainer, sample_index):
     sdv_actions = future_m_veh_a[sample_index, :, 2:]
     enc_h = model_trainer.model.h_seq_encoder(h_seq)
     prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
-    sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-    return sampled_att_z, sampled_idm_z
+    sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
+    return sampled_z
 
 def latent_vis():
     fig = plt.figure(figsize=(6, 11))
     # plt.style.use('ggplot')
     plt.style.use('default')
     att_axis = fig.add_subplot(211)
-    idm_axis = fig.add_subplot(212)
-    # examples_to_vis = np.random.choice(train_indxs, 15000, replace=False)
-    # sampled_att_z, sampled_idm_z = latent_samples(examples_to_vis, examples_to_vis)
+    examples_to_vis = np.random.choice(val_examples, 10000, replace=False)
+    sampled_z = latent_samples(model_trainer, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
-    att_sc = att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.2, \
-                                                c=color_shade, cmap='rainbow')
+    att_sc = att_axis.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, \
+                c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.3)
 
 
 
@@ -734,21 +716,15 @@ def latent_vis():
                        )
 
     fig.colorbar(att_sc, cax=axins)
-
-    idm_sc = idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.2, \
-                                    c=color_shade, cmap='rainbow')
-
-    cbar = fig.colorbar(idm_sc, cax=axins)
+    cbar = fig.colorbar(att_sc, cax=axins)
     cbar.set_label('$\psi$')
     att_axis.set_ylabel('$z_{1, att}$')
     att_axis.set_xlabel('$z_{2, att}$')
-    idm_axis.set_ylabel('$z_{1, idm}$')
-    idm_axis.set_xlabel('$z_{2, idm}$')
     # att_axis.set_title('Driver attention')
     # idm_axis.set_title('Driver disposition')
 
-    return att_axis, idm_axis
-att_axis, idm_axis = latent_vis()
+    return att_axis
+att_axis = latent_vis()
 # %%
 plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
 #Options
@@ -758,7 +734,7 @@ params = {
           }
 plt.rcParams.update(params)
 plt.style.use(['science','ieee'])
-att_axis, idm_axis = latent_vis()
+att_axis= latent_vis()
 
 plt.savefig("latent.png", dpi=500)
 
@@ -805,16 +781,16 @@ plt.savefig("graph.pdf",
 """
 Choose cars based on the latent for debugging
 """
-sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
-sampled_att_z, sampled_idm_z = sampled_att_z.numpy(), sampled_idm_z.numpy()
+sampled_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
+sampled_z, sampled_idm_z = sampled_z.numpy(), sampled_idm_z.numpy()
 
-sampled_att_z
+sampled_z
 # %%
 bad_episodes = []
 bad_504 = []
 bad_498 = []
 # bad_zs = np.where((sampled_idm_z[:, 0] < -2) & (sampled_idm_z[:, 0] > -5))[0]
-bad_zs = np.where((sampled_att_z[:, 1] > 5))[0]
+bad_zs = np.where((sampled_z[:, 1] > 5))[0]
 for bad_z in bad_zs:
     exmp_indx = val_examples[bad_z]
     epis = history_future_usc[exmp_indx, 0, 0]
@@ -921,9 +897,9 @@ while Example_pred < 10:
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
-        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        idm_params = model_trainer.model.idm_layer(sampled_idm_z)
-        act_seq, att_scores = model_trainer.model.idm_sim.rollout([sampled_att_z, \
+        sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
+        idm_params = model_trainer.model.idm_layer(sampled_z)
+        act_seq, att_scores = model_trainer.model.idm_sim.rollout([sampled_z, \
                                                     idm_params, future_idm_ss, sdv_actions])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -967,10 +943,8 @@ while Example_pred < 10:
 
         ##########
         # lATENT
-        att_axis, idm_axis = latent_vis()
-        att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
-        idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
-
+        att_axis= latent_vis()
+        att_axis.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, color='black')
         att_axis.set_ylabel('$z_1$')
         att_axis.set_xlabel('$z_2$')
         ##########
@@ -1039,9 +1013,9 @@ h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
-sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+sampled_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
 idm_params = model_trainer.model.idm_layer(sampled_idm_z)
-act_seq, att_scores = model_trainer.model.idm_sim.rollout([sampled_att_z, \
+act_seq, att_scores = model_trainer.model.idm_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -1110,8 +1084,8 @@ plt.savefig("example_attention.png", dpi=500)
 
 ##########
 # lATENT
-att_axis, idm_axis = latent_vis()
-att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, color='black')
+att_axis= latent_vis()
+att_axis.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, color='black')
 idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 
 att_axis.set_ylabel('$z_1$')
@@ -1184,8 +1158,8 @@ def get_animation():
         h_seq = history_sca[sample_index, :, 2:]
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
-        sampled_att_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
-        return sampled_att_z, sampled_idm_z
+        sampled_z, sampled_idm_z = model_trainer.model.belief_net.sample_z(prior_param)
+        return sampled_z, sampled_idm_z
 
     fig = plt.figure(figsize=(7, 7))
     plt.style.use('ggplot')
@@ -1196,10 +1170,10 @@ def get_animation():
     def animation_frame(i):
         model_trainer.model.vae_loss_weight = 0.1
         model_trainer.train(data_arrays, epochs=1)
-        sampled_att_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
+        sampled_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
         aggressiveness = history_future_usc[val_examples, 0, -1]
         color_shade = aggressiveness
-        att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.3, \
+        att_axis.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, alpha=0.3, \
                                                     c=color_shade, cmap='rainbow')
         idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, alpha=0.3, \
                                                     c=color_shade, cmap='rainbow')
