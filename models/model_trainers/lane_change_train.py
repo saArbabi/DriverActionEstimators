@@ -35,7 +35,6 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
-70000*0.1/60**2
 # %%
 indxs = {}
 feature_names = [
