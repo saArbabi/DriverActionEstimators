@@ -899,7 +899,7 @@ while Example_pred < 10:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode not in covered_episodes and aggressiveness > 0.8:
+    # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
@@ -907,8 +907,8 @@ while Example_pred < 10:
     #
     # act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
     # if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #                 e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+                    e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
     #                 e_veh_att[50:].mean() == 0:
 
