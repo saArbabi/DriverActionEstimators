@@ -22,7 +22,7 @@ color_i = 0
 range_means = np.linspace(0.01, 0.99, 10)
 colors = [cm.rainbow(i) for i in np.linspace(0, 1, len(range_means))]
 alpha_val_plot = 0.8
-precision = 15
+precision = 10
 
 for mean in range_means:
     # mean = 0.3
@@ -38,7 +38,7 @@ for mean in range_means:
     # plt.xlim(0, 1)
     plt.minorticks_off()
     color_i += 1
-plt.savefig("beta_densities.png", dpi=500)
+# plt.savefig("beta_densities.png", dpi=500)
 
 
 

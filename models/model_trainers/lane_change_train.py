@@ -181,25 +181,23 @@ history_sca.flatten().shape
 future_e_veh_a[0]
 history_future_usc[0]
 
-
 # %%
 # """
 # BALANCE DATA
 # """
 # history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-# cond = (history_sca[:, :, -1] == 1).any(axis=1)
+# cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
 # data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-# # _ = plt.hist(history_sca[:, :, -1].flatten(), bins=150)
-# balance_value = np.count_nonzero((history_sca[:, :, -1] == 1).any(axis=1))/\
-# np.count_nonzero((history_sca[:, :, -1] != 1).any(axis=1))
+# balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
+# np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
 # print(balance_value)
-
-# %%
-np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
-
-a = np.zeros([100, 20, 3])
-a[34:36, 3:5, 1] = 1
-(a[:, :, 1] == 1).any(axis=1).shape
+#
+# # %%
+# np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
+#
+# a = np.zeros([100, 20, 3])
+# a[34:36, 3:5, 1] = 1
+# (a[:, :, 1] == 1).any(axis=1).shape
 
 # %%
 """
@@ -588,8 +586,10 @@ plt.plot(x, y)
 
 # y = x
 # plt.plot(x, y)
-# y = 1/(1+np.exp(-1*x))
-# plt.plot(x, y, color='red')
+y = 1/(1+np.exp(-1*x))
+plt.plot(x, y, color='red')
+y = 1/(1+np.exp(-10*x))
+plt.plot(x, y, color='red')
 # y = x**2
 # plt.plot(x, y)
 plt.grid()
@@ -650,6 +650,14 @@ desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act))
 
 
 # %%
+from scipy.stats import beta
+mean = 0.3
+precision = 10
+alpha_param = mean*precision
+beta_param = precision*(1-mean)
+gen_samples = np.random.beta(alpha_param, beta_param, 100)*35
+gen_samples.std()
+_ = plt.hist(gen_samples, bins=150)
 
 # %%
 # %%
@@ -867,18 +875,24 @@ for item_name in col_names:
     hf_usc_indexs[item_name] = index
     index += 1
 # %%
+zzz = sampled_z.numpy()
+zzz[:, 0].std()
+zzz[:, 1].std()
+zzz[:, 2].std()
+
+# %%
+
 Example_pred = 0
 i = 0
 covered_episodes = []
 model_trainer.model.idm_sim.attention_temp = 20
-# model_trainer.model.arbiter.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 5:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]

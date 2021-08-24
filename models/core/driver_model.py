@@ -235,19 +235,22 @@ class IDMForwardSim(tf.keras.Model):
         state_h, state_c = att_projection, att_projection
 
         for step in range(40):
-            ego_v = idm_s[:, step:step+1, 0:1]
-            ego_glob_x = idm_s[:, step:step+1, 3:4]
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
-
             # these to deal with missing cars
             f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
+            if step == 0:
+                ego_v = idm_s[:, step:step+1, 0:1]
+                ego_glob_x = idm_s[:, step:step+1, 3:4]
+            else:
+                ego_v += _act*0.1
+                ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)
+            ef_delta_x = K.relu(f_veh_glob_x - ego_glob_x)
+            em_delta_x = K.relu(m_veh_glob_x - ego_glob_x)
             ef_dv = (ego_v - f_veh_v)
             em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
@@ -308,25 +311,25 @@ class IDMLayer(tf.keras.Model):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
         minval = 1
         maxval = 2
-        return minval + K.softplus(output)
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
         minval = 0
         maxval = 4
-        return minval + K.softplus(output)
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
         minval = 1
         maxval = 2
-        return minval + K.softplus(output)
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
         minval = 1
         maxval = 3
-        return minval + K.softplus(output)
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def call(self, x):
         desired_v = self.get_des_v(x)
