@@ -76,7 +76,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'max_act':1, # m/s^2
                                         'min_act':1, # m/s^2
                                         'politeness':1,
-                                        'safe_braking':-2,
+                                        'safe_braking':-1,
                                         'act_threshold':0.2
                                          }}
 
@@ -297,30 +297,31 @@ class IDMMOBILVehicle(Vehicle):
             return True
         return False
 
-    def get_desired_gap(self, delta_v):
-        desired_gap = self.driver_params['min_jamx'] + \
-                        max(0,
-                        self.driver_params['desired_tgap']*\
-                        self.speed+(self.speed*delta_v)/ \
-                        (2*np.sqrt(self.driver_params['max_act']*\
-                        self.driver_params['min_act']))
-                        )
-
-        return desired_gap
-
     def observe(self, follower, leader):
         if not follower or not leader:
             return [0, 1000]
         delta_v = follower.speed-leader.speed
         delta_x = leader.glob_x-follower.glob_x
-        # assert delta_x > 0
+        assert delta_x > 0
         return [delta_v, delta_x]
 
-    def idm_action(self, obs):
-        delta_v, delta_x = obs
-        desired_gap = self.get_desired_gap(delta_v)
-        act_long = self.driver_params['max_act']*(1-(self.speed/self.driver_params['desired_v'])**4-\
-                                            (desired_gap/(delta_x))**2)
+    def idm_action(self, follower, leader):
+        """
+        Note: Follower is not always the ego, it can be the ego's neighbour(use:MOBIL)
+        """
+        if not follower:
+            return 0
+        delta_v, delta_x = self.observe(follower, leader)
+        desired_gap = follower.driver_params['min_jamx'] + \
+                        max(0,
+                        follower.driver_params['desired_tgap']*\
+                        follower.speed+(follower.speed*delta_v)/ \
+                        (2*np.sqrt(follower.driver_params['max_act']*\
+                        follower.driver_params['min_act'])))
+
+        act_long = follower.driver_params['max_act']*\
+                    (1-(follower.speed/follower.driver_params['desired_v'])**4-\
+                                                        (desired_gap/(delta_x))**2)
 
         return act_long
 
@@ -391,7 +392,7 @@ class IDMMOBILVehicle(Vehicle):
 
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours
-        act_long = self.idm_action(self.observe(self, neighbours['att']))
+        act_long = self.idm_action(self, neighbours['att'])
         # return [act_long, self.lateral_action()]
         if self.lane_decision != 'keep_lane':
             self.is_lane_change_complete()
@@ -401,24 +402,24 @@ class IDMMOBILVehicle(Vehicle):
             lc_left_condition = 0
             lc_right_condition = 0
 
-            act_rl_lc = self.idm_action(self.observe(neighbours['rl'], self))
-            act_rr_lc = self.idm_action(self.observe(neighbours['rr'], self))
-            act_r_lc = self.idm_action(self.observe(neighbours['r'], neighbours['f']))
-            act_r_lk = self.idm_action(self.observe(neighbours['r'], self))
+            act_rl_lc = self.idm_action(neighbours['rl'], self)
+            act_rr_lc = self.idm_action(neighbours['rr'], self)
+            act_r_lc = self.idm_action(neighbours['r'], neighbours['f'])
+            act_r_lk = self.idm_action(neighbours['r'], self)
             old_follower_gain = act_r_lc-act_r_lk
 
             if self.lane_id > 1 and self.driver_params['safe_braking'] < act_rl_lc:
                 # consider moving left
-                act_ego_lc_l = self.idm_action(self.observe(self, neighbours['fl']))
-                act_rl_lk = self.idm_action(self.observe(neighbours['rl'], neighbours['fl']))
+                act_ego_lc_l = self.idm_action(self, neighbours['fl'])
+                act_rl_lk = self.idm_action(neighbours['rl'], neighbours['fl'])
                 ego_gain = act_ego_lc_l-act_long
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
             if self.lane_id < self.lanes_n and self.driver_params['safe_braking'] < act_rr_lc:
                 # consider moving right
-                act_ego_lc_r = self.idm_action(self.observe(self, neighbours['fr']))
-                act_rr_lk = self.idm_action(self.observe(neighbours['rr'], neighbours['fr']))
+                act_ego_lc_r = self.idm_action(self, neighbours['fr'])
+                act_rr_lk = self.idm_action(neighbours['rr'], neighbours['fr'])
 
                 ego_gain = act_ego_lc_r-act_long
                 new_follower_gain = act_rr_lc-act_rr_lk
