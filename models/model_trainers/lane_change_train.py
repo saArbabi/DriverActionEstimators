@@ -692,7 +692,7 @@ plt.plot(x, y)
 # %%
 import pickle
 #
-model_trainer.save_model('driver_model_l2_double')
+model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
 # model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
@@ -712,13 +712,13 @@ def latent_samples(model_trainer, sample_index):
     return sampled_att_z, sampled_idm_z
 
 def latent_vis():
-    fig = plt.figure(figsize=(6, 11))
+    fig = plt.figure(figsize=(3, 6))
     # plt.style.use('ggplot')
     plt.style.use('default')
     att_axis = fig.add_subplot(211)
     idm_axis = fig.add_subplot(212)
-    # examples_to_vis = np.random.choice(train_indxs, 15000, replace=False)
-    # sampled_att_z, sampled_idm_z = latent_samples(examples_to_vis, examples_to_vis)
+    examples_to_vis = np.random.choice(val_examples, 10000, replace=False)
+    sampled_att_z, sampled_idm_z = latent_samples(model_trainer, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
     att_sc = att_axis.scatter(sampled_att_z[:, 0], sampled_att_z[:, 1], s=15, alpha=0.2, \
@@ -899,7 +899,7 @@ while Example_pred < 10:
     # plt.plot(e_veh_decision)
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes and aggressiveness > 0.8:
+    if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # if  e_veh_att.mean() > 0:
@@ -907,8 +907,8 @@ while Example_pred < 10:
     #
     # act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
     # if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-                    e_veh_att[20:55].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #                 e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
     #                 e_veh_att[50:].mean() == 0:
 

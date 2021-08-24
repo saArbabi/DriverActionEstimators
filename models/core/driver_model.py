@@ -332,36 +332,35 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x):
         output = self.des_v_neu(self.des_v_linear(x))
-        minval = 19
-        maxval = 30
-        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
+        minval = 15
+        maxval = 35
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
         minval = 1
         maxval = 2
-        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
+        return K.softplus(output)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
         minval = 0
         maxval = 4
-        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
+        return K.softplus(output)
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
-        minval = 0.5
+        minval = 1
         maxval = 2
-        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
+        return K.softplus(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
         minval = 1
         maxval = 3
-        return minval + (maxval-minval)/(1+tf.exp(-5.*output))
+        return K.softplus(output)
 
     def call(self, x):
-
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
         min_jamx = self.get_min_jamx(x)
