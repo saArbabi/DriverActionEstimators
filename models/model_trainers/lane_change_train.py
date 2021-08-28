@@ -557,8 +557,8 @@ class Trainer():
 
 model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(data_arrays, epochs=2)
-# exp_dir = './models/experiments/'+'driver_model'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'driver_model'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 
@@ -567,7 +567,7 @@ model_trainer = Trainer(data_arrays, model_type='driver_model')
 # model_trainer.train(epochs=5)
 #
 # fig = plt.figure(figsize=(15, 5))
-# plt.style.use('default')
+plt.style.use('default')
 #
 # mse_axis = fig.add_subplot(131)
 # kl_axis = fig.add_subplot(132)
@@ -717,70 +717,63 @@ def latent_samples(model_trainer, sample_index):
     return sampled_z
 
 def latent_vis():
-    fig = pyplot.figure(figsize=(3, 3))
-    # plt.style.use('ggplot')
-    # plt.style.use('default')
-    ax = Axes3D(fig)
-    ax.set_xticks([-2, 0, 2])
-    ax.set_yticks([-8, -4, 0, 4])
-    ax.set_zticks([-4, 0, 4])
+    fig = pyplot.figure(figsize=(4, 6))
     examples_to_vis = np.random.choice(val_examples, 10000, replace=False)
+
+    #===============
+    #  First subplot
+    #===============
+    # set up the axes for the first plot
+    ax = fig.add_subplot(1, 2, 1, projection='3d')
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
     sampled_z = latent_samples(model_trainer, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -1]
     color_shade = aggressiveness
     att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-                  s=10, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.3)
+                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+
+    ax.tick_params(pad=1)
+    ax.grid(False)
+    # ax.view_init(30, 50)
+    #===============
+    #  Second subplot
+    #===============
+    # set up the axes for the second plot
+    ax = fig.add_subplot(1, 2, 2, projection='3d')
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    sampled_z = latent_samples(model_trainer, examples_to_vis)
+    aggressiveness = history_future_usc[examples_to_vis, 0, -1]
+    color_shade = aggressiveness
+    att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
+                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
 
     axins = inset_axes(ax,
                         width="5%",
-                        height="70%",
+                        height="90%",
                         loc='right',
-                        borderpad=-5
+                        borderpad=-2
                        )
 
     fig.colorbar(att_sc, cax=axins)
     cbar = fig.colorbar(att_sc, cax=axins)
-    cbar.set_label('$\psi$')
-    ax.set_xlabel('$z_{1}$', labelpad=1)
-    ax.set_ylabel('$z_{2}$', labelpad=1)
-    ax.set_zlabel('$z_{3}$', labelpad=1)
-    ax.xaxis.set_rotate_label(False)
-    ax.yaxis.set_rotate_label(False)
-    ax.zaxis.set_rotate_label(False)
     ax.tick_params(pad=1)
     ax.grid(False)
-
-    # ax.set_title('Driver attention')
-    # idm_axis.set_title('Driver disposition')
-    return ax
-ax = latent_vis()
-# %%
-plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
-#Options
-params = {
-          'font.size' : 20,
-          'font.family' : 'EB Garamond',
-          }
-plt.rcParams.update(params)
-plt.style.use(['science','ieee'])
-ax= latent_vis()
-
-plt.savefig("latent.png", dpi=500)
+    ax.view_init(30, 50)
+    # ax.set_xlabel('$z_{1}$', labelpad=1)
+    # ax.set_ylabel('$z_{2}$', labelpad=1)
+    # ax.set_zlabel('$z_{3}$', labelpad=1)
+    plt.subplots_adjust(wspace=0.2, hspace=None)
+latent_vis()
+# plt.savefig("latent.png", dpi=500)
 
 # %%
-plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
-#Options
-params = {'text.usetex' : True,
-          'font.size' : 11,
-          'font.family' : 'lmodern',
-          'text.latex.unicode': True,
-          }
-plt.rcParams.update(params)
-# %%
-
 import matplotlib.pyplot as plt
-
-#Direct input
 plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
 #Options
 params = {
@@ -789,23 +782,9 @@ params = {
           }
 plt.rcParams.update(params)
 plt.style.use(['science','ieee'])
-# %%
 
-fig = plt.figure()
-    ax.title('$Driver attention$')
-EB Garamond
-#You must select the correct size of the plot in advance
-fig.set_size_inches(3.54,3.54)
 
-plt.plot([1,2,3,4])
-plt.xlabel("Excitation-Energy")
-plt.ylabel("Intensität")
-plt.savefig("graph.pdf",
-            #This is simple recomendation for publication plots
-            dpi=1000,
-            # Plot will be occupy a maximum of available space
-            bbox_inches='tight',
-            )
+
 # %%
 """
 Choose cars based on the latent for debugging
@@ -892,7 +871,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 10:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -916,7 +895,7 @@ while Example_pred < 10:
     # #
     #
     # act_20 = history_future_usc[sample_index, 10, hf_usc_indexs['e_veh_action']][0]
-    # if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
+    # # if episode not in covered_episodes and act_20 < -0.5 and aggressiveness < 0.5:
     if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
             e_veh_att[20:55].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[:50].mean() > 0 and \
@@ -976,6 +955,7 @@ while Example_pred < 10:
         plt.grid()
 
         ##########
+        """
         # lATENT
         ax = latent_vis()
         ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2], s=15, color='black')
@@ -1000,6 +980,8 @@ while Example_pred < 10:
 
         plt.title(str(sample_index[0]) + ' -- Param')
         plt.grid()
+        """
+        """
 
         ##########
         plt.figure(figsize=(3, 3))
@@ -1016,20 +998,17 @@ while Example_pred < 10:
         plt.title(str(sample_index[0]) + ' -- em_delta_y')
         plt.grid()
         ############
+        """
 
         Example_pred += 1
 # %%
 
-
-
-
-# %%
 """Single sample Anticipation visualisation
 """
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 50
 model_trainer.model.idm_sim.attention_temp = 20
-sample_index = [1266]
+sample_index = [22751]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
@@ -1090,7 +1069,7 @@ plt.grid(alpha=0.1)
 plt.legend(['Ego', 'Merger', 'Leader'])
 
 ##########
-plt.savefig("example_actions.png", dpi=500)
+# plt.savefig("example_actions.png", dpi=500)
 
 # %%
 plt.figure(figsize=(3, 2))
@@ -1110,7 +1089,7 @@ plt.yticks([0., 0.5, 1])
 # plt.xlim(0, 1)
 plt.minorticks_off()
 plt.grid(alpha=0.1)
-plt.savefig("example_attention.png", dpi=500)
+# plt.savefig("example_attention.png", dpi=500)
 
 # %%
 
@@ -1128,28 +1107,33 @@ ax.set_xlabel('$z_2$')
 desired_vs = idm_params.numpy()[:, 0]
 desired_tgaps = idm_params.numpy()[:, 1]
 b_max = idm_params.numpy()[:, -1]
-fig = pyplot.figure()
+fig = pyplot.figure(figsize=(3, 2))
 ax = Axes3D(fig)
 
-# ax.scatter(19.4,  2, 4, color='red')
+ax.scatter(29.2,  1., 2.6, color='red')
 ax.scatter(desired_vs, desired_tgaps, b_max, color='grey')
-ax.set_xlim(25, 30)
+ax.set_xlim(28, 30)
 ax.set_ylim(1, 2)
 ax.set_zlim(2, 3)
-ax.scatter(27.8,  1., 2.7, color='red')
-# ax.set_xticks([28., 29, 30])
-# ax.set_yticks([1.5, 2, 2.5])
-# ax.set_zticks([2.5, 3, 3.5])
+ax.set_xticks([28., 29, 30])
+ax.set_yticks([1, 1.5, 2.])
+ax.set_zticks([2, 2.5, 3])
 # ax.set_title('Driver disposition')
-ax.minorticks_off()
+# ax.minorticks_off()
 
-ax.set_xlabel('$v_{des}$')
-ax.set_ylabel('$T_{des}$')
-ax.set_zlabel('$b_{max}$')
+ax.set_xlabel('$v_{des}$', labelpad=0)
+ax.set_ylabel('$T_{des}$', labelpad=1)
+ax.set_zlabel('$b_{max}$', labelpad=3)
+ax.xaxis.set_rotate_label(False)
+ax.yaxis.set_rotate_label(False)
+ax.zaxis.set_rotate_label(False)
+ax.tick_params(axis='x', which='major', pad=0)
+ax.tick_params(axis='y', which='major', pad=0)
+ax.tick_params(axis='z', which='major', pad=0)
 ax.grid(False)
 
 plt.legend(['True parameter', 'Predicted parameters'])
-# plt.savefig("example_params.png", dpi=500)
+plt.savefig("example_params.png", dpi=500)
 
 
 
