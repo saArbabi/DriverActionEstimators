@@ -22,11 +22,11 @@ class VehicleHandler:
         """
         id = self.next_vehicle_id
         glob_x = np.random.uniform(-30, 0)
-        # if lane_id in [1, 2]:
-        #     aggressiveness = np.random.uniform(0.7, 1)
-        # else:
-        #     aggressiveness = np.random.uniform(0., 1)
-        aggressiveness = np.random.uniform(0., 1.)
+        if lane_id in [1, 2]:
+            aggressiveness = np.random.uniform(0.7, 1)
+        else:
+            aggressiveness = np.random.uniform(0., 1)
+        # aggressiveness = np.random.uniform(0., 1.)
 
         # aggressiveness = np.random.choice([0, 0.5, 1])
         speed = aggressiveness*10 + (20 + np.random.normal(0, 1))
@@ -59,7 +59,7 @@ class VehicleHandler:
             #                                 (20 + 10*np.random.normal(0, 1))
             delta_x = leader.glob_x - follower.glob_x
             if delta_x > 50:
-                act_long = follower.idm_action(follower.observe(follower, leader))
+                act_long = follower.idm_action(follower, leader)
                 if act_long > -0.5 or delta_x > 100:
                     # check if cars are not too close
                     new_entries.append(queuing_entries[lane_id])

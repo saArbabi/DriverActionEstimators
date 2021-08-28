@@ -100,7 +100,7 @@ class IDMMOBILVehicle(Vehicle):
 
     def sample_beta(self):
         mean = self.driver_params['aggressiveness']
-        precision = 15
+        precision = 10
         alpha_param = mean*precision
         beta_param = precision*(1-mean)
         return np.random.beta(alpha_param, beta_param)
