@@ -46,9 +46,9 @@ for mean in range_means:
 
 
 # %%
-mean = 0.8
+mean = 0.95
 color_i = 0
-var = 0.08
+var = 0.02
 alpha_param = (((1-mean)/var)-1/mean)*mean**2
 beta_param = alpha_param*((1/mean)-1)
 p = beta.pdf(x, alpha_param, beta_param)
