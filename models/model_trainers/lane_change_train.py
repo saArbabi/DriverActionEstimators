@@ -520,16 +520,17 @@ desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act))
 
 # %%
 from scipy.stats import beta
-mean = 0.95
+mean = 0.99
 mean*35
 
-color_i = 0
-var = 0.02
-alpha_param = (((1-mean)/var)-1/mean)*mean**2
-beta_param = alpha_param*((1/mean)-1)
-gen_samples = np.random.beta(alpha_param, beta_param, 30)*35
-gen_samples.std()
+precision = 2
+alpha_param = precision*mean
+beta_param = precision*(1-mean)
+gen_samples = np.random.beta(alpha_param, beta_param, 30)
+plt.xlim(0, 1)
+
 _ = plt.hist(gen_samples, bins=150)
+
 
 # %%
 # %%
@@ -810,7 +811,7 @@ while Example_pred < 20:
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
-        try:
+        try: 
             att_max_likelihood = aggressiveness*35 + \
                                     np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
 
@@ -818,6 +819,7 @@ while Example_pred < 20:
             plt.grid()
         except:
             pass
+
 
         # if 0 <= aggressiveness <= 1/3:
         #     mean_dis = 0.15
