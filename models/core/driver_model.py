@@ -7,6 +7,7 @@ reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
+
 tfd = tfp.distributions
 
 class NeurIDMModel(AbstractModel):
@@ -17,7 +18,7 @@ class NeurIDMModel(AbstractModel):
         self.act_encoder = FutureEncoder() # sdv's future action
         self.belief_net = BeliefModel()
         self.idm_layer = IDMLayer()
-        self.idm_sim = IDMForwardSim()
+        self.forward_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.Huber()
 
@@ -92,7 +93,7 @@ class NeurIDMModel(AbstractModel):
 
         idm_params = self.idm_layer(sampled_z)
         # idm_params = tf.repeat(idm_params, 40, axis=1)
-        act_seq, _ = self.idm_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
+        act_seq, _ = self.forward_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_score_max: ', tf.reduce_max(att_scores))
         # tf.print('att_score_min: ', tf.reduce_min(att_scores))
@@ -187,6 +188,7 @@ class IDMForwardSim(tf.keras.Model):
         self.linear_layer = Dense(100)
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
+        self.action_neu = TimeDistributed(Dense(1)) # a form
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
@@ -226,54 +228,18 @@ class IDMForwardSim(tf.keras.Model):
                 (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
         return idm_action
 
-    # def rollout(self, inputs):
-    #     sampled_att_z, idm_params, idm_s, sdv_acts = inputs
-    #     batch_size = tf.shape(idm_s)[0]
-    #     idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-    #     att_projection = self.linear_layer(sampled_att_z)
-    #     att_context = tf.reshape(att_projection, [batch_size, 1, 100])
-    #     state_h, state_c = att_projection, att_projection
-    #
-    #     for step in range(40):
-    #         ego_v = idm_s[:, step:step+1, 0:1]
-    #         ego_glob_x = idm_s[:, step:step+1, 3:4]
-    #         f_veh_v = idm_s[:, step:step+1, 1:2]
-    #         m_veh_v = idm_s[:, step:step+1, 2:3]
-    #         f_veh_glob_x = idm_s[:, step:step+1, 4:5]
-    #         m_veh_glob_x = idm_s[:, step:step+1, 5:6]
-    #
-    #         # these to deal with missing cars
-    #         f_veh_exists = idm_s[:, step:step+1, -2:-1]
-    #         m_veh_exists = idm_s[:, step:step+1, -1:]
-    #
-    #         ef_delta_x = (f_veh_glob_x - ego_glob_x)
-    #         em_delta_x = (m_veh_glob_x - ego_glob_x)
-    #         ef_dv = (ego_v - f_veh_v)
-    #         em_dv = (ego_v - m_veh_v)
-    #         # tf.print('############ ef_act ############')
-    #         ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-    #         ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
-    #
-    #         # tf.print('############ em_act ############')
-    #         # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
-    #         # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-    #         em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-    #         em_act = self.add_noise(em_act, m_veh_exists, batch_size)
-    #
-    #         sdv_act = sdv_acts[:, step:step+1, :]
-    #         lstm_output, state_h, state_c = self.lstm_layer(tf.concat([att_context, sdv_act], axis=-1), \
-    #                                                         initial_state=[state_h, state_c])
-    #         att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
-    #         # att_score = idm_s[:, step:step+1, -3:-2]
-    #         _act = (1-att_score)*ef_act + att_score*em_act
-    #         if step == 0:
-    #             act_seq = _act
-    #             att_seq = att_score
-    #         else:
-    #             act_seq = tf.concat([act_seq, _act], axis=1)
-    #             att_seq = tf.concat([att_seq, att_score], axis=1)
-    #
-    #     return act_seq, att_seq
+    def transition_dynamic(self, current_ego_state, current_ego_action):
+        """
+        Two things to figure out:
+        should you start from step 0?
+        Why balancing data is not helping
+        Use LSTMs. But ensure any ego state is ego generated - a true rollout if you like
+        """
+        return next_ego_state
+
+    def scale_features(self, env_state):
+        env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
+        return env_state
 
     def rollout(self, inputs):
         sampled_z, idm_params, idm_s, sdv_acts = inputs
@@ -288,6 +254,12 @@ class IDMForwardSim(tf.keras.Model):
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+
+            ef_dv_true = idm_s[:, step:step+1, 6:7]
+            ef_delta_x_true = idm_s[:, step:step+1, 7:8]
+            em_dv_true = idm_s[:, step:step+1, 8:9]
+            em_delta_x_true = idm_s[:, step:step+1, 9:10]
+
             # these to deal with missing cars
             f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
@@ -298,10 +270,14 @@ class IDMForwardSim(tf.keras.Model):
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            ef_delta_x = K.relu(f_veh_glob_x - ego_glob_x)
-            em_delta_x = K.relu(m_veh_glob_x - ego_glob_x)
-            ef_dv = (ego_v - f_veh_v)
-            em_dv = (ego_v - m_veh_v)
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists+\
+                                                (1-f_veh_exists)*ef_delta_x_true
+            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
+                                                (1-m_veh_exists)*em_delta_x_true
+            ef_dv = (ego_v - f_veh_v)*f_veh_exists+\
+                                                (1-f_veh_exists)*ef_dv_true
+            em_dv = (ego_v - m_veh_v)*m_veh_exists+\
+                                                (1-m_veh_exists)*em_dv_true
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
@@ -313,8 +289,13 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             sdv_act = sdv_acts[:, step:step+1, :]
-            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([att_context, sdv_act], axis=-1), \
-                                                            initial_state=[state_h, state_c])
+            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            # env_state = self.scale_features(env_state)
+
+            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                    att_context, sdv_act], axis=-1), \
+                                    initial_state=[state_h, state_c])
             att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
@@ -423,4 +404,4 @@ class IDMLayer(tf.keras.Model):
 # class NeurIDMModelLaneKeep(NeurIDMModel):
 #     def __init__(self, config=None):
 #         super().__init__(config)
-#         self.idm_sim = IDMForwardSimLaneKeep()
+#         self.forward_sim = IDMForwardSimLaneKeep()

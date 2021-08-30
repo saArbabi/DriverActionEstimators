@@ -40,6 +40,11 @@ class Env:
             log['m_veh_id'] = None if not ego.neighbours['m'] else ego.neighbours['m'].id
             log['att_veh_id'] = None if not ego.neighbours['att'] else ego.neighbours['att'].id
             log['aggressiveness'] = ego.driver_params['aggressiveness']
+            log['desired_v'] = ego.driver_params['desired_v']
+            log['desired_tgap'] = ego.driver_params['desired_tgap']
+            log['min_jamx'] = ego.driver_params['min_jamx']
+            log['max_act'] = ego.driver_params['max_act']
+            log['min_act'] = ego.driver_params['min_act']
             log['act_long'] = ego.act_long
             self.recordings[ego.id][self.time_step] = log
             # if ego.id == 14:
