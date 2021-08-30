@@ -3,6 +3,8 @@ import numpy as np
 np.set_printoptions(suppress=True)
 from matplotlib import cm
 from scipy.stats import beta
+# %%
+
 plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
 #Options
 params = {
@@ -17,7 +19,7 @@ Driver generation - beta distribution with aggressiveness levels
 """
 # plt.style.use('default')
 
-x = np.linspace(0.0, 1, 100)
+x = np.linspace(0.01, 0.99, 100)
 color_i = 0
 range_means = np.linspace(0.01, 0.99, 10)
 colors = [cm.rainbow(i) for i in np.linspace(0, 1, len(range_means))]
@@ -44,9 +46,9 @@ for mean in range_means:
 
 
 # %%
-mean = 0.05
+mean = 0.8
 color_i = 0
-var = 0.02
+var = 0.08
 alpha_param = (((1-mean)/var)-1/mean)*mean**2
 beta_param = alpha_param*((1/mean)-1)
 p = beta.pdf(x, alpha_param, beta_param)

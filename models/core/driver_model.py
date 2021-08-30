@@ -7,11 +7,7 @@ reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
-#from tensorflow import ConfigProto
-#from tensorflow import InteractiveSession
- 
+
 tfd = tfp.distributions
 
 class NeurIDMModel(AbstractModel):
@@ -192,14 +188,7 @@ class IDMForwardSim(tf.keras.Model):
         self.linear_layer = Dense(100)
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
-        # self.action_neu = TimeDistributed(Dense(1)) # a form
-        self.att_layer_1 = TimeDistributed(Dense(128, activation='relu'))
-        self.att_layer_2 = TimeDistributed(Dense(128, activation='relu'))
-
-    def get_ego_attention(self, context):
-        x = self.att_layer_1(context)
-        x = self.att_layer_2(x)
-        return 1/(1+tf.exp(-self.attention_temp*self.attention_neu(x)))
+        self.action_neu = TimeDistributed(Dense(1)) # a form
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
@@ -304,10 +293,10 @@ class IDMForwardSim(tf.keras.Model):
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
 
-            # lstm_output, state_h, state_c = self.lstm_layer(, axis=-1), \
-            #                         initial_state=[state_h, state_c])
-            att_score = self.get_ego_attention(tf.concat([\
-                                    att_context, sdv_act], axis=-1))
+            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                    att_context, sdv_act], axis=-1), \
+                                    initial_state=[state_h, state_c])
+            att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:

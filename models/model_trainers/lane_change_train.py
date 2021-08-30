@@ -520,11 +520,11 @@ desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act))
 
 # %%
 from scipy.stats import beta
-mean = 0.6
+mean = 0.9
 mean*35
 
 color_i = 0
-var = 0.03
+var = 0.08
 alpha_param = (((1-mean)/var)-1/mean)*mean**2
 beta_param = alpha_param*((1/mean)-1)
 gen_samples = np.random.beta(alpha_param, beta_param, 30)*35
@@ -878,6 +878,7 @@ while Example_pred < 20:
 
 """Single sample Anticipation visualisation
 """
+0.5**2
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 50
 model_trainer.model.forward_sim.attention_temp = 20
