@@ -39,6 +39,7 @@ class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
         # self.capability = 'IDM'
+        self.beta_precision = 5
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
@@ -99,10 +100,8 @@ class IDMMOBILVehicle(Vehicle):
 
 
     def sample_beta(self):
-        mean = self.driver_params['aggressiveness']
-        precision = 10
-        alpha_param = mean*precision
-        beta_param = precision*(1-mean)
+        alpha_param = self.beta_precision*self.driver_params['aggressiveness']
+        beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
         return np.random.beta(alpha_param, beta_param)
 
     def set_attentiveness(self):
@@ -197,18 +196,18 @@ class IDMMOBILVehicle(Vehicle):
                                     if delta_x < min(delta_xs_att):
                                         delta_xs_att.append(delta_x)
                                         candidate_att = vehicle
-                        # if self.lane_id == vehicle.target_lane and \
-                        #         vehicle.lane_decision != 'keep_lane' and \
-                        #                 round(self.lane_y, 2) == 0 and \
-                        #                 vehicle.glob_x > self.glob_x and \
-                        #     delta_x < min(delta_xs_m):
-                        #     delta_xs_m.append(delta_x)
-                        #     candidate_m = vehicle
-                        #     if self.am_i_attending(vehicle, delta_x, delta_xs_att):
-                        #         # for merging cars
-                        #         delta_xs_att.append(delta_x)
-                        #         candidate_att = vehicle
 
+                        if self.lane_id == self.target_lane == vehicle.target_lane and \
+                                vehicle.lane_decision != 'keep_lane' and \
+                                        round(self.lane_y, 2) == 0 and \
+                                        vehicle.glob_x > self.glob_x and \
+                                        delta_x < min(delta_xs_m):
+                            delta_xs_m.append(delta_x)
+                            candidate_m = vehicle
+                            if self.am_i_attending(vehicle, delta_x, delta_xs_att):
+                                # for merging cars
+                                delta_xs_att.append(delta_x)
+                                candidate_att = vehicle
                     else:
                         if vehicle.glob_x > self.glob_x:
                             # front neibouring cars
