@@ -299,6 +299,7 @@ class IDMForwardSim(tf.keras.Model):
             att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
+            _act = _act + self.action_neu(lstm_output)
             if step == 0:
                 act_seq = _act
                 att_seq = att_score

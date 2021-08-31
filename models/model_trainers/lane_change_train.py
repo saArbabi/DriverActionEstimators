@@ -487,7 +487,7 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
 ax = latent_vis()
-model_trainer.save_model('h_lat_f_idm_act')
+# model_trainer.save_model('h_lat_f_idm_act')
 
 
 
@@ -689,7 +689,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -701,13 +701,13 @@ while Example_pred < 20:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes and aggressiveness > 0.8:
+    if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-            e_veh_att[20:55].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #         e_veh_att[20:55].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
