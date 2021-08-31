@@ -222,11 +222,11 @@ class DataGenerator:
                     history_seq.append(epis_data[step])
                     if len(history_seq) == history_length:
                         future_indx = step + future_length
-                        if future_indx > len(epis_data):
+                        if future_indx + 1 > len(epis_data):
                             break
 
                         history_seqs.append(list(history_seq))
-                        future_seqs.append(epis_data[step:future_indx])
+                        future_seqs.append(epis_data[step+1:future_indx+1])
             return [np.array(history_seqs), np.array(future_seqs)]
 
     def names_to_index(self, col_names):
@@ -261,22 +261,22 @@ class DataGenerator:
                         'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
                         'f_veh_exists', 'm_veh_exists']
-        # history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
+        history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
-        # future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
+        future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)
 
         # future action of m_veh - fed to LSTMs
         col_names = ['episode_id', 'time_step', 'em_delta_y', 'm_veh_action',\
                                                     'f_veh_exists', 'm_veh_exists']
-        # history_m_veh_a = history_seqs_scaled[:, :, self.names_to_index(col_names)]
+        history_m_veh_a = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_m_veh_a = future_seqs_scaled[:, :, self.names_to_index(col_names)]
-        # future_m_veh_a = np.append(history_m_veh_a, future_m_veh_a, axis=1)
+        future_m_veh_a = np.append(history_m_veh_a, future_m_veh_a, axis=1)
 
         # future action of e_veh - used as target
         col_names = ['episode_id', 'time_step', 'e_veh_action']
-        # history_e_veh_a = history_seqs[:, :, self.names_to_index(col_names)]
+        history_e_veh_a = history_seqs[:, :, self.names_to_index(col_names)]
         future_e_veh_a = future_seqs[:, :, self.names_to_index(col_names)]
-        # future_e_veh_a = np.append(history_e_veh_a, future_e_veh_a, axis=1)
+        future_e_veh_a = np.append(history_e_veh_a, future_e_veh_a, axis=1)
 
         data_arrays = [history_future_usc, history_sca, future_sca, future_idm_s, \
                         future_m_veh_a, future_e_veh_a]

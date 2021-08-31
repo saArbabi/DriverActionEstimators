@@ -29,8 +29,9 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true)/0.1
-        act_pred = (act_pred)/0.1
+        scale = 0.2 # std of dataset
+        act_true = (act_true)/scale
+        act_pred = (act_pred)/scale
         # return self.loss_function(act_true, act_pred)
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
@@ -249,7 +250,7 @@ class IDMForwardSim(tf.keras.Model):
         att_context = tf.reshape(att_projection, [batch_size, 1, 100])
         state_h, state_c = att_projection, att_projection
 
-        for step in range(40):
+        for step in range(60):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -341,25 +342,25 @@ class IDMLayer(tf.keras.Model):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
         minval = 1
         maxval = 2
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return tf.exp(output)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
         minval = 0
         maxval = 4
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return tf.exp(output)
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
         minval = 1
         maxval = 2
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return tf.exp(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
         minval = 1
         maxval = 3
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return tf.exp(output)
 
     def call(self, x):
         desired_v = self.get_des_v(x)

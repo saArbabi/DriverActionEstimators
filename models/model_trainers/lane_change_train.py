@@ -73,7 +73,6 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
-features_origin[0, indxs['desired_v']]
 
 # %%
 
@@ -86,8 +85,8 @@ features = features_origin.copy()
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 20, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
+history_future_seqs = data_gen.sequence(features, 30, 30)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 30)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
@@ -98,6 +97,7 @@ future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
 # data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
 future_m_veh_a.shape
 future_m_veh_a.shape
+plt.plot(future_e_veh_a[0, :, -1])
 # %%
 
 """
@@ -422,6 +422,7 @@ class Trainer():
 
     def save_model(self, model_name):
         exp_dir = './models/experiments/'+model_name+'/model'
+        model_name += 'epo_'+str(self.epoch_count)
         self.model.save_weights(exp_dir)
 
 model_trainer = Trainer(data_arrays, model_type='driver_model')
@@ -446,9 +447,16 @@ plt.style.use('default')
 #
 
 # %%
-x = np.linspace(-2, 1, 1000)
+x = np.linspace(-5, 0, 1000)
+y = np.exp(2*x)
+plt.plot(x, y)
+
 y = np.exp(x)
 plt.plot(x, y)
+y = 1/(1+np.exp(-1*x))
+plt.plot(x, y, color='red')
+# %%
+
 y = np.log(1+np.exp(x))
 plt.plot(x, y)
 
@@ -478,7 +486,7 @@ history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # %%
-model_trainer.model.vae_loss_weight = 1.
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
@@ -506,6 +514,8 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
 ax = latent_vis()
+# model_trainer.save_model('h_lat_f_idm_act')
+
 
 
 # %%
@@ -514,22 +524,22 @@ vel = 20
 max_act = 3
 min_act  = 3
 dv = -5
-desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act))
+desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*m in_act))
 # %%
 
 
 # %%
 from scipy.stats import beta
-mean = 0.99
-mean*35
+mean = 0.5
 
-precision = 2
+precision = 5
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
-gen_samples = np.random.beta(alpha_param, beta_param, 30)
-plt.xlim(0, 1)
+gen_samples = np.random.beta(alpha_param, beta_param, 50)*35
+plt.xlim(0, 35)
 
 _ = plt.hist(gen_samples, bins=150)
+np.random.beta(alpha_param, beta_param, 50).std()
 
 
 # %%
@@ -574,10 +584,10 @@ from matplotlib import rcParams
 model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
 # model_trainer.save_model('mlp_model')
-# with open('./models/experiments/scaler.pickle', 'wb') as handle:
-#     pickle.dump(scaler, handle)
-# with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
-#     pickle.dump(dummy_value_set, handle)
+with open('./models/experiments/scaler.pickle', 'wb') as handle:
+    pickle.dump(scaler, handle)
+with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
+    pickle.dump(dummy_value_set, handle)
 # %%
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -592,7 +602,7 @@ def latent_samples(model_trainer, sample_index):
 
 def latent_vis():
     fig = pyplot.figure(figsize=(4, 6))
-    examples_to_vis = np.random.choice(val_examples, 5000, replace=False)
+    examples_to_vis = np.random.choice(val_examples, 10000, replace=False)
 
     #===============
     #  First subplot
@@ -795,7 +805,7 @@ while Example_pred < 20:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(20, 60), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(0, 60), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -807,11 +817,11 @@ while Example_pred < 20:
         # plt.plot(e_veh_att[:40] , color='black')
         plt.plot(range(0, 60), e_veh_att, color='red')
         for sample_trace_i in range(traces_n):
-           plt.plot(range(20, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(0, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
-        try: 
+        try:
             att_max_likelihood = aggressiveness*35 + \
                                     np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
 
@@ -870,8 +880,8 @@ while Example_pred < 20:
         plt.plot(range(0, 60), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
-        # plt.plot([0, 40], [-1.5, -1.5], color='red')
-        plt.title(str(sample_index[0]) + ' -- em_delta_y')
+        # plt.plot([0, 40], [-1.5, -1 .5], color='red')
+        plt.title(str(sample_index[0`]) + ' -- em_delta_y')
         plt.grid()
         ############
 
@@ -880,7 +890,6 @@ while Example_pred < 20:
 
 """Single sample Anticipation visualisation
 """
-0.5**2
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 50
 model_trainer.model.forward_sim.attention_temp = 20
