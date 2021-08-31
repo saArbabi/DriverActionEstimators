@@ -421,8 +421,8 @@ class Trainer():
             self.epoch_count += 1
 
     def save_model(self, model_name):
-        exp_dir = './models/experiments/'+model_name+'/model'
         model_name += 'epo_'+str(self.epoch_count)
+        exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
 model_trainer = Trainer(data_arrays, model_type='driver_model')
@@ -444,33 +444,6 @@ plt.style.use('default')
 # idm_kl_axis = fig.add_subplot(133)
 # mse_axis.plot(model_trainer.test_mseloss)
 # mse_axis.plot(model_trainer.train_mseloss)
-#
-
-# %%
-x = np.linspace(-5, 0, 1000)
-y = np.exp(2*x)
-plt.plot(x, y)
-
-y = np.exp(x)
-plt.plot(x, y)
-y = 1/(1+np.exp(-1*x))
-plt.plot(x, y, color='red')
-# %%
-
-y = np.log(1+np.exp(x))
-plt.plot(x, y)
-
-
-# y = x
-# plt.plot(x, y)
-y = 1/(1+np.exp(-1*x))
-plt.plot(x, y, color='red')
-y = 1/(1+np.exp(-10*x))
-plt.plot(x, y, color='red')
-# y = x**2
-# plt.plot(x, y)
-plt.grid()
-
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -514,36 +487,15 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
 ax = latent_vis()
-# model_trainer.save_model('h_lat_f_idm_act')
+model_trainer.save_model('h_lat_f_idm_act')
 
 
 
 # %%
-desired_tgap = 1
-vel = 20
-max_act = 3
-min_act  = 3
-dv = -5
-desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*m in_act))
 # %%
-
-
-# %%
-from scipy.stats import beta
-mean = 0.5
-
-precision = 5
-alpha_param = precision*mean
-beta_param = precision*(1-mean)
-gen_samples = np.random.beta(alpha_param, beta_param, 50)*35
-plt.xlim(0, 35)
-
-_ = plt.hist(gen_samples, bins=150)
-np.random.beta(alpha_param, beta_param, 50).std()
-
-
-# %%
-# %%
+"""
+Find bad examples
+"""
 import tensorflow as tf
 examples_to_vis = val_examples[:]
 
@@ -559,25 +511,11 @@ loss = tf.reduce_mean(loss, axis=1).numpy()
 _ = plt.hist(loss, bins=150)
 bad_examples = np.where(loss > 0.1)
 
-# %%
-future_m_veh_a[3508, 0, 0]
-np.where(future_m_veh_a[:, 0, 0] == 33)
-# %%
-
-
-np.where(loss < 0.01)
-np.where(loss == loss.max())
-loss[5157]
-val_examples[5157]
-np.where(val_examples == 24896)
-np.where(loss == loss.min())
 
 # %%
-
-x = np.linspace(-4, 4, 100)
-y = 15+ 2000*(1/(1+tf.exp(-2*x)))
-plt.plot(x, y)
-# %%
+"""
+Save model and scalers etc.
+"""
 import pickle
 from matplotlib import rcParams
 #
@@ -881,7 +819,7 @@ while Example_pred < 20:
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1 .5], color='red')
-        plt.title(str(sample_index[0`]) + ' -- em_delta_y')
+        plt.title(str(sample_index[0]) + ' -- em_delta_y')
         plt.grid()
         ############
 

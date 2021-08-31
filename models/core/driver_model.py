@@ -29,9 +29,8 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        scale = 0.2 # std of dataset
-        act_true = (act_true)/scale
-        act_pred = (act_pred)/scale
+        act_true = (act_true)/0.1
+        act_pred = (act_pred)/0.1
         # return self.loss_function(act_true, act_pred)
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
