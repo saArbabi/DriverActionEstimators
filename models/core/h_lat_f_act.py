@@ -10,15 +10,14 @@ import tensorflow_probability as tfp
 
 tfd = tfp.distributions
 
-class NeurIDMModel(AbstractModel):
+class NeurLatentModel(AbstractModel):
     def __init__(self, config=None):
-        super(NeurIDMModel, self).__init__(config)
+        super(NeurLatentModel, self).__init__(config)
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
         self.act_encoder = FutureEncoder() # sdv's future action
         self.belief_net = BeliefModel()
-        self.idm_layer = IDMLayer()
-        self.forward_sim = IDMForwardSim()
+        self.forward_sim = ForwardSim()
         self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.Huber()
 
@@ -90,14 +89,7 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
         sampled_z = self.belief_net.sample_z(pos_params)
-
-        idm_params = self.idm_layer(sampled_z)
-        # idm_params = tf.repeat(idm_params, 40, axis=1)
-        act_seq, _ = self.forward_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
-        # tf.print('###############:')
-        # tf.print('att_score_max: ', tf.reduce_max(att_scores))
-        # tf.print('att_score_min: ', tf.reduce_min(att_scores))
-        # tf.print('att_score_mean: ', tf.reduce_mean(att_scores))
+        act_seq = self.forward_sim.rollout([sampled_z, inputs[2], inputs[-1]])
 
         return act_seq, pri_params, pos_params
 
@@ -178,73 +170,23 @@ class FutureEncoder(tf.keras.Model):
         enc_acts = self.lstm_layer(self.linear_layer(inputs))
         return enc_acts
 
-class IDMForwardSim(tf.keras.Model):
+class ForwardSim(tf.keras.Model):
     def __init__(self):
-        super(IDMForwardSim, self).__init__(name="IDMForwardSim")
+        super(ForwardSim, self).__init__(name="ForwardSim")
         self.architecture_def()
-        self.attention_temp = 5 # the higher, the sharper the attention
 
     def architecture_def(self):
         self.linear_layer = Dense(100)
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
-        self.attention_neu = TimeDistributed(Dense(1))
         self.action_neu = TimeDistributed(Dense(1)) # a form
-
-    def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
-        desired_v = idm_params[:,:,0:1]
-        desired_tgap = idm_params[:,:,1:2]
-        min_jamx = idm_params[:,:,2:3]
-        max_act = idm_params[:,:,3:4]
-        min_act = idm_params[:,:,4:5]
-        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        # tf.print('desired_v_max: ', tf.reduce_max(desired_v))
-        # tf.print('desired_v_min: ', tf.reduce_min(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_min(min_jamx))
-        # tf.print('max_act: ', tf.reduce_mean(max_act))
-        # tf.print('min_act: ', tf.reduce_mean(min_act))
-        # two = K.relu(desired_tgap*vel+(vel*dv)/ \
-        #                                 (2*tf.sqrt(max_act*min_act)))
-        desired_gap = min_jamx + K.relu(desired_tgap*vel+(vel*dv)/ \
-                                        (2*tf.sqrt(max_act*min_act)))
-        # tf.print('min: ', tf.reduce_min(two))
-        # tf.print('mean: ', tf.reduce_mean(two))
-
-        act = max_act*(1-(vel/desired_v)**4-\
-                                            (desired_gap/dx)**2)
-
-        return self.action_clip(act) # action in simulator are also clipped
-
-    def action_clip(self, action):
-        "this helps with avoiding vanishing gradients"
-        return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
-
-    def add_noise(self, idm_action, idm_veh_exists, batch_size):
-        """
-        To deal with nonexisting cars.
-        """
-        idm_action = idm_veh_exists*(idm_action) + \
-                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
-        return idm_action
-
-    def transition_dynamic(self, current_ego_state, current_ego_action):
-        """
-        Two things to figure out:
-        should you start from step 0?
-        Why balancing data is not helping
-        Use LSTMs. But ensure any ego state is ego generated - a true rollout if you like
-        """
-        return next_ego_state
 
     def scale_features(self, env_state):
         env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
         return env_state
 
     def rollout(self, inputs):
-        sampled_z, idm_params, idm_s, sdv_acts = inputs
+        sampled_z, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
-        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         latent_projection = self.linear_layer(sampled_z)
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
@@ -278,131 +220,18 @@ class IDMForwardSim(tf.keras.Model):
                                                 (1-f_veh_exists)*ef_dv_true
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                                                 (1-m_veh_exists)*em_dv_true
-            # tf.print('############ ef_act ############')
-            ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-            ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
-
-            # tf.print('############ em_act ############')
-            # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
-            # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-            em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            em_act = self.add_noise(em_act, m_veh_exists, batch_size)
-
             sdv_act = sdv_acts[:, step:step+1, :]
-            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            # env_state = self.scale_features(env_state)
+            env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+                            ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = self.scale_features(env_state)
 
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act], axis=-1), \
+                                    proj_latent, sdv_act, env_state], axis=-1), \
                                     initial_state=[state_h, state_c])
-            att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
-            # att_score = idm_s[:, step:step+1, -3:-2]
-            _act = (1-att_score)*ef_act + att_score*em_act
-            _act = _act + self.action_neu(lstm_output)
+            _act = self.action_neu(lstm_output)
             if step == 0:
                 act_seq = _act
-                att_seq = att_score
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
-                att_seq = tf.concat([att_seq, att_score], axis=1)
 
-        return act_seq, att_seq
-
-class IDMLayer(tf.keras.Model):
-    def __init__(self):
-        super(IDMLayer, self).__init__(name="IDMLayer")
-        self.architecture_def()
-
-    def architecture_def(self):
-        self.des_v_neu = Dense(1)
-        self.des_v_linear = Dense(100)
-        self.des_tgap_neu = Dense(1)
-        self.des_tgap_linear = Dense(100)
-        self.min_jamx_neu = Dense(1)
-        self.min_jamx_linear = Dense(100)
-        self.max_act_neu = Dense(1)
-        self.max_act_linear = Dense(100)
-        self.min_act_neu = Dense(1)
-        self.min_act_linear = Dense(100)
-
-    def param_activation(self, x, min_val, max_val, batch_size):
-        activation_function = tf.tanh(0.5*x)
-        scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
-        min_val = tf.fill([batch_size, 1], min_val)
-        return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
-
-    def get_des_v(self, x):
-        output = self.des_v_neu(self.des_v_linear(x))
-        minval = 15
-        maxval = 35
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-
-    def get_des_tgap(self, x):
-        output = self.des_tgap_neu(self.des_tgap_linear(x))
-        minval = 1
-        maxval = 2
-        return tf.exp(output)
-
-    def get_min_jamx(self, x):
-        output = self.min_jamx_neu(self.min_jamx_linear(x))
-        minval = 0
-        maxval = 4
-        return tf.exp(output)
-
-    def get_max_act(self, x):
-        output = self.max_act_neu(self.max_act_linear(x))
-        minval = 1
-        maxval = 2
-        return tf.exp(output)
-
-    def get_min_act(self, x):
-        output = self.min_act_neu(self.min_act_linear(x))
-        minval = 1
-        maxval = 3
-        return tf.exp(output)
-
-    def call(self, x):
-        desired_v = self.get_des_v(x)
-        desired_tgap = self.get_des_tgap(x)
-        min_jamx = self.get_min_jamx(x)
-        max_act = self.get_max_act(x)
-        min_act = self.get_min_act(x)
-        idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
-        return idm_param
-#
-# class IDMForwardSimLaneKeep(IDMForwardSim):
-#     def __init__(self):
-#         super().__init__()
-#
-#     def rollout(self, inputs):
-#         att_inputs, idm_params, idm_s, sdv_acts = inputs
-#         sampled_att_z, enc_h = att_inputs
-#         batch_size = tf.shape(idm_s)[0]
-#         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-#         for step in range(40):
-#             f_veh_v = idm_s[:, step:step+1, 1:2]
-#             f_veh_glob_x = idm_s[:, step:step+1, 3:4]
-#
-#             if step == 0:
-#                 ego_v = idm_s[:, step:step+1, 0:1]
-#                 ego_glob_x = idm_s[:, step:step+1, 2:3]
-#             else:
-#                 ego_v += ef_act*0.1
-#                 ego_glob_x += ego_v*0.1 + 0.5*ef_act*0.1**2
-#
-#             ef_delta_x = (f_veh_glob_x - ego_glob_x)
-#             ef_dv = (ego_v - f_veh_v)
-#             tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-#             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-#             if step == 0:
-#                 act_seq = ef_act
-#             else:
-#                 act_seq = tf.concat([act_seq, ef_act], axis=1)
-#
-#         return act_seq, act_seq
-
-# class NeurIDMModelLaneKeep(NeurIDMModel):
-#     def __init__(self, config=None):
-#         super().__init__(config)
-#         self.forward_sim = IDMForwardSimLaneKeep()
+        return act_seq

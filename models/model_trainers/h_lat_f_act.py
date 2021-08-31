@@ -321,9 +321,10 @@ config = {
 }
 
 class Trainer():
-    def __init__(self, training_data, model_type):
+    def __init__(self, training_data, model_type, model_name):
         self.model = None
         self.model_type = model_type
+        self.model_name = model_name
 
         self.train_mseloss = []
         self.train_klloss = []
@@ -334,20 +335,26 @@ class Trainer():
         self.initiate_model()
         self.prep_data(training_data)
 
-    def initiate_model(self, model_type=None):
-        if self.model_type == 'driver_model':
+    def initiate_model(self):
+        if self.model_name == 'driver_model':
             from models.core import driver_model
             reload(driver_model)
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        elif self.model_type == 'lstm_model':
+        elif self.model_name == 'h_lat_f_act':
+            from models.core import h_lat_f_act
+            reload(h_lat_f_act)
+            from models.core.h_lat_f_act import  NeurLatentModel
+            self.model = NeurLatentModel(config)
+
+        elif self.model_name == 'lstm_model':
             from models.core import lstm
             reload(lstm)
             from models.core.lstm import  Encoder
             self.model = Encoder(config)
 
-        elif self.model_type == 'mlp_model':
+        elif self.model_name == 'mlp_model':
             from models.core import mlp
             reload(mlp)
             from models.core.mlp import  MLP
@@ -368,8 +375,7 @@ class Trainer():
         _, history_sca, future_sca, future_idm_s,\
                     future_m_veh_a, future_e_veh_a = training_data
 
-        if self.model_type == 'driver_model':
-
+        if self.model_type == 'cvae':
             self.train_input = [history_sca[train_indxs, :, 2:],
                         future_sca[train_indxs, :, 2:],
                         future_idm_s[train_indxs, :, 2:],
@@ -407,7 +413,7 @@ class Trainer():
             t0 = time.time()
             self.model.train_loop(self.train_input)
             self.model.test_loop(self.val_input, epoch)
-            if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
+            if self.model_type == 'cvae':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
@@ -421,11 +427,11 @@ class Trainer():
             self.epoch_count += 1
 
     def save_model(self, model_name):
-        model_name += 'epo_'+str(self.epoch_count)
+        model_name += '_epo_'+str(self.epoch_count)
         exp_dir = './models/experiments/'+model_name+'/model'
         self.model.save_weights(exp_dir)
 
-model_trainer = Trainer(data_arrays, model_type='driver_model')
+model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_f_act')
 # model_trainer.train(epochs=1)
 # exp_dir = './models/experiments/'+'driver_model'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
@@ -487,29 +493,7 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
 ax = latent_vis()
-# model_trainer.save_model('h_lat_f_idm_act')
-
-
-
-# %%
-# %%
-"""
-Find bad examples
-"""
-import tensorflow as tf
-examples_to_vis = val_examples[:]
-
-val_input = [history_sca[examples_to_vis , :, 2:],
-            future_sca[examples_to_vis, :, 2:],
-            future_idm_s[examples_to_vis, :, 2:],
-            future_m_veh_a[examples_to_vis, :, 2:]]
-act_pred, pri_params, pos_params = model_trainer.model(val_input)
-loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
-loss = tf.reduce_mean(loss, axis=1).numpy()
-
-
-_ = plt.hist(loss, bins=150)
-bad_examples = np.where(loss > 0.1)
+model_trainer.save_model('h_lat_f_act')
 
 
 # %%
@@ -519,7 +503,7 @@ Save model and scalers etc.
 import pickle
 from matplotlib import rcParams
 #
-model_trainer.save_model('driver_model')
+# model_trainer.save_model('driver_model')
 # model_trainer.save_model('lstm_model')
 # model_trainer.save_model('mlp_model')
 with open('./models/experiments/scaler.pickle', 'wb') as handle:
@@ -601,48 +585,6 @@ params = {
 plt.rcParams.update(params)
 plt.style.use(['science','ieee'])
 
-
-
-# %%
-"""
-Choose cars based on the latent for debugging
-"""
-sampled_z, sampled_idm_z = latent_samples(model_trainer, val_examples)
-sampled_z, sampled_idm_z = sampled_z.numpy(), sampled_idm_z.numpy()
-
-sampled_z
-# %%
-bad_episodes = []
-bad_504 = []
-bad_498 = []
-# bad_zs = np.where((sampled_idm_z[:, 0] < -2) & (sampled_idm_z[:, 0] > -5))[0]
-bad_zs = np.where((sampled_z[:, 1] > 5))[0]
-for bad_z in bad_zs:
-    exmp_indx = val_examples[bad_z]
-    epis = history_future_usc[exmp_indx, 0, 0]
-    bad_episodes.append([epis, exmp_indx])
-    if epis == 504:
-        bad_504.append(exmp_indx)
-    if epis == 498:
-        bad_498.append(exmp_indx)
-min(bad_504)
-min(bad_498)
-# val_examples[2910]
-_ = plt.hist(np.array(bad_episodes)[:, 0], bins=150)
-
-bad_episodes
-history_future_usc[71538, :, 1]
-history_future_usc[55293, 0, :]
-plt.plot(bad_504)
-plt.scatter(bad_504,bad_504)
-# %%
-plt.plot(history_future_usc[55300, :, -6])
-for bad_indx in bad_504:
-    plt.figure()
-    plt.plot(history_future_usc[bad_indx, :, -6])
-    plt.title(bad_indx)
-    plt.grid()
-
 # %%
 
 # %%
@@ -671,11 +613,6 @@ index = 0
 for item_name in col_names:
     hf_usc_indexs[item_name] = index
     index += 1
-# %%
-zzz = sampled_z.numpy()
-zzz[:, 0].std()
-zzz[:, 1].std()
-zzz[:, 2].std()
 
 # %%
 
@@ -701,13 +638,13 @@ while Example_pred < 10:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode not in covered_episodes and aggressiveness > 0.8:
+    # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #         e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+            e_veh_att[20:55].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -717,10 +654,9 @@ while Example_pred < 10:
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-        idm_params = model_trainer.model.idm_layer(sampled_z)
-        act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
-                                                    idm_params, future_idm_ss, sdv_actions])
-        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+        act_seq = model_trainer.model.forward_sim.rollout([sampled_z, \
+                                                    future_idm_ss, sdv_actions])
+        act_seq = act_seq.numpy()
 
         plt.figure(figsize=(3, 3))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
@@ -733,7 +669,6 @@ while Example_pred < 10:
                         'e_veh_id: '+ info[2] +
                         'aggressiveness: '+ info[3]
                             , fontsize=10)
-        plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 
         plt.figure(figsize=(3, 3))
@@ -752,77 +687,6 @@ while Example_pred < 10:
         plt.grid()
 
         plt.figure(figsize=(3, 3))
-        # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(0, 60), e_veh_att, color='red')
-        for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
-        # plt.ylim(-0.1, 1.1)
-        plt.title(str(sample_index[0]) + ' -- Attention')
-
-        try:
-            att_max_likelihood = aggressiveness*35 + \
-                                    np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-
-            plt.plot([att_max_likelihood, att_max_likelihood], [0, 1], linestyle='--')
-            plt.grid()
-        except:
-            pass
-
-
-        # if 0 <= aggressiveness <= 1/3:
-        #     mean_dis = 0.15
-        # elif 1/3 <= aggressiveness <= 2/3:
-        #     mean_dis = 0.45
-        # elif 2/3 <= aggressiveness:
-        #     mean_dis = 0.75
-        # att_max_likelihood = mean_dis*35 + \
-        #                         np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-
-
-        ##########
-        """
-        # lATENT
-        ax = latent_vis()
-        ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2], s=15, color='black')
-        ##########
-
-        # plt.plot(desired_vs)
-        # plt.grid()
-        # plt.plot(desired_tgaps)
-        # plt.grid()
-        plt.figure(figsize=(3, 3))
-        desired_vs = idm_params.numpy()[:, 0]
-        desired_tgaps = idm_params.numpy()[:, 1]
-        plt.scatter(desired_vs, desired_tgaps, color='grey')
-
-        plt.scatter(24.7, 1.5, color='red')
-        plt.xlim(15, 40)
-        plt.ylim(0, 3)
-        #
-        # plt.scatter(30, 1, color='red')
-        # plt.xlim(25, 35)
-        # plt.ylim(0, 2)
-
-        plt.title(str(sample_index[0]) + ' -- Param')
-        plt.grid()
-        """
-
-        ##########
-        plt.figure(figsize=(3, 3))
-        plt.plot(m_veh_exists, color='black')
-        plt.title(str(sample_index[0]) + ' -- m_veh_exists')
-        plt.grid()
-        ######\######
-        plt.figure(figsize=(3, 3))
-        plt.plot(em_delta_y[:20], color='black')
-        plt.plot(range(0, 60), em_delta_y, color='red')
-        # plt.plot([0, 40], [-0.37, -0.37], color='green')
-        # plt.plot([0, 40], [-1, -1], color='red')
-        # plt.plot([0, 40], [-1.5, -1 .5], color='red')
-        plt.title(str(sample_index[0]) + ' -- em_delta_y')
-        plt.grid()
-        ############
-
         Example_pred += 1
 # %%
 
