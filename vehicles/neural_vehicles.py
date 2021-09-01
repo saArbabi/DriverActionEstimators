@@ -3,7 +3,6 @@ import numpy as np
 import pickle
 from importlib import reload
 import tensorflow as tf
-
 class NeuralIDMVehicle(IDMMOBILVehicle):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
@@ -110,7 +109,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         obs_t0, m_veh_action_feature, neighbours = obs
         # if self.time_lapse > 5:
         # print(self.obs_history)
-        if self.time_lapse_since_last_param_update % 20 == 0:
+        if self.time_lapse_since_last_param_update % 30 == 0:
         # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             # print(self.obs_history[:,-1,:])
