@@ -170,7 +170,7 @@ class EnvMC(Env):
 
                 if veh_ima.control_type == 'neural':
                     act_long = veh_ima.act(obs)
-                    # self.mc_log_info(veh_real, veh_ima)
+                    self.mc_log_info(veh_real, veh_ima)
 
                 else:
                     act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
@@ -181,7 +181,7 @@ class EnvMC(Env):
             act_long = max(-3, min(act_long, 3))
             veh_ima.act_long = act_long
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
-            self.vis_log_info(veh_real, veh_ima)
+            # self.vis_log_info(veh_real, veh_ima)
         return acts_real, acts_ima
 
     def step(self, actions=None):
@@ -220,7 +220,7 @@ class EnvMC(Env):
 
     def vis_log_info(self, veh_real, veh_ima):
         """
-        For visualisation and debugging.
+        For on off visualisation and debugging.
         """
         if veh_ima.id == 19 and veh_ima.vehicle_type == 'neural':
             veh_id =  veh_real.id
@@ -298,6 +298,7 @@ class EnvMC(Env):
 
         min_delta_x = min([el_delta_x, em_delta_x])# for collision detection
         if min_delta_x <= 1:
+            print('collision_detected')
             self.collision_detected = True
             self.collision_info = [self.time_step, veh_ima.id]
             veh_ima.collision_detected = True

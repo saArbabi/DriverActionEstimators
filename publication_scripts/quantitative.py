@@ -18,7 +18,7 @@ Load recordings
 # model_name = 'lstm_model'
 real_collections = {}
 ima_collections = {}
-model_names = ['driver_model_l2_double', 'lstm_model', 'mlp_model']
+model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -78,13 +78,13 @@ def get_rwse(index, model_name):
     error_total = np.mean(rwse_collection, axis=0)
     return error_total
 
-
-params = {
-          'font.size' : 20,
-          'font.family' : 'EB Garamond',
-          }
-plt.rcParams.update(params)
-plt.style.use(['science', 'ieee'])
+#
+# params = {
+#           'font.size' : 20,
+#           'font.family' : 'EB Garamond',
+#           }
+# plt.rcParams.update(params)
+# plt.style.use(['science', 'ieee'])
 # %%
 """
 rwse x position
@@ -121,7 +121,7 @@ speed_axis.set_ylim(0, 0.43)
 speed_axis.set_yticks([0, 0.2, 0.4])
 # speed_axis.legend(legends)
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
-plt.savefig("rwse.png", dpi=500)
+# plt.savefig("rwse.png", dpi=500)
 
 
 
@@ -130,7 +130,7 @@ plt.savefig("rwse.png", dpi=500)
 gap dist
 """
 plt.figure()
-model_name = 'driver_model'
+model_name = 'driver_model_l2_double'
 true_min_gaps = snip_collection_true[model_name][:, :, -1].flatten()
 _ = plt.hist(true_min_gaps, bins=30, color='white', edgecolor='black', linewidth=1.5)
 pred_min_gaps = np.mean(snip_collection_pred[model_name][:, :, :, -1], axis=1).flatten()
@@ -145,3 +145,16 @@ _ = plt.hist(pred_min_gaps, bins=30, color='green', alpha=0.5)
 
 
 # %%
+import numpy as np
+
+def KL(a, b):
+    a = np.asarray(a, dtype=np.float)
+    b = np.asarray(b, dtype=np.float)
+
+    return np.sum(np.where(a != 0, a * np.log(a / b), 0))
+
+
+values1 = [1.346112,1.337432,1.246655]
+values2 = [1.033836,1.082015,1.117323]
+
+KL(values1, values2)

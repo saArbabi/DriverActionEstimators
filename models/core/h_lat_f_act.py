@@ -28,9 +28,10 @@ class NeurLatentModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true)/0.1
-        act_pred = (act_pred)/0.1
-        # return self.loss_function(act_true, act_pred)
+        act_true = (act_true[:, 0:30, :])/0.1
+        act_pred = (act_pred[:, 0:30, :])/0.1
+        # act_true = (act_true)/0.1
+        # act_pred = (act_pred)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def kl_loss(self, pri_params, pos_params):
@@ -191,7 +192,8 @@ class ForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
 
-        for step in range(60):
+        # for step in range(60):
+        for step in range(30):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]

@@ -17,7 +17,7 @@ from vehicle_handler import VehicleHandler
 import tensorflow as tf
 from vehicles import neural_vehicles
 reload(neural_vehicles)
-from vehicles.neural_vehicles import NeuralIDMVehicle, LSTMVehicle, MLPVehicle
+from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle, NeurLatentShortVehicle
 
 import highway
 reload(highway)
@@ -37,7 +37,9 @@ time_start = time.time()
 for trace in range(trace_n):
     env = EnvMC(config)
     # env.neural_vehicle = MLPVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = NeurLatentVehicle()
+    # env.neural_vehicle = NeurLatentShortVehicle()
     # env.neural_vehicle = LSTMVehicle()
     np.random.seed(0) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed
@@ -78,13 +80,22 @@ print(time_end-time_start)
 """
 Save recordings
 """
-model_name = 'driver_model_l2_double'
+# model_name = 'h_lat_f_idm_act'
+# model_name = 'h_lat_f_act'
+model_name = 'h_lat_act'
 # model_name = 'driver_model'
 # model_name = 'lstm_model'
 # model_name = 'mlp_model'
+directory = './publication_results/'+model_name
+if not os.path.exists(directory):
+    os.makedirs(directory)
 
-with open('./publication_results/'+model_name+'/real_collection.pickle', 'wb') as handle:
-    pickle.dump(real_collection, handle)
+if not os.path.exists('./publication_results/'+model_name+'/real_collection.pickle'):
+    with open('./publication_results/'+model_name+'/real_collection.pickle', 'wb') as handle:
+        pickle.dump(real_collection, handle)
 
-with open('./publication_results/'+model_name+'/ima_collection.pickle', 'wb') as handle:
-    pickle.dump(ima_collection, handle)
+    with open('./publication_results/'+model_name+'/ima_collection.pickle', 'wb') as handle:
+        pickle.dump(ima_collection, handle)
+    if collision_log:
+        with open('./publication_results/'+model_name+'/collision_log.pickle', 'wb') as handle:
+            pickle.dump(collision_log, handle)

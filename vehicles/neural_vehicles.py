@@ -91,7 +91,6 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
     def prep_obs_seq(self, obs_history):
         obs_history = np.float32(obs_history)
-        # print('obs_history', obs_history[:, -1, :])
         obs_history.shape = (self.samples_n*30, self.state_dim)
         obs_history[:, :-3] = self.scaler.transform(obs_history[:, :-3])
         obs_history.shape = (self.samples_n, 30, self.state_dim)
@@ -108,11 +107,9 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
     def act(self, obs):
         obs_t0, m_veh_action_feature, neighbours = obs
         # if self.time_lapse > 5:
-        # print(self.obs_history)
         if self.time_lapse_since_last_param_update % 30 == 0:
         # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
-            # print(self.obs_history[:,-1,:])
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_z = self.model.belief_net.sample_z(prior_param)
@@ -131,12 +128,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         ef_act = self.idm_action(self, f_veh)
         em_act = self.idm_action(self, m_veh)
         act_long = (1-att_score)*ef_act + att_score*em_act
-        # print('att_score', att_score)
-        print('act_long', act_long)
-        # print('sdv_act', sdv_act)
         self.time_lapse_since_last_param_update += 1
-        # print(sdv_act)
-        # print(self.att)
         return act_long
 
 class LSTMVehicle(NeuralIDMVehicle):
@@ -169,6 +161,28 @@ class LSTMVehicle(NeuralIDMVehicle):
         self.att = -1
         return act_long
 
+class NeurLatentShortVehicle(NeurLatentVehicle):
+    def __init__(self):
+        super().__init__()
+
+    def initialize_agent(self, config=None):
+        self.samples_n = 1
+        history_len = 30 # steps
+        self.state_dim = 10
+        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
+        # self.action_history = [[0., 0.]]*20
+
+        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+            self.scaler = pickle.load(handle)
+
+        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+            self.dummy_value_set = pickle.load(handle)
+
+        from models.core.h_lat_f_act import NeurLatentModel
+        self.model = NeurLatentModel()
+        exp_dir = './models/experiments/'+'h_lat_act_epo_15'+'/model'
+        self.model.load_weights(exp_dir).expect_partial()
+
 class NeurLatentVehicle(NeuralIDMVehicle):
     def __init__(self):
         super().__init__()
@@ -188,7 +202,7 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
         from models.core.h_lat_f_act import NeurLatentModel
         self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_lat_f_act_epo_10'+'/model'
+        exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
         self.model.load_weights(exp_dir).expect_partial()
 
     def latent_projection_update(self, sampled_z):
@@ -242,7 +256,6 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
     def scale_features(self, env_state):
         env_state = np.float32(env_state)
-        # print('env_state', env_state[:, -1, :])
         env_state.shape = (self.samples_n*1, self.state_dim-3)
         env_state[:, :] = self.scaler.transform(env_state[:, :])
         env_state.shape = (self.samples_n, 1, self.state_dim-3)
@@ -250,12 +263,9 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
     def act(self, obs):
         obs_t0, m_veh_action_feature, env_state = obs
-        # if self.time_lapse > 5:
-        # print(self.obs_history)
         if self.time_lapse_since_last_param_update % 20 == 0:
         # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
-            # print(self.obs_history[:,-1,:])
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_z = self.model.belief_net.sample_z(prior_param)
@@ -273,7 +283,6 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         act_long = self.model.forward_sim.action_neu(lstm_output).numpy()
 
         self.time_lapse_since_last_param_update += 1
-        print(act_long)
         return act_long[0][0][0]
 
 class MLPVehicle(NeuralIDMVehicle):
@@ -301,7 +310,6 @@ class MLPVehicle(NeuralIDMVehicle):
 
     def prep_obs_seq(self, obs_instance):
         obs_instance = np.float32(obs_instance)
-        # print('obs_instance', obs_instance[:, -1, :])
         obs_instance[:, :-3] = self.scaler.transform(obs_instance[:, :-3])
         return obs_instance
 
@@ -314,66 +322,3 @@ class MLPVehicle(NeuralIDMVehicle):
         act_long = pred_dis.sample().numpy()[0][0]
         self.att = -1
         return act_long
-
-
-
-#
-# class LSTMVehicle(IDMVehicle):
-#     def __init__(self):
-#         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
-#         self.time_lapse = 0
-#         self.control_type = 'idm'
-#         self.initialize_agent()
-#
-#     def initialize_agent(self, config=None):
-#         self.samples_n = 1
-#         history_len = 30 # steps
-#         self.state_dim = 4
-#         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-#         # self.action_history = [[0., 0.]]*20
-#
-#         model_name = 'lstm_keep_lane'
-#         exp_dir = './models/experiments/'+model_name+'/model'
-#         with open('./models/experiments/scaler.pickle', 'rb') as handle:
-#             self.scaler = pickle.load(handle)
-#
-#         from models.core.lstm import Encoder
-#         self.model = Encoder()
-#         self.model.load_weights(exp_dir).expect_partial()
-#         # self.model.forward_sim.attention_temp = 20
-#
-#     def update_obs_history(self, o_t):
-#         # print(self.obs_history)
-#         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
-#         self.obs_history[:, -1, :] = o_t
-#
-#     def observe(self, e_veh, f_veh):
-#         obs_t0 = [e_veh.speed, f_veh.speed]
-#
-#         obs_t0.extend([
-#                              e_veh.speed-f_veh.speed,
-#                              f_veh.glob_x-e_veh.glob_x])
-#         return obs_t0
-#
-#     def act(self, obs):
-#         self.time_lapse += 1
-#
-#         # if self.time_lapse > 5:
-#         self.update_obs_history(obs)
-#         # print(self.obs_history)
-#         if self.control_type == 'neural':
-#             # x = self.scaler.transform(x)
-#             obs_history = np.float32(self.obs_history.copy())
-#             obs_history.shape = (self.samples_n*30, self.state_dim)
-#             obs_history = self.scaler.transform(obs_history)
-#             obs_history.shape = (self.samples_n, 30, self.state_dim)
-#
-#             pred_dis = self.model(obs_history)
-#             act_long = pred_dis.sample().numpy()[0][0]
-#             print(act_long)
-#             return act_long
-#         elif self.time_lapse > 25:
-#             self.control_type = 'neural'
-#
-#         act_long = self.idm_action(obs[-2:])
-#         return act_long

@@ -195,7 +195,8 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
 ax = latent_vis()
-model_trainer.save_model('h_lat_f_act')
+# model_trainer.save_model('h_lat_act')
+# model_trainer.save_model('h_lat_f_act')
 
 
 # %%
