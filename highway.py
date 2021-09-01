@@ -128,6 +128,7 @@ class EnvMC(Env):
                                                           self.last_entries)
         for vehicle in new_entries:
             imagined_vehicle = copy.deepcopy(vehicle)
+            imagined_vehicle.collision_detected = False
             self.ima_vehicles.append(imagined_vehicle)
             self.real_vehicles.append(vehicle)
 
@@ -163,17 +164,21 @@ class EnvMC(Env):
             self.set_ima_veh_neighbours(veh_real, veh_ima)
             if veh_ima.vehicle_type == 'neural':
                 obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
-                                                            veh_ima.neighbours['m'])
-                veh_ima.update_obs_history(obs[0])
-                if veh_ima.time_lapse > 35 and veh_ima.control_type != 'neural':
-                    veh_ima.control_type = 'neural'
+                                                        veh_ima.neighbours['m'])
+                if not veh_ima.collision_detected:
+                    veh_ima.update_obs_history(obs[0])
+                    if veh_ima.time_lapse > 35 and veh_ima.control_type != 'neural':
+                        veh_ima.control_type = 'neural'
 
-                if veh_ima.control_type == 'neural':
-                    act_long = veh_ima.act(obs)
-                    self.mc_log_info(veh_real, veh_ima)
-
+                    if veh_ima.control_type == 'neural':
+                        act_long = 2.5
+                        # act_long = veh_ima.act(obs)
+                        self.mc_log_info(veh_real, veh_ima)
+                    else:
+                        act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
                 else:
-                    act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
+                    act_long = 0
+
             elif veh_ima.vehicle_type == 'idmmobil':
                 self.set_ima_veh_decision(veh_real, veh_ima)
                 act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
@@ -208,7 +213,6 @@ class EnvMC(Env):
                     # neural_vehicle.id = 'neur_'+str(vehicle.id)
                     imagined_vehicle = neural_vehicle
                     imagined_vehicle.vehicle_type = 'neural'
-                    imagined_vehicle.collision_detected = False
                     imagined_vehicle.time_lapse = 0
                     ima_vehicles.append(imagined_vehicle)
                 else:
@@ -266,9 +270,6 @@ class EnvMC(Env):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
-        if veh_ima.collision_detected:
-            return
-
         veh_id =  veh_real.id
         if veh_id not in self.real_mc_log:
             self.real_mc_log[veh_id] = {}
@@ -284,24 +285,6 @@ class EnvMC(Env):
         real_mc_log = [self.time_step, veh_real.glob_x, \
                                         veh_real.speed, veh_real.act_long, min_delta_x]
         self.real_mc_log[veh_id].append(real_mc_log)
-
-        if veh_ima.neighbours['f']:
-            el_delta_x = veh_ima.neighbours['f'].glob_x - veh_ima.glob_x
-        else:
-            el_delta_x = 1000
-
-        if veh_ima.neighbours['m'] and \
-                        veh_ima.lane_id == veh_ima.neighbours['m'].lane_id:
-            em_delta_x = veh_ima.neighbours['m'].glob_x - veh_ima.glob_x
-        else:
-            em_delta_x = 1000
-
-        min_delta_x = min([el_delta_x, em_delta_x])# for collision detection
-        if min_delta_x <= 1:
-            print('collision_detected')
-            self.collision_detected = True
-            self.collision_info = [self.time_step, veh_ima.id]
-            veh_ima.collision_detected = True
         ima_mc_log = [self.time_step, veh_ima.glob_x, \
                                         veh_ima.speed, veh_ima.act_long, min_delta_x]
         self.ima_mc_log[veh_id].append(ima_mc_log)

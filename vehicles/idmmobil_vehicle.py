@@ -301,7 +301,8 @@ class IDMMOBILVehicle(Vehicle):
             return [0, 1000]
         delta_v = follower.speed-leader.speed
         delta_x = leader.glob_x-follower.glob_x
-        assert delta_x > 0
+        assert delta_x > 0, 'follower with id:' + str(follower.id) \
+                                + ' ' + 'is behind leader by ' + str(delta_x)+'m'
         return [delta_v, delta_x]
 
     def idm_action(self, follower, leader):

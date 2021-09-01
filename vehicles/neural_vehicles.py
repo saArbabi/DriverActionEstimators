@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 from importlib import reload
 import tensorflow as tf
+
 class NeuralIDMVehicle(IDMMOBILVehicle):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
@@ -34,6 +35,8 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         self.obs_history[:, -1, :] = o_t
 
     def neur_observe(self, e_veh, f_veh, m_veh):
+        if self.collision_detected:
+            return  
         if not m_veh:
             m_veh_exists = 0
             m_veh_speed = self.dummy_value_set['m_veh_speed']
@@ -73,6 +76,10 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         m_veh_action_feature = [em_delta_y, m_veh_action, f_veh_exists, m_veh_exists]
 
         neighbours = [f_veh, m_veh]
+        if min([el_delta_x, em_delta_x]) <= 0:
+            self.collision_detected = True
+            return
+
         return [obs_t0, m_veh_action_feature, neighbours]
 
     def driver_params_update(self, sampled_z):
@@ -160,28 +167,6 @@ class LSTMVehicle(NeuralIDMVehicle):
         act_long = pred_dis.sample().numpy()[0][0]
         self.att = -1
         return act_long
-
-class NeurLatentShortVehicle(NeurLatentVehicle):
-    def __init__(self):
-        super().__init__()
-
-    def initialize_agent(self, config=None):
-        self.samples_n = 1
-        history_len = 30 # steps
-        self.state_dim = 10
-        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        # self.action_history = [[0., 0.]]*20
-
-        with open('./models/experiments/scaler.pickle', 'rb') as handle:
-            self.scaler = pickle.load(handle)
-
-        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
-            self.dummy_value_set = pickle.load(handle)
-
-        from models.core.h_lat_f_act import NeurLatentModel
-        self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_lat_act_epo_15'+'/model'
-        self.model.load_weights(exp_dir).expect_partial()
 
 class NeurLatentVehicle(NeuralIDMVehicle):
     def __init__(self):
@@ -284,6 +269,28 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
         self.time_lapse_since_last_param_update += 1
         return act_long[0][0][0]
+
+class NeurLatentShortVehicle(NeurLatentVehicle):
+    def __init__(self):
+        super().__init__()
+
+    def initialize_agent(self, config=None):
+        self.samples_n = 1
+        history_len = 30 # steps
+        self.state_dim = 10
+        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
+        # self.action_history = [[0., 0.]]*20
+
+        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+            self.scaler = pickle.load(handle)
+
+        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+            self.dummy_value_set = pickle.load(handle)
+
+        from models.core.h_lat_f_act import NeurLatentModel
+        self.model = NeurLatentModel()
+        exp_dir = './models/experiments/'+'h_lat_act_epo_15'+'/model'
+        self.model.load_weights(exp_dir).expect_partial()
 
 class MLPVehicle(NeuralIDMVehicle):
     def __init__(self):

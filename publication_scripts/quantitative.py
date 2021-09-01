@@ -6,9 +6,6 @@ from importlib import reload
 reload(plt)
 import matplotlib.pyplot as plt
 
-def rwse(pred_traces, true_trace):
-    return np.mean((pred_traces - true_trace)**2, axis=0)*0.5
-
 
 # %%
 """
@@ -18,7 +15,8 @@ Load recordings
 # model_name = 'lstm_model'
 real_collections = {}
 ima_collections = {}
-model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
+model_names = ['h_lat_f_idm_act1000']
+# model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -38,7 +36,7 @@ for model_name in model_names:
     snip_collection_true[model_name] = []
     snip_collection_pred[model_name] = []
 
-horizon_steps_n = 50
+horizon_steps_n = 200
 for model_name in model_names:
     for veh_id in real_collections[model_name].keys():
         _true = np.array(real_collections[model_name][veh_id])[:, :]
@@ -54,8 +52,13 @@ for model_name in model_names:
 
 # %%
 
-snip_collection_pred['driver_model'].shape
-snip_collection_true.shape
+snip_collection_pred['h_lat_f_idm_act'].shape
+real_collections['h_lat_f_idm_act'].keys()
+np.array(real_collections['h_lat_f_idm_act1000'][10]).shape
+
+.shape
+snip_collection_true['h_lat_f_idm_act1000'].shape
+snip_collection_pred['h_lat_f_idm_act1000'].shape
 
 # %%
 """
@@ -63,7 +66,7 @@ rwse
 """
 # plt.plot(xposition_error)
 def per_veh_rwse(pred_traces, true_trace):
-    return np.mean((pred_traces - true_trace)**2, axis=0)*0.5
+    return np.mean((pred_traces - true_trace)**2, axis=0)**0.5
 
 def get_rwse(index, model_name):
     posx_true = snip_collection_true[model_name][:,:,index]
@@ -86,6 +89,8 @@ def get_rwse(index, model_name):
 # plt.rcParams.update(params)
 # plt.style.use(['science', 'ieee'])
 # %%
+
+
 """
 rwse x position
 """
@@ -95,16 +100,16 @@ speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.05)
 for model_name in model_names:
     error_total = get_rwse(3, model_name)
-    position_axis.plot(np.linspace(0., 5., 50), error_total)
+    position_axis.plot(time_vals, error_total, label=label)
 
-legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
+legends = ['NIDM2', 'NIDM', 'LSTM-MDN', 'MLP-MDN']
 position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
 # position_axis.selegend(legends)
 position_axis.minorticks_off()
-position_axis.set_ylim(0, 4)
+position_axis.set_ylim(0, 10)
 position_axis.set_xticklabels([])
-# s%%
+# x%%
 """
 rwse speed
 """
@@ -112,12 +117,12 @@ rwse speed
 
 for model_name, label in zip(model_names, legends):
     error_total = get_rwse(4, model_name)
-    speed_axis.plot(np.linspace(0., 5., 50), error_total, label=label)
+    speed_axis.plot(time_vals, error_total, label=label)
 
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
-speed_axis.set_ylim(0, 0.43)
+speed_axis.set_ylim(0, 1)
 speed_axis.set_yticks([0, 0.2, 0.4])
 # speed_axis.legend(legends)
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)

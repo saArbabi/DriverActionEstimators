@@ -37,7 +37,7 @@ time_start = time.time()
 for trace in range(trace_n):
     env = EnvMC(config)
     # env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle = NeuralIDMVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
     # env.neural_vehicle = NeurLatentShortVehicle()
     # env.neural_vehicle = LSTMVehicle()
@@ -45,14 +45,15 @@ for trace in range(trace_n):
     tf.random.set_seed(trace) # each trace has a unique seed
     # tf.random.set_seed(2021)
     for i in range(300):
-        # print(env.time_step)
-        if env.collision_detected:
-            print('COLLISION')
-            info = env.collision_info
-            info.append(trace)
-            collision_log.append(info)
-            env.collision_detected = False
         env.step()
+
+
+    for veh_ima in env.ima_vehicles:
+        # print(env.time_step)
+        if veh_ima.collision_detected and veh_ima.time_lapse < 200:
+            print('Oh no, collision detected within 20s')
+            info = [veh_ima.id, veh_ima.time_lapse, trace]
+            collision_log.append(info)
 
     for veh_id, data_log in env.ima_mc_log.items():
         for step_log in data_log:
@@ -74,15 +75,14 @@ time_end = time.time()
 
 print(time_end-time_start)
 
-# %%
 
 # %%
 """
 Save recordings
 """
-# model_name = 'h_lat_f_idm_act'
+model_name = 'h_lat_f_idm_act1000'
 # model_name = 'h_lat_f_act'
-model_name = 'h_lat_act'
+# model_name = 'h_lat_act'
 # model_name = 'driver_model'
 # model_name = 'lstm_model'
 # model_name = 'mlp_model'
