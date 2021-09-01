@@ -112,7 +112,7 @@ class EnvMC(Env):
         For cars to be modelled for MC
         """
         def _act(self, reservations):
-            act_long = self.idm_action(self.observe(self, self.neighbours['att']))
+            act_long = self.idm_action(self, self.neighbours['att'])
             return [max(-3, min(act_long, 3)), 0]
         vehicle.act = types.MethodType(_act, vehicle)
 
@@ -173,12 +173,10 @@ class EnvMC(Env):
                     self.mc_log_info(veh_real, veh_ima)
 
                 else:
-                    act_long = veh_ima.idm_action(veh_ima.observe(\
-                                            veh_ima, veh_ima.neighbours['att']))
+                    act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
             elif veh_ima.vehicle_type == 'idmmobil':
                 self.set_ima_veh_decision(veh_real, veh_ima)
-                act_long = veh_ima.idm_action(veh_ima.observe(\
-                                        veh_ima, veh_ima.neighbours['att']))
+                act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
 
             act_long = max(-3, min(act_long, 3))
             veh_ima.act_long = act_long

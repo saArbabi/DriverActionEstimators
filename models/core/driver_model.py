@@ -188,7 +188,6 @@ class IDMForwardSim(tf.keras.Model):
         self.linear_layer = Dense(100)
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
-        self.action_neu = TimeDistributed(Dense(1)) # a form
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
@@ -289,17 +288,12 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             sdv_act = sdv_acts[:, step:step+1, :]
-            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            # env_state = self.scale_features(env_state)
-
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
                                     proj_latent, sdv_act], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
-            _act = _act + self.action_neu(lstm_output)
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
@@ -340,26 +334,18 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
-        minval = 1
-        maxval = 2
         return tf.exp(output)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
-        minval = 0
-        maxval = 4
         return tf.exp(output)
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
-        minval = 1
-        maxval = 2
         return tf.exp(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
-        minval = 1
-        maxval = 3
         return tf.exp(output)
 
     def call(self, x):
