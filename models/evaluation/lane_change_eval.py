@@ -30,7 +30,7 @@ config = {'lanes_n':6,
         'lane_length':800 # m
         }
 
-trace_n = 1
+trace_n = 2
 ima_collection = {}
 collision_log = []
 time_start = time.time()
@@ -44,7 +44,7 @@ for trace in range(trace_n):
     np.random.seed(0) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed
     # tf.random.set_seed(2021)
-    for i in range(300):
+    for i in range(1000):
         env.step()
 
 
@@ -73,14 +73,16 @@ for veh_id, data_log in env.real_mc_log.items():
         real_collection[veh_id] = data_log
 time_end = time.time()
 
-print(time_end-time_start)
+
+print((time_end-time_start)/60)
 
 
 # %%
 """
 Save recordings
 """
-model_name = 'h_lat_f_idm_act1000'
+# model_name = 'h_lat_f_act1000'
+model_name = 'h_lat_f_idm_act1000_2'
 # model_name = 'h_lat_f_act'
 # model_name = 'h_lat_act'
 # model_name = 'driver_model'

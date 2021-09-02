@@ -171,17 +171,21 @@ class EnvMC(Env):
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
-                        act_long = 2.5
-                        # act_long = veh_ima.act(obs)
+                        # act_long = 2.5
+                        act_long = veh_ima.act(obs)
                         self.mc_log_info(veh_real, veh_ima)
                     else:
                         act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
                 else:
                     act_long = 0
 
-            elif veh_ima.vehicle_type == 'idmmobil':
-                self.set_ima_veh_decision(veh_real, veh_ima)
-                act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
+            elif veh_ima.vehicle_type == 'idmmobil' and not veh_ima.collision_detected:
+                try:
+                    act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
+                except:
+                    veh_ima.collision_detected = True
+            else:
+                act_long = 0
 
             act_long = max(-3, min(act_long, 3))
             veh_ima.act_long = act_long
@@ -281,10 +285,14 @@ class EnvMC(Env):
         if veh_real.neighbours['att']:
             min_delta_x = veh_real.neighbours['att'].glob_x - veh_real.glob_x
         else:
-            min_delta_x = 1000
+            min_delta_x = 100
         real_mc_log = [self.time_step, veh_real.glob_x, \
                                         veh_real.speed, veh_real.act_long, min_delta_x]
         self.real_mc_log[veh_id].append(real_mc_log)
+        if veh_ima.neighbours['att']:
+            min_delta_x = veh_ima.neighbours['att'].glob_x - veh_ima.glob_x
+        else:
+            min_delta_x = 100
         ima_mc_log = [self.time_step, veh_ima.glob_x, \
                                         veh_ima.speed, veh_ima.act_long, min_delta_x]
         self.ima_mc_log[veh_id].append(ima_mc_log)

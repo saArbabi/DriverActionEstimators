@@ -36,7 +36,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
     def neur_observe(self, e_veh, f_veh, m_veh):
         if self.collision_detected:
-            return  
+            return
         if not m_veh:
             m_veh_exists = 0
             m_veh_speed = self.dummy_value_set['m_veh_speed']
@@ -113,9 +113,8 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
     def act(self, obs):
         obs_t0, m_veh_action_feature, neighbours = obs
-        # if self.time_lapse > 5:
+
         if self.time_lapse_since_last_param_update % 30 == 0:
-        # if self.time_lapse_since_last_param_update == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
@@ -125,8 +124,6 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
             self.latent_projection_update(sampled_z)
             self.time_lapse_since_last_param_update = 0
 
-        # actions = np.float32(np.array(actions))
-        # sdv_act = np.repeat(np.array([[m_veh_action_feature]]), self.samples_n, axis=0)
         sdv_act = np.array([[m_veh_action_feature]])
         att_score = self.get_neur_att(sdv_act)[0][0][0]
         self.att = att_score
@@ -196,6 +193,8 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         self.state_h, self.state_c = latent_projection, latent_projection
 
     def neur_observe(self, e_veh, f_veh, m_veh):
+        if self.collision_detected:
+            return
         if not m_veh:
             m_veh_exists = 0
             m_veh_speed = self.dummy_value_set['m_veh_speed']
@@ -237,6 +236,11 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         env_state = [e_veh.speed, f_veh_speed, m_veh_speed,
                      el_delta_v, el_delta_x, em_delta_v, em_delta_x]
 
+        neighbours = [f_veh, m_veh]
+        if min([el_delta_x, em_delta_x]) <= 0:
+            self.collision_detected = True
+            return
+
         return [obs_t0, m_veh_action_feature, env_state]
 
     def scale_features(self, env_state):
@@ -248,8 +252,7 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
     def act(self, obs):
         obs_t0, m_veh_action_feature, env_state = obs
-        if self.time_lapse_since_last_param_update % 20 == 0:
-        # if self.time_lapse_since_last_param_update == 0:
+        if self.time_lapse_since_last_param_update % 30 == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
@@ -257,8 +260,6 @@ class NeurLatentVehicle(NeuralIDMVehicle):
             self.latent_projection_update(sampled_z)
             self.time_lapse_since_last_param_update = 0
 
-        # actions = np.float32(np.array(actions))
-        # sdv_act = np.repeat(np.array([[m_veh_action_feature]]), self.samples_n, axis=0)
         sdv_act = np.array([[m_veh_action_feature]])
         env_state = self.scale_features(env_state)
 

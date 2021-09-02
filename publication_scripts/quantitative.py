@@ -15,7 +15,8 @@ Load recordings
 # model_name = 'lstm_model'
 real_collections = {}
 ima_collections = {}
-model_names = ['h_lat_f_idm_act1000']
+model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act1000_2']
+# model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act1000_2', 'h_lat_f_act1000']
 # model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
@@ -23,12 +24,20 @@ for model_name in model_names:
 
     with open('./publication_results/'+model_name+'/ima_collection.pickle', 'rb') as handle:
         ima_collections[model_name] = pickle.load(handle)
-
 # %%
 
 """
 snip data for the 20s horizon.
 """
+_pred.shape
+len(ima_collections[model_name][veh_id][1])
+len(real_collections[model_name][veh_id])
+
+np.array(real_collections[model_name][veh_id])
+len(ima_collections[model_name][veh_id][0])
+len(ima_collections[model_name][veh_id][1])
+ima_collections[model_name][veh_id][0][0]
+ima_collections[model_name][veh_id][1][-1]
 # %%
 snip_collection_true = {}
 snip_collection_pred = {}
@@ -42,22 +51,25 @@ for model_name in model_names:
         _true = np.array(real_collections[model_name][veh_id])[:, :]
         if _true.shape[0] >= horizon_steps_n:
             _true = _true[:horizon_steps_n, :]
-            _pred = np.array(ima_collections[model_name][veh_id])[:, :horizon_steps_n, :]
+            flatten_ima = []
+            for trace in range(len(ima_collections[model_name][veh_id])):
+                flatten_ima.append(ima_collections[model_name][veh_id][trace][:horizon_steps_n])
+
+            _pred = np.array(flatten_ima)[:, :, :]
             # xposition_error = rwse(pred_traces, true_trace)
             snip_collection_true[model_name].append(_true)
             snip_collection_pred[model_name].append(_pred)
-    len(snip_collection_pred)
     snip_collection_pred[model_name] = np.array(snip_collection_pred[model_name])
     snip_collection_true[model_name] = np.array(snip_collection_true[model_name])
-
 # %%
-
+len(flatten_ima[0][0])
 snip_collection_pred['h_lat_f_idm_act'].shape
 real_collections['h_lat_f_idm_act'].keys()
 np.array(real_collections['h_lat_f_idm_act1000'][10]).shape
 
 .shape
 snip_collection_true['h_lat_f_idm_act1000'].shape
+snip_collection_pred['h_lat_f_idm_act1000'].shape
 snip_collection_pred['h_lat_f_idm_act1000'].shape
 
 # %%
@@ -82,14 +94,32 @@ def get_rwse(index, model_name):
     return error_total
 
 #
+# %%
+
+plt.plot(snip_collection_pred[model_name][0,0,:,4])
+# plt.plot(snip_collection_pred[model_name][1,0,:,4])
+plt.grid()
+# %%
+plt.plot(snip_collection_pred[model_name][3,0,:,4])
+plt.plot(snip_collection_pred[model_name][3,1,:,4])
+
+# plt.plot(snip_collection_true[model_name][1,:,4], color='red')
+# plt.plot(snip_collection_pred[model_name][1,0,:,4])
+plt.grid()
+
+# %%
+
 # params = {
 #           'font.size' : 20,
 #           'font.family' : 'EB Garamond',
 #           }
 # plt.rcParams.update(params)
 # plt.style.use(['science', 'ieee'])
-# %%
-
+# d%%
+"""
+rwse x position
+"""
+time_vals = np.linspace(0, 20, 200)
 
 """
 rwse x position
@@ -107,7 +137,7 @@ position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
 # position_axis.selegend(legends)
 position_axis.minorticks_off()
-position_axis.set_ylim(0, 10)
+position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
 # x%%
 """
@@ -122,8 +152,8 @@ for model_name, label in zip(model_names, legends):
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
-speed_axis.set_ylim(0, 1)
-speed_axis.set_yticks([0, 0.2, 0.4])
+speed_axis.set_ylim(0, 5)
+# speed_axis.set_yticks([0, 0.2, 0.4])
 # speed_axis.legend(legends)
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
 # plt.savefig("rwse.png", dpi=500)
@@ -134,19 +164,25 @@ speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
 """
 gap dist
 """
-plt.figure()
-model_name = 'driver_model_l2_double'
-true_min_gaps = snip_collection_true[model_name][:, :, -1].flatten()
-_ = plt.hist(true_min_gaps, bins=30, color='white', edgecolor='black', linewidth=1.5)
-pred_min_gaps = np.mean(snip_collection_pred[model_name][:, :, :, -1], axis=1).flatten()
-_ = plt.hist(pred_min_gaps, bins=30, color='green', alpha=0.5)
 
 plt.figure()
-model_name = 'lstm_model'
+bins_count = 50
+# time_lapse = 199
+model_name = 'h_lat_f_act1000'
 true_min_gaps = snip_collection_true[model_name][:, :, -1].flatten()
-_ = plt.hist(true_min_gaps, bins=30, color='white', edgecolor='black', linewidth=1.5)
+
 pred_min_gaps = np.mean(snip_collection_pred[model_name][:, :, :, -1], axis=1).flatten()
-_ = plt.hist(pred_min_gaps, bins=30, color='green', alpha=0.5)
+_ = plt.hist(pred_min_gaps, bins=bins_count, color='blue', range=(0, 220))
+_ = plt.hist(true_min_gaps, bins=bins_count, facecolor="None", edgecolor='black', linewidth=1.5, range=(0, 220))
+
+#
+plt.figure()
+
+model_name = 'h_lat_f_idm_act1000'
+pred_min_gaps = np.mean(snip_collection_pred[model_name][:, :, :, -1], axis=1).flatten()
+_ = plt.hist(pred_min_gaps, bins=bins_count, color='green', alpha=0.8, range=(0, 220))
+_ = plt.hist(true_min_gaps, bins=bins_count, facecolor="None", edgecolor='black', linewidth=1.5, range=(0, 220))
+
 
 
 # %%
