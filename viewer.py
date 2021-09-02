@@ -241,18 +241,33 @@ class ViewerMC(Viewer):
         self.act_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
-        veh_id = 19
-        self.act_ax.plot(real_mc_log[veh_id]['act'], color='red')
-        self.att_ax.plot(real_mc_log[veh_id]['att'], color='red')
-        self.desvel_ax.plot(real_mc_log[veh_id]['desvel'], color='red')
 
-        self.act_ax.plot(ima_mc_log[veh_id]['act'], color='grey')
-        self.att_ax.plot(ima_mc_log[veh_id]['att'], color='grey')
-        self.desvel_ax.plot(ima_mc_log[veh_id]['desvel'], color='grey')
+        present_vehicels = list(real_mc_log.keys())
+        if len(present_vehicels) > 1:
+            max_seq_len = max([len(real_mc_log[veh_id]['act']) for veh_id in present_vehicels])
+        for veh_id in present_vehicels:
+            seq_len = len(real_mc_log[veh_id]['act'])
+            if len(present_vehicels) > 1:
+                if seq_len == max_seq_len:
+                    x_range = range(seq_len)
+                elif seq_len < max_seq_len:
+                    x_range = range(max_seq_len-seq_len, max_seq_len)
+            else:
+                x_range = range(seq_len)
 
+            self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
+            self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
+            self.desvel_ax.plot(x_range, real_mc_log[veh_id]['desvel'])
+
+            self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
+            self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
+            self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
+
+
+            # self.act_ax.legend(['true', 'pred'])
+            # self.att_ax.legend(['true', 'pred'])
+            # self.desvel_ax.legend(['true', 'pred'])
         self.act_ax.set_title('action')
         self.att_ax.set_title('attention')
         self.desvel_ax.set_title('desvel')
-        self.act_ax.legend(['true', 'pred'])
-        self.att_ax.legend(['true', 'pred'])
-        self.desvel_ax.legend(['true', 'pred'])
+        self.act_ax.legend(present_vehicels)

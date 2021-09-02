@@ -15,9 +15,8 @@ Load recordings
 # model_name = 'lstm_model'
 real_collections = {}
 ima_collections = {}
-model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act1000_2']
-# model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act1000_2', 'h_lat_f_act1000']
-# model_names = ['h_lat_f_idm_act1000', 'h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
+# model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
+model_names = ['h_lat_f_idm_act']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -31,7 +30,7 @@ snip data for the 20s horizon.
 """
 _pred.shape
 len(ima_collections[model_name][veh_id][1])
-len(real_collections[model_name][veh_id])
+len(real_collections['h_lat_act_o'])
 
 np.array(real_collections[model_name][veh_id])
 len(ima_collections[model_name][veh_id][0])
@@ -45,7 +44,7 @@ for model_name in model_names:
     snip_collection_true[model_name] = []
     snip_collection_pred[model_name] = []
 
-horizon_steps_n = 200
+horizon_steps_n = 80
 for model_name in model_names:
     for veh_id in real_collections[model_name].keys():
         _true = np.array(real_collections[model_name][veh_id])[:, :]
@@ -61,6 +60,9 @@ for model_name in model_names:
             snip_collection_pred[model_name].append(_pred)
     snip_collection_pred[model_name] = np.array(snip_collection_pred[model_name])
     snip_collection_true[model_name] = np.array(snip_collection_true[model_name])
+
+snip_collection_pred['h_lat_f_idm_act'].shape
+
 # %%
 len(flatten_ima[0][0])
 snip_collection_pred['h_lat_f_idm_act'].shape
@@ -68,9 +70,9 @@ real_collections['h_lat_f_idm_act'].keys()
 np.array(real_collections['h_lat_f_idm_act1000'][10]).shape
 
 .shape
-snip_collection_true['h_lat_f_idm_act1000'].shape
-snip_collection_pred['h_lat_f_idm_act1000'].shape
-snip_collection_pred['h_lat_f_idm_act1000'].shape
+snip_collection_true['h_lat_f_idm_act'].shape
+snip_collection_pred['h_lat_act_o'].shape
+snip_collection_pred['h_lat_f_id'].shape
 
 # %%
 """
@@ -95,18 +97,39 @@ def get_rwse(index, model_name):
 
 #
 # %%
-
-plt.plot(snip_collection_pred[model_name][0,0,:,4])
+"""visualise traj for debugging
+"""
 # plt.plot(snip_collection_pred[model_name][1,0,:,4])
+legends = ['NIDM', 'Latent-Seq', 'Latent-Single']
+for model_name, label in zip(model_names, legends):
+    plt.plot(snip_collection_pred[model_name][0,0,:,4], label=label)
+plt.plot(snip_collection_true[model_name][0,:,4], color='red')
+
 plt.grid()
+plt.legend()
 # %%
-plt.plot(snip_collection_pred[model_name][3,0,:,4])
-plt.plot(snip_collection_pred[model_name][3,1,:,4])
+car_index = 11
+state_index = -3
+snip_collection_pred['h_lat_f_idm_act'][car_index, 0,0,1]
 
-# plt.plot(snip_collection_true[model_name][1,:,4], color='red')
-# plt.plot(snip_collection_pred[model_name][1,0,:,4])
-plt.grid()
+plt.plot(snip_collection_pred['h_lat_f_idm_act'][car_index,0,:,state_index])
+plt.plot(snip_collection_true[model_name][car_index,:,state_index], color='red')
+minval = snip_collection_pred['h_lat_f_idm_act'][car_index,0,:,state_index].min()
+maxval = snip_collection_pred['h_lat_f_idm_act'][car_index,0,:,state_index].max()
+for i in range(0, 100, 30):
+    plt.plot([i, i], [minval, maxval], alpha=0.7, color='grey')
+# %%
+state_index = -1
+plt.plot(snip_collection_pred['h_lat_f_idm_act'][car_index,0,:,state_index])
+plt.plot(snip_collection_true[model_name][car_index,:,state_index], color='red')
+minval = snip_collection_pred['h_lat_f_idm_act'][car_index,0,:,state_index].min()
+maxval = snip_collection_pred['h_lat_f_idm_act'][car_index,0,:,state_index].max()
+for i in range(0, 100, 30):
+    plt.plot([i, i], [minval, maxval], alpha=0.7, color='grey')
+# %%
 
+snip_collection_true[model_name][0,0,1]
+0.006*19
 # %%
 
 # params = {
@@ -131,13 +154,14 @@ fig.subplots_adjust(hspace=0.05)
 for model_name in model_names:
     error_total = get_rwse(3, model_name)
     position_axis.plot(time_vals, error_total, label=label)
+model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 
-legends = ['NIDM2', 'NIDM', 'LSTM-MDN', 'MLP-MDN']
+legends = ['NIDM', 'Latent-Seq', 'Latent-Single', 'Latent-Single-o']
 position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
 # position_axis.selegend(legends)
 position_axis.minorticks_off()
-position_axis.set_ylim(0, 5)
+position_axis.set_ylim(0, 30)
 position_axis.set_xticklabels([])
 # x%%
 """
@@ -152,7 +176,7 @@ for model_name, label in zip(model_names, legends):
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
-speed_axis.set_ylim(0, 5)
+speed_axis.set_ylim(0, 2)
 # speed_axis.set_yticks([0, 0.2, 0.4])
 # speed_axis.legend(legends)
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)

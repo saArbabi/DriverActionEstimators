@@ -30,12 +30,14 @@ config = {'lanes_n':6,
         'lane_length':800 # m
         }
 
-trace_n = 2
+trace_n = 1
 ima_collection = {}
 collision_log = []
 time_start = time.time()
 for trace in range(trace_n):
     env = EnvMC(config)
+    env.metric_collection_mode = True
+
     # env.neural_vehicle = MLPVehicle()
     env.neural_vehicle = NeuralIDMVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
@@ -44,9 +46,8 @@ for trace in range(trace_n):
     np.random.seed(0) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed
     # tf.random.set_seed(2021)
-    for i in range(1000):
+    for i in range(420):
         env.step()
-
 
     for veh_ima in env.ima_vehicles:
         # print(env.time_step)
@@ -81,13 +82,10 @@ print((time_end-time_start)/60)
 """
 Save recordings
 """
-# model_name = 'h_lat_f_act1000'
-model_name = 'h_lat_f_idm_act1000_2'
 # model_name = 'h_lat_f_act'
+model_name = 'h_lat_f_idm_act'
 # model_name = 'h_lat_act'
-# model_name = 'driver_model'
-# model_name = 'lstm_model'
-# model_name = 'mlp_model'
+
 directory = './publication_results/'+model_name
 if not os.path.exists(directory):
     os.makedirs(directory)
