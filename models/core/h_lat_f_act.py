@@ -7,7 +7,6 @@ reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
-
 tfd = tfp.distributions
 
 class NeurLatentModel(AbstractModel):
@@ -28,10 +27,8 @@ class NeurLatentModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true[:, 0:30, :])/0.1
-        act_pred = (act_pred[:, 0:30, :])/0.1
-        # act_true = (act_true)/0.1
-        # act_pred = (act_pred)/0.1
+        act_true = (act_true)/0.1
+        act_pred = (act_pred)/0.1
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def kl_loss(self, pri_params, pos_params):
@@ -115,7 +112,6 @@ class BeliefModel(tf.keras.Model):
                                  self.latent_dim), mean=0., stddev=1)
         sampled_z = z_mean + K.exp(z_logsigma) * _epsilon
         return sampled_z
-        # return sampled_z, sampled_z for single latent
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -193,7 +189,7 @@ class ForwardSim(tf.keras.Model):
         state_h, state_c = latent_projection, latent_projection
 
         # for step in range(60):
-        for step in range(30):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -237,3 +233,134 @@ class ForwardSim(tf.keras.Model):
                 act_seq = tf.concat([act_seq, _act], axis=1)
 
         return act_seq
+
+class ForwardSimOneStep(ForwardSim):
+    def __init__(self):
+        super().__init__()
+
+    def rollout(self, inputs):
+        sampled_z, idm_s, sdv_acts = inputs
+        batch_size = tf.shape(idm_s)[0]
+        latent_projection = self.linear_layer(sampled_z)
+        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
+        state_h, state_c = latent_projection, latent_projection
+
+        for step in range(1):
+            f_veh_v = idm_s[:, step:step+1, 1:2]
+            m_veh_v = idm_s[:, step:step+1, 2:3]
+            f_veh_glob_x = idm_s[:, step:step+1, 4:5]
+            m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+
+            ef_dv_true = idm_s[:, step:step+1, 6:7]
+            ef_delta_x_true = idm_s[:, step:step+1, 7:8]
+            em_dv_true = idm_s[:, step:step+1, 8:9]
+            em_delta_x_true = idm_s[:, step:step+1, 9:10]
+
+            # these to deal with missing cars
+            f_veh_exists = idm_s[:, step:step+1, -2:-1]
+            m_veh_exists = idm_s[:, step:step+1, -1:]
+            if step == 0:
+                ego_v = idm_s[:, step:step+1, 0:1]
+                ego_glob_x = idm_s[:, step:step+1, 3:4]
+            else:
+                ego_v += _act*0.1
+                ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists+\
+                                                (1-f_veh_exists)*ef_delta_x_true
+            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
+                                                (1-m_veh_exists)*em_delta_x_true
+            ef_dv = (ego_v - f_veh_v)*f_veh_exists+\
+                                                (1-f_veh_exists)*ef_dv_true
+            em_dv = (ego_v - m_veh_v)*m_veh_exists+\
+                                                (1-m_veh_exists)*em_dv_true
+            sdv_act = sdv_acts[:, step:step+1, :]
+            env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+                            ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = self.scale_features(env_state)
+
+            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                    proj_latent, sdv_act, env_state], axis=-1), \
+                                    initial_state=[state_h, state_c])
+            _act = self.action_neu(lstm_output)
+            if step == 0:
+                act_seq = _act
+            else:
+                act_seq = tf.concat([act_seq, _act], axis=1)
+
+        return act_seq
+
+class NeurLatentModelOneStep(NeurLatentModel):
+    def __init__(self, config=None):
+        super(NeurLatentModelOneStep, self).__init__(config)
+        self.forward_sim = ForwardSimOneStep()
+
+    def mse(self, act_true, act_pred):
+        act_true = (act_true[:, 0:1, :])/0.1
+        act_pred = (act_pred[:, 0:1, :])/0.1
+        return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
+
+    def call(self, inputs):
+        enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
+        enc_f = self.f_seq_encoder(inputs[1])
+
+        pri_params, pos_params = self.belief_net(\
+                                [enc_h, enc_f], dis_type='both')
+        sampled_z = self.belief_net.sample_z(pos_params)
+        act_seq = self.forward_sim.rollout([sampled_z, inputs[2], inputs[-1]])
+
+        return act_seq, pri_params, pos_params
+
+
+        def rollout(self, inputs):
+            sampled_z, idm_s, sdv_acts = inputs
+            batch_size = tf.shape(idm_s)[0]
+            latent_projection = self.linear_layer(sampled_z)
+            proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
+            state_h, state_c = latent_projection, latent_projection
+
+            # for step in range(60):
+            for step in range(1):
+                f_veh_v = idm_s[:, step:step+1, 1:2]
+                m_veh_v = idm_s[:, step:step+1, 2:3]
+                f_veh_glob_x = idm_s[:, step:step+1, 4:5]
+                m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+
+                ef_dv_true = idm_s[:, step:step+1, 6:7]
+                ef_delta_x_true = idm_s[:, step:step+1, 7:8]
+                em_dv_true = idm_s[:, step:step+1, 8:9]
+                em_delta_x_true = idm_s[:, step:step+1, 9:10]
+
+                # these to deal with missing cars
+                f_veh_exists = idm_s[:, step:step+1, -2:-1]
+                m_veh_exists = idm_s[:, step:step+1, -1:]
+                if step == 0:
+                    ego_v = idm_s[:, step:step+1, 0:1]
+                    ego_glob_x = idm_s[:, step:step+1, 3:4]
+                else:
+                    ego_v += _act*0.1
+                    ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+
+                ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists+\
+                                                    (1-f_veh_exists)*ef_delta_x_true
+                em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
+                                                    (1-m_veh_exists)*em_delta_x_true
+                ef_dv = (ego_v - f_veh_v)*f_veh_exists+\
+                                                    (1-f_veh_exists)*ef_dv_true
+                em_dv = (ego_v - m_veh_v)*m_veh_exists+\
+                                                    (1-m_veh_exists)*em_dv_true
+                sdv_act = sdv_acts[:, step:step+1, :]
+                env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+                                ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+                env_state = self.scale_features(env_state)
+
+                lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                        proj_latent, sdv_act, env_state], axis=-1), \
+                                        initial_state=[state_h, state_c])
+                _act = self.action_neu(lstm_output)
+                if step == 0:
+                    act_seq = _act
+                else:
+                    act_seq = tf.concat([act_seq, _act], axis=1)
+
+            return act_seq

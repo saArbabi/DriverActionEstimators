@@ -10,8 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 import numpy as np
 np.set_printoptions(suppress=True)
- 
-# %%
+
 config = {
  "model_config": {
      "learning_rate": 1e-3,
@@ -21,6 +20,34 @@ config = {
     "Note": ""
 }
 
+# %%
+
+# %%
+"""
+Data prep
+"""
+import data_generator
+reload(data_generator)
+from data_generator import DataGenerator
+data_gen = DataGenerator()
+with open('./models/experiments/sim_data.pickle', 'rb') as handle:
+    features = pickle.load(handle)
+features.shape
+features, dummy_value_set = data_gen.fill_missing_values(features)
+features_scaled, scaler = data_gen.scale_data(features)
+
+history_future_seqs = data_gen.sequence(features, 30, 40)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 40)
+data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+
+history_future_usc, history_sca, future_sca, future_idm_s, \
+                future_m_veh_a, future_e_veh_a = data_arrays
+
+future_m_veh_a.shape
+plt.plot(history_future_usc[0, :, 6])
+history_future_usc[21485, [0], :]
+
+# %%
 class Trainer():
     def __init__(self, training_data, model_type, model_name):
         self.model = None
@@ -107,11 +134,7 @@ class Trainer():
                                         future_e_veh_a[val_indxs, -1]]
 
     def train(self, epochs):
-        # self.model.epochs_n = epochs
-        avg_training_time = (45+epochs*15)/60
-        print('it will take about ' , round(avg_training_time), ' mins to complete')
         for epoch in range(epochs):
-            t0 = time.time()
             self.model.train_loop(self.train_input)
             self.model.test_loop(self.val_input, epoch)
             if self.model_type == 'cvae':
@@ -122,9 +145,7 @@ class Trainer():
             else:
                 self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
-            t1 = time.time()
             print(self.epoch_count, 'epochs completed')
-            print('Epoch took: ', round(t1-t0), ' seconds')
             self.epoch_count += 1
 
     def save_model(self, model_name):
@@ -134,8 +155,8 @@ class Trainer():
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_lat_f_idm_act_epo_10'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_lat_f_idm_act_epo_15'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 
@@ -197,7 +218,6 @@ ax = latent_vis()
 # model_trainer.save_model('h_lat_f_idm_act')
 
 
-
 # %%
 # %%
 """
@@ -226,14 +246,36 @@ Save model and scalers etc.
 import pickle
 from matplotlib import rcParams
 #
-model_trainer.save_model('driver_model')
-# model_trainer.save_model('lstm_model')
-# model_trainer.save_model('mlp_model')
 # with open('./models/experiments/scaler.pickle', 'wb') as handle:
 #     pickle.dump(scaler, handle)
 # with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
 #     pickle.dump(dummy_value_set, handle)
 # %%
+x = np.linspace(-5, 5, 1000)
+# y = np.exp(x)
+# plt.plot(x, y)
+
+# y = 1/(1+np.exp(-1*x))
+y = 15 +  20/(1+np.exp(-1*x))
+plt.plot(x, y)
+# %%
+
+
+y = np.log(1+np.exp(x))
+plt.plot(x, y, color='red')
+# %%
+vel = 20
+var = 0.5
+vels = []
+
+for i in range(20):
+    act = np.random.normal(0, var)
+    vel += act
+    vels.append(vel)
+plt.ylim(17, 23)
+plt.plot(vels)
+plt.grid()
+
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
@@ -247,7 +289,7 @@ def latent_samples(model_trainer, sample_index):
 
 def latent_vis():
     fig = pyplot.figure(figsize=(4, 6))
-    examples_to_vis = np.random.choice(val_examples, 10000, replace=False)
+    examples_to_vis = np.random.choice(val_examples, 5000, replace=False)
 
     #===============
     #  First subplot
@@ -386,6 +428,8 @@ zzz[:, 2].std()
 
 # %%
 
+# %%
+
 Example_pred = 0
 i = 0
 covered_episodes = []
@@ -409,12 +453,12 @@ while Example_pred < 20:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
-    if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-            e_veh_att[20:55].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
+    #         e_veh_att[20:55].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -450,7 +494,7 @@ while Example_pred < 20:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 60), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(30, 70), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -460,9 +504,9 @@ while Example_pred < 20:
 
         plt.figure(figsize=(3, 3))
         # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(0, 60), e_veh_att, color='red')
+        plt.plot(range(70), e_veh_att, color='red')
         for sample_trace_i in range(traces_n):
-           plt.plot(range(0, 60), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(30, 70), att_scores[sample_trace_i, :].flatten(), color='grey')
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
@@ -521,8 +565,7 @@ while Example_pred < 20:
         plt.grid()
         ######\######
         plt.figure(figsize=(3, 3))
-        plt.plot(em_delta_y[:20], color='black')
-        plt.plot(range(0, 60), em_delta_y, color='red')
+        plt.plot(range(70), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1 .5], color='red')
@@ -536,9 +579,9 @@ while Example_pred < 20:
 """Single sample Anticipation visualisation
 """
 # model_trainer.model.arbiter.attention_temp = 5
-traces_n = 50
+traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 20
-sample_index = [22751]
+sample_index = [9783]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
@@ -560,7 +603,7 @@ act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
-time_axis = np.linspace(0., 6., 60)
+time_axis = np.linspace(0., 7., 70)
 plt.figure(figsize=(3, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
@@ -577,10 +620,11 @@ plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 ##########
 # %%
-plt.figure(figsize=(3, 2))
+plt.figure(figsize=(10, 10))
+# plt.figure(figsize=(3, 2))
 # plt.legend(['Leader', 'Follower', 'Merger'])
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[20:], act_seq[sample_trace_i, :, :].flatten(), \
+   plt.plot(time_axis[30:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['e_veh_action']][0], color='red')
 plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['m_veh_action']][0], \
@@ -604,7 +648,7 @@ plt.legend(['Ego', 'Merger', 'Leader'])
 # %%
 plt.figure(figsize=(3, 2))
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[20:], att_scores[sample_trace_i, :].flatten(), \
+   plt.plot(time_axis[30:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 plt.plot(time_axis, e_veh_att, color='red', linewidth=1, linestyle='-')
 
@@ -681,7 +725,7 @@ plt.grid()
 ############
 plt.figure(figsize=(3, 3))
 plt.plot(em_delta_y[:20], color='black')
-plt.plot(range(0, 60), em_delta_y, color='red')
+plt.plot(range(30, 70), em_delta_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')

@@ -1,3 +1,7 @@
+from importlib import reload
+import numpy as np
+import matplotlib.pyplot as plt
+import pickle
 import highway
 reload(highway)
 from highway import Env
@@ -12,7 +16,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':2000,
+                'env_steps_n':3000,
                 'model_type':'belief_net'
                 }
 
@@ -34,7 +38,9 @@ for item_name in feature_names:
     indxs[item_name] = index
     index += 1
 indxs['e_veh_att']
-
+indxs['desired_v']
+features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
+features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
 # %%
 features_origin[:, indxs['m_veh_speed']].mean()
 features_origin[:, indxs['e_veh_action']].std()
@@ -43,6 +49,9 @@ features_origin[:, indxs['e_veh_action']].std()
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 features_origin[:, indxs['e_veh_action']].mean()
+# %%
+features_origin[features_origin[:, indxs['aggressiveness']] ==][0, indxs['desired_tgap']]
+features_origin[141]
 # %%
 
 """
@@ -58,6 +67,15 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
+# %%
+
+with open('./models/experiments/sim_data.pickle', 'wb') as handle:
+    pickle.dump(features_origin, handle)
+# %%
+
+
+
+
 
 
 # %%
@@ -71,8 +89,8 @@ features = features_origin.copy()
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 30, 30)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 30)
+history_future_seqs = data_gen.sequence(features, 30, 40)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 40)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
@@ -83,8 +101,8 @@ future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
 # data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
 future_m_veh_a.shape
 future_m_veh_a.shape
-plt.plot(future_e_veh_a[0, :, -1])
-# %%
+# plt.plot(future_e_veh_a[0, :, -1])
+
 
 """
 Driver model - lstm

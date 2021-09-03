@@ -248,7 +248,7 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
 
-        for step in range(60):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -334,19 +334,19 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
-        return tf.exp(output)
+        return tf.math.softplus(output)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
-        return tf.exp(output)
+        return tf.math.softplus(output)
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
-        return tf.exp(output)
+        return tf.math.softplus(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
-        return tf.exp(output)
+        return tf.math.softplus(output)
 
     def call(self, x):
         desired_v = self.get_des_v(x)

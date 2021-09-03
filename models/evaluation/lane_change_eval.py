@@ -17,7 +17,7 @@ from vehicle_handler import VehicleHandler
 import tensorflow as tf
 from vehicles import neural_vehicles
 reload(neural_vehicles)
-from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle, NeurLatentShortVehicle
+from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle, NeurLatentOneStepVehicle
 
 import highway
 reload(highway)
@@ -39,14 +39,14 @@ for trace in range(trace_n):
     env.metric_collection_mode = True
 
     # env.neural_vehicle = MLPVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = NeuralIDMVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
-    # env.neural_vehicle = NeurLatentShortVehicle()
+    env.neural_vehicle = NeurLatentOneStepVehicle()
     # env.neural_vehicle = LSTMVehicle()
     np.random.seed(0) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed
     # tf.random.set_seed(2021)
-    for i in range(420):
+    for i in range(400):
         env.step()
 
     for veh_ima in env.ima_vehicles:
@@ -77,14 +77,13 @@ time_end = time.time()
 
 print((time_end-time_start)/60)
 
-
 # %%
 """
 Save recordings
 """
 # model_name = 'h_lat_f_act'
-model_name = 'h_lat_f_idm_act'
-# model_name = 'h_lat_act'
+# model_name = 'h_lat_f_idm_act'
+model_name = 'h_lat_act'
 
 directory = './publication_results/'+model_name
 if not os.path.exists(directory):

@@ -176,7 +176,9 @@ class EnvMC(Env):
                     if veh_ima.control_type == 'neural':
                         # act_long = 2.5
                         act_long = veh_ima.act(obs)
+                        act_long = max(-3, min(act_long, 3))
                         if self.metric_collection_mode:
+                            veh_ima.act_long = act_long
                             self.mc_log_info(veh_real, veh_ima)
                     else:
                         act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
@@ -191,11 +193,11 @@ class EnvMC(Env):
             else:
                 act_long = 0
 
-            act_long = max(-3, min(act_long, 3))
-            veh_ima.act_long = act_long
+
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
 
             if self.debugging_mode:
+                veh_ima.act_long = act_long
                 self.vis_log_info(veh_real, veh_ima)
         return acts_real, acts_ima
 
@@ -218,7 +220,7 @@ class EnvMC(Env):
         if self.time_step > 300:
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
-                if 0 < vehicle.glob_x < 400 and vehicle.vehicle_type != 'neural':
+                if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural':
                     neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                     # neural_vehicle.id = 'neur_'+str(vehicle.id)
                     imagined_vehicle = neural_vehicle
@@ -250,19 +252,26 @@ class EnvMC(Env):
                 self.ima_mc_log[veh_id] = {}
 
                 self.real_mc_log[veh_id]['act'] = []
+                self.real_mc_log[veh_id]['speed'] = []
                 self.real_mc_log[veh_id]['att'] = []
                 self.real_mc_log[veh_id]['desvel'] = []
 
                 self.ima_mc_log[veh_id]['act'] = []
+                self.ima_mc_log[veh_id]['speed'] = []
                 self.ima_mc_log[veh_id]['att'] = []
                 self.ima_mc_log[veh_id]['desvel'] = []
                 self.ima_mc_log[veh_id]['m_veh_exists'] = []
 
             self.real_mc_log[veh_id]['act'].append(veh_real.act_long)
+            self.real_mc_log[veh_id]['speed'].append(veh_real.speed)
             self.real_mc_log[veh_id]['att'].append(att_real)
             self.real_mc_log[veh_id]['desvel'].append(\
                                                veh_real.driver_params['desired_v'])
+
+            # Imagined vehicle
             self.ima_mc_log[veh_id]['act'].append(veh_ima.act_long)
+            self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
+
             if not hasattr(self, 'att'):
                 self.ima_mc_log[veh_id]['att'].append(att_real)
             else:
@@ -309,8 +318,10 @@ class EnvMC(Env):
         else:
             min_delta_x = 100
 
+        # ima_mc_log = [self.time_step, veh_ima.glob_x, \
+        #                         veh_ima.speed, veh_ima.act_long, min_delta_x, veh_ima.att]
         ima_mc_log = [self.time_step, veh_ima.glob_x, \
-                                veh_ima.speed, veh_ima.act_long, min_delta_x, veh_ima.att]
+                                veh_ima.speed, veh_ima.act_long, min_delta_x]
         self.ima_mc_log[veh_id].append(ima_mc_log)
 # class EnvLaneKeep(Env):
 #     def __init__(self, config):

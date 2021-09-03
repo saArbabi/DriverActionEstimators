@@ -271,7 +271,7 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         self.time_lapse_since_last_param_update += 1
         return act_long[0][0][0]
 
-class NeurLatentShortVehicle(NeurLatentVehicle):
+class NeurLatentOneStepVehicle(NeurLatentVehicle):
     def __init__(self):
         super().__init__()
 
@@ -290,7 +290,7 @@ class NeurLatentShortVehicle(NeurLatentVehicle):
 
         from models.core.h_lat_f_act import NeurLatentModel
         self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_lat_act_epo_15'+'/model'
+        exp_dir = './models/experiments/'+'h_lat_act_epo_10'+'/model'
         self.model.load_weights(exp_dir).expect_partial()
 
 class MLPVehicle(NeuralIDMVehicle):

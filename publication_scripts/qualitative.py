@@ -50,9 +50,9 @@ for mean in range_means:
 
 
 # %%
-mean = 0.5
+mean = 0.7
 color_i = 0
-precision = 10
+precision = 5
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
 p = beta.pdf(x, alpha_param, beta_param)

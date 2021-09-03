@@ -152,10 +152,11 @@ class ViewerMC(Viewer):
         self.fig = plt.figure(figsize=(20, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
-        self.fig = plt.figure(figsize=(4, 9))
-        self.act_ax = self.fig.add_subplot(311)
-        self.att_ax = self.fig.add_subplot(312)
-        self.desvel_ax = self.fig.add_subplot(313)
+        self.fig = plt.figure(figsize=(5, 12))
+        self.act_ax = self.fig.add_subplot(411)
+        self.speed_ax = self.fig.add_subplot(412)
+        self.att_ax = self.fig.add_subplot(413)
+        self.desvel_ax = self.fig.add_subplot(414)
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -182,17 +183,6 @@ class ViewerMC(Viewer):
         for vehicle in vehicles:
             att_veh = vehicle.neighbours['att']
             f_veh = vehicle.neighbours['f']
-            # if vehicle.id == 19:
-            #     if att_veh:
-            #         print(vehicle.id, ' ',vehicle.glob_x-att_veh.glob_x)
-            #     # point_1 = [vehicle.glob_x, neighbour.glob_x]
-            #     # point_2 = [vehicle.glob_y, neighbour.glob_y]
-            #     # if env_type == 'imagined':
-            #     #     ax.plot(point_1, point_2, color='grey', linestyle='--')
-            #     #     ax.scatter(point_1, point_2, color='black', s=30)
-            #
-            #     if f_veh:
-            #         print(vehicle.id, ' ',vehicle.glob_x-f_veh.glob_x)
 
             if vehicle.id == self.focus_on_this_vehicle:
                 print('#############  ', vehicle.id, env_type, '  ##############')
@@ -239,6 +229,7 @@ class ViewerMC(Viewer):
 
     def info_plot(self, real_mc_log, ima_mc_log):
         self.act_ax.clear()
+        self.speed_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
 
@@ -256,10 +247,12 @@ class ViewerMC(Viewer):
                 x_range = range(seq_len)
 
             self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
+            self.speed_ax.plot(x_range, real_mc_log[veh_id]['speed'], label=veh_id)
             self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
             self.desvel_ax.plot(x_range, real_mc_log[veh_id]['desvel'])
 
             self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
+            self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
             self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
             self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
 
@@ -268,6 +261,7 @@ class ViewerMC(Viewer):
             # self.att_ax.legend(['true', 'pred'])
             # self.desvel_ax.legend(['true', 'pred'])
         self.act_ax.set_title('action')
+        self.speed_ax.set_title('speed')
         self.att_ax.set_title('attention')
         self.desvel_ax.set_title('desvel')
         self.act_ax.legend(present_vehicels)
