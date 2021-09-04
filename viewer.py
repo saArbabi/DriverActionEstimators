@@ -256,7 +256,6 @@ class ViewerMC(Viewer):
             self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
             self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
 
-
             # self.act_ax.legend(['true', 'pred'])
             # self.att_ax.legend(['true', 'pred'])
             # self.desvel_ax.legend(['true', 'pred'])

@@ -21,6 +21,18 @@ config = {
 }
 
 # %%
+from scipy.stats import beta
+mean = 0.8
+
+precision = 10
+alpha_param = precision*mean
+beta_param = precision*(1-mean)
+gen_samples =  18 + np.random.beta(alpha_param, beta_param, 50)*14
+plt.xlim(18, 32)
+
+_ = plt.hist(gen_samples, bins=150)
+gen_samples.std()
+
 
 # %%
 """
@@ -42,10 +54,11 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
+# %%
 
 future_m_veh_a.shape
-plt.plot(history_future_usc[0, :, 6])
-history_future_usc[21485, [0], :]
+# plt.plot(history_future_usc[0, :, 6])
+plt.plot(history_future_usc[10450, :, 6])
 
 # %%
 class Trainer():
@@ -155,8 +168,8 @@ class Trainer():
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_lat_f_idm_act_epo_15'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_lat_f_idm_act_epo_15'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 
@@ -215,7 +228,7 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
 ax = latent_vis()
-# model_trainer.save_model('h_lat_f_idm_act')
+# model_trainer.save_model('h_lat_f_idm_act001')
 
 
 # %%
@@ -263,18 +276,7 @@ plt.plot(x, y)
 
 y = np.log(1+np.exp(x))
 plt.plot(x, y, color='red')
-# %%
-vel = 20
-var = 0.5
-vels = []
 
-for i in range(20):
-    act = np.random.normal(0, var)
-    vel += act
-    vels.append(vel)
-plt.ylim(17, 23)
-plt.plot(vels)
-plt.grid()
 
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -453,12 +455,12 @@ while Example_pred < 20:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #         e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+            e_veh_att[20:].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)

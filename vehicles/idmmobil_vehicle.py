@@ -39,29 +39,30 @@ class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
         # self.capability = 'IDM'
-        self.beta_precision = 5
+        self.beta_precision = 10
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
-        self.neighbours = {veh_name: None for veh_name in ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm', 'att']}
+        self.neighbours = {veh_name: None for veh_name in\
+                            ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm', 'att']}
         self.perception_range = 200 #m
         self.lane_width = 3.75
         self.act_long = 0
         self.time_lapse = 0 # since vehicle came to existance
         self.vehicle_type = 'idmmobil'
-        self.steps_since_lc_initiation = 0
-        self.steps_prior_lc = 10 # steps
-        self.steps_since_new_lane_arrival = 0
+
+
         self.lateral_actions = {'move_left':0.75,
                                 'move_right':-0.75,
                                 'keep_lane':0}
+        self.steps_since_lc_initiation = 0
+        self.steps_prior_lc = 20 # steps
+        self.steps_since_new_lane_arrival = 0
+        self.steps_to_new_lane_entry = self.steps_prior_lc + \
+                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
-        if aggressiveness != None:
-            self.set_driver_params(aggressiveness)
-
-    def set_driver_params(self, aggressiveness):
-        Parameter_range = {'most_aggressive': {
-                                        'desired_v':30, # m/s
+        self.parameter_range = {'most_aggressive': {
+                                        'desired_v':32, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
                                         'max_act':2, # m/s^2
@@ -71,7 +72,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':19, # m/s
+                                        'desired_v':18, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
@@ -83,43 +84,41 @@ class IDMMOBILVehicle(Vehicle):
 
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
-        # IDM params
-        self.driver_params['desired_v'] = self.get_driver_param(Parameter_range, 'desired_v')
-        # self.driver_params['desired_v'] += np.random.normal()
-        self.driver_params['desired_tgap'] = self.get_driver_param(Parameter_range, 'desired_tgap')
-        self.driver_params['min_jamx'] = self.get_driver_param(Parameter_range, 'min_jamx')
-        self.driver_params['max_act'] = self.get_driver_param(Parameter_range, 'max_act')
-        self.driver_params['min_act'] = self.get_driver_param(Parameter_range, 'min_act')
-        # MOBIL params
-        self.driver_params['politeness'] = self.get_driver_param(Parameter_range, 'politeness')
-        self.driver_params['safe_braking'] = self.get_driver_param(Parameter_range, 'safe_braking')
-        self.driver_params['act_threshold'] = self.get_driver_param(Parameter_range, 'act_threshold')
-        self.steps_to_new_lane_entry = self.steps_prior_lc + \
-                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
-        self.set_attentiveness()
+        if aggressiveness != None:
+            self.set_driver_params()
 
+    def set_driver_params(self):
+        self.driver_params['attentiveness'] = \
+                            self.steps_to_new_lane_entry*self.sample_beta()
+        # IDM params
+        self.driver_params['desired_v'] = self.get_driver_param('desired_v')
+        # self.driver_params['desired_v'] += np.random.normal()
+        self.driver_params['desired_tgap'] = self.get_driver_param('desired_tgap')
+        self.driver_params['min_jamx'] = self.get_driver_param('min_jamx')
+        self.driver_params['max_act'] = self.get_driver_param('max_act')
+        self.driver_params['min_act'] = self.get_driver_param('min_act')
+        # MOBIL params
+        self.driver_params['politeness'] = self.get_driver_param('politeness')
+        self.driver_params['safe_braking'] = self.get_driver_param('safe_braking')
+        self.driver_params['act_threshold'] = self.get_driver_param('act_threshold')
 
     def sample_beta(self):
         alpha_param = self.beta_precision*self.driver_params['aggressiveness']
         beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
         return np.random.beta(alpha_param, beta_param)
 
-    def set_attentiveness(self):
-        self.driver_params['attentiveness'] = \
-                            self.steps_to_new_lane_entry*self.sample_beta()
-
-    def get_driver_param(self, Parameter_range, param_name):
+    def get_driver_param(self, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
             # the larger the param, the more aggressive the driver
-            min_value = Parameter_range['least_aggressvie'][param_name]
-            max_value = Parameter_range['most_aggressive'][param_name]
+            min_value = self.parameter_range['least_aggressvie'][param_name]
+            max_value = self.parameter_range['most_aggressive'][param_name]
             return  min_value + self.sample_beta()*(max_value-min_value)
 
         elif param_name in ['desired_tgap', 'min_jamx', 'politeness',
                                                 'act_threshold', 'safe_braking']:
             # the larger the param, the more timid the driver
-            min_value = Parameter_range['most_aggressive'][param_name]
-            max_value = Parameter_range['least_aggressvie'][param_name]
+            min_value = self.parameter_range['most_aggressive'][param_name]
+            max_value = self.parameter_range['least_aggressvie'][param_name]
             return  max_value - self.sample_beta()*(max_value-min_value)
 
     def my_neighbours(self, vehicles):
@@ -276,7 +275,6 @@ class IDMMOBILVehicle(Vehicle):
             neighbours['m'] = None
         # neighbours['m'] = candidate_m
         neighbours['att'] = candidate_att
-
         return neighbours
 
     def am_i_attending(self, vehicle, delta_x, delta_xs):
@@ -433,9 +431,10 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_left'
                         self.neighbours['att'] = self.neighbours['fl']
                         self.neighbours['f'] = self.neighbours['fl']
+                        # self.set_driver_params()
                         self.target_lane -= 1
                         if self.neighbours['rl']:
-                            self.neighbours['rl'].set_attentiveness()
+                            self.neighbours['rl'].set_driver_params()
                         return [act_ego_lc_l, self.lateral_action()]
 
                 elif lc_left_condition < lc_right_condition:
@@ -444,9 +443,11 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_right'
                         self.neighbours['att'] = self.neighbours['fr']
                         self.neighbours['f'] = self.neighbours['fr']
+                        # self.set_driver_params()
                         self.target_lane += 1
                         if self.neighbours['rr']:
-                            self.neighbours['rr'].set_attentiveness()
+                            self.neighbours['rr'].set_driver_params()
+
                         return [act_ego_lc_r, self.lateral_action()]
 
         return [act_long, self.lateral_action()]

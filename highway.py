@@ -90,6 +90,7 @@ class Env:
             self.recorder()
         for vehicle, actions in zip(self.vehicles, joint_action):
             vehicle.step(actions)
+            vehicle.time_lapse += 1
 
         new_entries = self.handler.handle_vehicle_entries(
                                                           self.queuing_entries,

@@ -16,7 +16,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':3000,
+                'env_steps_n':2000,
                 'model_type':'belief_net'
                 }
 
@@ -39,8 +39,8 @@ for item_name in feature_names:
     index += 1
 indxs['e_veh_att']
 indxs['desired_v']
-features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
-features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
+# features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
+# features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
 # %%
 features_origin[:, indxs['m_veh_speed']].mean()
 features_origin[:, indxs['e_veh_action']].std()
@@ -52,6 +52,8 @@ features_origin[:, indxs['e_veh_action']].mean()
 # %%
 features_origin[features_origin[:, indxs['aggressiveness']] ==][0, indxs['desired_tgap']]
 features_origin[141]
+features_origin[:, indxs['desired_v']].max()
+
 # %%
 
 """

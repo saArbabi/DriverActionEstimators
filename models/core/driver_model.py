@@ -188,6 +188,7 @@ class IDMForwardSim(tf.keras.Model):
         self.linear_layer = Dense(100)
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
+        self.action_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
@@ -226,15 +227,6 @@ class IDMForwardSim(tf.keras.Model):
         idm_action = idm_veh_exists*(idm_action) + \
                 (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
         return idm_action
-
-    def transition_dynamic(self, current_ego_state, current_ego_action):
-        """
-        Two things to figure out:
-        should you start from step 0?
-        Why balancing data is not helping
-        Use LSTMs. But ensure any ego state is ego generated - a true rollout if you like
-        """
-        return next_ego_state
 
     def scale_features(self, env_state):
         env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
@@ -288,12 +280,18 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             sdv_act = sdv_acts[:, step:step+1, :]
+            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            # env_state = self.scale_features(env_state)
+
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
                                     proj_latent, sdv_act], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
             # att_score = idm_s[:, step:step+1, -3:-2]
+            # res_action = self.action_neu(lstm_output)
             _act = (1-att_score)*ef_act + att_score*em_act
+            # _act += res_action
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
@@ -319,12 +317,6 @@ class IDMLayer(tf.keras.Model):
         self.max_act_linear = Dense(100)
         self.min_act_neu = Dense(1)
         self.min_act_linear = Dense(100)
-
-    def param_activation(self, x, min_val, max_val, batch_size):
-        activation_function = tf.tanh(0.5*x)
-        scale = tf.fill([batch_size, 1], (max_val-min_val)/2.)
-        min_val = tf.fill([batch_size, 1], min_val)
-        return tf.add_n([tf.multiply(activation_function, scale), min_val, scale])
 
     def get_des_v(self, x):
         output = self.des_v_neu(self.des_v_linear(x))
