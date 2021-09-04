@@ -431,7 +431,7 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_left'
                         self.neighbours['att'] = self.neighbours['fl']
                         self.neighbours['f'] = self.neighbours['fl']
-                        self.set_driver_params()
+                        # self.set_driver_params()
                         self.target_lane -= 1
                         if self.neighbours['rl']:
                             self.neighbours['rl'].set_driver_params()
@@ -443,7 +443,7 @@ class IDMMOBILVehicle(Vehicle):
                         self.lane_decision = 'move_right'
                         self.neighbours['att'] = self.neighbours['fr']
                         self.neighbours['f'] = self.neighbours['fr']
-                        self.set_driver_params()
+                        # self.set_driver_params()
                         self.target_lane += 1
                         if self.neighbours['rr']:
                             self.neighbours['rr'].set_driver_params()
