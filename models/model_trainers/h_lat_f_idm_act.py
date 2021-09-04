@@ -54,6 +54,14 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
+plt.plot(history_future_usc[150, :, 6])
+
+# %%
+
+with open('./models/experiments/scaler.pickle', 'wb') as handle:
+    pickle.dump(scaler, handle)
+with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
+    pickle.dump(dummy_value_set, handle)
 # %%
 
 future_m_veh_a.shape
@@ -458,9 +466,9 @@ while Example_pred < 20:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # #
-    #
+
     if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:].mean() > 0:
+            e_veh_att[20:60].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -470,9 +478,9 @@ while Example_pred < 20:
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-        idm_params = model_trainer.model.idm_layer(sampled_z)
+        # idm_params = model_trainer.model.idm_layer(sampled_z)
         act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
-                                                    idm_params, future_idm_ss, sdv_actions])
+                                                    future_idm_ss, sdv_actions])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
         plt.figure(figsize=(3, 3))
@@ -486,7 +494,7 @@ while Example_pred < 20:
                         'e_veh_id: '+ info[2] +
                         'aggressiveness: '+ info[3]
                             , fontsize=10)
-        plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
+        # plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 
         plt.figure(figsize=(3, 3))
