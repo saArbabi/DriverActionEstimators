@@ -39,7 +39,7 @@ class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
         # self.capability = 'IDM'
-        self.beta_precision = 10
+        self.beta_precision = 4
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
@@ -84,12 +84,15 @@ class IDMMOBILVehicle(Vehicle):
 
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
+        self.set_attentiveness()
         if aggressiveness != None:
             self.set_driver_params()
 
-    def set_driver_params(self):
+    def set_attentiveness(self):
         self.driver_params['attentiveness'] = \
                             self.steps_to_new_lane_entry*self.sample_beta()
+
+    def set_driver_params(self):
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param('desired_v')
         # self.driver_params['desired_v'] += np.random.normal()
@@ -434,7 +437,7 @@ class IDMMOBILVehicle(Vehicle):
                         # self.set_driver_params()
                         self.target_lane -= 1
                         if self.neighbours['rl']:
-                            self.neighbours['rl'].set_driver_params()
+                            self.neighbours['rl'].set_attentiveness()
                         return [act_ego_lc_l, self.lateral_action()]
 
                 elif lc_left_condition < lc_right_condition:
@@ -446,7 +449,7 @@ class IDMMOBILVehicle(Vehicle):
                         # self.set_driver_params()
                         self.target_lane += 1
                         if self.neighbours['rr']:
-                            self.neighbours['rr'].set_driver_params()
+                            self.neighbours['rr'].set_attentiveness()
 
                         return [act_ego_lc_r, self.lateral_action()]
 

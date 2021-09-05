@@ -22,7 +22,7 @@ config = {
 
 # %%
 from scipy.stats import beta
-mean = 0.8
+mean = 0.5
 
 precision = 10
 alpha_param = precision*mean
@@ -54,6 +54,14 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
+plt.plot(history_future_usc[150, :, 6])
+
+# %%
+
+with open('./models/experiments/scaler.pickle', 'wb') as handle:
+    pickle.dump(scaler, handle)
+with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
+    pickle.dump(dummy_value_set, handle)
 # %%
 
 future_m_veh_a.shape
@@ -436,7 +444,7 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
-traces_n = 20
+traces_n = 10
 sepcific_examples = [100000]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
@@ -455,12 +463,12 @@ while Example_pred < 20:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # #
-    #
-    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:].mean() > 0:
+
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -470,9 +478,9 @@ while Example_pred < 20:
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-        idm_params = model_trainer.model.idm_layer(sampled_z)
+        # idm_params = model_trainer.model.idm_layer(sampled_z)
         act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
-                                                    idm_params, future_idm_ss, sdv_actions])
+                                                    future_idm_ss, sdv_actions])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
         plt.figure(figsize=(3, 3))
@@ -486,7 +494,7 @@ while Example_pred < 20:
                         'e_veh_id: '+ info[2] +
                         'aggressiveness: '+ info[3]
                             , fontsize=10)
-        plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
+        # plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 
         plt.figure(figsize=(3, 3))
@@ -513,11 +521,25 @@ while Example_pred < 20:
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         try:
-            att_max_likelihood = aggressiveness*35 + \
-                                    np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
+            precision = 4
+            alpha_param = precision*aggressiveness
+            beta_param = precision*(1-aggressiveness)
+            start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
+            end_point = start_point + 45
+            x = np.linspace(start_point, end_point, 100)
+            p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
+            p = p/p.max()
+            plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
 
-            plt.plot([att_max_likelihood, att_max_likelihood], [0, 1], linestyle='--')
-            plt.grid()
+            # plt.figure()
+            # plt.plot(range(70), e_veh_att, color='red')
+            # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+            # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
+            # for sample in gen_samples:
+            #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
+
+            # plt.xlim(0, 70)
+            # plt.grid()
         except:
             pass
 
@@ -583,10 +605,11 @@ while Example_pred < 20:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 20
-sample_index = [9783]
+sample_index = [16025]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
+# f_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['f_veh_exists']][0]
 
 em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
 episode = future_idm_s[sample_index, 0, 0][0]
@@ -600,9 +623,9 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-idm_params = model_trainer.model.idm_layer(sampled_z)
+# idm_params = model_trainer.model.idm_layer(sampled_z)
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
-                                            idm_params, future_idm_ss, sdv_actions])
+                                            future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
 time_axis = np.linspace(0., 7., 70)
@@ -618,7 +641,7 @@ plt.text(0.5, 0.5,
                 'e_veh_id: '+ info[2] +\
                 'aggressiveness: '+ info[3]
                     , fontsize = 15)
-plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
+# plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 ##########
 # %%
@@ -648,7 +671,8 @@ plt.legend(['Ego', 'Merger', 'Leader'])
 # plt.savefig("example_actions.png", dpi=500)
 
 # %%
-plt.figure(figsize=(3, 2))
+plt.figure(figsize=(10, 10))
+# plt.figure(figsize=(3, 2))
 for sample_trace_i in range(traces_n):
    plt.plot(time_axis[30:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
