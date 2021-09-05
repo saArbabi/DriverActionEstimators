@@ -31,7 +31,7 @@ def main():
     # env.debugging_mode = False
     env.vis_vehicles = [99]
     while True:
-        if env.time_step > 650:
+        if env.time_step > 700:
             user_input = input()
             if user_input == 'n':
                 sys.exit()

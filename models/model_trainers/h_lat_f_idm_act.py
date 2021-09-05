@@ -208,6 +208,8 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # %%
 model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.forward_sim.attention_temp = 1
+
 model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
@@ -434,7 +436,7 @@ zzz[:, 2].std()
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 20
+model_trainer.model.forward_sim.attention_temp = 5
 traces_n = 20
 sepcific_examples = [100000]
 # for i in bad_examples[0]:
