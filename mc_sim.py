@@ -29,9 +29,9 @@ def main():
     tf.random.set_seed(0)
     env.debugging_mode = True
     # env.debugging_mode = False
-    env.vis_vehicles = [23w]
+    env.vis_vehicles = [99]
     while True:
-        if env.time_step > 300:
+        if env.time_step > 650:
             user_input = input()
             if user_input == 'n':
                 sys.exit()

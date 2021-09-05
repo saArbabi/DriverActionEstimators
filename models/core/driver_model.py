@@ -315,9 +315,10 @@ class IDMLayer(tf.keras.Model):
         self.min_act_neu = Dense(1)
 
     def get_des_v(self, x):
-        minval = 15
-        maxval = 35
-        return minval + (maxval-minval)/(1+tf.exp(-1.*self.des_v_neu(x)))
+        # minval = 15
+        # maxval = 35
+        # return minval + (maxval-minval)/(1+tf.exp(-1.*self.des_v_neu(x)))
+        return 25 + self.des_v_neu(x)
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)

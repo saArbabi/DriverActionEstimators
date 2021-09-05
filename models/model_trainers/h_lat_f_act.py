@@ -147,8 +147,8 @@ class Trainer():
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_f_act')
 # model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_act')
-exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 
 # %%
 #
@@ -339,12 +339,12 @@ while Example_pred < 20:
     em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
-    # if episode not in covered_episodes and e_veh_att[:25].mean() == 0 and \
-    #         e_veh_att[20:55].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+            e_veh_att[20:60].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)

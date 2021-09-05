@@ -75,7 +75,11 @@ with open('./models/experiments/sim_data.pickle', 'wb') as handle:
     pickle.dump(features_origin, handle)
 # %%
 
-
+epis = 7
+features_origin[features_origin[:, 0] == epis][0, indxs['desired_v']]
+features_origin[features_origin[:, 0] == epis][0, indxs['desired_tgap']]
+features_origin[features_origin[:, 0] == epis][0, indxs['max_act']]
+features_origin[features_origin[:, 0] == epis][0, indxs['aggressiveness']]
 
 
 

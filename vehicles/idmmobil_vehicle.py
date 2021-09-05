@@ -84,7 +84,6 @@ class IDMMOBILVehicle(Vehicle):
 
         self.driver_params = {}
         self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
-        self.set_attentiveness()
         if aggressiveness != None:
             self.set_driver_params()
 
@@ -93,6 +92,7 @@ class IDMMOBILVehicle(Vehicle):
                             self.steps_to_new_lane_entry*self.sample_beta()
 
     def set_driver_params(self):
+        self.set_attentiveness()
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param('desired_v')
         # self.driver_params['desired_v'] += np.random.normal()

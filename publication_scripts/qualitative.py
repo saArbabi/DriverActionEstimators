@@ -46,7 +46,7 @@ for mean in range_means:
 
 # %%
 precision = 4
-mean = 0.99
+mean = 0.5
 color_i = 0
 alpha_param = precision*mean
 beta_param = precision*(1-mean)

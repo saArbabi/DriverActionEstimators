@@ -218,7 +218,7 @@ class EnvMC(Env):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if self.time_step > 300:
+        if self.time_step > 600:
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
                 if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural':
@@ -239,7 +239,6 @@ class EnvMC(Env):
         """
         For on off visualisation and debugging.
         """
-
         if veh_ima.id in self.vis_vehicles and veh_ima.vehicle_type == 'neural':
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
@@ -273,7 +272,7 @@ class EnvMC(Env):
             self.ima_mc_log[veh_id]['act'].append(veh_ima.act_long)
             self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
 
-            if not hasattr(self, 'att'):
+            if not hasattr(veh_ima, 'att'):
                 self.ima_mc_log[veh_id]['att'].append(att_real)
             else:
                 self.ima_mc_log[veh_id]['att'].append(veh_ima.att)
