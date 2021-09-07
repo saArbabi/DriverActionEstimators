@@ -87,7 +87,7 @@ class Trainer():
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
         np.random.shuffle(all_epis)
-        train_epis = all_epis[:int(len(all_epis)*0.8)]
+        train_epis = all_epis[:int(len(all_epis)*0.7)]
         val_epis = np.setdiff1d(all_epis, train_epis)
         train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
@@ -147,8 +147,8 @@ class Trainer():
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_f_act')
 # model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_act')
-# exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 
 # %%
 #
@@ -166,7 +166,7 @@ plt.style.use('default')
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
 np.random.shuffle(all_epis)
-train_epis = all_epis[:int(len(all_epis)*0.8)]
+train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
@@ -178,7 +178,7 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # %%
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.train(epochs=5)
+# model_trainer.train(epochs=5)
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
@@ -343,8 +343,9 @@ while Example_pred < 20:
     # if 4 == 4:
     # #
     #
-    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0:
+    if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)

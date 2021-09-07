@@ -25,11 +25,12 @@ def main():
     env.neural_vehicle = NeuralIDMVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
-    np.random.seed(0)
+    # np.random.seed(0)
+    np.random.seed(2021)
     tf.random.set_seed(0)
     env.debugging_mode = True
     # env.debugging_mode = False
-    env.vis_vehicles = [99]
+    env.vis_vehicles = [64]
     while True:
         if env.time_step > 700:
             user_input = input()

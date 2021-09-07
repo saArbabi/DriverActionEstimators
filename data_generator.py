@@ -262,7 +262,7 @@ class DataGenerator:
                         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                         'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-                        'f_veh_exists', 'm_veh_exists']
+                        'e_veh_att', 'f_veh_exists', 'm_veh_exists']
         # history_idm_s = history_seqs[:, :, self.names_to_index(col_names)]
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
         # future_idm_s = np.append(history_idm_s, future_idm_s, axis=1)

@@ -112,9 +112,8 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-
-        self.pri_linear = Dense(100)
-        self.pos_linear = Dense(100)
+        self.pri_projection = Dense(100, activation='relu')
+        self.pos_projection = Dense(100, activation='relu')
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -128,24 +127,23 @@ class BeliefModel(tf.keras.Model):
         if dis_type == 'both':
             enc_h, enc_f = inputs
             # prior
-            context = self.pri_linear(enc_h)
-            pri_mean = self.pri_mean(context)
-            pri_logsigma = self.pri_logsigma(context)
+            pri_context = self.pri_projection(enc_h)
+            pri_mean = self.pri_mean(pri_context)
+            pri_logsigma = self.pri_logsigma(pri_context)
 
             # posterior
-            pos_context = tf.concat([enc_h, enc_f], axis=-1)
-            context = self.pos_linear(pos_context)
-            pos_mean = self.pos_mean(context)
-            pos_logsigma = self.pos_logsigma(context)
+            pos_context = self.pos_projection(tf.concat([enc_h, enc_f], axis=-1))
+            pos_mean = self.pos_mean(pos_context)
+            pos_logsigma = self.pos_logsigma(pos_context)
 
             pri_params = [pri_mean, pri_logsigma]
             pos_params = [pos_mean, pos_logsigma]
             return pri_params, pos_params
 
         elif dis_type == 'prior':
-            context = self.pri_linear(inputs)
-            pri_mean = self.pri_mean(context)
-            pri_logsigma = self.pri_logsigma(context)
+            pri_context = self.pri_projection(inputs)
+            pri_mean = self.pri_mean(pri_context)
+            pri_logsigma = self.pri_logsigma(pri_context)
             pri_params = [pri_mean, pri_logsigma]
             return pri_params
 
@@ -156,12 +154,10 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = TimeDistributed(Dense(100))
         self.lstm_layer = LSTM(self.enc_units)
         # self.masking = Masking()
     def call(self, inputs):
-        # enc_h = self.lstm_layer(self.masking(inputs))
-        enc_h = self.lstm_layer(self.linear_layer(inputs))
+        enc_h = self.lstm_layer(inputs)
         return enc_h
 
 class FutureEncoder(tf.keras.Model):
@@ -171,24 +167,24 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = TimeDistributed(Dense(100))
         self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
 
     def call(self, inputs):
-        enc_acts = self.lstm_layer(self.linear_layer(inputs))
+        enc_acts = self.lstm_layer(inputs)
         return enc_acts
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.architecture_def()
-        self.attention_temp = 1 # the higher, the sharper the attention
+        # self.attention_temp = 5 # the higher, the sharper the attention
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
+        self.proj_layer_1 = Dense(100, activation='relu')
+        self.proj_layer_2 = Dense(100, activation='relu')
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
-        self.action_neu = TimeDistributed(Dense(1))
+        # self.action_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
@@ -208,7 +204,8 @@ class IDMForwardSim(tf.keras.Model):
         #                                 (2*tf.sqrt(max_act*min_act)))
         desired_gap = min_jamx + K.relu(desired_tgap*vel+(vel*dv)/ \
                                         (2*tf.sqrt(max_act*min_act)))
-        # tf.print('min: ', tf.reduce_min(two))
+        tf.print('min desired_gap: ', tf.reduce_min(desired_gap))
+        tf.print('max desired_gap: ', tf.reduce_max(desired_gap))
         # tf.print('mean: ', tf.reduce_mean(two))
 
         act = max_act*(1-(vel/desired_v)**4-\
@@ -232,11 +229,16 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
         return env_state
 
+    def projection(self, x):
+        x = self.proj_layer_1(x)
+        x = self.proj_layer_2(x)
+        return x
+
     def rollout(self, inputs):
         sampled_z, idm_params, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        latent_projection = self.linear_layer(sampled_z)
+        latent_projection = self.projection(sampled_z)
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
 
@@ -279,16 +281,17 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
-            sdv_act = sdv_acts[:, step:step+1, :]
+            # sdv_act = sdv_acts[:, step:step+1, :]
             # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
 
-            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act], axis=-1), \
-                                    initial_state=[state_h, state_c])
-            att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_neu(lstm_output)))
-            # att_score = idm_s[:, step:step+1, -3:-2]
+            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+            #                         proj_latent, sdv_act], axis=-1), \
+            #                         initial_state=[state_h, state_c])
+            # att_x = self.attention_neu(lstm_output)
+            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            att_score = idm_s[:, step:step+1, -3:-2]
             # res_action = self.action_neu(lstm_output)
             _act = (1-att_score)*ef_act + att_score*em_act
             # _act += res_action
@@ -307,37 +310,50 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
+        self.proj_layer_1 = Dense(100, activation='relu')
+        self.proj_layer_2 = Dense(100, activation='relu')
         self.des_v_neu = Dense(1)
+        self.proj_layer_des_v = Dense(100, activation='relu')
         self.des_tgap_neu = Dense(1)
+        self.proj_layer_des_tgap = Dense(100, activation='relu')
         self.min_jamx_neu = Dense(1)
+        self.proj_layer_min_jamx = Dense(100, activation='relu')
         self.max_act_neu = Dense(1)
+        self.proj_layer_max_act = Dense(100, activation='relu')
         self.min_act_neu = Dense(1)
+        self.proj_layer_min_act = Dense(100, activation='relu')
 
     def get_des_v(self, x):
         # minval = 15
         # maxval = 35
-        # return minval + (maxval-minval)/(1+tf.exp(-1.*self.des_v_neu(x)))
-        return 25 + self.des_v_neu(x)
+        # output = self.des_v_neu(self.proj_layer_des_v(x))
+        # return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        output = self.des_v_neu(self.proj_layer_des_v(x))
+        return 25 + output
 
     def get_des_tgap(self, x):
-        output = self.des_tgap_neu(x)
+        output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
         return tf.math.softplus(output)
 
     def get_min_jamx(self, x):
-        output = self.min_jamx_neu(x)
+        output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
         return tf.math.softplus(output)
 
     def get_max_act(self, x):
-        output = self.max_act_neu(x)
+        output = self.max_act_neu(self.proj_layer_max_act(x))
         return tf.math.softplus(output)
 
     def get_min_act(self, x):
-        output = self.min_act_neu(x)
+        output = self.min_act_neu(self.proj_layer_min_act(x))
         return tf.math.softplus(output)
 
-    def call(self, x):
-        x = self.linear_layer(x)
+    def projection(self, x):
+        x = self.proj_layer_1(x)
+        x = self.proj_layer_2(x)
+        return x
+
+    def call(self, sampled_z):
+        x = self.projection(sampled_z)
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
         min_jamx = self.get_min_jamx(x)

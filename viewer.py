@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 class Viewer():
     def __init__(self, config):
@@ -264,4 +265,9 @@ class ViewerMC(Viewer):
         self.speed_ax.set_title('speed')
         self.att_ax.set_title('attention')
         self.desvel_ax.set_title('desvel')
+
+        major_tick = np.arange(35, len(real_mc_log[veh_id]['act']), 30)
+        for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax]:
+            axis.set_xticks(major_tick)
+            axis.grid(axis='x')
         self.act_ax.legend(present_vehicels)

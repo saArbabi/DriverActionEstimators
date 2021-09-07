@@ -1,5 +1,6 @@
 from importlib import reload
 import numpy as np
+np.random.seed(2021)
 import matplotlib.pyplot as plt
 import pickle
 import highway
@@ -16,7 +17,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':2000,
+                'env_steps_n':3000,
                 'model_type':'belief_net'
                 }
 
@@ -63,23 +64,31 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGenerator
 data_gen = DataGenerator(env, data_config)
+
 features_origin = data_gen.prep_data()
 # features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
+features_origin[0]
+features_origin.shape
+np.count_nonzero(~np.isnan(features_origin))
+
 # %%
+features_origin.shape
+
 
 with open('./models/experiments/sim_data.pickle', 'wb') as handle:
     pickle.dump(features_origin, handle)
 # %%
 
-epis = 7
+epis = 116
 features_origin[features_origin[:, 0] == epis][0, indxs['desired_v']]
 features_origin[features_origin[:, 0] == epis][0, indxs['desired_tgap']]
 features_origin[features_origin[:, 0] == epis][0, indxs['max_act']]
 features_origin[features_origin[:, 0] == epis][0, indxs['aggressiveness']]
+features_origin[features_origin[:, 0] == epis][0, indxs['min_jamx']]
 
 
 
@@ -163,6 +172,8 @@ print(balance_value)
 """
 For debugging - all samples
 """
+# with open('./models/experiments/sim_data.pickle', 'rb') as handle:
+#     features = pickle.load(handle)
 all_epis = np.unique(features[:, 0])
 for _epis in all_epis:
     veh_arr = features[features[:, 0] == _epis]
@@ -203,15 +214,62 @@ for _epis in all_epis:
     act = (1-att_scores)*ef_act + att_scores*em_act
     # features = features[features[:, 6]==0] # merger exists
     loss = abs(act-veh_arr[:, indxs['e_veh_action']])
-    if not loss.max() < 0.001:
-        print('index:  ', i)
+    if not loss.max() < 0.00001:
+        print('index:  ', _epis)
         print(loss.max())
+# %%
+"""
+For debugging - all samples
+"""
+# with open('./models/experiments/sim_data.pickle', 'rb') as handle:
+#     features = pickle.load(handle)
+_epis = 20
+veh_arr = features[features[:, 0] == _epis]
+
+aggressiveness = veh_arr[0, indxs['aggressiveness']]
+desired_v = veh_arr[0, indxs['desired_v']]
+desired_tgap = veh_arr[0, indxs['desired_tgap']]
+min_jamx = veh_arr[0, indxs['min_jamx']]
+max_act = veh_arr[0, indxs['max_act']]
+min_act = veh_arr[0, indxs['min_act']]
+vel = veh_arr[:, indxs['e_veh_speed']]
+f_veh_v = veh_arr[:, indxs['f_veh_speed']]
+m_veh_v = veh_arr[:, indxs['m_veh_speed']]
+e_veh_glob_x = veh_arr[:, indxs['e_veh_glob_x']]
+f_veh_glob_x = veh_arr[:, indxs['f_veh_glob_x']]
+m_veh_glob_x = veh_arr[:, indxs['m_veh_glob_x']]
+f_veh_exists = veh_arr[:, indxs['f_veh_exists']]
+m_veh_exists = veh_arr[:, indxs['m_veh_exists']]
+dv = (vel - f_veh_v)*f_veh_exists
+dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
+
+plt.plot(dx[10:80])
+desired_gap = min_jamx + \
+np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
+
+ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
+ef_act = np.clip(ef_act, -3, 3)
+
+dv = (vel - m_veh_v)*m_veh_exists
+dx = (m_veh_glob_x - e_veh_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
+desired_gap = min_jamx + \
+np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
+
+em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
+em_act = np.clip(em_act, -3, 3)
+att_scores = veh_arr[:, indxs['e_veh_att']]
+act = (1-att_scores)*ef_act + att_scores*em_act
+# features = features[features[:, 6]==0] # merger exists
+loss = abs(act-veh_arr[:, indxs['e_veh_action']])
+if not loss.max() < 0.00001:
+    print('index:  ', _epis)
+    print(loss.max())
 #
 # plt.plot(future_e_veh_a[i, :, -1])
 # plt.plot(act)
 # %%
-
-
+plt.plot(act[10:80])
+plt.plot(veh_arr[:, indxs['e_veh_action']][10:80])
 # %%
 
 """
