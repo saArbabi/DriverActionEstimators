@@ -69,6 +69,8 @@ for item_name in feature_names:
     index += 1
 indxs['e_veh_att']
 indxs['desired_v']
+features[:, indxs['el_delta_x']].min()
+features[:, indxs['em_delta_x']].min()
 # %%
 epis = 20
 for param_name in [ 'aggressiveness', 'desired_v',
@@ -160,16 +162,13 @@ class Trainer():
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
-        # for item in training_data:
-        #     item = np.repeat(item, 4, axis=0)
-        #
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
         np.random.shuffle(all_epis)
-        train_epis = all_epis[:int(len(all_epis)*0.1)]
-        val_epis = train_epis
-        # train_epis = all_epis[:int(len(all_epis)*0.7)]
-        # val_epis = np.setdiff1d(all_epis, train_epis)
+        # train_epis = all_epis[:int(len(all_epis)*0.1)]
+        # val_epis = train_epis
+        train_epis = all_epis[:int(len(all_epis)*0.7)]
+        val_epis = np.setdiff1d(all_epis, train_epis)
         train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
@@ -235,8 +234,8 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-model_trainer.train(epochs=1)
-model_trainer.test_mseloss
+# model_trainer.train(epochs=1)
+# model_trainer.test_mseloss
 # %%
 
 # model_trainer.train(epochs=5)
@@ -255,6 +254,7 @@ np.random.seed(2021)
 np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
+
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 history_sca.shape
@@ -303,11 +303,14 @@ ax = latent_vis(2000)
 
 
 # %%
+sampled_zs = latent_samples(model_trainer, val_examples[0:1000])
+idm_params = model_trainer.model.idm_layer(sampled_zs).numpy()
+idm_params.shape
+idm_params[:, 0].max()
 
-
+idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '003')
-latent_samples(model_trainer, val_examples[0:10])
+# model_trainer.save_model('h_z_f_idm_act', '005')
 
 # %%
 """
@@ -535,7 +538,7 @@ while Example_pred < 20:
     #
     # if episode == 179 and sample_index[0] > 26800:
     if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0:
+            e_veh_att[20:60].mean() > 0 and 0.6 > aggressiveness > 0.4:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)

@@ -29,8 +29,9 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true[:, :5, :])/0.1
-        act_pred = (act_pred[:, :5, :])/0.1
+        act_true = tf.repeat(act_true, 5, axis=0)
+        act_true = (act_true[:, :, :])/0.1
+        act_pred = (act_pred[:, :, :])/0.1
         # return self.loss_function(act_true, act_pred)
         return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
@@ -84,6 +85,8 @@ class NeurIDMModel(AbstractModel):
         return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
+        inputs = [tf.repeat(item, 5, axis=0) for item in inputs]
+
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_f = self.f_seq_encoder(inputs[1])
 
@@ -120,8 +123,9 @@ class BeliefModel(tf.keras.Model):
         _epsilon = tf.random.normal(shape=(tf.shape(z_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
         sampled_z = z_mean + K.exp(z_logsigma) * _epsilon
-        tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
-        tf.print('z_max: ', tf.reduce_max(K.exp(z_logsigma)))
+        # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
+        # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
+        # tf.print('z_max: ', tf.reduce_max(K.exp(z_logsigma)))
 
         return sampled_z
         # return sampled_z, sampled_z for single latent
@@ -186,12 +190,12 @@ class IDMForwardSim(tf.keras.Model):
         self.proj_layer_1 = Dense(100, activation='relu')
         self.proj_layer_2 = Dense(100, activation='relu')
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
-        self.attention_f_neu = TimeDistributed(Dense(1))
-        self.attention_m_neu = TimeDistributed(Dense(1))
+        self.attention_neu = TimeDistributed(Dense(1))
         # self.action_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=0.5, clip_value_max=1000.)
+        dx = tf.clip_by_value(dx, clip_value_min=0.1, clip_value_max=1000.)
+        # tf.Assert(tf.greater(tf.reduce_min(dx), 0.),[dx])
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -242,11 +246,11 @@ class IDMForwardSim(tf.keras.Model):
         sampled_z, idm_params, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        # latent_projection = self.projection(sampled_z)
-        # proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
-        # state_h, state_c = latent_projection, latent_projection
+        latent_projection = self.projection(sampled_z)
+        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
+        state_h, state_c = latent_projection, latent_projection
 
-        for step in range(5):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -267,39 +271,32 @@ class IDMForwardSim(tf.keras.Model):
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists+\
-                                                (1-f_veh_exists)*ef_delta_x_true
-            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
-                                                (1-m_veh_exists)*em_delta_x_true
-            ef_dv = (ego_v - f_veh_v)*f_veh_exists+\
-                                                (1-f_veh_exists)*ef_dv_true
-            em_dv = (ego_v - m_veh_v)*m_veh_exists+\
-                                                (1-m_veh_exists)*em_dv_true
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)
+            ef_dv = (ego_v - f_veh_v)
+            em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-            ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
+            # ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
 
             # tf.print('############ em_act ############')
-            # tf.Assert(tf.greater(tf.reduce_min(em_delta_x), 0.),[em_delta_x])
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            em_act = self.add_noise(em_act, m_veh_exists, batch_size)
+            # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
-            # sdv_act = sdv_acts[:, step:step+1, :]
+            sdv_act = sdv_acts[:, step:step+1, :]
             # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
 
-            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-            #                         proj_latent, sdv_act], axis=-1), \
-            #                         initial_state=[state_h, state_c])
-            # att_x = self.attention_neu(lstm_output)
-            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))*m_veh_exists
-            att_score = idm_s[:, step:step+1, -3:-2]
-            # att_score_f = 1/(1+tf.exp(-self.attention_temp*self.attention_f_neu(lstm_output)))
-            # att_score = 1/(1+tf.exp(-self.attention_temp*self.attention_m_neu(lstm_output)))
+            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                    proj_latent, sdv_act], axis=-1), \
+                                    initial_state=[state_h, state_c])
+            att_x = self.attention_neu(lstm_output)
+            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+            # att_score = idm_s[:, step:step+1, -3:-2]
             # res_action = self.action_neu(lstm_output)
-            # _act = (1-att_score)*ef_act + att_score*em_act
             _act = (1-att_score)*ef_act + att_score*em_act
             # _act += res_action
             if step == 0:
