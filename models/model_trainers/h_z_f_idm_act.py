@@ -48,10 +48,7 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
-history_future_usc[0, 29, :]
-history_future_usc[0, 30, :]
-history_future_usc[100, 30, 4]
-future_idm_s[100, 0, 3]
+
 
 # %%
 indxs = {}
@@ -165,8 +162,10 @@ class Trainer():
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
         np.random.shuffle(all_epis)
-        train_epis = all_epis[:int(len(all_epis)*0.7)]
-        val_epis = np.setdiff1d(all_epis, train_epis)
+        train_epis = all_epis[:int(len(all_epis)*0.1)]
+        val_epis = train_epis
+        # train_epis = all_epis[:int(len(all_epis)*0.7)]
+        # val_epis = np.setdiff1d(all_epis, train_epis)
         train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
@@ -231,8 +230,10 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-
+model_trainer.train(epochs=2)
+model_trainer.test_mseloss
 # %%
+
 # model_trainer.train(epochs=5)
 #
 # fig = plt.figure(figsize=(15, 5))
@@ -266,7 +267,7 @@ model_trainer.model.forward_sim.attention_temp = 5
 ################## ##### ##################
 ################## ##### ##################
 
-model_trainer.train(epochs=10)
+model_trainer.train(epochs=2)
 
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
@@ -297,9 +298,24 @@ ax = latent_vis(2000)
 
 
 # %%
-# model_trainer.save_model('h_z_f_idm_act', '002')
+tf.random.normal(shape=(1,
+                         2, 1), mean=0., stddev=1)
+
+# %%
+
+model_trainer.save_model('h_z_f_idm_act', '003')
 latent_samples(model_trainer, val_examples[0:10])
 
+# %%
+a = tf.ones([5,1])
+b = tf.ones([5, 3, 1])
+a = tf.reshape(a, [5, 1, 1])
+a
+tf.repeat(a, 1, axis=1)-b
+
+b
+a-b
+b-a
 # %%
 """
 Find bad examples
@@ -398,7 +414,7 @@ def latent_vis(n_z_samples):
     # ax.set_ylabel('$z_{2}$', labelpad=1)
     # ax.set_zlabel('$z_{3}$', labelpad=1)
     plt.subplots_adjust(wspace=0.2, hspace=None)
-latent_vis(5000)
+latent_vis(2000)
 # plt.savefig("latent.png", dpi=500)
 
 # %%
@@ -502,11 +518,11 @@ covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 20:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -520,13 +536,13 @@ for i in bad_examples[0]:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
     # if episode == 179 and sample_index[0] > 26800:
-    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-    #         e_veh_att[20:60].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+            e_veh_att[20:60].mean() > 0:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -673,7 +689,7 @@ for i in bad_examples[0]:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 20
-sample_index = [9151]
+sample_index = [4109]
 e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
 e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
 m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
@@ -682,15 +698,15 @@ em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
 episode = future_idm_s[sample_index, 0, 0][0]
 
 sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
-# sdv_actions[:, :, 0] = 0
+sdv_actions[:, 10, -1] = 0
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 
-# idm_params = model_trainer.model.idm_layer(sampled_z)
-idm_params = tf.ones([100, 5])*[30.34, 1, 2, 1.71, 2.6]
+idm_params = model_trainer.model.idm_layer(sampled_z)
+# idm_params = tf.ones([100, 5])*[30.34, 1, 2, 1.71, 2.6]
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
