@@ -20,7 +20,8 @@ class NeurIDMModel(AbstractModel):
         self.idm_layer = IDMLayer()
         self.forward_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
-        # self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.MeanAbsoluteError()
+        self.loss_function = tf.keras.losses.Huber()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -29,11 +30,11 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = tf.repeat(act_true, 5, axis=0)
-        act_true = (act_true[:, :, :])/0.1
-        act_pred = (act_pred[:, :, :])/0.1
-        # return self.loss_function(act_true, act_pred)
-        return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
+        act_true = tf.repeat(act_true, 10, axis=0)
+        act_true = (act_true)/0.1
+        act_pred = (act_pred)/0.1
+        return self.loss_function(act_true, act_pred)
+        # return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
     def kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
@@ -85,7 +86,7 @@ class NeurIDMModel(AbstractModel):
         return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
-        inputs = [tf.repeat(item, 5, axis=0) for item in inputs]
+        inputs = [tf.repeat(item, 10, axis=0) for item in inputs]
 
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_f = self.f_seq_encoder(inputs[1])
@@ -95,7 +96,6 @@ class NeurIDMModel(AbstractModel):
         sampled_z = self.belief_net.sample_z(pos_params)
 
         idm_params = self.idm_layer(sampled_z)
-        # idm_params = tf.repeat(idm_params, 40, axis=1)
         act_seq, _ = self.forward_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
@@ -107,7 +107,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 5
         self.architecture_def()
 
     def architecture_def(self):

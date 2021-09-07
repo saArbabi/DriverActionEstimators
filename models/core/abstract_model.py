@@ -53,7 +53,7 @@ class AbstractModel(tf.keras.Model):
     def batch_data(self, sets):
         data_slices = tuple([tf.cast(set, dtype='float32') for set in sets])
         dataset = tf.data.Dataset.from_tensor_slices(\
-            data_slices).shuffle(len(data_slices[0])).batch(self.batch_size, drop_remainder=True)
+            data_slices).shuffle(len(data_slices[0]), reshuffle_each_iteration=True).batch(self.batch_size, drop_remainder=True)
         return dataset
 
     def mse(self, act_true, act_pred):

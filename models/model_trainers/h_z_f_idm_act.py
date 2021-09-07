@@ -12,6 +12,7 @@ from scipy.stats import beta
 import numpy as np
 np.set_printoptions(suppress=True)
 
+import os
 
 
 # %%
@@ -112,7 +113,7 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 256,
+    "batch_size": 128,
     },
     "exp_id": "NA",
     "Note": ""
@@ -222,10 +223,14 @@ class Trainer():
             self.epoch_count += 1
 
     def save_model(self, model_name, exp_id):
+
         model_name += exp_id + '_epo_'+str(self.epoch_count)
         print(model_name)
         exp_dir = './models/experiments/'+model_name+'/model'
-        self.model.save_weights(exp_dir)
+        if not os.path.exists('./models/experiments/'+model_name):
+            self.model.save_weights(exp_dir)
+        else:
+            print('This model is already saved')
 
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
@@ -299,7 +304,7 @@ kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
-ax = latent_vis(2000)
+# ax = latent_vis(2000)
 
 
 # %%
@@ -310,7 +315,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-# model_trainer.save_model('h_z_f_idm_act', '005')
+model_trainer.save_model('h_z_f_idm_act', '009')
 
 # %%
 """
@@ -518,7 +523,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -536,9 +541,9 @@ while Example_pred < 20:
     # if 4 == 4:
     # #
     #
-    # if episode == 179 and sample_index[0] > 26800:
+    # if episode == 258 and sample_index[0] > 40262:
     if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and 0.6 > aggressiveness > 0.4:
+            e_veh_att[20:60].mean() > 0 and 0.8 > aggressiveness > 0.4:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -603,6 +608,7 @@ while Example_pred < 20:
             beta_param = precision*(1-aggressiveness)
             start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
             plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
+            plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
 
             end_point = start_point + 45
             x = np.linspace(start_point, end_point, 100)
