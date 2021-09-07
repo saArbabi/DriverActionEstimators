@@ -87,6 +87,7 @@ import pickle
 # %%
 
 future_m_veh_a.shape
+future_m_veh_a.shape
 # plt.plot(history_future_usc[0, :, 6])
 plt.plot(history_future_usc[10450, :, 6])
 # %%
@@ -159,6 +160,9 @@ class Trainer():
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
+        # for item in training_data:
+        #     item = np.repeat(item, 4, axis=0)
+        #
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
         np.random.shuffle(all_epis)
@@ -168,6 +172,7 @@ class Trainer():
         # val_epis = np.setdiff1d(all_epis, train_epis)
         train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
+
 
         _, history_sca, future_sca, future_idm_s,\
                     future_m_veh_a, future_e_veh_a = training_data
@@ -230,7 +235,7 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-model_trainer.train(epochs=2)
+model_trainer.train(epochs=1)
 model_trainer.test_mseloss
 # %%
 
@@ -298,24 +303,12 @@ ax = latent_vis(2000)
 
 
 # %%
-tf.random.normal(shape=(1,
-                         2, 1), mean=0., stddev=1)
+
 
 # %%
-
 model_trainer.save_model('h_z_f_idm_act', '003')
 latent_samples(model_trainer, val_examples[0:10])
 
-# %%
-a = tf.ones([5,1])
-b = tf.ones([5, 3, 1])
-a = tf.reshape(a, [5, 1, 1])
-a
-tf.repeat(a, 1, axis=1)-b
-
-b
-a-b
-b-a
 # %%
 """
 Find bad examples
