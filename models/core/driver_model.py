@@ -31,7 +31,6 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        # act_true = tf.repeat(act_true, self.mc_samples_n, axis=0)
         act_true = (act_true[:, :5, :])/0.1
         act_pred = (act_pred[:, :5, :])/0.1
         return self.loss_function(act_true, act_pred)
@@ -86,8 +85,6 @@ class NeurIDMModel(AbstractModel):
         return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
-        # inputs = [tf.repeat(item, self.mc_samples_n, axis=0) for item in inputs]
-
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_f = self.f_seq_encoder(inputs[1])
 

@@ -113,7 +113,7 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 256,
+    "batch_size": 1128,
     },
     "exp_id": "NA",
     "Note": ""
@@ -242,6 +242,7 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 model_trainer.train(epochs=3)
 model_trainer.test_mseloss
 # %%
+model_trainer.test_mseloss
 
 # model_trainer.train(epochs=5)
 #
