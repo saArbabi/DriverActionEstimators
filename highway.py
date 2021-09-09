@@ -175,10 +175,9 @@ class EnvMC(Env):
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
-                        # act_long = 2.5
-                        # act_long = veh_ima.act(obs)
-                        # act_long = max(-3, min(act_long, 3))
-                        _ = veh_ima.act(obs)
+                        act_long = veh_ima.act(obs)
+                        act_long = max(-3, min(act_long, 3))
+                        # _ = veh_ima.act(obs)
                         if self.metric_collection_mode:
                             veh_ima.act_long = act_long
                             self.mc_log_info(veh_real, veh_ima)
@@ -223,8 +222,7 @@ class EnvMC(Env):
         # if self.time_step > 600:
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
-                if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural'\
-                            and vehicle.id == 64:
+                if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural':
                     neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                     # neural_vehicle.id = 'neur_'+str(vehicle.id)
                     imagined_vehicle = neural_vehicle

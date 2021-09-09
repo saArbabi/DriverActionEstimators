@@ -153,7 +153,7 @@ class ViewerMC(Viewer):
         self.fig = plt.figure(figsize=(20, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
-        self.fig = plt.figure(figsize=(5, 12))
+        self.fig = plt.figure(figsize=(5, 14))
         self.act_ax = self.fig.add_subplot(411)
         self.speed_ax = self.fig.add_subplot(412)
         self.att_ax = self.fig.add_subplot(413)
@@ -226,6 +226,7 @@ class ViewerMC(Viewer):
             self.draw_highway(self.env_ax, ima_vehicles, 'imagined')
 
 
+        plt.subplots_adjust(hspace = .001)
         plt.pause(1e-10)
 
     def info_plot(self, real_mc_log, ima_mc_log):

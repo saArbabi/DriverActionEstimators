@@ -19,10 +19,10 @@ class NeurIDMModel(AbstractModel):
         self.belief_net = BeliefModel()
         self.idm_layer = IDMLayer()
         self.forward_sim = IDMForwardSim()
-        self.vae_loss_weight = 0.1 # default
+        self.vae_loss_weight = 0.01 # default
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        # self.loss_function = tf.keras.losses.Huber()
-        self.loss_function = tf.keras.losses.MeanSquaredError()
+        self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -104,7 +104,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 5
+        self.latent_dim = 10
         self.architecture_def()
 
     def architecture_def(self):

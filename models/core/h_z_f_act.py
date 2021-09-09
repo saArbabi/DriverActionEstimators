@@ -17,8 +17,9 @@ class NeurLatentModel(AbstractModel):
         self.act_encoder = FutureEncoder() # sdv's future action
         self.belief_net = BeliefModel()
         self.forward_sim = ForwardSim()
-        self.vae_loss_weight = 0.1 # default
+        self.vae_loss_weight = 0.01 # default
         # self.loss_function = tf.keras.losses.Huber()
+        self.loss_function = tf.keras.losses.Huber()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -29,7 +30,7 @@ class NeurLatentModel(AbstractModel):
     def mse(self, act_true, act_pred):
         act_true = (act_true)/0.1
         act_pred = (act_pred)/0.1
-        return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
+        return self.loss_function(act_true, act_pred)
 
     def kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
@@ -94,7 +95,7 @@ class NeurLatentModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 10
         self.architecture_def()
 
     def architecture_def(self):
@@ -102,39 +103,46 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-
-        self.pri_linear = Dense(100)
-        self.pos_linear = Dense(100)
+        self.pri_projection = Dense(100, activation='relu')
+        self.pos_projection = Dense(100, activation='relu')
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
         _epsilon = tf.random.normal(shape=(tf.shape(z_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
-        sampled_z = z_mean + K.exp(z_logsigma) * _epsilon
+        z_sigma =  K.exp(z_logsigma)
+        sampled_z = z_mean + z_sigma*_epsilon
+        # sampled_z = z_mean
+        # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
+        # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
+        # tf.print('z1_max: ', tf.reduce_max(z_sigma[:, 0]))
+        # tf.print('z2_max: ', tf.reduce_max(z_sigma[:, 1]))
+        # tf.print('z3_max: ', tf.reduce_max(z_sigma[:, 2]))
+
         return sampled_z
+        # return sampled_z, sampled_z for single latent
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
             enc_h, enc_f = inputs
             # prior
-            context = self.pri_linear(enc_h)
-            pri_mean = self.pri_mean(context)
-            pri_logsigma = self.pri_logsigma(context)
+            pri_context = self.pri_projection(enc_h)
+            pri_mean = self.pri_mean(pri_context)
+            pri_logsigma = self.pri_logsigma(pri_context)
 
             # posterior
-            pos_context = tf.concat([enc_h, enc_f], axis=-1)
-            context = self.pos_linear(pos_context)
-            pos_mean = self.pos_mean(context)
-            pos_logsigma = self.pos_logsigma(context)
+            pos_context = self.pos_projection(tf.concat([enc_h, enc_f], axis=-1))
+            pos_mean = self.pos_mean(pos_context)
+            pos_logsigma = self.pos_logsigma(pos_context)
 
             pri_params = [pri_mean, pri_logsigma]
             pos_params = [pos_mean, pos_logsigma]
             return pri_params, pos_params
 
         elif dis_type == 'prior':
-            context = self.pri_linear(inputs)
-            pri_mean = self.pri_mean(context)
-            pri_logsigma = self.pri_logsigma(context)
+            pri_context = self.pri_projection(inputs)
+            pri_mean = self.pri_mean(pri_context)
+            pri_logsigma = self.pri_logsigma(pri_context)
             pri_params = [pri_mean, pri_logsigma]
             return pri_params
 
@@ -173,7 +181,8 @@ class ForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = Dense(100)
+        self.proj_layer_1 = Dense(100, activation='relu')
+        self.proj_layer_2 = Dense(100, activation='relu')
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.action_neu = TimeDistributed(Dense(1)) # a form
 
@@ -181,14 +190,18 @@ class ForwardSim(tf.keras.Model):
         env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
         return env_state
 
+    def projection(self, x):
+        x = self.proj_layer_1(x)
+        x = self.proj_layer_2(x)
+        return x
+
     def rollout(self, inputs):
         sampled_z, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
-        latent_projection = self.linear_layer(sampled_z)
+        latent_projection = self.projection(sampled_z)
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
 
-        # for step in range(60):
         for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]

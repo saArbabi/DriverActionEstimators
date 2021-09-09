@@ -112,8 +112,7 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 256,
-    # "batch_size": 1128,
+    "batch_size": 128,
     },
     "exp_id": "NA",
     "Note": ""
@@ -223,7 +222,6 @@ class Trainer():
             self.epoch_count += 1
 
     def save_model(self, model_name, exp_id):
-
         model_name += exp_id + '_epo_'+str(self.epoch_count)
         print(model_name)
         exp_dir = './models/experiments/'+model_name+'/model'
@@ -235,14 +233,13 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act_epo_15'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_idm_act020_epo_10'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(epochs=1)
 # model_trainer.test_mseloss
 # latent_samples(model_trainer, val_examples[0:10])
-
 
 # %%
 
@@ -272,7 +269,7 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.01
 model_trainer.model.forward_sim.attention_temp = 5
 ################## Train ##################
 ################## ##### ##################
@@ -291,7 +288,6 @@ mse_axis = fig.add_subplot(121)
 kl_axis = fig.add_subplot(122)
 mse_axis.plot(model_trainer.test_mseloss)
 mse_axis.plot(model_trainer.train_mseloss)
-
 mse_axis.grid()
 mse_axis.set_xlabel('epochs')
 mse_axis.set_ylabel('loss (MSE)')
@@ -318,7 +314,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '009')
+model_trainer.save_model('h_z_f_idm_act', '021')
 
 # %%
 """
@@ -543,13 +539,13 @@ while Example_pred < 20:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
     # if episode == 258 and sample_index[0] > 40262:
-    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-    #         e_veh_att[20:60].mean() > 0 and 0.3 > aggressiveness:
+    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+            e_veh_att[20:60].mean() > 0 and 0.3 > aggressiveness:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)

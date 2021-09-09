@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from importlib import reload
 import pickle
 import sys
+import os
 
 reload(plt)
 import matplotlib.pyplot as plt
@@ -41,9 +42,6 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
-future_m_veh_a.shape
-plt.plot(history_future_usc[0, :, 6])
-history_future_usc[21485, [0], :]
 # %%
 
 class Trainer():
@@ -68,16 +66,16 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        elif self.model_name == 'h_lat_f_act':
-            from models.core import h_lat_f_act
-            reload(h_lat_f_act)
-            from models.core.h_lat_f_act import  NeurLatentModel
+        elif self.model_name == 'h_z_f_act':
+            from models.core import h_z_f_act
+            reload(h_z_f_act)
+            from models.core.h_z_f_act import  NeurLatentModel
             self.model = NeurLatentModel(config)
 
         elif self.model_name == 'h_lat_act':
-            from models.core import h_lat_f_act
-            reload(h_lat_f_act)
-            from models.core.h_lat_f_act import NeurLatentModelOneStep
+            from models.core import h_z_f_act
+            reload(h_z_f_act)
+            from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
@@ -140,15 +138,19 @@ class Trainer():
             print(self.epoch_count, 'epochs completed')
             self.epoch_count += 1
 
-    def save_model(self, model_name):
-        model_name += '_epo_'+str(self.epoch_count)
+    def save_model(self, model_name, exp_id):
+        model_name += exp_id + '_epo_'+str(self.epoch_count)
+        print(model_name)
         exp_dir = './models/experiments/'+model_name+'/model'
-        self.model.save_weights(exp_dir)
+        if not os.path.exists('./models/experiments/'+model_name):
+            self.model.save_weights(exp_dir)
+        else:
+            print('This model is already saved')
 
-model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_f_act')
-# model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_lat_act')
-exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+
+model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
+# exp_dir = './models/experiments/'+'h_z_f_act001_epo_10'+'/model' 
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 
 # %%
 #
@@ -168,6 +170,7 @@ np.random.seed(2021)
 np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
+
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 history_sca.shape
@@ -176,9 +179,16 @@ val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
+# np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.1
-# model_trainer.train(epochs=5)
+model_trainer.model.vae_loss_weight = 0.01
+################## Train ##################
+################## ##### ##################
+################## ##### ##################
+################## ##### ##################
+
+model_trainer.train(epochs=2)
+
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
@@ -204,13 +214,11 @@ kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 
-ax = latent_vis()
-# model_trainer.save_model('h_lat_act')
-# model_trainer.save_model('h_lat_f_act')
-
 
 #
 # %%
+model_trainer.save_model('h_z_f_act', '001')
+
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
@@ -293,6 +301,10 @@ plt.style.use(['science','ieee'])
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
 
+def fetch_traj(data, sample_index, colum_index):
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    return traj.flatten()
+
 def get_e_veh_att(e_veh_id, e_veh_decision, e_veh_att):
     atten_on_ego = np.where(e_veh_att == e_veh_id)
     e_veh_changing_lane = np.where(e_veh_decision != 0)
@@ -332,20 +344,18 @@ while Example_pred < 20:
     sample_index = [val_examples[i]]
     # sample_index = [i]
     i += 1
-    e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
-    e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
-    m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
+    e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
+    m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
-    em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
+    em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
-    if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-    #         e_veh_att[20:60].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+            e_veh_att[20:60].mean() > 0 and 0.3 > aggressiveness:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -373,13 +383,16 @@ while Example_pred < 20:
 
 
         plt.figure(figsize=(3, 3))
-        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['f_veh_action']][0], color='purple')
-        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['e_veh_action']][0], color='black')
-        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['m_veh_action']][0], color='red')
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+        plt.plot(traj, color='purple')
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+        plt.plot(traj, color='black')
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+        plt.plot(traj, color='red')
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(30, 70), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(29, 69), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
