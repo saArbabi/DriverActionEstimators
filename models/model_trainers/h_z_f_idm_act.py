@@ -113,7 +113,7 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 128,
+    "batch_size": 1128,
     },
     "exp_id": "NA",
     "Note": ""
@@ -239,9 +239,10 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-# model_trainer.train(epochs=1)
-# model_trainer.test_mseloss
+model_trainer.train(epochs=3)
+model_trainer.test_mseloss
 # %%
+model_trainer.test_mseloss
 
 # model_trainer.train(epochs=5)
 #
@@ -306,7 +307,7 @@ kl_axis.legend(['test', 'train'])
 
 # ax = latent_vis(2000)
 
-
+latent_samples(model_trainer, val_examples[0:10])
 # %%
 sampled_zs = latent_samples(model_trainer, val_examples[0:1000])
 idm_params = model_trainer.model.idm_layer(sampled_zs).numpy()
