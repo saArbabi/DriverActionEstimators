@@ -21,8 +21,8 @@ class NeurIDMModel(AbstractModel):
         self.forward_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        # self.loss_function = tf.keras.losses.Huber()
-        self.loss_function = tf.keras.losses.MeanSquaredError()
+        self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -116,17 +116,32 @@ class BeliefModel(tf.keras.Model):
         self.pri_projection = Dense(100, activation='relu')
         self.pos_projection = Dense(100, activation='relu')
 
+    # def sample_z(self, dis_params):
+    #     z_mean, z_logsigma = dis_params
+    #     _epsilon = tf.random.normal(shape=(tf.shape(z_mean)[0],
+    #                              self.latent_dim), mean=0., stddev=1)
+    #     sampled_z = z_mean + K.exp(z_logsigma) * _epsilon
+    #     # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
+    #     # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
+    #     # tf.print('z_max: ', tf.reduce_max(K.exp(z_logsigma)))
+    #
+    #     return sampled_z
+    #     # return sampled_z, sampled_z for single latent
+
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
         _epsilon = tf.random.normal(shape=(tf.shape(z_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
-        sampled_z = z_mean + K.exp(z_logsigma) * _epsilon
+        z_sigma =  K.exp(z_logsigma)
+        sampled_z = z_mean + z_sigma*_epsilon
+        # sampled_z = z_mean
         # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
         # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
-        # tf.print('z_max: ', tf.reduce_max(K.exp(z_logsigma)))
+        # tf.print('z1_max: ', tf.reduce_max(z_sigma[:, 0]))
+        # tf.print('z2_max: ', tf.reduce_max(z_sigma[:, 1]))
+        # tf.print('z3_max: ', tf.reduce_max(z_sigma[:, 2]))
 
         return sampled_z
-        # return sampled_z, sampled_z for single latent
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -208,11 +223,12 @@ class IDMForwardSim(tf.keras.Model):
         # tf.print('min_act: ', tf.reduce_max(min_act))
         # two = K.relu(desired_tgap*vel+(vel*dv)/ \
         #                                 (2*tf.sqrt(max_act*min_act)))
-        desired_gap = min_jamx + K.relu(desired_tgap*vel+(vel*dv)/ \
-                                        (2*tf.sqrt(max_act*min_act)))
-        # tf.print('min desired_gap: ', tf.reduce_min(desired_gap))
-        # tf.print('max desired_gap: ', tf.reduce_max(desired_gap))
-        # tf.print('mean: ', tf.reduce_mean(two))
+        _gap_denum  = 2*tf.sqrt(max_act*min_act)
+        _gap = K.relu(desired_tgap*vel+(vel*dv)/_gap_denum)
+        desired_gap = min_jamx + _gap
+
+        # tf.print('_gap ', tf.reduce_mean(_gap))
+        # tf.print('_gap_denum ', tf.reduce_min(_gap_denum))
 
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
@@ -279,32 +295,37 @@ class IDMForwardSim(tf.keras.Model):
 
             # tf.print('############ em_act ############')
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-            em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
+            # em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
-            sdv_act = sdv_acts[:, step:step+1, :]
+            # sdv_act = sdv_acts[:, step:step+1, :]
             # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
 
-            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act], axis=-1), \
-                                    initial_state=[state_h, state_c])
-            att_x = self.attention_neu(lstm_output)
-            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+            #                         proj_latent, sdv_act], axis=-1), \
+            #                         initial_state=[state_h, state_c])
+            # # att_x = self.attention_neu(lstm_output)
+            # att_x = tf.clip_by_value(att_x, clip_value_min=-5., clip_value_max=5.)
+            # att_score = 0*em_act
+            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            # att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
             # att_score = idm_s[:, step:step+1, -3:-2]
             # res_action = self.action_neu(lstm_output)
-            _act = (1-att_score)*ef_act + att_score*em_act
+            # _act = (1-att_score)*ef_act + att_score*em_act
+            _act = ef_act
             # _act += res_action
             if step == 0:
                 act_seq = _act
-                att_seq = att_score
+                # att_seq = att_score
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
-                att_seq = tf.concat([att_seq, att_score], axis=1)
+                # att_seq = tf.concat([att_seq, att_score], axis=1)
 
-        return act_seq, att_seq
+        # tf.print('act_seq: ', tf.reduce_mean(act_seq))
+        return act_seq, 0
+        # return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
