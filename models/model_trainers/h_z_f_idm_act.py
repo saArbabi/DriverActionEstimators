@@ -39,7 +39,6 @@ from data_generator import DataGenerator
 data_gen = DataGenerator()
 with open('./models/experiments/sim_data.pickle', 'rb') as handle:
     features = pickle.load(handle)
-features.shape
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
@@ -113,7 +112,8 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 1128,
+    "batch_size": 256,
+    # "batch_size": 1128,
     },
     "exp_id": "NA",
     "Note": ""
@@ -239,12 +239,13 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-model_trainer.train(epochs=3)
-model_trainer.test_mseloss
-# %%
-model_trainer.test_mseloss
+# model_trainer.train(epochs=1)
+# model_trainer.test_mseloss
+# latent_samples(model_trainer, val_examples[0:10])
 
-# model_trainer.train(epochs=5)
+
+# %%
+
 #
 # fig = plt.figure(figsize=(15, 5))
 plt.style.use('default')
@@ -277,10 +278,12 @@ model_trainer.model.forward_sim.attention_temp = 5
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
+model_trainer.train(epochs=5)
+################## ##### ##################
+################## ##### ##################
+################## ##### ##################
 
-model_trainer.train(epochs=2)
-
-################## MSE LOSS ##################
+################## MSE LOSS ###############
 fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
 
@@ -307,7 +310,6 @@ kl_axis.legend(['test', 'train'])
 
 # ax = latent_vis(2000)
 
-latent_samples(model_trainer, val_examples[0:10])
 # %%
 sampled_zs = latent_samples(model_trainer, val_examples[0:1000])
 idm_params = model_trainer.model.idm_layer(sampled_zs).numpy()
@@ -480,6 +482,10 @@ for bad_indx in bad_504:
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
 
+def fetch_traj(data, sample_index, colum_index):
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    return traj.flatten()
+
 def get_e_veh_att(e_veh_id, e_veh_decision, e_veh_att):
     atten_on_ego = np.where(e_veh_att == e_veh_id)
     e_veh_changing_lane = np.where(e_veh_decision != 0)
@@ -517,34 +523,33 @@ plt.grid(axis='x')
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 20
+model_trainer.model.forward_sim.attention_temp = 5
 traces_n = 20
 sepcific_examples = [100000]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 30:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
     # sample_index = [i]
     i += 1
-    e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
-    e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
-    m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
+    e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
+    m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
-    em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
+    em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
     # if episode == 258 and sample_index[0] > 40262:
-    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and 0.8 > aggressiveness > 0.4:
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0 and 0.3 > aggressiveness:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -578,13 +583,16 @@ while Example_pred < 30:
         plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
         plt.figure(figsize=(3, 3))
-        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['f_veh_action']][0], color='purple')
-        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['e_veh_action']][0], color='black')
-        plt.plot(history_future_usc[sample_index, :, hf_usc_indexs['m_veh_action']][0], color='red')
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+        plt.plot(traj, color='purple')
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+        plt.plot(traj, color='black')
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+        plt.plot(traj, color='red')
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(30, 70), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(29, 69), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -594,12 +602,12 @@ while Example_pred < 30:
 
         plt.figure(figsize=(3, 3))
         # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(70), e_veh_att, color='red')
+        plt.plot(range(69), e_veh_att, color='red')
         plt.plot([30, 30], [0, 1], color='black')
-        plt.plot([70, 70], [0, 1], color='black')
+        plt.plot([69, 69], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(30, 70), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(29, 69), att_scores[sample_trace_i, :].flatten(), color='grey')
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
@@ -609,22 +617,24 @@ while Example_pred < 30:
             beta_param = precision*(1-aggressiveness)
             start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
             plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-            plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
 
             end_point = start_point + 45
+            max_prob_point = start_point + aggressiveness*45
+            plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
+            # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
             x = np.linspace(start_point, end_point, 100)
             p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
             p = p/p.max()
             plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
 
             # plt.figure()
-            # plt.plot(range(70), e_veh_att, color='red')
+            # plt.plot(range(69), e_veh_att, color='red')
             # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
             # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
             # for sample in gen_samples:
             #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
 
-            # plt.xlim(0, 70)
+            # plt.xlim(0, 69)
             # plt.grid()
         except:
             pass
@@ -675,7 +685,7 @@ while Example_pred < 30:
         plt.grid()
         ######\######
         plt.figure(figsize=(3, 3))
-        plt.plot(range(70), em_delta_y, color='red')
+        plt.plot(range(69), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1 .5], color='red')
@@ -691,13 +701,12 @@ while Example_pred < 30:
 """
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
-model_trainer.model.forward_sim.attention_temp = 20
-sample_index = [4109]
-e_veh_decision = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_decision']][0]
-e_veh_att = history_future_usc[sample_index, :, hf_usc_indexs['e_veh_att']][0]
-m_veh_exists = history_future_usc[sample_index, :, hf_usc_indexs['m_veh_exists']][0]
-
-em_delta_y = history_future_usc[sample_index, :, hf_usc_indexs['em_delta_y']][0]
+model_trainer.model.forward_sim.attention_temp = 5
+sample_index = [30858]
+e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
+m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
+aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
+em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
 episode = future_idm_s[sample_index, 0, 0][0]
 
 sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
@@ -709,12 +718,12 @@ prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 
 idm_params = model_trainer.model.idm_layer(sampled_z)
-# idm_params = tf.ones([100, 5])*[30.34, 1, 2, 1.71, 2.6]
+# idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+time_axis = np.linspace(0., 6.8, 69)
 
-time_axis = np.linspace(0., 7., 70)
 plt.figure(figsize=(3, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
@@ -729,25 +738,30 @@ plt.text(0.5, 0.5,
                     , fontsize = 15)
 plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
+
 ##########
 # %%
 plt.figure(figsize=(10, 10))
 # plt.figure(figsize=(3, 2))
 # plt.legend(['Leader', 'Follower', 'Merger'])
+
+
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[30:], act_seq[sample_trace_i, :, :].flatten(), \
+   plt.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
-plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['e_veh_action']][0], color='red')
-plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['m_veh_action']][0], \
-                                                    linestyle='--', color='black')
-plt.plot(time_axis, history_future_usc[sample_index, :, hf_usc_indexs['f_veh_action']][0], color='purple',linestyle='-')
-plt.plot([3,3],[-2,1])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+plt.plot(time_axis, traj, color='red')
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+plt.plot(time_axis, traj, linestyle='--', color='black')
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+plt.plot(time_axis, traj, color='purple',linestyle='-')
+# plt.plot([3,3],[-2,1])
 # plt.title('Vehicle actions')
-plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
+# plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
 plt.xlabel('Time (s)')
 plt.ylabel('Acceleration ($ms^{-2}$)')
-plt.ylim(-2, 1)
-plt.yticks([1, 0., -1, -2])
+# plt.ylim(-0.1, 0.1)
+# plt.yticks([1, 0., -1, -2])
 plt.xticks([0., 2, 4, 6])
 
 plt.grid(alpha=0.1)
@@ -760,7 +774,7 @@ plt.legend(['Ego', 'Merger', 'Leader'])
 plt.figure(figsize=(10, 10))
 # plt.figure(figsize=(3, 2))
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[30:], att_scores[sample_trace_i, :].flatten(), \
+   plt.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 plt.plot(time_axis, e_veh_att, color='red', linewidth=1, linestyle='-')
 
@@ -837,7 +851,7 @@ plt.grid()
 ############
 plt.figure(figsize=(3, 3))
 plt.plot(em_delta_y[:20], color='black')
-plt.plot(range(30, 70), em_delta_y, color='red')
+plt.plot(range(29, 69), em_delta_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')

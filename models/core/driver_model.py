@@ -21,8 +21,8 @@ class NeurIDMModel(AbstractModel):
         self.forward_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        self.loss_function = tf.keras.losses.Huber()
-        # self.loss_function = tf.keras.losses.MeanSquaredError()
+        # self.loss_function = tf.keras.losses.Huber()
+        self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -31,8 +31,8 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true[:, :5, :])/0.1
-        act_pred = (act_pred[:, :5, :])/0.1
+        act_true = (act_true)/0.1
+        act_pred = (act_pred)/0.1
         return self.loss_function(act_true, act_pred)
 
     def kl_loss(self, pri_params, pos_params):
@@ -259,7 +259,7 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
 
-        for step in range(5):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -290,37 +290,31 @@ class IDMForwardSim(tf.keras.Model):
 
             # tf.print('############ em_act ############')
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-            # em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
+            em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
-            # sdv_act = sdv_acts[:, step:step+1, :]
             # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
 
-            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-            #                         proj_latent, sdv_act], axis=-1), \
-            #                         initial_state=[state_h, state_c])
-            # # att_x = self.attention_neu(lstm_output)
-            # att_x = tf.clip_by_value(att_x, clip_value_min=-5., clip_value_max=5.)
-            # att_score = 0*em_act
-            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            # att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+            sdv_act = sdv_acts[:, step:step+1, :]
+            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                    proj_latent, sdv_act], axis=-1), \
+                                    initial_state=[state_h, state_c])
+            att_x = self.attention_neu(lstm_output)
+            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
             # att_score = idm_s[:, step:step+1, -3:-2]
             # res_action = self.action_neu(lstm_output)
-            # _act = (1-att_score)*ef_act + att_score*em_act
-            _act = ef_act
+            _act = (1-att_score)*ef_act + att_score*em_act
             # _act += res_action
             if step == 0:
                 act_seq = _act
-                # att_seq = att_score
+                att_seq = att_score
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
-                # att_seq = tf.concat([att_seq, att_score], axis=1)
-
-        # tf.print('act_seq: ', tf.reduce_mean(act_seq))
-        return act_seq, 0
-        # return act_seq, att_seq
+                att_seq = tf.concat([att_seq, att_score], axis=1)
+        return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
