@@ -519,7 +519,7 @@ plt.grid(axis='x')
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 5
+model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
 # for i in bad_examples[0]:

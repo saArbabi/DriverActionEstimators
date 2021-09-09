@@ -13,14 +13,7 @@ import numpy as np
 np.set_printoptions(suppress=True)
 
 
-config = {
- "model_config": {
-     "learning_rate": 1e-3,
-    "batch_size": 256,
-    },
-    "exp_id": "NA",
-    "Note": ""
-}
+
 # %%
 """
 Data prep
@@ -43,7 +36,14 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
 # %%
-
+config = {
+ "model_config": {
+     "learning_rate": 1e-3,
+    "batch_size": 128,
+    },
+    "exp_id": "NA",
+    "Note": ""
+}
 class Trainer():
     def __init__(self, training_data, model_type, model_name):
         self.model = None
@@ -149,7 +149,7 @@ class Trainer():
 
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-# exp_dir = './models/experiments/'+'h_z_f_act001_epo_10'+'/model' 
+# exp_dir = './models/experiments/'+'h_z_f_act001_epo_10'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 
 # %%
@@ -186,9 +186,10 @@ model_trainer.model.vae_loss_weight = 0.01
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-
-model_trainer.train(epochs=2)
-
+model_trainer.train(epochs=10)
+################## ##### ##################
+################## ##### ##################
+################## ##### ##################
 ################## MSE LOSS ##################
 fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
@@ -217,7 +218,7 @@ kl_axis.legend(['test', 'train'])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '001')
+model_trainer.save_model('h_z_f_act', '002')
 
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -331,7 +332,6 @@ for item_name in col_names:
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
 sepcific_examples = [100000]
 # for i in bad_examples[0]:
@@ -392,7 +392,7 @@ while Example_pred < 20:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(29, 69), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(29, 69), act_se q[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
