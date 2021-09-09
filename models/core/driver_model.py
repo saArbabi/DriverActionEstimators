@@ -185,7 +185,7 @@ class IDMForwardSim(tf.keras.Model):
     def __init__(self):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.architecture_def()
-        self.attention_temp = 5 # the higher, the sharper the attention
+        self.attention_temp = 1 # the higher, the sharper the attention
 
     def architecture_def(self):
         self.proj_layer_1 = Dense(100, activation='relu')

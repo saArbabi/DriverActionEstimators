@@ -149,8 +149,8 @@ class Trainer():
 
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-# exp_dir = './models/experiments/'+'h_z_f_act001_epo_10'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_act003_epo_10'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 
 # %%
 #
@@ -218,7 +218,7 @@ kl_axis.legend(['test', 'train'])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '002')
+model_trainer.save_model('h_z_f_act', '003')
 
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -355,7 +355,7 @@ while Example_pred < 20:
     # #
     #
     if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and 0.3 > aggressiveness:
+            e_veh_att[20:60].mean() > 0 and 0.5 < aggressiveness:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -392,7 +392,7 @@ while Example_pred < 20:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(29, 69), act_se q[sample_trace_i, :, :].flatten(),
+           plt.plot(range(29, 69), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 

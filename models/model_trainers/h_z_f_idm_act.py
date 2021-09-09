@@ -233,8 +233,8 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act020_epo_10'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_idm_act020_epo_10'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(epochs=1)
@@ -270,12 +270,12 @@ future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
 model_trainer.model.vae_loss_weight = 0.01
-model_trainer.model.forward_sim.attention_temp = 5
+model_trainer.model.forward_sim.attention_temp = 1
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=5)
+model_trainer.train(epochs=1)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -314,7 +314,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '021')
+model_trainer.save_model('h_z_f_idm_act', '024')
 
 # %%
 """
@@ -545,7 +545,7 @@ while Example_pred < 20:
     #
     # if episode == 258 and sample_index[0] > 40262:
     if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and 0.3 > aggressiveness:
+            e_veh_att[20:60].mean() > 0 and  0.5 < aggressiveness:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
