@@ -21,7 +21,8 @@ class NeurIDMModel(AbstractModel):
         self.forward_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.Huber()
+        self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -30,9 +31,8 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = tf.repeat(act_true, 10, axis=0)
-        act_true = (act_true)/0.1
-        act_pred = (act_pred)/0.1
+        act_true = (act_true[:, :5, :])/0.1
+        act_pred = (act_pred[:, :5, :])/0.1
         return self.loss_function(act_true, act_pred)
         # return tf.reduce_mean((tf.square(tf.subtract(act_pred, act_true))))
 
@@ -86,8 +86,6 @@ class NeurIDMModel(AbstractModel):
         return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
-        inputs = [tf.repeat(item, 10, axis=0) for item in inputs]
-
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_f = self.f_seq_encoder(inputs[1])
 
@@ -250,7 +248,7 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
         state_h, state_c = latent_projection, latent_projection
 
-        for step in range(40):
+        for step in range(5):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
