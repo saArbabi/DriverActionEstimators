@@ -16,7 +16,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         history_len = 30 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        exp_dir = './models/experiments/'+'h_lat_f_idm_act_epo_20'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_idm_act011_epo_10'+'/model'
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
@@ -91,7 +91,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         self.driver_params['min_act'] = idm_params[4]
 
     def latent_projection_update(self, sampled_z):
-        latent_projection = self.model.forward_sim.linear_layer(sampled_z)
+        latent_projection = self.model.forward_sim.projection(sampled_z)
         self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 100])
         # latent_projection = self.latent_projection([latent_projection, enc_h], batch_size)
         self.state_h, self.state_c = latent_projection, latent_projection
@@ -107,7 +107,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         att_inputs = tf.concat([self.latent_projection, sdv_act], axis=-1)
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_inputs, initial_state=[self.state_h, self.state_c])
-        attention_temp = 1
+        attention_temp = 20
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
         return att_score
 
@@ -124,13 +124,18 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
             self.latent_projection_update(sampled_z)
             self.time_lapse_since_last_param_update = 0
 
+        f_veh_exists = m_veh_action_feature[-2]
+        m_veh_exists = m_veh_action_feature[-1]
         sdv_act = np.array([[m_veh_action_feature]])
+
         att_score = self.get_neur_att(sdv_act)[0][0][0]
+        att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
         self.att = att_score
 
         f_veh, m_veh = neighbours
         ef_act = self.idm_action(self, f_veh)
         em_act = self.idm_action(self, m_veh)
+
         act_long = (1-att_score)*ef_act + att_score*em_act
         self.time_lapse_since_last_param_update += 1
         return act_long
@@ -182,13 +187,13 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
-        from models.core.h_lat_f_act import NeurLatentModel
+        from models.core.h_z_f_act import NeurLatentModel
         self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_lat_f_act_epo_15'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_act001_epo_10'+'/model'
         self.model.load_weights(exp_dir).expect_partial()
 
     def latent_projection_update(self, sampled_z):
-        latent_projection = self.model.forward_sim.linear_layer(sampled_z)
+        latent_projection = self.model.forward_sim.projection(sampled_z)
         self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 100])
         self.state_h, self.state_c = latent_projection, latent_projection
 
@@ -288,7 +293,7 @@ class NeurLatentOneStepVehicle(NeurLatentVehicle):
         with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
-        from models.core.h_lat_f_act import NeurLatentModel
+        from models.core.h_z_f_act import NeurLatentModel
         self.model = NeurLatentModel()
         exp_dir = './models/experiments/'+'h_lat_act_epo_10'+'/model'
         self.model.load_weights(exp_dir).expect_partial()

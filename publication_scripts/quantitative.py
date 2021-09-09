@@ -78,7 +78,7 @@ snip_collection_pred['h_lat_f_id'].shape
 
 # %%
 """
-rwse
+rwse methods
 """
 # plt.plot(xposition_error)
 def per_veh_rwse(pred_traces, true_trace):
@@ -175,7 +175,7 @@ snip_collection_true[model_name][0,0,1]
 """
 rwse x position
 """
-time_vals = np.linspace(0, 20, 200)
+time_vals = np.linspace(0, 6, 60)
 
 """
 rwse x position
@@ -184,7 +184,8 @@ fig = plt.figure(figsize=(6, 4))
 position_axis = fig.add_subplot(211)
 speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.05)
-for model_name in model_names:
+# for model_name in model_names:
+for model_name, label in zip(model_names, legends):
     error_total = get_rwse(3, model_name)
     position_axis.plot(time_vals, error_total, label=label)
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
@@ -194,7 +195,7 @@ position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
 # position_axis.selegend(legends)
 position_axis.minorticks_off()
-position_axis.set_ylim(0, 30)
+position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
 # x%%
 """
