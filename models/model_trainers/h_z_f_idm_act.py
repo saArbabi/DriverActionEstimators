@@ -239,7 +239,7 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-model_trainer.train(epochs=1)
+model_trainer.train(epochs=3)
 model_trainer.test_mseloss
 # %%
 
