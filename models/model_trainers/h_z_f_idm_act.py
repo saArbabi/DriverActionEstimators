@@ -129,7 +129,7 @@ class Trainer():
 
         self.test_mseloss = []
         self.test_klloss = []
-        self.epoch_count = 0
+        self.epoch_count = 1
         self.initiate_model()
         self.prep_data(training_data)
 
@@ -218,7 +218,7 @@ class Trainer():
             else:
                 self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
-            print(self.epoch_count, 'epochs completed')
+            print(self.epoch_count+1, 'epochs completed')
             self.epoch_count += 1
 
     def save_model(self, model_name, exp_id):
@@ -233,8 +233,8 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act020_epo_10'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_idm_act025_epo_4'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(epochs=1)
@@ -314,7 +314,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '024')
+model_trainer.save_model('h_z_f_idm_act', '025')
 
 # %%
 """
