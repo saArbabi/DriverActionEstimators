@@ -6,7 +6,7 @@ import pickle
 import highway
 reload(highway)
 from highway import Env
-
+import os
 import time
 config = {'lanes_n':6,
         'lane_width':3.75, # m
@@ -17,7 +17,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':3000,
+                'env_steps_n':200,
                 'model_type':'belief_net'
                 }
 
@@ -73,14 +73,17 @@ features_origin.shape
 features_origin.shape
 features_origin[0]
 features_origin.shape
-np.count_nonzero(~np.isnan(features_origin))
 
 # %%
-features_origin.shape
+data_id = '_002'
+file_name = 'sim_data'+data_id+'.pickle'
+file_address = './models/experiments/'+file_name
+if not os.path.exists(file_address):
+    with open(file_address, 'wb') as handle:
+        pickle.dump(features_origin, handle)
+else:
+    print('This data id exists')
 
-
-with open('./models/experiments/sim_data.pickle', 'wb') as handle:
-    pickle.dump(features_origin, handle)
 # %%
 
 epis = 116

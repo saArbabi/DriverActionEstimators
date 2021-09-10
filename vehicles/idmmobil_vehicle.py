@@ -93,6 +93,7 @@ class IDMMOBILVehicle(Vehicle):
 
     def set_driver_params(self):
         self.set_attentiveness()
+        # self.driver_params['stochasticity'] = np.random.uniform()
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param('desired_v')
         # self.driver_params['desired_v'] += np.random.normal()

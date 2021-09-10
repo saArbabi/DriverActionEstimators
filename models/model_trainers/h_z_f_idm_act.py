@@ -428,7 +428,28 @@ params = {
 plt.rcParams.update(params)
 plt.style.use(['science','ieee'])
 
-0.5**0.5
+# %%
+var = 1
+vels_samples = []
+traj_n = 5
+for traj_i in range(traj_n):
+    vels = []
+    acts = []
+    vel = 20
+    for i in range(20):
+        act = np.random.normal(0, var)
+        vels.append(vel)
+        acts.append(act)
+        vel += act*0.1
+
+    vels_samples.append(vels)
+# plt.ylim(17, 23)
+for traj in vels_samples:
+    plt.plot(traj)
+plt.grid()
+# plt.plot(acts)
+
+# %%
 
 # %%
 """
