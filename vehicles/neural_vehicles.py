@@ -16,11 +16,11 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         history_len = 30 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        exp_dir = './models/experiments/'+'h_z_f_idm_act011_epo_10'+'/model'
-        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+        exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_4'+'/model'
+        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
-        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+        with open('./models/experiments/dummy_value_set_001.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
         from models.core import driver_model

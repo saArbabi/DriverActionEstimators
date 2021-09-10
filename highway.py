@@ -223,6 +223,8 @@ class EnvMC(Env):
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
                 if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural':
+                # if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural'  \
+                #     and vehicle.id == 64:
                     neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                     # neural_vehicle.id = 'neur_'+str(vehicle.id)
                     imagined_vehicle = neural_vehicle
