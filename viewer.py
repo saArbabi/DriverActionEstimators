@@ -230,38 +230,31 @@ class ViewerMC(Viewer):
         plt.pause(1e-10)
 
     def info_plot(self, real_mc_log, ima_mc_log):
+        if not self.focus_on_this_vehicle or self.focus_on_this_vehicle not in ima_mc_log:
+            return
         self.act_ax.clear()
         self.speed_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
 
-        present_vehicels = list(real_mc_log.keys())
-        if len(present_vehicels) > 1:
-            max_seq_len = max([len(real_mc_log[veh_id]['act']) for veh_id in present_vehicels])
-        for veh_id in present_vehicels:
-            seq_len = len(real_mc_log[veh_id]['act'])
-            if len(present_vehicels) > 1:
-                if seq_len == max_seq_len:
-                    x_range = range(seq_len)
-                elif seq_len < max_seq_len:
-                    x_range = range(max_seq_len-seq_len, max_seq_len)
-            else:
-                x_range = range(seq_len)
+        veh_id = self.focus_on_this_vehicle
+        seq_len = len(real_mc_log[veh_id]['act'])
+        x_range = range(seq_len)
 
-            self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
-            self.speed_ax.plot(x_range, real_mc_log[veh_id]['speed'], label=veh_id)
-            self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
-            self.desvel_ax.plot(x_range, real_mc_log[veh_id]['desvel'])
+        self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
+        self.speed_ax.plot(x_range, real_mc_log[veh_id]['speed'], label=veh_id)
+        self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
+        self.desvel_ax.plot(x_range, real_mc_log[veh_id]['desvel'])
 
-            self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
-            self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
-            self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
-            self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
-            self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
+        self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
+        self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
+        self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
+        self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
+        self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
 
-            # self.act_ax.legend(['true', 'pred'])
-            # self.att_ax.legend(['true', 'pred'])
-            # self.desvel_ax.legend(['true', 'pred'])
+        # self.act_ax.legend(['true', 'pred'])
+        # self.att_ax.legend(['true', 'pred'])
+        # self.desvel_ax.legend(['true', 'pred'])
         self.act_ax.set_title('action')
         self.speed_ax.set_title('speed')
         self.att_ax.set_title('attention')
@@ -271,4 +264,4 @@ class ViewerMC(Viewer):
         for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax]:
             axis.set_xticks(major_tick)
             axis.grid(axis='x')
-        self.act_ax.legend(present_vehicels)
+        self.act_ax.legend('vehicle ' + str(veh_id))

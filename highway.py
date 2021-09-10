@@ -176,7 +176,6 @@ class EnvMC(Env):
 
                     if veh_ima.control_type == 'neural':
                         act_long = veh_ima.act(obs)
-                        act_long = max(-3, min(act_long, 3))
                         # _ = veh_ima.act(obs)
                         if self.metric_collection_mode:
                             veh_ima.act_long = act_long
@@ -200,6 +199,7 @@ class EnvMC(Env):
             if self.debugging_mode:
                 veh_ima.act_long = act_long
                 self.vis_log_info(veh_real, veh_ima)
+
         return acts_real, acts_ima
 
     def step(self, actions=None):
@@ -218,11 +218,11 @@ class EnvMC(Env):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if self.time_step > 290:
+        if self.time_step == 290:
         # if self.time_step > 600:
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
-                if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural':
+                if 100 < vehicle.glob_x < 400 and vehicle.vehicle_type != 'neural':
                 # if 50 < vehicle.time_lapse < 200 and vehicle.vehicle_type != 'neural'  \
                 #     and vehicle.id == 64:
                     neural_vehicle = self.idm_to_neural_vehicle(vehicle)
@@ -240,9 +240,9 @@ class EnvMC(Env):
 
     def vis_log_info(self, veh_real, veh_ima):
         """
-        For on off visualisation and debugging.
+        For one off visualisation and debugging.
         """
-        if veh_ima.id in self.vis_vehicles and veh_ima.vehicle_type == 'neural':
+        if veh_ima.vehicle_type == 'neural':
             veh_id =  veh_real.id
             if veh_real.neighbours['m'] and\
                                 veh_real.neighbours['att'] == veh_real.neighbours['m']:

@@ -325,7 +325,7 @@ class IDMMOBILVehicle(Vehicle):
                     (1-(follower.speed/follower.driver_params['desired_v'])**4-\
                                                         (desired_gap/(delta_x))**2)
 
-        return act_long
+        return max(-3, min(act_long, 3))
 
     def check_reservations(self, target_lane, reservations):
         """To ensure:
@@ -360,7 +360,7 @@ class IDMMOBILVehicle(Vehicle):
 
     def act(self, reservations):
         act_long, act_lat = self.idm_mobil_act(reservations)
-        return [max(-3, min(act_long, 3)), act_lat]
+        return [act_long, act_lat]
 
     def lateral_action(self):
         if self.lane_decision == 'keep_lane':

@@ -181,15 +181,15 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
         # self.action_history = [[0., 0.]]*20
 
-        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
-        with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
+        with open('./models/experiments/dummy_value_set_001.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
         from models.core.h_z_f_act import NeurLatentModel
         self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_z_f_act001_epo_10'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_act003_epo_10'+'/model'
         self.model.load_weights(exp_dir).expect_partial()
 
     def latent_projection_update(self, sampled_z):
