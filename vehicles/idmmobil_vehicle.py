@@ -96,6 +96,7 @@ class IDMMOBILVehicle(Vehicle):
         # self.driver_params['stochasticity'] = np.random.uniform()
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param('desired_v')
+        30 -
         # self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_driver_param('desired_tgap')
         self.driver_params['min_jamx'] = self.get_driver_param('min_jamx')

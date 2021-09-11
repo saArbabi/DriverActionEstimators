@@ -745,6 +745,7 @@ while Example_pred < 20:
 
 """Single sample Anticipation visualisation
 """
+
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
