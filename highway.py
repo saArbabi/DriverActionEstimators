@@ -175,7 +175,8 @@ class EnvMC(Env):
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
-                        act_long = veh_ima.act(obs)
+                        _act_long = veh_ima.act(obs)
+                        # act_long = veh_ima.act(obs)
                         # _ = veh_ima.act(obs)
                         if self.metric_collection_mode:
                             veh_ima.act_long = act_long
@@ -197,7 +198,16 @@ class EnvMC(Env):
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
 
             if self.debugging_mode:
-                veh_ima.act_long = act_long
+                # veh_ima.act_long = _act_long
+                if veh_ima.vehicle_type == 'neural':
+                    if veh_ima.control_type == 'neural':
+                        veh_ima.act_long = _act_long
+
+                    else:
+                        veh_ima.act_long = act_long
+                else:
+                    veh_ima.act_long = act_long
+
                 self.vis_log_info(veh_real, veh_ima)
 
         return acts_real, acts_ima
@@ -218,7 +228,7 @@ class EnvMC(Env):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if self.time_step == 290:
+        if self.time_step == 400:
         # if self.time_step > 600:
             ima_vehicles = []
             for vehicle in self.ima_vehicles:
@@ -234,8 +244,8 @@ class EnvMC(Env):
                 else:
                     ima_vehicles.append(vehicle)
             self.ima_vehicles = ima_vehicles
-
-        self.add_new_vehicles()
+        elif self.time_step <= 400:
+            self.add_new_vehicles()
         self.time_step += 1
 
     def vis_log_info(self, veh_real, veh_ima):

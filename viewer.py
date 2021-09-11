@@ -166,12 +166,6 @@ class ViewerMC(Viewer):
         # ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
         glob_xs = [veh.glob_x for veh in vehicles]
         glob_ys = [veh.glob_y for veh in vehicles]
-        annotation_mark_1 = [veh.id for veh in vehicles]
-        annotation_mark_2 = [round(veh.speed, 2) for veh in vehicles]
-        for i in range(len(annotation_mark_1)):
-            ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
-            ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
-
 
         if env_type == 'real':
             color_shade = [veh.driver_params['aggressiveness'] for veh in vehicles]
@@ -182,6 +176,14 @@ class ViewerMC(Viewer):
                                         color='grey', alpha=0.5, edgecolors='black')
 
         for vehicle in vehicles:
+            if vehicle.vehicle_type == 'neural':
+                ann_color = 'green'
+            else:
+                ann_color = 'black'
+
+            ax.annotate(vehicle.id, (vehicle.glob_x, vehicle.glob_y+1), color=ann_color)
+            ax.annotate(round(vehicle.speed, 2), (vehicle.glob_x, vehicle.glob_y-1), color=ann_color)
+
             att_veh = vehicle.neighbours['att']
             f_veh = vehicle.neighbours['f']
 
@@ -264,4 +266,4 @@ class ViewerMC(Viewer):
         for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax]:
             axis.set_xticks(major_tick)
             axis.grid(axis='x')
-        self.act_ax.legend('vehicle ' + str(veh_id))
+        self.act_ax.legend(['vehicle ' + str(veh_id)])

@@ -16,7 +16,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         history_len = 30 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_4'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_11'+'/model'
         with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
@@ -107,7 +107,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         att_inputs = tf.concat([self.latent_projection, sdv_act], axis=-1)
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_inputs, initial_state=[self.state_h, self.state_c])
-        attention_temp = 20
+        attention_temp = 1
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
         return att_score
 

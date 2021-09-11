@@ -37,7 +37,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGenerator
 data_gen = DataGenerator()
-with open('./models/experiments/sim_data.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_001.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -72,12 +72,22 @@ indxs['desired_v']
 features[:, indxs['el_delta_x']].min()
 features[:, indxs['em_delta_x']].min()
 # %%
-epis = 20
+epis = 47
 for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features[features[:, 0] == epis][0, indxs[param_name]])
-
 # %%
+veh_id = 63
+for param_name in [ 'aggressiveness', 'desired_v',
+                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+    print(param_name, ' ', features[features[:, 2] == veh_id][0, indxs[param_name]])
+# %%
+history_future_usc[history_future_usc[:, :, 2]==47]
+history_sca[history_sca[:, :, 0]==302]
+history_sca[history_sca[:, :, 0]==302]
+history_sca[47731, 0, 0:3]
+
+
 history_future_usc[0, 0]
 history_future_usc[0, 0]
 import pickle
@@ -258,7 +268,7 @@ np.random.seed(2021)
 np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
-
+# np.where(train_epis == 302)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 history_sca.shape
@@ -537,22 +547,31 @@ plt.grid(axis='x')
 # plt.xaxis.grid()
 
 # %%
+np.where((history_future_usc[:, 0, 0] == 8) & \
+                             (history_future_usc[:, 0, 1] == 488))
+
+# %%
 
 Example_pred = 0
 i = 0
 covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
-sepcific_examples = [100000]
+np.where((history_future_usc[:, 0, 2] == 63))
+history_future_usc[history_future_usc[:, 0, 2] == 63]
+sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
+                             (history_future_usc[:, 0, 1] == 488))[0]
+
 # for i in bad_examples[0]:
-# for i in sepcific_examples:
+for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+# while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
-    sample_index = [val_examples[i]]
-    # sample_index = [i]
+    # sample_index = [val_examples[i]]
+    # sample_index = [val_examples[i]]
+    sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
     m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
@@ -562,12 +581,14 @@ while Example_pred < 20:
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
     # if episode not in covered_episodes:
-    # if 4 == 4:
+    if 4 == 4:
+
+
     # #
     #
     # if episode == 258 and sample_index[0] > 40262:
-    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and  0.5 < aggressiveness:
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0 and  0.5 < aggressiveness:
 
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
@@ -710,7 +731,6 @@ while Example_pred < 20:
         plt.title(str(sample_index[0]) + ' -- em_delta_y')
         plt.grid()
         ############
-
         Example_pred += 1
 
 # %%
