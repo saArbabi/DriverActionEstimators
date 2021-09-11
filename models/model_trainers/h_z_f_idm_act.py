@@ -124,7 +124,7 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 128,
+    "batch_size": 256,
     },
     "exp_id": "NA",
     "Note": ""
@@ -170,7 +170,7 @@ class Trainer():
             from models.core.mlp import  MLP
             self.model = MLP(config)
 
-        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -287,7 +287,7 @@ model_trainer.model.forward_sim.attention_temp = 1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=1)
+model_trainer.train(epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -326,7 +326,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '025')
+model_trainer.save_model('h_z_f_idm_act', '026')
 
 # %%
 """
@@ -565,15 +565,15 @@ sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
                              (history_future_usc[:, 0, 1] == 488))[0]
 
 # for i in bad_examples[0]:
-for i in sepcific_examples:
+# for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 20:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
-    # sample_index = [val_examples[i]]
-    # sample_index = [val_examples[i]]
-    sample_index = [i]
+    sample_index = [val_examples[i]]
+    # sample_index = [train_indxs[i]]
+    # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
     m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
@@ -583,16 +583,22 @@ for i in sepcific_examples:
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
     # if episode not in covered_episodes:
-    if 4 == 4:
-
+    # if 4 == 4:
+    # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+    # if episode == 21 and sample_index[0] > 3300:
 
     # #
     #
     # if episode == 258 and sample_index[0] > 40262:
     # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-    #         e_veh_att[20:60].mean() > 0 and  0.5 < aggressiveness:
-
+    #         e_veh_att[20:60].mean() > 0 and  0.5 > aggressiveness:
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0 and  np.abs(traj).max() > 0.7:
+    # if episode not in covered_episodes and \
+    #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
     # if episode not in covered_episodes and aggressiveness == 0.5:
+    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+            e_veh_att.mean() > 0:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -741,10 +747,11 @@ for i in sepcific_examples:
 """
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
-model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [30858]
+model_trainer.model.forward_sim.attention_temp = 1
+sample_index = [48140]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
+f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
 em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
 episode = future_idm_s[sample_index, 0, 0][0]
