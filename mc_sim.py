@@ -26,12 +26,12 @@ def main():
     # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
     # np.random.seed(0)
-    np.random.seed(2021)
-    tf.random.set_seed(0)
+    # np.random.seed(2021)
+    # tf.random.set_seed(0)
     env.debugging_mode = True
     # env.debugging_mode = False
     while True:
-        if env.time_step > 280:
+        if env.time_step > 400:
             user_input = input()
             if user_input == 'n':
                 sys.exit()

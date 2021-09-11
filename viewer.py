@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.pyplot import cm
 
 class Viewer():
     def __init__(self, config):
@@ -154,10 +155,11 @@ class ViewerMC(Viewer):
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         self.fig = plt.figure(figsize=(5, 14))
-        self.act_ax = self.fig.add_subplot(411)
-        self.speed_ax = self.fig.add_subplot(412)
-        self.att_ax = self.fig.add_subplot(413)
-        self.desvel_ax = self.fig.add_subplot(414)
+        self.act_ax = self.fig.add_subplot(511)
+        self.speed_ax = self.fig.add_subplot(512)
+        self.att_ax = self.fig.add_subplot(513)
+        self.desvel_ax = self.fig.add_subplot(514)
+        self.desparam_ax = self.fig.add_subplot(515)
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -166,12 +168,6 @@ class ViewerMC(Viewer):
         # ys_idm_mobil = [veh.glob_y for veh in vehicles if veh.capability == 'IDMMOBIL']
         glob_xs = [veh.glob_x for veh in vehicles]
         glob_ys = [veh.glob_y for veh in vehicles]
-        annotation_mark_1 = [veh.id for veh in vehicles]
-        annotation_mark_2 = [round(veh.speed, 2) for veh in vehicles]
-        for i in range(len(annotation_mark_1)):
-            ax.annotate(annotation_mark_1[i], (glob_xs[i], glob_ys[i]+1))
-            ax.annotate(annotation_mark_2[i], (glob_xs[i], glob_ys[i]-1))
-
 
         if env_type == 'real':
             color_shade = [veh.driver_params['aggressiveness'] for veh in vehicles]
@@ -182,6 +178,14 @@ class ViewerMC(Viewer):
                                         color='grey', alpha=0.5, edgecolors='black')
 
         for vehicle in vehicles:
+            if vehicle.vehicle_type == 'neural':
+                ann_color = 'green'
+            else:
+                ann_color = 'black'
+
+            ax.annotate(vehicle.id, (vehicle.glob_x, vehicle.glob_y+1), color=ann_color)
+            ax.annotate(round(vehicle.speed, 2), (vehicle.glob_x, vehicle.glob_y-1), color=ann_color)
+
             att_veh = vehicle.neighbours['att']
             f_veh = vehicle.neighbours['f']
 
@@ -236,21 +240,40 @@ class ViewerMC(Viewer):
         self.speed_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
+        self.desparam_ax.clear()
 
         veh_id = self.focus_on_this_vehicle
         seq_len = len(real_mc_log[veh_id]['act'])
         x_range = range(seq_len)
+        colors = cm.rainbow(np.linspace(0, 1, 5))
 
         self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
         self.speed_ax.plot(x_range, real_mc_log[veh_id]['speed'], label=veh_id)
         self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
-        self.desvel_ax.plot(x_range, real_mc_log[veh_id]['desvel'])
-
+        color_i = 0
+        for key in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+            color = colors[color_i]
+            if key == 'desired_v':
+                self.desvel_ax.plot(x_range, real_mc_log[veh_id][key], color=color)
+            else:
+                self.desparam_ax.plot(x_range, real_mc_log[veh_id][key], color=color)
+            color_i += 1
+        # Imagined vehicle
         self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
         self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
-        self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
+
+        color_i = 0
+        for key in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+            color = colors[color_i]
+            if key == 'desired_v':
+                self.desvel_ax.plot(x_range, ima_mc_log[veh_id][key], linestyle='--', label=key, color=color)
+            else:
+                self.desparam_ax.plot(x_range, ima_mc_log[veh_id][key], linestyle='--', label=key, color=color)
+            color_i += 1
+
+        self.desparam_ax.legend(loc='upper left')
 
         # self.act_ax.legend(['true', 'pred'])
         # self.att_ax.legend(['true', 'pred'])
@@ -261,7 +284,7 @@ class ViewerMC(Viewer):
         self.desvel_ax.set_title('desvel')
 
         major_tick = np.arange(35, len(real_mc_log[veh_id]['act']), 30)
-        for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax]:
+        for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax, self.desparam_ax]:
             axis.set_xticks(major_tick)
             axis.grid(axis='x')
-        self.act_ax.legend('vehicle ' + str(veh_id))
+        self.act_ax.legend(['vehicle ' + str(veh_id)])

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 
+
 import numpy as np
 np.set_printoptions(suppress=True)
 
@@ -22,7 +23,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGenerator
 data_gen = DataGenerator()
-with open('./models/experiments/sim_data.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_001.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features.shape
 features, dummy_value_set = data_gen.fill_missing_values(features)
@@ -78,7 +79,7 @@ class Trainer():
             from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
-        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -342,6 +343,7 @@ while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
+    # sample_index = [train_indxs[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -354,9 +356,12 @@ while Example_pred < 20:
     # if 4 == 4:
     # #
     #
-    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and 0.5 < aggressiveness:
-
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0 and 0.5 > aggressiveness:
+    # if episode not in covered_episodes and \
+    #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
+    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+            e_veh_att.mean() > 0:
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)

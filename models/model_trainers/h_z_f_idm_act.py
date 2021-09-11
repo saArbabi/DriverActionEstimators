@@ -37,7 +37,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGenerator
 data_gen = DataGenerator()
-with open('./models/experiments/sim_data.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_001.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -72,12 +72,24 @@ indxs['desired_v']
 features[:, indxs['el_delta_x']].min()
 features[:, indxs['em_delta_x']].min()
 # %%
-epis = 20
+epis = 47
 for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features[features[:, 0] == epis][0, indxs[param_name]])
-
+a = {'go':3}
+a.keys()
 # %%
+veh_id = 63
+for param_name in [ 'aggressiveness', 'desired_v',
+                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+    print(param_name, ' ', features[features[:, 2] == veh_id][0, indxs[param_name]])
+# %%
+history_future_usc[history_future_usc[:, :, 2]==47]
+history_sca[history_sca[:, :, 0]==302]
+history_sca[history_sca[:, :, 0]==302]
+history_sca[47731, 0, 0:3]
+
+
 history_future_usc[0, 0]
 history_future_usc[0, 0]
 import pickle
@@ -112,7 +124,7 @@ for i in range(history_future_usc.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 128,
+    "batch_size": 256,
     },
     "exp_id": "NA",
     "Note": ""
@@ -158,7 +170,7 @@ class Trainer():
             from models.core.mlp import  MLP
             self.model = MLP(config)
 
-        with open('./models/experiments/scaler.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -258,7 +270,7 @@ np.random.seed(2021)
 np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
-
+# np.where(train_epis == 302)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 history_sca.shape
@@ -275,7 +287,7 @@ model_trainer.model.forward_sim.attention_temp = 1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=1)
+model_trainer.train(epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -314,7 +326,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '025')
+model_trainer.save_model('h_z_f_idm_act', '026')
 
 # %%
 """
@@ -537,13 +549,21 @@ plt.grid(axis='x')
 # plt.xaxis.grid()
 
 # %%
+np.where((history_future_usc[:, 0, 0] == 8) & \
+                             (history_future_usc[:, 0, 1] == 488))
+
+# %%
 
 Example_pred = 0
 i = 0
 covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
-sepcific_examples = [100000]
+np.where((history_future_usc[:, 0, 2] == 63))
+history_future_usc[history_future_usc[:, 0, 2] == 63]
+sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
+                             (history_future_usc[:, 0, 1] == 488))[0]
+
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
@@ -552,6 +572,7 @@ while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
+    # sample_index = [train_indxs[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -563,13 +584,21 @@ while Example_pred < 20:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
     # if episode not in covered_episodes:
     # if 4 == 4:
+    # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+    # if episode == 21 and sample_index[0] > 3300:
+
     # #
     #
     # if episode == 258 and sample_index[0] > 40262:
-    if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
-            e_veh_att[20:60].mean() > 0 and  0.5 < aggressiveness:
-
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0 and  0.5 > aggressiveness:
+    # if episode not in covered_episodes and e_veh_att[:35].mean() == 0 and \
+    #         e_veh_att[20:60].mean() > 0 and  np.abs(traj).max() > 0.7:
+    # if episode not in covered_episodes and \
+    #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
     # if episode not in covered_episodes and aggressiveness == 0.5:
+    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+            e_veh_att.mean() > 0:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -710,19 +739,20 @@ while Example_pred < 20:
         plt.title(str(sample_index[0]) + ' -- em_delta_y')
         plt.grid()
         ############
-
         Example_pred += 1
 
 # %%
 
 """Single sample Anticipation visualisation
 """
+
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
-model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [30858]
+model_trainer.model.forward_sim.attention_temp = 1
+sample_index = [48140]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
+f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
 em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
 episode = future_idm_s[sample_index, 0, 0][0]

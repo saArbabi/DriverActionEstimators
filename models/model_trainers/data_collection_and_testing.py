@@ -17,7 +17,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':200,
+                'env_steps_n':500,
                 'model_type':'belief_net'
                 }
 
@@ -42,20 +42,8 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
-# %%
-features_origin[:, indxs['m_veh_speed']].mean()
-features_origin[:, indxs['e_veh_action']].std()
-features_origin[:, indxs['e_veh_action']].std()
-features_origin[:, indxs['e_veh_action']].std()
-future_e_veh_a[:, :, -1].std()
-future_e_veh_a[:, :, -1].mean()
-features_origin[:, indxs['e_veh_action']].mean()
-# %%
-features_origin[features_origin[:, indxs['aggressiveness']] ==][0, indxs['desired_tgap']]
-features_origin[141]
-features_origin[:, indxs['desired_v']].max()
 
-# %%
+#e %%
 
 """
 Generate data
@@ -64,6 +52,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGenerator
 data_gen = DataGenerator(env, data_config)
+# np.random.seed(2021)
 
 features_origin = data_gen.prep_data()
 # features_origin.shape
@@ -71,9 +60,17 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
-features_origin[0]
-features_origin.shape
+veh_id = 63
+for param_name in [ 'aggressiveness', 'desired_v',
+                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+    print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 
+
+# %%
+veh_id = 33
+for param_name in [ 'aggressiveness', 'desired_v',
+                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+    print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
 data_id = '_002'
 file_name = 'sim_data'+data_id+'.pickle'
