@@ -267,19 +267,21 @@ class EnvMC(Env):
                 self.real_mc_log[veh_id]['act'] = []
                 self.real_mc_log[veh_id]['speed'] = []
                 self.real_mc_log[veh_id]['att'] = []
-                self.real_mc_log[veh_id]['desvel'] = []
+                for key in veh_ima.driver_params.keys():
+                    self.real_mc_log[veh_id][key] = []
 
                 self.ima_mc_log[veh_id]['act'] = []
                 self.ima_mc_log[veh_id]['speed'] = []
                 self.ima_mc_log[veh_id]['att'] = []
-                self.ima_mc_log[veh_id]['desvel'] = []
                 self.ima_mc_log[veh_id]['m_veh_exists'] = []
+                for key in veh_ima.driver_params.keys():
+                    self.ima_mc_log[veh_id][key] = []
 
             self.real_mc_log[veh_id]['act'].append(veh_real.act_long)
             self.real_mc_log[veh_id]['speed'].append(veh_real.speed)
             self.real_mc_log[veh_id]['att'].append(att_real)
-            self.real_mc_log[veh_id]['desvel'].append(\
-                                               veh_real.driver_params['desired_v'])
+            for key in veh_ima.driver_params.keys():
+                self.real_mc_log[veh_id][key].append(veh_real.driver_params[key])
 
             # Imagined vehicle
             self.ima_mc_log[veh_id]['act'].append(veh_ima.act_long)
@@ -290,8 +292,10 @@ class EnvMC(Env):
             else:
                 self.ima_mc_log[veh_id]['att'].append(veh_ima.att)
 
-            self.ima_mc_log[veh_id]['desvel'].append(\
-                                                veh_ima.driver_params['desired_v'])
+
+            for key in veh_ima.driver_params.keys():
+                self.ima_mc_log[veh_id][key].append(veh_ima.driver_params[key])
+
             self.ima_mc_log[veh_id]['m_veh_exists'].append(\
                                                 veh_ima.m_veh_exists)
 

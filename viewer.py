@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.pyplot import cm
 
 class Viewer():
     def __init__(self, config):
@@ -154,10 +155,11 @@ class ViewerMC(Viewer):
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
         self.fig = plt.figure(figsize=(5, 14))
-        self.act_ax = self.fig.add_subplot(411)
-        self.speed_ax = self.fig.add_subplot(412)
-        self.att_ax = self.fig.add_subplot(413)
-        self.desvel_ax = self.fig.add_subplot(414)
+        self.act_ax = self.fig.add_subplot(511)
+        self.speed_ax = self.fig.add_subplot(512)
+        self.att_ax = self.fig.add_subplot(513)
+        self.desvel_ax = self.fig.add_subplot(514)
+        self.desparam_ax = self.fig.add_subplot(515)
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -238,21 +240,40 @@ class ViewerMC(Viewer):
         self.speed_ax.clear()
         self.att_ax.clear()
         self.desvel_ax.clear()
+        self.desparam_ax.clear()
 
         veh_id = self.focus_on_this_vehicle
         seq_len = len(real_mc_log[veh_id]['act'])
         x_range = range(seq_len)
+        colors = cm.rainbow(np.linspace(0, 1, 5))
 
         self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
         self.speed_ax.plot(x_range, real_mc_log[veh_id]['speed'], label=veh_id)
         self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
-        self.desvel_ax.plot(x_range, real_mc_log[veh_id]['desvel'])
-
+        color_i = 0
+        for key in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+            color = colors[color_i]
+            if key == 'desired_v':
+                self.desvel_ax.plot(x_range, real_mc_log[veh_id][key], color=color)
+            else:
+                self.desparam_ax.plot(x_range, real_mc_log[veh_id][key], color=color)
+            color_i += 1
+        # Imagined vehicle
         self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
         self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
-        self.desvel_ax.plot(x_range, ima_mc_log[veh_id]['desvel'], linestyle='--')
+
+        color_i = 0
+        for key in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+            color = colors[color_i]
+            if key == 'desired_v':
+                self.desvel_ax.plot(x_range, ima_mc_log[veh_id][key], linestyle='--', label=key, color=color)
+            else:
+                self.desparam_ax.plot(x_range, ima_mc_log[veh_id][key], linestyle='--', label=key, color=color)
+            color_i += 1
+
+        self.desparam_ax.legend(loc='upper left')
 
         # self.act_ax.legend(['true', 'pred'])
         # self.att_ax.legend(['true', 'pred'])
@@ -263,7 +284,7 @@ class ViewerMC(Viewer):
         self.desvel_ax.set_title('desvel')
 
         major_tick = np.arange(35, len(real_mc_log[veh_id]['act']), 30)
-        for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax]:
+        for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax, self.desparam_ax]:
             axis.set_xticks(major_tick)
             axis.grid(axis='x')
         self.act_ax.legend(['vehicle ' + str(veh_id)])

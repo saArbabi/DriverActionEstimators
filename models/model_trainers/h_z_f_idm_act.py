@@ -76,6 +76,8 @@ epis = 47
 for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features[features[:, 0] == epis][0, indxs[param_name]])
+a = {'go':3}
+a.keys()
 # %%
 veh_id = 63
 for param_name in [ 'aggressiveness', 'desired_v',
