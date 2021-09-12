@@ -297,6 +297,10 @@ class IDMForwardSim(tf.keras.Model):
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
 
+            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            # env_state = self.scale_features(env_state)
+
             sdv_act = sdv_acts[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
                                     proj_latent, sdv_act], axis=-1), \

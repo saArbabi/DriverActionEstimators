@@ -244,7 +244,7 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_4'+'/model'
+exp_dir = './models/experiments/'+'h_z_f_idm_act025_epo_4'+'/model'
 model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
@@ -567,7 +567,7 @@ sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 30:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -581,7 +581,7 @@ while Example_pred < 30:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -596,11 +596,8 @@ while Example_pred < 30:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
     # if episode not in covered_episodes and aggressiveness == 0.5:
-    # if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
-    #         e_veh_att.mean() > 0:
-    if episode not in covered_episodes and \
-            e_veh_att.mean() > 0 and  0.3 < aggressiveness < 0.6:
-
+    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+            e_veh_att.mean() > 0:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -751,7 +748,7 @@ while Example_pred < 30:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [48140]
+sample_index = [9088]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -766,9 +763,15 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-
+#
+# min_act = idm_params.numpy()[:, -2]
+# plt.scatter(min_act, [0]*100)
+# plt.scatter(1.43, 0, color='red')
 idm_params = model_trainer.model.idm_layer(sampled_z)
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
+# idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
+idm_params = idm_params.numpy()
+idm_params[:, 4] = 1.4
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
@@ -786,7 +789,7 @@ plt.text(0.5, 0.5,
                 'e_veh_id: '+ info[2] +\
                 'aggressiveness: '+ info[3]
                     , fontsize = 15)
-plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
+# plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 
 ##########

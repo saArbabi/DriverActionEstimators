@@ -29,7 +29,7 @@ class VehicleHandler:
         aggressiveness = np.random.uniform(0.01, 0.99)
 
         # aggressiveness = np.random.choice([0, 0.5, 1])
-        speed = aggressiveness*10 + (20 + np.random.normal(0, 1))
+        speed = 30 - (lane_id-1)*3 + np.random.normal()
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2

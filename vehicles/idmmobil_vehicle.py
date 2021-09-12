@@ -62,7 +62,7 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':32, # m/s
+                                        'desired_v':30, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
                                         'max_act':2, # m/s^2
@@ -72,7 +72,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':18, # m/s
+                                        'desired_v':15, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
@@ -95,8 +95,7 @@ class IDMMOBILVehicle(Vehicle):
         self.set_attentiveness()
         # self.driver_params['stochasticity'] = np.random.uniform()
         # IDM params
-        self.driver_params['desired_v'] = self.get_driver_param('desired_v')
-        30 -
+        self.driver_params['desired_v'] = 30 - (self.lane_id-1)*3 + np.random.normal()
         # self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_driver_param('desired_tgap')
         self.driver_params['min_jamx'] = self.get_driver_param('min_jamx')
@@ -280,7 +279,20 @@ class IDMMOBILVehicle(Vehicle):
             neighbours['m'] = None
         # neighbours['m'] = candidate_m
         neighbours['att'] = candidate_att
+        self.update_desired_speed(candidate_att)
         return neighbours
+
+    def update_desired_speed(self, att_vehicle):
+        """More aggressive drivers always want to go faster than their leader.
+        """
+        if att_vehicle:
+            agg_diff = self.driver_params['aggressiveness']-\
+                                            att_vehicle.driver_params['aggressiveness']
+
+            desired_v_diff = self.driver_params['desired_v']-\
+                                            att_vehicle.driver_params['desired_v']
+            if agg_diff > 0 and desired_v_diff < 0:
+                self.driver_params['desired_v'] = att_vehicle.speed*1.1
 
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the vehicle?
