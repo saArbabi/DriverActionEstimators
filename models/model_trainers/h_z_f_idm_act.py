@@ -17,7 +17,6 @@ import os
 
 # %%
 mean = 0.5
-
 precision = 5
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
