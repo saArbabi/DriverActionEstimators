@@ -292,7 +292,7 @@ class IDMMOBILVehicle(Vehicle):
             desired_v_diff = self.driver_params['desired_v']-\
                                             att_vehicle.driver_params['desired_v']
             if agg_diff > 0 and desired_v_diff < 0:
-                self.driver_params['desired_v'] = att_vehicle.speed*1.1
+                self.driver_params['desired_v'] = att_vehicle.driver_params['desired_v']*1.1
 
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the vehicle?
