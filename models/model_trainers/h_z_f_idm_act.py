@@ -244,7 +244,7 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act025_epo_4'+'/model'
+exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_4'+'/model'
 model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
@@ -556,7 +556,7 @@ np.where((history_future_usc[:, 0, 0] == 8) & \
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 20
+model_trainer.model.forward_sim.attention_temp = 1
 traces_n = 20
 np.where((history_future_usc[:, 0, 2] == 63))
 history_future_usc[history_future_usc[:, 0, 2] == 63]
@@ -567,7 +567,7 @@ sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -596,8 +596,11 @@ while Example_pred < 20:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
     # if episode not in covered_episodes and aggressiveness == 0.5:
-    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
-            e_veh_att.mean() > 0:
+    # if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+    #         e_veh_att.mean() > 0:
+    if episode not in covered_episodes and \
+            e_veh_att.mean() > 0 and  0.3 < aggressiveness < 0.6:
+
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
