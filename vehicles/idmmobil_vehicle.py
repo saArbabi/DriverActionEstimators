@@ -39,7 +39,7 @@ class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
         # self.capability = 'IDM'
-        self.beta_precision = 4
+        self.beta_precision = 15
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
@@ -72,7 +72,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':15, # m/s
+                                        'desired_v':20, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
@@ -95,7 +95,7 @@ class IDMMOBILVehicle(Vehicle):
         self.set_attentiveness()
         # self.driver_params['stochasticity'] = np.random.uniform()
         # IDM params
-        self.driver_params['desired_v'] = 30 - (self.lane_id-1)*3 + np.random.normal()
+        self.driver_params['desired_v'] = self.get_driver_param('desired_v')
         # self.driver_params['desired_v'] += np.random.normal()
         self.driver_params['desired_tgap'] = self.get_driver_param('desired_tgap')
         self.driver_params['min_jamx'] = self.get_driver_param('min_jamx')
@@ -105,6 +105,15 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['politeness'] = self.get_driver_param('politeness')
         self.driver_params['safe_braking'] = self.get_driver_param('safe_braking')
         self.driver_params['act_threshold'] = self.get_driver_param('act_threshold')
+
+    def get_desired_v(self):
+        if self.lane_id in [1, 2]:
+            desired_v = np.random.uniform(25, 30)
+        elif self.lane_id in [3, 4]:
+            desired_v = np.random.uniform(20, 25)
+        elif self.lane_id in [5, 6]:
+            desired_v = np.random.uniform(15, 20)
+        return desired_v
 
     def sample_beta(self):
         alpha_param = self.beta_precision*self.driver_params['aggressiveness']
@@ -279,7 +288,7 @@ class IDMMOBILVehicle(Vehicle):
             neighbours['m'] = None
         # neighbours['m'] = candidate_m
         neighbours['att'] = candidate_att
-        self.update_desired_speed(candidate_att)
+        # self.update_desired_speed(candidate_att)
         return neighbours
 
     def update_desired_speed(self, att_vehicle):

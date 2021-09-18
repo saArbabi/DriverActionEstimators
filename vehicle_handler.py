@@ -27,9 +27,11 @@ class VehicleHandler:
         #     aggressiveness = np.random.uniform(0.01, 0.99)
         # aggressiveness = np.random.uniform(0.2, 0.8)
         aggressiveness = np.random.uniform(0.01, 0.99)
+        speed = aggressiveness*10 + (20 + np.random.normal(0, 1))
 
         # aggressiveness = np.random.choice([0, 0.5, 1])
-        speed = 30 - (lane_id-1)*3 + np.random.normal()
+        # speed = 30 - (lane_id-1)*3 + np.random.normal()
+
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
@@ -58,7 +60,7 @@ class VehicleHandler:
             # max_delta_x = follower.driver_params['aggressiveness']*50 + \
             #                                 (20 + 10*np.random.normal(0, 1))
             delta_x = leader.glob_x - follower.glob_x
-            if delta_x > 80:
+            if delta_x > 50:
                 # check if cars are not too close
                 new_entries.append(queuing_entries[lane_id])
                 last_entries[lane_id] = queuing_entries[lane_id]

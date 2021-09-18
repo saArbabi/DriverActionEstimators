@@ -17,7 +17,7 @@ env = Env(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':500,
+                'env_steps_n':2500,
                 'model_type':'belief_net'
                 }
 
@@ -43,7 +43,7 @@ indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
 
-#e %%
+# %%
 
 """
 Generate data
@@ -72,7 +72,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_002'
+data_id = '_003'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
