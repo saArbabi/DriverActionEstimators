@@ -3,9 +3,11 @@ from importlib import reload
 import copy
 import vehicle_handler
 reload(vehicle_handler)
-from vehicle_handler import VehicleHandler
+from vehicle_handler import VehicleHandler, VehicleHandlerMerge
 import copy
 import types
+from vehicles.idmmobil_vehicle import IDMMOBILVehicle
+
 
 class Env:
     def __init__(self, config):
@@ -23,7 +25,6 @@ class Env:
         self.lane_length = self.config['lane_length']
         self.queuing_entries = {}
         self.last_entries = {}
-
 
     def recorder(self):
         """For recording vehicle trajectories. Used for:
@@ -99,7 +100,37 @@ class Env:
             self.vehicles.extend(new_entries)
         self.time_step += 1
 
-class EnvMC(Env):
+class EnvMerge(Env):
+    def __init__(self, config):
+        super().__init__(config)
+        self.dummy_stationary_car = IDMMOBILVehicle('dummy', 2, 400, 0, None)
+        self.handler = VehicleHandlerMerge(config)
+
+    def get_joint_action(self):
+        """
+        Returns the joint action of all vehicles on the road
+        """
+        joint_action = []
+        for vehicle in self.vehicles:
+            vehicle.neighbours = vehicle.my_neighbours(self.vehicles+[self.dummy_stationary_car])
+            actions = vehicle.act(self.handler.reservations)
+            joint_action.append(actions)
+            vehicle.act_long = actions[0]
+            # self.handler.update_reservations(vehicle)
+        return joint_action
+
+    def remove_vehicles_outside_bound(self):
+        vehicles = []
+        for vehicle in self.vehicles:
+            if vehicle.glob_x > self.lane_length:
+                # vehicle has left the highway
+                if vehicle.id in self.handler.reservations:
+                    del self.handler.reservations[vehicle.id]
+                continue
+            vehicles.append(vehicle)
+        self.vehicles = vehicles
+
+class EnvMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
         self.real_vehicles = []
@@ -109,7 +140,6 @@ class EnvMC(Env):
         self.collision_detected = False
         self.debugging_mode = False
         self.metric_collection_mode = False
-
 
     def prohibit_lane_change(self, vehicle):
         """

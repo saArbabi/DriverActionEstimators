@@ -17,6 +17,8 @@ class Viewer():
     def draw_road(self, ax):
         lane_cor = self.config['lane_width']*self.config['lanes_n']
         ax.hlines(0, 0, self.config['lane_length'], colors='k', linestyles='solid')
+        ax.vlines(400, 0, self.config['lane_width'], \
+                                                    colors='k', linestyles='solid')
         ax.hlines(lane_cor, 0, self.config['lane_length'],
                                                     colors='k', linestyles='solid')
 
@@ -60,7 +62,7 @@ class Viewer():
                 print('#############  ', vehicle.id, '  ##############')
                 print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
-                    if neighbour:
+                    if neighbour and neighbour.id != 'dummy':
                         print(key+': ', neighbour.id)
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                 [vehicle.glob_y, neighbour.glob_y], linestyle='-',
@@ -72,6 +74,7 @@ class Viewer():
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_lane_id: ', vehicle.lane_id)
+                print('ego_lane_id_target: ', vehicle.target_lane)
                 print('lane_y: ', round(vehicle.lane_y, 2))
                 print('ego_act: ', vehicle.act_long)
                 print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
@@ -94,7 +97,7 @@ class Viewer():
 
             if 'att' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['att']
-                if neighbour:
+                if neighbour and neighbour.id != 'dummy':
                     line_1 = [vehicle.glob_y, neighbour.glob_y+.6]
                     line_2 = [vehicle.glob_y, neighbour.glob_y-.6]
                     ax.fill_between([vehicle.glob_x, neighbour.glob_x+1], \
