@@ -77,7 +77,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'max_act':1, # m/s^2
                                         'min_act':1, # m/s^2
                                         'politeness':1,
-                                        'safe_braking':-1,
+                                        'safe_braking':-1.3,
                                         'act_threshold':0.2
                                          }}
 
@@ -549,17 +549,16 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                                         delta_xs_att.append(delta_x)
                                         candidate_att = vehicle
 
-                            if vehicle_lane_y == 0:
-                                if vehicle.lane_id == right_lane_id:
-                                    if delta_x < min(delta_xs_fr):
-                                        # neighbour keeping lane
-                                        delta_xs_fr.append(delta_x)
-                                        candidate_fr = vehicle
+                            if vehicle.target_lane == right_lane_id:
+                                if delta_x < min(delta_xs_fr):
+                                    # neighbour keeping lane
+                                    delta_xs_fr.append(delta_x)
+                                    candidate_fr = vehicle
 
-                                elif vehicle.lane_id == left_lane_id:
-                                    if delta_x < min(delta_xs_fl):
-                                        delta_xs_fl.append(delta_x)
-                                        candidate_fl = vehicle
+                            elif vehicle.target_lane == left_lane_id:
+                                if delta_x < min(delta_xs_fl):
+                                    delta_xs_fl.append(delta_x)
+                                    candidate_fl = vehicle
 
                         else:
                             if vehicle.target_lane == right_lane_id:
@@ -611,7 +610,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             self.is_lane_change_complete()
 
         elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
-                                        self.check_neighbours(neighbours):
+                                                self.check_neighbours(neighbours):
             lc_left_condition = 0
             lc_right_condition = 0
 
@@ -619,7 +618,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             act_r_lc = self.idm_action(neighbours['r'], neighbours['f'])
             act_r_lk = self.idm_action(neighbours['r'], self)
             old_follower_gain = act_r_lc-act_r_lk
-
+            if self.id == 24:
+                print('act_rl_lc ', act_rl_lc)
             if self.lane_id > 1 and self.driver_params['safe_braking'] <= act_rl_lc:
                 # consider moving left
                 act_ego_lc_l = self.idm_action(self, neighbours['fl'])
@@ -629,13 +629,13 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-            # if self.id == 7:
-            #     print('act_ego_lc_l ', act_ego_lc_l)
-            #     print('act_long ', act_long)
-            #     print('ego_gain ', ego_gain)
-            #     print('new_follower_gain ', new_follower_gain)
-            #     print('old_follower_gain ', old_follower_gain)
-            #     print('act_rl_lc ', act_rl_lc)
+                if self.id == 24:
+                    print('act_ego_lc_l ', act_ego_lc_l)
+                    print('act_long ', act_long)
+                    print('ego_gain ', ego_gain)
+                    print('new_follower_gain ', new_follower_gain)
+                    print('old_follower_gain ', old_follower_gain)
+                    print('act_rl_lc ', act_rl_lc)
 
             if lc_left_condition > self.driver_params['act_threshold']:
                 target_lane = self.target_lane - 1

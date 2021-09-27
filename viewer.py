@@ -92,7 +92,8 @@ class Viewer():
                 # ideal_ = vehicle.idm_action(vehicle.observe(vehicle, vehicle.neighbours['f']))
                 # print('ideal_act: ', ideal_)
                 # print('obs: ', vehicle.observe(vehicle, vehicle.neighbours['f']))
-                # print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
+                if vehicle.neighbours['f']:
+                    print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
                 # print('###########################')
 
             if 'att' in vehicle.neighbours:

@@ -100,13 +100,15 @@ class VehicleHandlerMerge(VehicleHandler):
         """
         id = self.next_vehicle_id
         glob_x = np.random.uniform(-30, 0)
-        # aggressiveness = np.random.uniform(0.01, 0.99)
-        aggressiveness = np.random.choice([0, 0.5, 1])
+        aggressiveness = np.random.uniform(0.01, 0.99)
+        # aggressiveness = np.random.choice([0, 0.5, 1])
         speed = aggressiveness*10 + (20 + np.random.normal(0, 1))
-        new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
+        new_vehicle = IDMMOBILVehicleMerge(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
         self.next_vehicle_id += 1
+        new_vehicle.initial_delta_x = np.random.uniform(70, 140)
+
         return new_vehicle
 
     def handle_vehicle_entries(self, queuing_entries, last_entries):
@@ -124,14 +126,19 @@ class VehicleHandlerMerge(VehicleHandler):
         if not queuing_entries[lane_id]:
             queuing_entries[lane_id] = self.create_vehicle(lane_id)
 
-        leader = last_entries[lane_id]
-        follower = queuing_entries[lane_id]
-        delta_x = leader.glob_x - follower.glob_x
-        if delta_x > 100:
-            # check if cars are not too close
-            new_entries.append(queuing_entries[lane_id])
-            last_entries[lane_id] = queuing_entries[lane_id]
-            queuing_entries[lane_id] = None
+        if last_entries[lane_id+1].glob_x > 200 and \
+                            last_entries[lane_id+1].lane_decision == 'keep_lane':
+            # indication a vehicle has gotten stuck at merge point
+            pass
+        else:
+            leader = last_entries[lane_id]
+            follower = queuing_entries[lane_id]
+            delta_x = leader.glob_x - follower.glob_x
+            if delta_x > follower.initial_delta_x:
+                # check if cars are not too close
+                new_entries.append(follower)
+                last_entries[lane_id] = follower
+                queuing_entries[lane_id] = None
 
         # ramp merge lane
         lane_id = 2
