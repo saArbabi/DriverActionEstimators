@@ -339,7 +339,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 30:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -352,7 +352,7 @@ while Example_pred < 30:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
@@ -360,11 +360,9 @@ while Example_pred < 30:
     #         e_veh_att[20:60].mean() > 0 and 0.5 > aggressiveness:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
-    # if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
-    #         e_veh_att.mean() > 0:
-    if episode not in covered_episodes and \
-            e_veh_att.mean() > 0 and  0.3 < aggressiveness < 0.6:
-
+    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+            e_veh_att.mean() > 0:
+    # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -409,4 +407,5 @@ while Example_pred < 30:
 
         plt.figure(figsize=(3, 3))
         Example_pred += 1
+
 # %%

@@ -1,8 +1,7 @@
 from importlib import reload
 from vehicles import idmmobil_vehicle
 reload(idmmobil_vehicle)
-from vehicles.idmmobil_vehicle import IDMMOBILVehicle
-from vehicles.idm_vehicle import IDMVehicle
+from vehicles.idmmobil_vehicle import IDMMOBILVehicleMerge
 import numpy as np
 
 
@@ -26,10 +25,12 @@ class VehicleHandler:
         # else:
         #     aggressiveness = np.random.uniform(0.01, 0.99)
         # aggressiveness = np.random.uniform(0.2, 0.8)
-        aggressiveness = np.random.uniform(0.01, 0.99)
-
-        # aggressiveness = np.random.choice([0, 0.5, 1])
+        # aggressiveness = np.random.uniform(0.01, 0.99)
+        aggressiveness = np.random.choice([0, 0.5, 1])
         speed = aggressiveness*10 + (20 + np.random.normal(0, 1))
+
+        # speed = 30 - (lane_id-1)*3 + np.random.normal()
+
         new_vehicle = IDMMOBILVehicle(id, lane_id, glob_x, speed, aggressiveness)
         new_vehicle.lanes_n = self.lanes_n
         new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
@@ -54,11 +55,9 @@ class VehicleHandler:
             leader = last_entries[lane_id]
             follower = queuing_entries[lane_id]
 
-            # ttc = delta_x/follower.speed
-            # max_delta_x = follower.driver_params['aggressiveness']*50 + \
-            #                                 (20 + 10*np.random.normal(0, 1))
+
             delta_x = leader.glob_x - follower.glob_x
-            if delta_x > 80:
+            if delta_x > 100:
                 # check if cars are not too close
                 new_entries.append(queuing_entries[lane_id])
                 last_entries[lane_id] = queuing_entries[lane_id]
@@ -91,6 +90,69 @@ class VehicleHandler:
                 min_glob_x = vehicle.glob_x - 30
 
             self.reservations[vehicle.id] = [vehicle.target_lane, max_glob_x, min_glob_x]
+
+class VehicleHandlerMerge(VehicleHandler):
+    def __init__(self, config=None):
+        super().__init__(config)
+
+    def create_vehicle(self, lane_id):
+        """Creates a new vehicle.
+        """
+        id = self.next_vehicle_id
+        glob_x = np.random.uniform(-30, 0)
+        aggressiveness = 0.5
+        # aggressiveness = np.random.uniform(0.01, 0.99)
+        # aggressiveness = np.random.choice([0, 0.5, 1])
+        speed = aggressiveness*10 + (20 + np.random.normal(0, 1))
+        new_vehicle = IDMMOBILVehicleMerge(id, lane_id, glob_x, speed, aggressiveness)
+        new_vehicle.lanes_n = self.lanes_n
+        new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
+        self.next_vehicle_id += 1
+        new_vehicle.initial_delta_x = np.random.uniform(70, 140)
+
+        return new_vehicle
+
+    def handle_vehicle_entries(self, queuing_entries, last_entries):
+        new_entries = []
+        if not last_entries:
+            for lane_id in range(1, self.lanes_n+1):
+                new_vehicle = self.create_vehicle(lane_id)
+                queuing_entries[lane_id] = None
+                last_entries[lane_id] = new_vehicle
+                new_entries.append(new_vehicle)
+            return new_entries
+
+        # main lane
+        lane_id = 1
+        if not queuing_entries[lane_id]:
+            queuing_entries[lane_id] = self.create_vehicle(lane_id)
+
+        if last_entries[lane_id+1].glob_x > 200 and \
+                            last_entries[lane_id+1].lane_decision == 'keep_lane':
+            # indication a vehicle has gotten stuck at merge point
+            pass
+        else:
+            leader = last_entries[lane_id]
+            follower = queuing_entries[lane_id]
+            delta_x = leader.glob_x - follower.glob_x
+            if delta_x > follower.initial_delta_x:
+                # check if cars are not too close
+                new_entries.append(follower)
+                last_entries[lane_id] = follower
+                queuing_entries[lane_id] = None
+
+        # ramp merge lane
+        lane_id = 2
+        if not queuing_entries[lane_id]:
+            queuing_entries[lane_id] = self.create_vehicle(lane_id)
+
+        leader = last_entries[lane_id]
+        if leader.lane_decision != 'keep_lane':
+            follower = queuing_entries[lane_id]
+            new_entries.append(queuing_entries[lane_id])
+            last_entries[lane_id] = queuing_entries[lane_id]
+            queuing_entries[lane_id] = None
+        return new_entries
 
 # class VehicleHandlerMC(VehicleHandler):
 #     def __init__(self, config=None):

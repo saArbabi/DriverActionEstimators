@@ -36,13 +36,13 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGenerator
 data_gen = DataGenerator()
-with open('./models/experiments/sim_data_001.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_003.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 30, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 40)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -88,15 +88,26 @@ history_sca[history_sca[:, :, 0]==302]
 history_sca[history_sca[:, :, 0]==302]
 history_sca[47731, 0, 0:3]
 
-
 history_future_usc[0, 0]
 history_future_usc[0, 0]
 import pickle
 #
-# with open('./models/experiments/scaler.pickle', 'wb') as handle:
-#     pickle.dump(scaler, handle)
-# with open('./models/experiments/dummy_value_set.pickle', 'wb') as handle:
-#     pickle.dump(dummy_value_set, handle)
+data_id = '_003'
+file_name = 'scaler'+data_id+'.pickle'
+file_address = './models/experiments/'+file_name
+if not os.path.exists(file_address):
+    with open(file_address, 'wb') as handle:
+        pickle.dump(scaler, handle)
+else:
+    print('This data id exists')
+
+file_name = 'dummy_value_set'+data_id+'.pickle'
+file_address = './models/experiments/'+file_name
+if not os.path.exists(file_address):
+    with open(file_address, 'wb') as handle:
+        pickle.dump(dummy_value_set, handle)
+else:
+    print('This data id exists')
 # %%
 
 future_m_veh_a.shape
@@ -114,7 +125,7 @@ col_names = ['episode_id', 'time_step', 'e_veh_id',
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
 
 for i in range(history_future_usc.shape[-1]):
-    plt.figure(figsize=(3, 3))
+    plt.figure(figsize=(5, 3))
     to_plot = history_future_usc[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
@@ -169,7 +180,7 @@ class Trainer():
             from models.core.mlp import  MLP
             self.model = MLP(config)
 
-        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_003.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -229,7 +240,7 @@ class Trainer():
             else:
                 self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
-            print(self.epoch_count+1, 'epochs completed')
+            print(self.epoch_count, 'epochs completed')
             self.epoch_count += 1
 
     def save_model(self, model_name, exp_id):
@@ -244,12 +255,12 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_4'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_idm_act025_epo_4'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-# model_trainer.train(epochs=1)
-# model_trainer.test_mseloss
+model_trainer.train(epochs=1)
+model_trainer.test_mseloss
 # latent_samples(model_trainer, val_examples[0:10])
 
 # %%
@@ -286,7 +297,7 @@ model_trainer.model.forward_sim.attention_temp = 1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=5)
+model_trainer.train(epochs=2)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -567,7 +578,7 @@ sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 30:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -596,10 +607,9 @@ while Example_pred < 30:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
     # if episode not in covered_episodes and aggressiveness == 0.5:
-    # if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
+    # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    if episode not in covered_episodes and \
-            e_veh_att.mean() > 0 and  0.3 < aggressiveness < 0.6:
+    if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
@@ -631,7 +641,7 @@ while Example_pred < 30:
         plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
         plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
         plt.plot(traj, color='purple')
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
@@ -641,7 +651,7 @@ while Example_pred < 30:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(29, 69), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -649,19 +659,19 @@ while Example_pred < 30:
         plt.title(str(sample_index[0]) + ' -- Action')
         plt.grid()
 
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(69), e_veh_att, color='red')
-        plt.plot([30, 30], [0, 1], color='black')
-        plt.plot([69, 69], [0, 1], color='black')
+        plt.plot(range(39), e_veh_att, color='red')
+        plt.plot([19, 19], [0, 1], color='black')
+        plt.plot([39, 39], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(29, 69), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(19, 39), att_scores[sample_trace_i, :].flatten(), color='grey')
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         try:
-            precision = 4
+            precision = 15
             alpha_param = precision*aggressiveness
             beta_param = precision*(1-aggressiveness)
             start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
@@ -677,13 +687,13 @@ while Example_pred < 30:
             plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
 
             # plt.figure()
-            # plt.plot(range(69), e_veh_att, color='red')
+            # plt.plot(range(39), e_veh_att, color='red')
             # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
             # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
             # for sample in gen_samples:
             #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
 
-            # plt.xlim(0, 69)
+            # plt.xlim(0, 39)
             # plt.grid()
         except:
             pass
@@ -710,7 +720,7 @@ while Example_pred < 30:
         # plt.grid()
         # plt.plot(desired_tgaps)
         # plt.grid()
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         desired_vs = idm_params.numpy()[:, 0]
         desired_tgaps = idm_params.numpy()[:, 1]
         plt.scatter(desired_vs, desired_tgaps, color='grey')
@@ -728,13 +738,13 @@ while Example_pred < 30:
         """
 
         ##########
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         plt.plot(m_veh_exists, color='black')
         plt.title(str(sample_index[0]) + ' -- m_veh_exists')
         plt.grid()
         ######\######
-        plt.figure(figsize=(3, 3))
-        plt.plot(range(69), em_delta_y, color='red')
+        plt.figure(figsize=(5, 3))
+        plt.plot(range(39), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1 .5], color='red')
@@ -751,7 +761,7 @@ while Example_pred < 30:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [48140]
+sample_index = [9088]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -766,15 +776,21 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-
+#
+# min_act = idm_params.numpy()[:, -2]
+# plt.scatter(min_act, [0]*100)
+# plt.scatter(1.43, 0, color='red')
 idm_params = model_trainer.model.idm_layer(sampled_z)
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
+# idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
+idm_params = idm_params.numpy()
+idm_params[:, 4] = 1.4
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-time_axis = np.linspace(0., 6.8, 69)
+time_axis = np.linspace(0., 6.8, 39)
 
-plt.figure(figsize=(3, 3))
+plt.figure(figsize=(5, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
 time_0 = history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0]
@@ -786,7 +802,7 @@ plt.text(0.5, 0.5,
                 'e_veh_id: '+ info[2] +\
                 'aggressiveness: '+ info[3]
                     , fontsize = 15)
-plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
+# plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
 
 
 ##########
@@ -894,14 +910,14 @@ b = a
 id(a)
 id(b)
 ##########
-plt.figure(figsize=(3, 3))
+plt.figure(figsize=(5, 3))
 plt.plot(m_veh_exists, color='black')
 plt.title(str(sample_index[0]) + ' -- m_veh_exists')
 plt.grid()
 ############
-plt.figure(figsize=(3, 3))
+plt.figure(figsize=(5, 3))
 plt.plot(em_delta_y[:20], color='black')
-plt.plot(range(29, 69), em_delta_y, color='red')
+plt.plot(range(29, 39), em_delta_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')

@@ -1,18 +1,20 @@
-from highway import Env
+from highway import EnvMerge
 from viewer import Viewer
 import matplotlib.pyplot as plt
+import numpy as np
 
 def main():
-    config = {'lanes_n':6,
+    config = {'lanes_n':2,
             'lane_width':3.75, # m
             'lane_length':600 # m
             }
-    env = Env(config)
+    env = EnvMerge(config)
     viewer = Viewer(config)
+    np.random.seed(0)
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 420:
+        if env.time_step > 400:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
