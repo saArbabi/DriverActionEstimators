@@ -618,8 +618,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             act_r_lc = self.idm_action(neighbours['r'], neighbours['f'])
             act_r_lk = self.idm_action(neighbours['r'], self)
             old_follower_gain = act_r_lc-act_r_lk
-            if self.id == 24:
-                print('act_rl_lc ', act_rl_lc)
+
             if self.lane_id > 1 and self.driver_params['safe_braking'] <= act_rl_lc:
                 # consider moving left
                 act_ego_lc_l = self.idm_action(self, neighbours['fl'])
@@ -629,13 +628,13 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-                if self.id == 24:
-                    print('act_ego_lc_l ', act_ego_lc_l)
-                    print('act_long ', act_long)
-                    print('ego_gain ', ego_gain)
-                    print('new_follower_gain ', new_follower_gain)
-                    print('old_follower_gain ', old_follower_gain)
-                    print('act_rl_lc ', act_rl_lc)
+                # if self.id == 24:
+                #     print('act_ego_lc_l ', act_ego_lc_l)
+                #     print('act_long ', act_long)
+                #     print('ego_gain ', ego_gain)
+                #     print('new_follower_gain ', new_follower_gain)
+                #     print('old_follower_gain ', old_follower_gain)
+                #     print('act_rl_lc ', act_rl_lc)
 
             if lc_left_condition > self.driver_params['act_threshold']:
                 target_lane = self.target_lane - 1

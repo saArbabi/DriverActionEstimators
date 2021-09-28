@@ -11,7 +11,6 @@ from scipy.stats import beta
 
 import numpy as np
 np.set_printoptions(suppress=True)
-
 import os
 
 
@@ -34,9 +33,9 @@ Data prep
 """
 import data_generator
 reload(data_generator)
-from data_generator import DataGenerator
-data_gen = DataGenerator()
-with open('./models/experiments/sim_data_003.pickle', 'rb') as handle:
+from data_generator import DataGeneratorMerge
+data_gen = DataGeneratorMerge()
+with open('./models/experiments/sim_data_004.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -48,7 +47,7 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
-
+future_idm_s[0, 0, :]
 # %%
 indxs = {}
 feature_names = [
@@ -92,7 +91,9 @@ history_future_usc[0, 0]
 history_future_usc[0, 0]
 import pickle
 #
-data_id = '_003'
+# %%
+
+data_id = '_004'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -180,7 +181,7 @@ class Trainer():
             from models.core.mlp import  MLP
             self.model = MLP(config)
 
-        with open('./models/experiments/scaler_003.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_004.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -263,7 +264,14 @@ model_trainer.train(epochs=1)
 model_trainer.test_mseloss
 # latent_samples(model_trainer, val_examples[0:10])
 
+# 1.5*(1-(25/15)**4 - 3)
 # %%
+aggressiveness   0.5
+desired_v   25.0
+desired_tgap   1.5
+min_jamx   2.0
+max_act   1.5
+min_act   2.0
 
 #
 # fig = plt.figure(figsize=(15, 5))
@@ -359,15 +367,16 @@ bad_examples = np.where(loss > 0.1)
 
 
 # %%
-from matplotlib import rcParams
+# from matplotlib import rcParams
 
 # %%
-x = np.linspace(-5, 5, 1000)
+x = np.linspace(12, 50, 1000)
 # y = np.exp(x)
+y = (25/x)**4
 # plt.plot(x, y)
 
 # y = 1/(1+np.exp(-1*x))
-y = 15 +  20/(1+np.exp(-1*x))
+# y = 15 +  20/(1+np.exp(-1*x))
 plt.plot(x, y)
 # %%
 
@@ -567,7 +576,7 @@ np.where((history_future_usc[:, 0, 0] == 8) & \
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 1
+model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
 np.where((history_future_usc[:, 0, 2] == 63))
 history_future_usc[history_future_usc[:, 0, 2] == 63]
@@ -609,7 +618,8 @@ while Example_pred < 20:
     # if episode not in covered_episodes and aggressiveness == 0.5:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
+    # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att.mean() > 0:
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)

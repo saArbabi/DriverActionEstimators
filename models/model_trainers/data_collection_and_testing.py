@@ -5,19 +5,19 @@ import matplotlib.pyplot as plt
 import pickle
 import highway
 reload(highway)
-from highway import Env
+from highway import EnvMerge
 import os
 import time
-config = {'lanes_n':6,
+config = {'lanes_n':2,
         'lane_width':3.75, # m
         'lane_length':600 # m
         }
-env = Env(config)
+env = EnvMerge(config)
 # viewer = Viewer(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':2500,
+                'env_steps_n':2000,
                 'model_type':'belief_net'
                 }
 
@@ -50,8 +50,8 @@ Generate data
 """
 import data_generator
 reload(data_generator)
-from data_generator import DataGenerator
-data_gen = DataGenerator(env, data_config)
+from data_generator import DataGeneratorMerge
+data_gen = DataGeneratorMerge(env, data_config)
 # np.random.seed(2021)
 
 features_origin = data_gen.prep_data()
@@ -60,7 +60,8 @@ features_origin = data_gen.prep_data()
 # features_origin[:, indxs['em_delta_y']].max()
 features_origin.shape
 features_origin.shape
-veh_id = 63
+# %%
+veh_id = 39
 for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
@@ -72,7 +73,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_003'
+data_id = '_004'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -94,7 +95,6 @@ features_origin[features_origin[:, 0] == epis][0, indxs['min_jamx']]
 
 
 # %%
-
 """
 Driver model - neural idm
 """
@@ -104,8 +104,8 @@ features = features_origin.copy()
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 30, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 40)
+history_future_seqs = data_gen.sequence(features, 20, 40)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
@@ -167,6 +167,16 @@ print(balance_value)
 # a = np.zeros([100, 20, 3])
 # a[34:36, 3:5, 1] = 1
 # (a[:, :, 1] == 1).any(axis=1).shape
+# %%
+"""
+Number of episodes with a merging vehicle
+"""
+all_epis = np.unique(features[:, 0])
+lc_epis = []
+for _epis in all_epis:
+    veh_arr = features[features[:, 0] == _epis]
+    if veh_arr[:, indxs['e_veh_att']].mean() > 0:
+        lc_epis.append(_epis)
 
 # %%
 """
