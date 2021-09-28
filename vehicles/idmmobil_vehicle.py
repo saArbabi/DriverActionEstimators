@@ -305,9 +305,27 @@ class IDMMOBILVehicle(Vehicle):
 
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the vehicle?
+            There are x3 scenarios:
+            - I am alreading attending to a merger and there is no closer merger
+            - I am alreading attending to a merger and there is a closer merger
+            - There is a new merger
+                - happens either due to attentiveness or to avoid dangerous scenarios
         """
+        # am I already attending to a merge car?
+        if self.neighbours['m'] and self.neighbours['m'] == self.neighbours['att']:
+            if self.neighbours['m'] != vehicle:
+                # new merger
+                if vehicle.glob_x > self.neighbours['att'].glob_x:
+                    return False
+                else:
+                    return True
+            else:
+                return True
+
+        act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
-                vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
+                (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
+                 or act_long < -3):
             return True
         return False
 
@@ -347,7 +365,8 @@ class IDMMOBILVehicle(Vehicle):
                     (1-(follower.speed/follower.driver_params['desired_v'])**4-\
                                                         (desired_gap/(delta_x))**2)
 
-        return max(-3, min(act_long, 3))
+        return act_long
+        # return max(-3, min(act_long, 3))
 
     def check_reservations(self, target_lane, reservations):
         """To ensure:
@@ -593,14 +612,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['att'] = candidate_att
         # self.update_desired_speed(candidate_att)
         return neighbours
-
-    def am_i_attending(self, vehicle, delta_x, delta_xs):
-        """Am I attending to the vehicle?
-        """
-        if  delta_x < min(delta_xs) and \
-                vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
-            return True
-        return False
 
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours
