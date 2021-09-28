@@ -106,7 +106,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 10
         self.architecture_def()
 
     def architecture_def(self):
@@ -114,8 +114,8 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(50, activation='relu')
-        self.pos_projection = Dense(50, activation='relu')
+        self.pri_projection = Dense(100, activation='relu')
+        self.pos_projection = Dense(100, activation='relu')
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -307,10 +307,8 @@ class IDMForwardSim(tf.keras.Model):
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
             # att_score = idm_s[:, step:step+1, -3:-2]
-            # res_action = self.action_neu(lstm_output)
             _act = (1-att_score)*ef_act + att_score*em_act
             # tf.print('_act: ', tf.reduce_max(_act))
-            # _act += res_action
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
@@ -325,18 +323,18 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(50, activation='relu')
-        self.proj_layer_2 = Dense(50, activation='relu')
+        self.proj_layer_1 = Dense(100, activation='relu')
+        self.proj_layer_2 = Dense(100, activation='relu')
         self.des_v_neu = Dense(1)
-        self.proj_layer_des_v = Dense(50, activation='relu')
+        self.proj_layer_des_v = Dense(100, activation='relu')
         self.des_tgap_neu = Dense(1)
-        self.proj_layer_des_tgap = Dense(50, activation='relu')
+        self.proj_layer_des_tgap = Dense(100, activation='relu')
         self.min_jamx_neu = Dense(1)
-        self.proj_layer_min_jamx = Dense(50, activation='relu')
+        self.proj_layer_min_jamx = Dense(100, activation='relu')
         self.max_act_neu = Dense(1)
-        self.proj_layer_max_act = Dense(50, activation='relu')
+        self.proj_layer_max_act = Dense(100, activation='relu')
         self.min_act_neu = Dense(1)
-        self.proj_layer_min_act = Dense(50, activation='relu')
+        self.proj_layer_min_act = Dense(100, activation='relu')
 
     def projection(self, x):
         x = self.proj_layer_1(x)

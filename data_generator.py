@@ -354,7 +354,7 @@ class DataGeneratorMerge(DataGenecrator):
             End episode when an episode is complete.
             """
             nonlocal epis_features, episode_id
-            if len(epis_features) > 60:
+            if len(epis_features) > 40:
                 features.extend(epis_features)
                 episode_id += 1
             epis_features = []

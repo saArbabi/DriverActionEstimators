@@ -30,6 +30,9 @@ gen_samples.std()
 # %%
 """
 Data prep
+Note:
+If you change sequence length, you need also change visualisation ranges AND
+the fetch_traj method.
 """
 import data_generator
 reload(data_generator)
@@ -351,16 +354,17 @@ model_trainer.save_model('h_z_f_idm_act', '026')
 Find bad examples
 """
 import tensorflow as tf
-examples_to_vis = val_examples[:5000]
+# examples_to_vis = val_examples[:5000]
+examples_to_vis = val_examples
 
 val_input = [history_sca[examples_to_vis , :, 2:],
             future_sca[examples_to_vis, :, 2:],
             future_idm_s[examples_to_vis, :, 2:],
             future_m_veh_a[examples_to_vis, :, 2:]]
 act_pred, pri_params, pos_params = model_trainer.model(val_input)
-loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
+loss = (tf.square(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
+# loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
 loss = tf.reduce_mean(loss, axis=1).numpy()
-
 
 _ = plt.hist(loss, bins=150)
 bad_examples = np.where(loss > 0.1)
@@ -482,8 +486,6 @@ plt.grid()
 # plt.plot(acts)
 
 # %%
-
-# %%
 """
 Choose cars based on the latent for debugging
 """
@@ -532,7 +534,8 @@ def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
 
 def fetch_traj(data, sample_index, colum_index):
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    # data: [sample_index, time, feature]
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
     return traj.flatten()
 
 def get_e_veh_att(e_veh_id, e_veh_decision, e_veh_att):
@@ -771,7 +774,7 @@ while Example_pred < 20:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [9088]
+sample_index = [2607]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -780,7 +783,7 @@ em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delt
 episode = future_idm_s[sample_index, 0, 0][0]
 
 sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
-sdv_actions[:, 10, -1] = 0
+# sdv_actions[:, 10, -1] = 0
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
@@ -793,12 +796,11 @@ sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 idm_params = model_trainer.model.idm_layer(sampled_z)
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
-idm_params = idm_params.numpy()
-idm_params[:, 4] = 1.4
+# idm_params = idm_params.numpy()
+# idm_params[:, 4] = 1.4
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-time_axis = np.linspace(0., 6.8, 39)
 
 plt.figure(figsize=(5, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
@@ -806,24 +808,28 @@ e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
 time_0 = history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0]
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
 info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
-plt.text(0.5, 0.5,
-                'episode_id: '+ info[0] +\
-                'time_0: '+ info[1] +\
-                'e_veh_id: '+ info[2] +\
-                'aggressiveness: '+ info[3]
-                    , fontsize = 15)
-# plt.text(0.1, 0.1, str(idm_params.numpy()[:, :].mean(axis=0)))
-
+plt.text(0.1, 0.5,
+        'episode_id: '+ info[0] +
+        'time_0: '+ info[1] +
+        'e_veh_id: '+ info[2] +
+        'aggressiveness: '+ info[3]
+            , fontsize=10)
+true_params = []
+for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
+    true_params.append(round(features[features[:, 0] == episode][0, indxs[param_name]], 2))
+plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
+plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
 ##########
 # %%
 plt.figure(figsize=(10, 10))
+time_axis = np.linspace(0., 4., 39)
 # plt.figure(figsize=(3, 2))
 # plt.legend(['Leader', 'Follower', 'Merger'])
 
 
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
+   plt.plot(time_axis[19:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
 plt.plot(time_axis, traj, color='red')
@@ -838,11 +844,14 @@ plt.xlabel('Time (s)')
 plt.ylabel('Acceleration ($ms^{-2}$)')
 # plt.ylim(-0.1, 0.1)
 # plt.yticks([1, 0., -1, -2])
-plt.xticks([0., 2, 4, 6])
+# plt.xticks([0., 2, 4, 6])
 
 plt.grid(alpha=0.1)
 plt.legend(['Ego', 'Merger', 'Leader'])
 
+plt.plot(traj[:30])
+plt.plot(traj)
+plt.grid()
 ##########
 # plt.savefig("example_actions.png", dpi=500)
 
