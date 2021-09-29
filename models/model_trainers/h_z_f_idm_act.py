@@ -113,7 +113,6 @@ if not os.path.exists(file_address):
 else:
     print('This data id exists')
 # %%
-
 future_m_veh_a.shape
 future_m_veh_a.shape
 # plt.plot(history_future_usc[0, :, 6])
@@ -263,8 +262,8 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-model_trainer.train(epochs=1)
-model_trainer.test_mseloss
+# model_trainer.train(epochs=1)
+# model_trainer.test_mseloss
 # latent_samples(model_trainer, val_examples[0:10])
 
 # 1.5*(1-(25/15)**4 - 3)
@@ -590,7 +589,7 @@ sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -774,7 +773,7 @@ while Example_pred < 20:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [2607]
+sample_index = [1276]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -801,6 +800,7 @@ idm_params = model_trainer.model.idm_layer(sampled_z)
 act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                             idm_params, future_idm_ss, sdv_actions])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+att_ = att_scores.flatten()
 
 plt.figure(figsize=(5, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
@@ -849,9 +849,6 @@ plt.ylabel('Acceleration ($ms^{-2}$)')
 plt.grid(alpha=0.1)
 plt.legend(['Ego', 'Merger', 'Leader'])
 
-plt.plot(traj[:30])
-plt.plot(traj)
-plt.grid()
 ##########
 # plt.savefig("example_actions.png", dpi=500)
 
@@ -859,7 +856,7 @@ plt.grid()
 plt.figure(figsize=(10, 10))
 # plt.figure(figsize=(3, 2))
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
+   plt.plot(time_axis[19:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 plt.plot(time_axis, e_veh_att, color='red', linewidth=1, linestyle='-')
 

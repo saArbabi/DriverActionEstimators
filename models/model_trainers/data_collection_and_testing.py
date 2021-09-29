@@ -17,7 +17,7 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':5000,
+                'env_steps_n':15000,
                 'model_type':'belief_net'
                 }
 
@@ -59,7 +59,7 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
-features_origin[features_origin[:, indxs['e_veh_action']] < -2]
+# features_origin[features_origin[:, indxs['e_veh_action']] < -2]
 # %%
 veh_id = 39
 for param_name in [ 'aggressiveness', 'desired_v',
