@@ -52,6 +52,17 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 
 future_idm_s[0, 0, :]
 # %%
+# %%
+"""
+BALANCE DATA
+"""
+history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
+cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
+np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
+print(balance_value)
+# %%
 indxs = {}
 feature_names = [
          'episode_id', 'time_step',
@@ -301,7 +312,7 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.01
+model_trainer.model.vae_loss_weight = 0.5
 model_trainer.model.forward_sim.attention_temp = 1
 ################## Train ##################
 ################## ##### ##################
@@ -335,7 +346,6 @@ kl_axis.set_xlabel('epochs')
 kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
-
 # ax = latent_vis(2000)
 
 # %%
@@ -682,33 +692,33 @@ while Example_pred < 40:
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
-        try:
-            precision = 15
-            alpha_param = precision*aggressiveness
-            beta_param = precision*(1-aggressiveness)
-            start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-            plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-
-            end_point = start_point + 45
-            max_prob_point = start_point + aggressiveness*45
-            plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
-            # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
-            x = np.linspace(start_point, end_point, 100)
-            p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
-            p = p/p.max()
-            plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-
-            # plt.figure()
-            # plt.plot(range(39), e_veh_att, color='red')
-            # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-            # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
-            # for sample in gen_samples:
-            #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
-
-            # plt.xlim(0, 39)
-            # plt.grid()
-        except:
-            pass
+        # try:
+        #     precision = 15
+        #     alpha_param = precision*aggressiveness
+        #     beta_param = precision*(1-aggressiveness)
+        #     start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
+        #     plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
+        #
+        #     end_point = start_point + 45
+        #     max_prob_point = start_point + aggressiveness*45
+        #     plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
+        #     # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
+        #     x = np.linspace(start_point, end_point, 100)
+        #     p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
+        #     p = p/p.max()
+        #     plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+        #
+        #     # plt.figure()
+        #     # plt.plot(range(39), e_veh_att, color='red')
+        #     # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+        #     # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
+        #     # for sample in gen_samples:
+        #     #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
+        #
+        #     # plt.xlim(0, 39)
+        #     # plt.grid()
+        # except:
+        #     pass
 
 
         # if 0 <= aggressiveness <= 1/3:

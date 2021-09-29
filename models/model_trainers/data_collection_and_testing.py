@@ -152,16 +152,7 @@ history_sca.flatten().shape
 future_e_veh_a[0]
 history_future_usc[0]
 
-# %%
-"""
-BALANCE DATA
-"""
-history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
-np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
-print(balance_value)
+
 #
 # # %%
 # np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
