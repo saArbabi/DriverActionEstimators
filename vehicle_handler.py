@@ -127,7 +127,7 @@ class VehicleHandlerMerge(VehicleHandler):
         if not queuing_entries[lane_id]:
             queuing_entries[lane_id] = self.create_vehicle(lane_id)
 
-        if last_entries[lane_id+1].glob_x > 300 and \
+        if last_entries[lane_id+1].glob_x > 200 and \
                             last_entries[lane_id+1].lane_decision == 'keep_lane':
             # indication a vehicle has gotten stuck at merge point
             pass

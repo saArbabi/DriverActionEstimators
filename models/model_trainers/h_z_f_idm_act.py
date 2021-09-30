@@ -38,7 +38,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_004.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_006.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -107,7 +107,7 @@ import pickle
 #
 # %%
 
-data_id = '_004'
+data_id = '_006'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -126,6 +126,7 @@ else:
 # %%
 future_m_veh_a.shape
 future_m_veh_a.shape
+56222*0.7
 # plt.plot(history_future_usc[0, :, 6])
 plt.plot(history_future_usc[10450, :, 6])
 # %%
@@ -165,7 +166,7 @@ class Trainer():
 
         self.test_mseloss = []
         self.test_klloss = []
-        self.epoch_count = 1
+        self.epoch_count = 0
         self.initiate_model()
         self.prep_data(training_data)
 
@@ -194,7 +195,7 @@ class Trainer():
             from models.core.mlp import  MLP
             self.model = MLP(config)
 
-        with open('./models/experiments/scaler_004.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_006.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -244,6 +245,7 @@ class Trainer():
 
     def train(self, epochs):
         for epoch in range(epochs):
+            self.epoch_count += 1
             self.model.train_loop(self.train_input)
             self.model.test_loop(self.val_input, epoch)
             if self.model_type == 'cvae':
@@ -255,7 +257,8 @@ class Trainer():
                 self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
             print(self.epoch_count, 'epochs completed')
-            self.epoch_count += 1
+            # print('vae_loss_weight', self.model.vae_loss_weight)
+            # self.model.vae_loss_weight += 0.03
 
     def save_model(self, model_name, exp_id):
         model_name += exp_id + '_epo_'+str(self.epoch_count)
@@ -269,7 +272,7 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act025_epo_4'+'/model'
+# exp_dir = './models/experiments/'+'h_z_f_idm_act031_epo_15'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
@@ -279,14 +282,6 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 
 # 1.5*(1-(25/15)**4 - 3)
 # %%
-aggressiveness   0.5
-desired_v   25.0
-desired_tgap   1.5
-min_jamx   2.0
-max_act   1.5
-min_act   2.0
-
-#
 # fig = plt.figure(figsize=(15, 5))
 plt.style.use('default')
 #
@@ -318,7 +313,8 @@ model_trainer.model.forward_sim.attention_temp = 1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=2)
+# model_trainer.train(epochs=10)
+model_trainer.train(epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -356,15 +352,16 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '026')
+model_trainer.save_model('h_z_f_idm_act', '035')
 
 # %%
 """
 Find bad examples
 """
 import tensorflow as tf
-# examples_to_vis = val_examples[:5000]
-examples_to_vis = val_examples
+examples_to_vis = val_examples[:1000]
+# examples_to_vis = val_examples
+# val_examples.shape
 
 val_input = [history_sca[examples_to_vis , :, 2:],
             future_sca[examples_to_vis, :, 2:],
@@ -376,7 +373,8 @@ loss = (tf.square(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:]))
 loss = tf.reduce_mean(loss, axis=1).numpy()
 
 _ = plt.hist(loss, bins=150)
-bad_examples = np.where(loss > 0.1)
+# _ = plt.hist(loss[loss<0.1], bins=150)
+bad_examples = np.where(loss > 0.02)
 
 
 # %%
@@ -599,7 +597,7 @@ sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 40:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -632,7 +630,6 @@ while Example_pred < 40:
     #         e_veh_att.mean() > 0:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
     if episode not in covered_episodes and e_veh_att.mean() > 0:
-
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -692,33 +689,33 @@ while Example_pred < 40:
         # plt.ylim(-0.1, 1.1)
         plt.title(str(sample_index[0]) + ' -- Attention')
 
-        # try:
-        #     precision = 15
-        #     alpha_param = precision*aggressiveness
-        #     beta_param = precision*(1-aggressiveness)
-        #     start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-        #     plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-        #
-        #     end_point = start_point + 45
-        #     max_prob_point = start_point + aggressiveness*45
-        #     plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
-        #     # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
-        #     x = np.linspace(start_point, end_point, 100)
-        #     p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
-        #     p = p/p.max()
-        #     plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-        #
-        #     # plt.figure()
-        #     # plt.plot(range(39), e_veh_att, color='red')
-        #     # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-        #     # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
-        #     # for sample in gen_samples:
-        #     #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
-        #
-        #     # plt.xlim(0, 39)
-        #     # plt.grid()
-        # except:
-        #     pass
+        try:
+            precision = 15
+            alpha_param = precision*aggressiveness
+            beta_param = precision*(1-aggressiveness)
+            start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
+            plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
+
+            end_point = start_point + 45
+            max_prob_point = start_point + aggressiveness*45
+            plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
+            # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
+            x = np.linspace(start_point, end_point, 100)
+            p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
+            p = p/p.max()
+            plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+
+            # plt.figure()
+            # plt.plot(range(39), e_veh_att, color='red')
+            # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+            # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
+            # for sample in gen_samples:
+            #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
+
+            # plt.xlim(0, 39)
+            # plt.grid()
+        except:
+            pass
 
 
         # if 0 <= aggressiveness <= 1/3:
@@ -783,7 +780,7 @@ while Example_pred < 40:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [1276]
+sample_index = [11273]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -802,8 +799,8 @@ sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 # min_act = idm_params.numpy()[:, -2]
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
-idm_params = model_trainer.model.idm_layer(sampled_z)
-# idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
+# idm_params = model_trainer.model.idm_layer(sampled_z)
+idm_params = tf.ones([100, 5])*[27.63, 1.15, 1.0, 1.88, 2.51]
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = idm_params.numpy()
 # idm_params[:, 4] = 1.4
@@ -836,7 +833,6 @@ plt.figure(figsize=(10, 10))
 time_axis = np.linspace(0., 4., 39)
 # plt.figure(figsize=(3, 2))
 # plt.legend(['Leader', 'Follower', 'Merger'])
-
 
 for sample_trace_i in range(traces_n):
    plt.plot(time_axis[19:], act_seq[sample_trace_i, :, :].flatten(), \

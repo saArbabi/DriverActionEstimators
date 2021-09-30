@@ -115,10 +115,10 @@ class IDMMOBILVehicle(Vehicle):
         return desired_v
 
     def sample_beta(self):
-        return self.driver_params['aggressiveness']
-        # alpha_param = self.beta_precision*self.driver_params['aggressiveness']
-        # beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
-        # return np.random.beta(alpha_param, beta_param)
+        # return self.driver_params['aggressiveness']
+        alpha_param = self.beta_precision*self.driver_params['aggressiveness']
+        beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
+        return np.random.beta(alpha_param, beta_param)
 
     def get_driver_param(self, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
