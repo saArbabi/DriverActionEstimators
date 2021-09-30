@@ -8,12 +8,8 @@ reload(plt)
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
-
-
 import numpy as np
 np.set_printoptions(suppress=True)
-
-
 
 # %%
 """
@@ -21,16 +17,15 @@ Data prep
 """
 import data_generator
 reload(data_generator)
-from data_generator import DataGenerator
-data_gen = DataGenerator()
-with open('./models/experiments/sim_data_001.pickle', 'rb') as handle:
+from data_generator import DataGeneratorMerge
+data_gen = DataGeneratorMerge()
+with open('./models/experiments/sim_data_006.pickle', 'rb') as handle:
     features = pickle.load(handle)
-features.shape
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 30, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 40)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -40,7 +35,7 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 128,
+    "batch_size": 256,
     },
     "exp_id": "NA",
     "Note": ""
@@ -79,7 +74,7 @@ class Trainer():
             from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
-        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_006.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -126,6 +121,7 @@ class Trainer():
 
     def train(self, epochs):
         for epoch in range(epochs):
+            self.epoch_count += 1
             self.model.train_loop(self.train_input)
             self.model.test_loop(self.val_input, epoch)
             if self.model_type == 'cvae':
@@ -137,7 +133,6 @@ class Trainer():
                 self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
             print(self.epoch_count, 'epochs completed')
-            self.epoch_count += 1
 
     def save_model(self, model_name, exp_id):
         model_name += exp_id + '_epo_'+str(self.epoch_count)
@@ -150,9 +145,10 @@ class Trainer():
 
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-exp_dir = './models/experiments/'+'h_z_f_act003_epo_10'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
-
+# exp_dir = './models/experiments/'+'h_z_f_act003_epo_10'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
+# model_trainer.train(epochs=1)
+# model_trainer.test_mseloss
 # %%
 #
 # model_trainer.train(epochs=5)
@@ -182,12 +178,12 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.01
+model_trainer.model.vae_loss_weight = 0.1
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=10)
+model_trainer.train(epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -219,7 +215,7 @@ kl_axis.legend(['test', 'train'])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '003')
+model_trainer.save_model('h_z_f_act', '005')
 
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -232,9 +228,9 @@ def latent_samples(model_trainer, sample_index):
     sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
     return sampled_z
 
-def latent_vis():
+def latent_vis(n_z_samples):
     fig = pyplot.figure(figsize=(4, 6))
-    examples_to_vis = np.random.choice(val_examples, 5000, replace=False)
+    examples_to_vis = np.random.choice(val_examples, n_z_samples, replace=False)
 
     #===============
     #  First subplot
@@ -281,8 +277,7 @@ def latent_vis():
     # ax.set_ylabel('$z_{2}$', labelpad=1)
     # ax.set_zlabel('$z_{3}$', labelpad=1)
     plt.subplots_adjust(wspace=0.2, hspace=None)
-latent_vis()
-# plt.savefig("latent.png", dpi=500)
+latent_vis(2000)
 
 # %%
 import matplotlib.pyplot as plt
@@ -304,7 +299,7 @@ def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
 
 def fetch_traj(data, sample_index, colum_index):
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
     return traj.flatten()
 
 def get_e_veh_att(e_veh_id, e_veh_decision, e_veh_att):
@@ -339,7 +334,7 @@ sepcific_examples = [100000]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -352,7 +347,7 @@ while Example_pred < 20:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
@@ -360,8 +355,8 @@ while Example_pred < 20:
     #         e_veh_att[20:60].mean() > 0 and 0.5 > aggressiveness:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
-    if episode not in covered_episodes and m_veh_exists[:35].mean() == 0 and \
-            e_veh_att.mean() > 0:
+    if episode not in covered_episodes and e_veh_att.mean() > 0:
+
     # if episode not in covered_episodes and aggressiveness == 0.5:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
@@ -374,7 +369,7 @@ while Example_pred < 20:
                                                     future_idm_ss, sdv_actions])
         act_seq = act_seq.numpy()
 
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0]
@@ -387,7 +382,7 @@ while Example_pred < 20:
                             , fontsize=10)
 
 
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
         plt.plot(traj, color='purple')
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
@@ -397,7 +392,7 @@ while Example_pred < 20:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(29, 69), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
            # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
@@ -405,7 +400,7 @@ while Example_pred < 20:
         plt.title(str(sample_index[0]) + ' -- Action')
         plt.grid()
 
-        plt.figure(figsize=(3, 3))
+        plt.figure(figsize=(5, 3))
         Example_pred += 1
 
 # %%

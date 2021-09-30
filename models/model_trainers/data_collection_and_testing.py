@@ -173,6 +173,16 @@ for _epis in all_epis:
 len(lc_epis)/len(all_epis)
 # %%
 """
+Who are the yielding vehicles?
+"""
+cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
+att_on_vehicles = history_future_usc[cond]
+att_on_vehicles.shape
+_aggressiveness = att_on_vehicles[:, 0, -1]
+_ = plt.hist(_aggressiveness, bins=50)
+
+# %%
+"""
 For debugging - all samples
 """
 # with open('./models/experiments/sim_data.pickle', 'rb') as handle:

@@ -19,7 +19,9 @@ class NeurLatentModel(AbstractModel):
         self.forward_sim = ForwardSim()
         self.vae_loss_weight = 0.01 # default
         # self.loss_function = tf.keras.losses.Huber()
-        self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.Huber()
+        self.loss_function = tf.keras.losses.MeanSquaredError()
+
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -95,7 +97,7 @@ class NeurLatentModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 10
+        self.latent_dim = 3
         self.architecture_def()
 
     def architecture_def(self):
@@ -103,8 +105,8 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(100, activation='relu')
-        self.pos_projection = Dense(100, activation='relu')
+        self.pri_projection = Dense(50, activation='relu')
+        self.pos_projection = Dense(50, activation='relu')
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -168,11 +170,10 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = TimeDistributed(Dense(100))
         self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
 
     def call(self, inputs):
-        enc_acts = self.lstm_layer(self.linear_layer(inputs))
+        enc_acts = self.lstm_layer(inputs)
         return enc_acts
 
 class ForwardSim(tf.keras.Model):
@@ -181,8 +182,8 @@ class ForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(100, activation='relu')
-        self.proj_layer_2 = Dense(100, activation='relu')
+        self.proj_layer_1 = Dense(50, activation='relu')
+        self.proj_layer_2 = Dense(50, activation='relu')
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.action_neu = TimeDistributed(Dense(1)) # a form
 
@@ -199,10 +200,10 @@ class ForwardSim(tf.keras.Model):
         sampled_z, idm_s, sdv_acts = inputs
         batch_size = tf.shape(idm_s)[0]
         latent_projection = self.projection(sampled_z)
-        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
-        state_h, state_c = latent_projection, latent_projection
+        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 50])
+        state_h = state_c = tf.zeros([batch_size, 100])
 
-        for step in range(40):
+        for step in range(20):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
