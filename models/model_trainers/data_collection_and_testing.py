@@ -1,23 +1,23 @@
 from importlib import reload
 import numpy as np
-np.random.seed(2021)
+np.set_printoptions(suppress=True)
 import matplotlib.pyplot as plt
 import pickle
 import highway
 reload(highway)
-from highway import Env
+from highway import EnvMerge
 import os
 import time
-config = {'lanes_n':6,
+config = {'lanes_n':2,
         'lane_width':3.75, # m
         'lane_length':600 # m
         }
-env = Env(config)
+env = EnvMerge(config)
 # viewer = Viewer(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'env_steps_n':2500,
+                'env_steps_n':30000,
                 'model_type':'belief_net'
                 }
 
@@ -50,17 +50,18 @@ Generate data
 """
 import data_generator
 reload(data_generator)
-from data_generator import DataGenerator
-data_gen = DataGenerator(env, data_config)
-# np.random.seed(2021)
-
+from data_generator import DataGeneratorMerge
+data_gen = DataGeneratorMerge(env, data_config)
+np.random.seed(0)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
-# features_origin[:, indxs['em_delta_y']].max()
+features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
-veh_id = 63
+# features_origin[features_origin[:, indxs['e_veh_action']] < -2]
+# %%
+veh_id = 39
 for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
@@ -72,7 +73,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_003'
+data_id = '_006'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -83,7 +84,10 @@ else:
 
 # %%
 
-epis = 116
+epis = 0
+features_origin[:, 1].min()
+features_origin[:, 1].max()
+
 features_origin[features_origin[:, 0] == epis][0, indxs['desired_v']]
 features_origin[features_origin[:, 0] == epis][0, indxs['desired_tgap']]
 features_origin[features_origin[:, 0] == epis][0, indxs['max_act']]
@@ -92,9 +96,7 @@ features_origin[features_origin[:, 0] == epis][0, indxs['min_jamx']]
 
 
 
-
 # %%
-
 """
 Driver model - neural idm
 """
@@ -104,8 +106,8 @@ features = features_origin.copy()
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 30, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 30, 40)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
@@ -150,16 +152,7 @@ history_sca.flatten().shape
 future_e_veh_a[0]
 history_future_usc[0]
 
-# %%
-"""
-BALANCE DATA
-"""
-history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
-np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
-print(balance_value)
+
 #
 # # %%
 # np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/history_future_usc.shape[0]
@@ -167,7 +160,17 @@ print(balance_value)
 # a = np.zeros([100, 20, 3])
 # a[34:36, 3:5, 1] = 1
 # (a[:, :, 1] == 1).any(axis=1).shape
-
+# %%
+"""
+Number of episodes with a merging vehicle
+"""
+all_epis = np.unique(features[:, 0])
+lc_epis = []
+for _epis in all_epis:
+    veh_arr = features[features[:, 0] == _epis]
+    if veh_arr[:, indxs['e_veh_att']].mean() > 0:
+        lc_epis.append(_epis)
+len(lc_epis)/len(all_epis)
 # %%
 """
 For debugging - all samples
@@ -201,7 +204,6 @@ for _epis in all_epis:
     np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
     ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-    ef_act = np.clip(ef_act, -3, 3)
 
     dv = (vel - m_veh_v)*m_veh_exists
     dx = (m_veh_glob_x - e_veh_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
@@ -209,13 +211,12 @@ for _epis in all_epis:
     np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
     em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-    em_act = np.clip(em_act, -3, 3)
     att_scores = veh_arr[:, indxs['e_veh_att']]
     act = (1-att_scores)*ef_act + att_scores*em_act
     # features = features[features[:, 6]==0] # merger exists
     loss = abs(act-veh_arr[:, indxs['e_veh_action']])
     if not loss.max() < 0.00001:
-        print('index:  ', _epis)
+        print('_epis:  ', _epis)
         print(loss.max())
 # %%
 """
@@ -223,7 +224,7 @@ For debugging - all samples
 """
 # with open('./models/experiments/sim_data.pickle', 'rb') as handle:
 #     features = pickle.load(handle)
-_epis = 20
+_epis = 36
 veh_arr = features[features[:, 0] == _epis]
 
 aggressiveness = veh_arr[0, indxs['aggressiveness']]
@@ -243,12 +244,10 @@ m_veh_exists = veh_arr[:, indxs['m_veh_exists']]
 dv = (vel - f_veh_v)*f_veh_exists
 dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
 
-plt.plot(dx[10:80])
 desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
 ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-ef_act = np.clip(ef_act, -3, 3)
 
 dv = (vel - m_veh_v)*m_veh_exists
 dx = (m_veh_glob_x - e_veh_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
@@ -256,7 +255,6 @@ desired_gap = min_jamx + \
 np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
 em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-em_act = np.clip(em_act, -3, 3)
 att_scores = veh_arr[:, indxs['e_veh_att']]
 act = (1-att_scores)*ef_act + att_scores*em_act
 # features = features[features[:, 6]==0] # merger exists
@@ -264,7 +262,7 @@ loss = abs(act-veh_arr[:, indxs['e_veh_action']])
 if not loss.max() < 0.00001:
     print('index:  ', _epis)
     print(loss.max())
-#
+plt.plot(loss)
 # plt.plot(future_e_veh_a[i, :, -1])
 # plt.plot(act)
 # %%

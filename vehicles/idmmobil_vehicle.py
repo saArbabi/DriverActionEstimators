@@ -115,10 +115,10 @@ class IDMMOBILVehicle(Vehicle):
         return desired_v
 
     def sample_beta(self):
-        return self.driver_params['aggressiveness']
-        # alpha_param = self.beta_precision*self.driver_params['aggressiveness']
-        # beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
-        # return np.random.beta(alpha_param, beta_param)
+        # return self.driver_params['aggressiveness']
+        alpha_param = self.beta_precision*self.driver_params['aggressiveness']
+        beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
+        return np.random.beta(alpha_param, beta_param)
 
     def get_driver_param(self, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
@@ -305,9 +305,27 @@ class IDMMOBILVehicle(Vehicle):
 
     def am_i_attending(self, vehicle, delta_x, delta_xs):
         """Am I attending to the vehicle?
+            There are x3 scenarios:
+            - I am alreading attending to a merger and there is no closer merger
+            - I am alreading attending to a merger and there is a closer merger
+            - There is a new merger
+                - happens either due to attentiveness or to avoid dangerous scenarios
         """
+        # am I already attending to a merge car?
+        if self.neighbours['m'] and self.neighbours['m'] == self.neighbours['att']:
+            if self.neighbours['m'] != vehicle:
+                # new merger
+                if vehicle.glob_x > self.neighbours['att'].glob_x:
+                    return False
+                else:
+                    return True
+            else:
+                return True
+
+        act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
-                vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
+                (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
+                 or act_long < -3):
             return True
         return False
 
@@ -347,7 +365,8 @@ class IDMMOBILVehicle(Vehicle):
                     (1-(follower.speed/follower.driver_params['desired_v'])**4-\
                                                         (desired_gap/(delta_x))**2)
 
-        return max(-3, min(act_long, 3))
+        return act_long
+        # return max(-3, min(act_long, 3))
 
     def check_reservations(self, target_lane, reservations):
         """To ensure:
@@ -594,14 +613,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # self.update_desired_speed(candidate_att)
         return neighbours
 
-    def am_i_attending(self, vehicle, delta_x, delta_xs):
-        """Am I attending to the vehicle?
-        """
-        if  delta_x < min(delta_xs) and \
-                vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
-            return True
-        return False
-
     def idm_mobil_act(self, reservations):
         neighbours = self.neighbours
         act_long = self.idm_action(self, neighbours['att'])
@@ -618,8 +629,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             act_r_lc = self.idm_action(neighbours['r'], neighbours['f'])
             act_r_lk = self.idm_action(neighbours['r'], self)
             old_follower_gain = act_r_lc-act_r_lk
-            if self.id == 24:
-                print('act_rl_lc ', act_rl_lc)
+
             if self.lane_id > 1 and self.driver_params['safe_braking'] <= act_rl_lc:
                 # consider moving left
                 act_ego_lc_l = self.idm_action(self, neighbours['fl'])
@@ -629,13 +639,13 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 new_follower_gain = act_rl_lc-act_rl_lk
                 lc_left_condition = self.mobil_condition([ego_gain, new_follower_gain, old_follower_gain])
 
-                if self.id == 24:
-                    print('act_ego_lc_l ', act_ego_lc_l)
-                    print('act_long ', act_long)
-                    print('ego_gain ', ego_gain)
-                    print('new_follower_gain ', new_follower_gain)
-                    print('old_follower_gain ', old_follower_gain)
-                    print('act_rl_lc ', act_rl_lc)
+                # if self.id == 24:
+                #     print('act_ego_lc_l ', act_ego_lc_l)
+                #     print('act_long ', act_long)
+                #     print('ego_gain ', ego_gain)
+                #     print('new_follower_gain ', new_follower_gain)
+                #     print('old_follower_gain ', old_follower_gain)
+                #     print('act_rl_lc ', act_rl_lc)
 
             if lc_left_condition > self.driver_params['act_threshold']:
                 target_lane = self.target_lane - 1

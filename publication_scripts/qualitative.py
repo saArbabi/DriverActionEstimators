@@ -18,7 +18,6 @@ plt.style.use(['science','ieee'])
 Driver generation - beta distribution with aggressiveness levels
 """
 # plt.style.use('default')
-
 x = np.linspace(0.0, 1, 100)
 color_i = 0
 range_means = np.linspace(0.2, 0.8, 10)
@@ -46,7 +45,7 @@ for mean in range_means:
 
 # %%
 precision = 15
-mean = 0.01
+mean = 0.5
 color_i = 0
 alpha_param = precision*mean
 beta_param = precision*(1-mean)

@@ -4,7 +4,7 @@ from sklearn import preprocessing
 np.random.seed(2020)
 import time
 
-class DataGenerator:
+class DataGenecrator():
     def __init__(self, env=None, config=None):
         if config:
             self.env_steps_n = config['env_steps_n']
@@ -326,6 +326,82 @@ class DataGenerator:
         # data_arrays = self.split_data(history_future_seqs, history_future_seqs_scaled)
         # return data_arrays
         return features
+
+class DataGeneratorMerge(DataGenecrator):
+    def __init__(self, env=None, config=None):
+        super().__init__(env, config)
+
+    def extract_features(self, raw_recordings):
+        """
+        Extrtacts features from e_veh's perspective.
+        Note: e_veh is the vehicle to be modelled. It can be found in one of the
+        following scenarios:
+        (1) e_veh following a f_veh in its lane.
+        (2) e_veh performing a lane change.
+        (3) e_veh yielding to a m_veh.
+        (4) e_veh following a f_veh who is changing lane.
+        """
+
+        def add_info(f_veh_id, m_veh_id, time_step):
+            """Useful for debugging
+            """
+            f_veh_id = f_veh_id if f_veh_id else -1
+            m_veh_id = m_veh_id if m_veh_id else -1
+            return [episode_id, time_step, e_veh_id, f_veh_id, m_veh_id]
+
+        def end_episode():
+            """
+            End episode when an episode is complete.
+            """
+            nonlocal epis_features, episode_id
+            if len(epis_features) > 40:
+                features.extend(epis_features)
+                episode_id += 1
+            epis_features = []
+
+        features = []
+        epis_features = []
+        episode_id = 0
+        vehicle_ids = list(raw_recordings.keys())
+        print(len(vehicle_ids))
+        np.random.shuffle(vehicle_ids)
+        for e_veh_id in vehicle_ids:
+            end_episode()
+            e_veh_ts = raw_recordings[e_veh_id]
+            for time_step, e_veh in e_veh_ts.items():
+                att_veh_id = e_veh['att_veh_id']
+                if not att_veh_id or e_veh['lane_decision'] != 'keep_lane':
+                    if epis_features:
+                        end_episode()
+                    continue
+
+                f_veh_id = e_veh['f_veh_id']
+                m_veh_id = e_veh['m_veh_id']
+
+                if m_veh_id:
+                    m_veh = raw_recordings[m_veh_id][time_step]
+                    if m_veh_id == att_veh_id:
+                        e_veh_att = 1
+                    else:
+                        e_veh_att = 0
+                else:
+                    m_veh = None
+                    e_veh_att = 0
+
+                if f_veh_id:
+                    try:
+                        f_veh = raw_recordings[f_veh_id][time_step]
+                    except:
+                        if epis_features:
+                            end_episode()
+                        continue
+                else:
+                    f_veh = None
+
+                step_feature = self.get_step_feature(e_veh, f_veh, m_veh, e_veh_att)
+                step_feature[0:0] = add_info(f_veh_id, m_veh_id, time_step)
+                epis_features.append(step_feature)
+        return np.array(features)
 
     # def save(self):
     #     pass

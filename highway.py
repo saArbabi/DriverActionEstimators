@@ -119,17 +119,6 @@ class EnvMerge(Env):
             # self.handler.update_reservations(vehicle)
         return joint_action
 
-    def remove_vehicles_outside_bound(self):
-        vehicles = []
-        for vehicle in self.vehicles:
-            if vehicle.glob_x > self.lane_length:
-                # vehicle has left the highway
-                if vehicle.id in self.handler.reservations:
-                    del self.handler.reservations[vehicle.id]
-                continue
-            vehicles.append(vehicle)
-        self.vehicles = vehicles
-
 class EnvMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
