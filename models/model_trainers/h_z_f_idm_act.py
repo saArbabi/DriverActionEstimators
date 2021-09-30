@@ -276,8 +276,8 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-# model_trainer.train(epochs=1)
-# model_trainer.test_mseloss
+model_trainer.train(epochs=1)
+model_trainer.test_mseloss
 # latent_samples(model_trainer, val_examples[0:10])
 
 # 1.5*(1-(25/15)**4 - 3)
@@ -314,7 +314,7 @@ model_trainer.model.forward_sim.attention_temp = 1
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(epochs=5)
+model_trainer.train(epochs=1)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
