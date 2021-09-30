@@ -272,12 +272,12 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act031_epo_15'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_idm_act038_epo_15'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-model_trainer.train(epochs=1)
-model_trainer.test_mseloss
+# model_trainer.train(epochs=1)
+# model_trainer.test_mseloss
 # latent_samples(model_trainer, val_examples[0:10])
 
 # 1.5*(1-(25/15)**4 - 3)
@@ -307,14 +307,14 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.5
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.model.forward_sim.attention_temp = 1
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(epochs=1)
+model_trainer.train(epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -352,7 +352,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '035')
+model_trainer.save_model('h_z_f_idm_act', '039')
 
 # %%
 """
@@ -375,6 +375,7 @@ loss = tf.reduce_mean(loss, axis=1).numpy()
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
 bad_examples = np.where(loss > 0.02)
+
 
 
 # %%

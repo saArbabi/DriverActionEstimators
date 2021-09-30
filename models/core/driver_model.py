@@ -106,7 +106,8 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 10
+        self.latent_dim = 3
+        self.proj_dim = 50
         self.architecture_def()
 
     def architecture_def(self):
@@ -114,8 +115,8 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(100, activation='relu')
-        self.pos_projection = Dense(100, activation='relu')
+        self.pri_projection = Dense(self.proj_dim, activation='relu')
+        self.pos_projection = Dense(self.proj_dim, activation='relu')
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -186,12 +187,13 @@ class FutureEncoder(tf.keras.Model):
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
-        self.architecture_def()
         self.attention_temp = 1 # the higher, the sharper the attention
+        self.proj_dim = 50
+        self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(100, activation='relu')
-        self.proj_layer_2 = Dense(100, activation='relu')
+        self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
+        self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
         # self.action_neu = TimeDistributed(Dense(1))
@@ -254,7 +256,7 @@ class IDMForwardSim(tf.keras.Model):
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         latent_projection = self.projection(sampled_z)
-        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 100])
+        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, 100])
 
         for step in range(20):
@@ -320,21 +322,22 @@ class IDMForwardSim(tf.keras.Model):
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
+        self.proj_dim = 50
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(100, activation='relu')
-        self.proj_layer_2 = Dense(100, activation='relu')
+        self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
+        self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
         self.des_v_neu = Dense(1)
-        self.proj_layer_des_v = Dense(100, activation='relu')
+        self.proj_layer_des_v = Dense(self.proj_dim, activation='relu')
         self.des_tgap_neu = Dense(1)
-        self.proj_layer_des_tgap = Dense(100, activation='relu')
+        self.proj_layer_des_tgap = Dense(self.proj_dim, activation='relu')
         self.min_jamx_neu = Dense(1)
-        self.proj_layer_min_jamx = Dense(100, activation='relu')
+        self.proj_layer_min_jamx = Dense(self.proj_dim, activation='relu')
         self.max_act_neu = Dense(1)
-        self.proj_layer_max_act = Dense(100, activation='relu')
+        self.proj_layer_max_act = Dense(self.proj_dim, activation='relu')
         self.min_act_neu = Dense(1)
-        self.proj_layer_min_act = Dense(100, activation='relu')
+        self.proj_layer_min_act = Dense(self.proj_dim, activation='relu')
 
     def projection(self, x):
         x = self.proj_layer_1(x)
