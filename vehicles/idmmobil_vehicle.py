@@ -307,25 +307,24 @@ class IDMMOBILVehicle(Vehicle):
         """Am I attending to the vehicle?
             There are x3 scenarios:
             - I am alreading attending to a merger and there is no closer merger
-            - I am alreading attending to a merger and there is a closer merger
+            - I am alreading attending to a merger and there is a new, closer merger
             - There is a new merger
                 - happens either due to attentiveness or to avoid dangerous scenarios
         """
         # am I already attending to a merge car?
-        if self.neighbours['m'] and self.neighbours['m'] == self.neighbours['att']:
-            if self.neighbours['m'] != vehicle:
-                # new merger
-                if vehicle.glob_x > self.neighbours['att'].glob_x:
-                    return False
-                else:
+        if self.neighbours['m']:
+            if self.neighbours['m'] == self.neighbours['att'] != vehicle:
+                if vehicle.glob_x <= self.neighbours['att'].glob_x and delta_x < min(delta_xs):
                     return True
-            else:
+                else:
+                    return False
+            elif self.neighbours['m'] == self.neighbours['att'] == vehicle:
                 return True
 
         act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
                 (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
-                 or act_long < -3):
+                                                                            or act_long < -3):
             return True
         return False
 
@@ -549,24 +548,21 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                         if vehicle.glob_x > self.glob_x:
                             # front neibouring cars
                             if vehicle.target_lane == self.lane_id:
-                                if self.am_i_attending(vehicle, delta_x, delta_xs_att):
-                                    # for merging cars
-                                    delta_xs_att.append(delta_x)
-                                    candidate_att = vehicle
-
                                 if vehicle.lane_decision != 'keep_lane':
                                     if delta_x < min(delta_xs_m):
                                         delta_xs_m.append(delta_x)
                                         candidate_m = vehicle
+                                        if self.am_i_attending(vehicle, delta_x, delta_xs_att):
+                                            # for merging cars
+                                            delta_xs_att.append(delta_x)
+                                            candidate_att = vehicle
                                 else:
                                     if delta_x < min(delta_xs_f):
                                         delta_xs_f.append(delta_x)
                                         candidate_f = vehicle
-
-                                if vehicle.lane_id == self.lane_id:
-                                    if delta_x < min(delta_xs_att):
-                                        delta_xs_att.append(delta_x)
-                                        candidate_att = vehicle
+                                        if delta_x < min(delta_xs_att):
+                                            delta_xs_att.append(delta_x)
+                                            candidate_att = vehicle
 
                             if vehicle.target_lane == right_lane_id:
                                 if delta_x < min(delta_xs_fr):
@@ -611,6 +607,9 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # neighbours['m'] = candidate_m
         neighbours['att'] = candidate_att
         # self.update_desired_speed(candidate_att)
+        if candidate_att and candidate_f != candidate_att and candidate_att != candidate_m:
+            neighbours['att'] = candidate_m
+
         return neighbours
 
     def idm_mobil_act(self, reservations):
