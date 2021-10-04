@@ -19,7 +19,7 @@ class NeurIDMModel(AbstractModel):
         self.belief_net = BeliefModel()
         self.idm_layer = IDMLayer()
         self.forward_sim = IDMForwardSim()
-        self.vae_loss_weight = 0.01 # default
+        self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
         # self.loss_function = tf.keras.losses.Huber()
         self.loss_function = tf.keras.losses.MeanSquaredError()
@@ -35,7 +35,10 @@ class NeurIDMModel(AbstractModel):
         # act_pred = (act_pred[:,:1,:])/0.1
         act_true = (act_true)/0.1
         act_pred = (act_pred)/0.1
-        return self.loss_function(act_true, act_pred)
+        loss = self.loss_function(act_true, act_pred)
+        # tf.print('loss: ', tf.reduce_min((act_true-act_pred)**2))
+        tf.debugging.check_numerics(loss, message='Checking loss')
+        return loss
 
     def kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
@@ -48,6 +51,7 @@ class NeurIDMModel(AbstractModel):
     def train_loop(self, data_objs):
         # tf.print('######## TRAIN #######:')
         train_ds = self.batch_data(data_objs)
+
         for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
             self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
 
@@ -65,7 +69,9 @@ class NeurIDMModel(AbstractModel):
             kl_loss = self.kl_loss(pri_params, pos_params)
             loss = self.vae_loss(mse_loss, kl_loss)
 
+        # tf.print('### loss ###', loss)
         gradients = tape.gradient(loss, self.trainable_variables)
+        # tf.print('gradients: ', tf.reduce_min(gradients[1]))
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         self.train_mseloss.reset_states()
         self.train_klloss.reset_states()
@@ -131,8 +137,8 @@ class BeliefModel(tf.keras.Model):
         # tf.print('z2_max: ', tf.reduce_max(z_sigma[:, 1]))
         # tf.print('z3_max: ', tf.reduce_max(z_sigma[:, 2]))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
+        # tf.print('z_min: ', tf.reduce_min(z_sigma))
         return sampled_z
-        # return sampled_z, sampled_z for single latent
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -213,12 +219,23 @@ class IDMForwardSim(tf.keras.Model):
         # tf.print('max_act: ', tf.reduce_mean(max_act))
         # tf.print('min_act: ', tf.reduce_mean(min_act))
         # tf.print('#######################################')
+
+        # tf.print('################### min ####################')
+        # tf.print('desired_tgap: ', tf.reduce_min(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_min(min_jamx))
+        # tf.print('max_act: ', tf.reduce_min(max_act))
+        # tf.print('min_act: ', tf.reduce_min(min_act))
+        # tf.print('################### max ####################')
+        # tf.print('desired_tgap: ', tf.reduce_max(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_max(min_jamx))
+        # tf.print('max_act: ', tf.reduce_max(max_act))
+        # tf.print('min_act: ', tf.reduce_max(min_act))
+        # tf.print('#######################################')
         # two = K.relu(desired_tgap*vel+(vel*dv)/ \
         #                                 (2*tf.sqrt(max_act*min_act)))
         _gap_denum  = 2*tf.sqrt(max_act*min_act)
         _gap = desired_tgap*vel+(vel*dv)/_gap_denum
         desired_gap = min_jamx + K.relu(_gap)
-
         # tf.print('_gap ', tf.reduce_mean(_gap))
         # tf.print('_gap_denum ', tf.reduce_min(_gap_denum))
 
@@ -228,11 +245,11 @@ class IDMForwardSim(tf.keras.Model):
         # tf.print('min_act: ', tf.reduce_min(act))
         # tf.print('vel: ', tf.reduce_max(vel))
         # tf.print('desired_max_act: ', tf.reduce_mean(max_act))
-        return act
+        return self.action_clip(act)
 
     def action_clip(self, action):
-        "this helps with avoiding vanishing gradients"
-        return tf.clip_by_value(action, clip_value_min=-3., clip_value_max=3.)
+        "This is needed to avoid infinities"
+        return tf.clip_by_value(action, clip_value_min=-100000., clip_value_max=100000.)
 
     def add_noise(self, idm_action, idm_veh_exists, batch_size):
         """
@@ -259,7 +276,7 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, 100])
 
-        for step in range(20):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -306,17 +323,21 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, sdv_act], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_x = self.attention_neu(lstm_output)
+            # att_x = tf.clip_by_value(att_x, clip_value_min=-5, clip_value_max=5)
+
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
-            # tf.print('_act: ', tf.reduce_max(_act))
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
+
+        # tf.print('_act: ', tf.reduce_min(_act))
+        # tf.print('dx: ', tf.reduce_min(ef_delta_x))
         return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
@@ -400,6 +421,31 @@ class IDMLayer(tf.keras.Model):
         minval = 1
         maxval = 3
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+
+    # def get_des_tgap(self, x):
+    #     output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
+    #     minval = 0.5
+    #     maxval = 2.5
+    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+    #
+    # def get_min_jamx(self, x):
+    #     output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
+    #     minval = 0
+    #     maxval = 5
+    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+    #
+    # def get_max_act(self, x):
+    #     output = self.max_act_neu(self.proj_layer_max_act(x))
+    #     minval = 0.5
+    #     maxval = 2.5
+    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+    #
+    # def get_min_act(self, x):
+    #     output = self.min_act_neu(self.proj_layer_min_act(x))
+    #     minval = 0.5
+    #     maxval = 3.5
+    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+
 
     def call(self, sampled_z):
         x = self.projection(sampled_z)

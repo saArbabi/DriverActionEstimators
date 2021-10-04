@@ -14,7 +14,7 @@ def main():
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 10:
+        if env.time_step > 12650:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
@@ -27,6 +27,8 @@ def main():
             print(env.time_step)
 
         env.step()
+        # print(env.time_step)
+
 
 
 if __name__=='__main__':

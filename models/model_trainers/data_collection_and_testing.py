@@ -61,19 +61,12 @@ features_origin.shape
 features_origin.shape
 # features_origin[features_origin[:, indxs['e_veh_action']] < -2]
 # %%
-veh_id = 39
-for param_name in [ 'aggressiveness', 'desired_v',
-                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
-    print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
-
-
-# %%
 veh_id = 33
 for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_006'
+data_id = '_008'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -190,7 +183,8 @@ For debugging - all samples
 all_epis = np.unique(features[:, 0])
 for _epis in all_epis:
     veh_arr = features[features[:, 0] == _epis]
-
+    # if veh_arr[0, 1] > 1000:
+    #     continue
     aggressiveness = veh_arr[0, indxs['aggressiveness']]
     desired_v = veh_arr[0, indxs['desired_v']]
     desired_tgap = veh_arr[0, indxs['desired_tgap']]
@@ -234,7 +228,7 @@ For debugging - all samples
 """
 # with open('./models/experiments/sim_data.pickle', 'rb') as handle:
 #     features = pickle.load(handle)
-_epis = 36
+_epis = 333
 veh_arr = features[features[:, 0] == _epis]
 
 aggressiveness = veh_arr[0, indxs['aggressiveness']]
@@ -266,6 +260,7 @@ np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=No
 
 em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 att_scores = veh_arr[:, indxs['e_veh_att']]
+
 act = (1-att_scores)*ef_act + att_scores*em_act
 # features = features[features[:, 6]==0] # merger exists
 loss = abs(act-veh_arr[:, indxs['e_veh_action']])
@@ -273,11 +268,10 @@ if not loss.max() < 0.00001:
     print('index:  ', _epis)
     print(loss.max())
 plt.plot(loss)
-# plt.plot(future_e_veh_a[i, :, -1])
 # plt.plot(act)
 # %%
-plt.plot(act[10:80])
-plt.plot(veh_arr[:, indxs['e_veh_action']][10:80])
+plt.plot(act)
+plt.plot(veh_arr[:, indxs['e_veh_action']])
 # %%
 
 """
