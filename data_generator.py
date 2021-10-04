@@ -354,7 +354,7 @@ class DataGeneratorMerge(DataGenecrator):
             End episode when an episode is complete.
             """
             nonlocal epis_features, episode_id
-            if len(epis_features) > 40:
+            if len(epis_features) > 60:
                 features.extend(epis_features)
                 episode_id += 1
             epis_features = []
@@ -370,7 +370,7 @@ class DataGeneratorMerge(DataGenecrator):
             e_veh_ts = raw_recordings[e_veh_id]
             for time_step, e_veh in e_veh_ts.items():
                 att_veh_id = e_veh['att_veh_id']
-                if not att_veh_id or e_veh['lane_decision'] != 'keep_lane':
+                if not att_veh_id or e_veh['lane_decision'] != 'keep_lane' or e_veh['speed'] < 10:
                     if epis_features:
                         end_episode()
                     continue
