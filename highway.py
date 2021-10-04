@@ -119,6 +119,29 @@ class EnvMerge(Env):
             # self.handler.update_reservations(vehicle)
         return joint_action
 
+    def step(self, actions=None):
+        """ steps the environment forward in time.
+        """
+        vehicle_stuck = False
+        self.remove_vehicles_outside_bound()
+        joint_action = self.get_joint_action()
+        if self.usage == 'data generation':
+            self.recorder()
+        for vehicle, actions in zip(self.vehicles, joint_action):
+            vehicle.step(actions)
+            vehicle.time_lapse += 1
+            if vehicle.speed < 15 and vehicle.lane_decision == 'keep_lane':
+                vehicle_stuck = True
+
+
+        if not vehicle_stuck:
+            new_entries = self.handler.handle_vehicle_entries(
+                                                              self.queuing_entries,
+                                                              self.last_entries)
+            if new_entries:
+                self.vehicles.extend(new_entries)
+        self.time_step += 1
+
 class EnvMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
