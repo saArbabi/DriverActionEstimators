@@ -38,29 +38,29 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_006.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_008.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 20, 20)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
+history_future_seqs = data_gen.sequence(features, 20, 40)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
 future_idm_s[0, 0, :]
-# %%
+
 # %%
 """
 BALANCE DATA
 """
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+cond = (history_future_usc[:, :, -3] == 1).all(axis=1)
 data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
-np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
+balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).all(axis=1))/\
+                        np.count_nonzero((history_future_usc[:, :, -3] != 1).all(axis=1))
 print(balance_value)
 # %%
 indxs = {}
@@ -107,7 +107,7 @@ import pickle
 #
 # %%
 
-data_id = '_006'
+data_id = '_008'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -126,7 +126,6 @@ else:
 # %%
 future_m_veh_a.shape
 future_m_veh_a.shape
-56222*0.7
 # plt.plot(history_future_usc[0, :, 6])
 plt.plot(history_future_usc[10450, :, 6])
 # %%
@@ -145,18 +144,31 @@ for i in range(history_future_usc.shape[-1]):
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
     # plt.grid()
+
+# %%
+col_names = ['episode_id', 'time_step',
+        'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+        'ef_delta_v', 'ef_delta_x', 'em_delta_v', 'em_delta_x',
+        'em_delta_y', 'f_veh_exists', 'm_veh_exists']
+
+for i in range(future_sca.shape[-1]):
+    plt.figure(figsize=(3, 3))
+    to_plot = history_sca[:, :, i].flatten()
+    _ = plt.hist(to_plot, bins=150)
+    plt.title(col_names[i])
+    # plt.grid()
 # %%
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 256,
+    "batch_size": 512,
     },
     "exp_id": "NA",
     "Note": ""
 }
 
 class Trainer():
-    def __init__(self, training_data, model_type, model_name):
+    def __init__(self, model_type, model_name):
         self.model = None
         self.model_type = model_type
         self.model_name = model_name
@@ -168,7 +180,6 @@ class Trainer():
         self.test_klloss = []
         self.epoch_count = 0
         self.initiate_model()
-        self.prep_data(training_data)
 
     def initiate_model(self):
         if self.model_name == 'driver_model':
@@ -177,25 +188,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        elif self.model_name == 'h_z_f_act':
-            from models.core import h_z_f_act
-            reload(h_z_f_act)
-            from models.core.h_z_f_act import  NeurLatentModel
-            self.model = NeurLatentModel(config)
-
-        elif self.model_name == 'lstm_model':
-            from models.core import lstm
-            reload(lstm)
-            from models.core.lstm import  Encoder
-            self.model = Encoder(config)
-
-        elif self.model_name == 'mlp_model':
-            from models.core import mlp
-            reload(mlp)
-            from models.core.mlp import  MLP
-            self.model = MLP(config)
-
-        with open('./models/experiments/scaler_006.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_008.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -204,6 +197,7 @@ class Trainer():
         np.random.shuffle(all_epis)
         # train_epis = all_epis[:int(len(all_epis)*0.1)]
         # val_epis = train_epis
+
         train_epis = all_epis[:int(len(all_epis)*0.7)]
         val_epis = np.setdiff1d(all_epis, train_epis)
         train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
@@ -214,48 +208,31 @@ class Trainer():
                     future_m_veh_a, future_e_veh_a = training_data
 
         if self.model_type == 'cvae':
-            self.train_input = [history_sca[train_indxs, :, 2:],
+            train_input = [history_sca[train_indxs, :, 2:],
                         future_sca[train_indxs, :, 2:],
                         future_idm_s[train_indxs, :, 2:],
                         future_m_veh_a[train_indxs, :, 2:],
                         future_e_veh_a[train_indxs, :, 2:]]
 
-            self.val_input = [history_sca[val_indxs, :, 2:],
+            val_input = [history_sca[val_indxs, :, 2:],
                         future_sca[val_indxs, :, 2:],
                         future_idm_s[val_indxs, :, 2:],
                         future_m_veh_a[val_indxs, :, 2:],
                         future_e_veh_a[val_indxs, :, 2:]]
 
-        elif self.model_type == 'lstm_model':
-            self.train_input = [history_sca[train_indxs, :, 2:],
-                                        future_e_veh_a[train_indxs, 0, -1]]
+        return train_input, val_input
 
-            self.val_input = [history_sca[val_indxs, :, 2:],
-                                        future_e_veh_a[val_indxs, 0, -1]]
-
-        elif self.model_type == 'mlp_model':
-            history_sca = np.squeeze(history_sca)
-            future_e_veh_a = np.squeeze(future_e_veh_a)
-
-            self.train_input = [history_sca[train_indxs, 2:],
-                                        future_e_veh_a[train_indxs, -1]]
-
-            self.val_input = [history_sca[val_indxs, 2:],
-                                        future_e_veh_a[val_indxs, -1]]
-
-    def train(self, epochs):
+    def train(self, train_input, val_input, epochs):
         for epoch in range(epochs):
             self.epoch_count += 1
-            self.model.train_loop(self.train_input)
-            self.model.test_loop(self.val_input, epoch)
+            self.model.train_loop(train_input)
+            self.model.test_loop(val_input, epoch)
             if self.model_type == 'cvae':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
                 self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
                 self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
-            else:
-                self.train_mseloss.append(round(self.model.train_loss.result().numpy().item(), 2))
-                self.test_mseloss.append(round(self.model.test_loss.result().numpy().item(), 2))
+
             print(self.epoch_count, 'epochs completed')
             # print('vae_loss_weight', self.model.vae_loss_weight)
             # self.model.vae_loss_weight += 0.03
@@ -270,18 +247,25 @@ class Trainer():
             print('This model is already saved')
 
 tf.random.set_seed(2021)
-model_trainer = Trainer(data_arrays, model_type='cvae', model_name='driver_model')
+model_trainer = Trainer(model_type='cvae', model_name='driver_model')
+train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act038_epo_20'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_idm_act048_epo_15'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
-# model_trainer.train(epochs=1)
+# model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
+# train_input = None
 # latent_samples(model_trainer, val_examples[0:10])
 
 # 1.5*(1-(25/15)**4 - 3)
+# Using 'auto'/'sum_over_batch_size' reduction type.
 # %%
+tf.sigmoid(100.)
+tf.reduce_sum(tf.cast(myOtherTensor, tf.float32))
+
+tf.math.count_nonzero([True, True])
 # fig = plt.figure(figsize=(15, 5))
 plt.style.use('default')
 #
@@ -308,13 +292,13 @@ future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.model.forward_sim.attention_temp = 1
+model_trainer.model.forward_sim.attention_temp = 5
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(epochs=5)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -342,7 +326,12 @@ kl_axis.set_xlabel('epochs')
 kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
+print(model_trainer.test_mseloss[-1])
 # ax = latent_vis(2000)
+# %%
+
+
+
 
 # %%
 sampled_zs = latent_samples(model_trainer, val_examples[0:1000])
@@ -352,29 +341,31 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '038')
+model_trainer.save_model('h_z_f_idm_act', '050')
 
 # %%
 """
 Find bad examples
 """
+
 import tensorflow as tf
-examples_to_vis = val_examples[:1000]
 # examples_to_vis = val_examples
 # val_examples.shape
+def get_avg_loss_across_sim(examples_to_vis):
+    val_input = [history_sca[examples_to_vis , :, 2:],
+                future_sca[examples_to_vis, :, 2:],
+                future_idm_s[examples_to_vis, :, 2:],
+                future_m_veh_a[examples_to_vis, :, 2:]]
+    act_pred, pri_params, pos_params = model_trainer.model(val_input)
+    loss = (tf.square(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
+    # loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
+    loss = tf.reduce_mean(loss, axis=1).numpy()
+    return loss
 
-val_input = [history_sca[examples_to_vis , :, 2:],
-            future_sca[examples_to_vis, :, 2:],
-            future_idm_s[examples_to_vis, :, 2:],
-            future_m_veh_a[examples_to_vis, :, 2:]]
-act_pred, pri_params, pos_params = model_trainer.model(val_input)
-loss = (tf.square(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
-# loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
-loss = tf.reduce_mean(loss, axis=1).numpy()
-
+loss = get_avg_loss_across_sim(val_examples[20000:30000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-bad_examples = np.where(loss > 0.02)
+bad_examples = np.where(loss >100)
 
 
 
@@ -590,15 +581,13 @@ covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
 np.where((history_future_usc[:, 0, 2] == 63))
-history_future_usc[history_future_usc[:, 0, 2] == 63]
-sepcific_examples = np.where((history_future_usc[:, 0, 0] == 8) & \
-                             (history_future_usc[:, 0, 1] == 488))[0]
+sepcific_examples = [20000+5567]
 
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 40:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -630,7 +619,10 @@ while Example_pred < 40:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
-    if episode not in covered_episodes and e_veh_att.mean() > 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0:
+    if episode not in covered_episodes and e_veh_att.mean() > 0 \
+                            and e_veh_att[:20].mean() == 0:
+
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -671,9 +663,9 @@ while Example_pred < 40:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
-           # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           # plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')
@@ -681,13 +673,12 @@ while Example_pred < 40:
 
         plt.figure(figsize=(5, 3))
         # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(39), e_veh_att, color='red')
+        plt.plot(range(59), e_veh_att, color='red')
         plt.plot([19, 19], [0, 1], color='black')
-        plt.plot([39, 39], [0, 1], color='black')
+        plt.plot([59, 59], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(19, 39), att_scores[sample_trace_i, :].flatten(), color='grey')
-        # plt.ylim(-0.1, 1.1)
+           plt.plot(range(19, 59), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         try:
@@ -696,7 +687,6 @@ while Example_pred < 40:
             beta_param = precision*(1-aggressiveness)
             start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
             plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-
             end_point = start_point + 45
             max_prob_point = start_point + aggressiveness*45
             plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
@@ -705,18 +695,11 @@ while Example_pred < 40:
             p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
             p = p/p.max()
             plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-
-            # plt.figure()
-            # plt.plot(range(39), e_veh_att, color='red')
-            # plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-            # gen_samples = start_point + np.random.beta(alpha_param, beta_param, 15)*(end_point-start_point)
-            # for sample in gen_samples:
-            #     plt.plot([sample, sample], [0, 1], color='blue', alpha=0.4)
-
-            # plt.xlim(0, 39)
-            # plt.grid()
+            plt.xlim(0, 60)
         except:
             pass
+
+
 
 
         # if 0 <= aggressiveness <= 1/3:
@@ -764,7 +747,7 @@ while Example_pred < 40:
         plt.grid()
         ######\######
         plt.figure(figsize=(5, 3))
-        plt.plot(range(39), em_delta_y, color='red')
+        plt.plot(range(59), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1 .5], color='red')
@@ -772,6 +755,7 @@ while Example_pred < 40:
         plt.grid()
         ############
         Example_pred += 1
+
 
 # %%
 
@@ -781,7 +765,7 @@ while Example_pred < 40:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [66657]
+sample_index = [86851]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -793,6 +777,7 @@ sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
 # sdv_actions[:, 10, -1] = 0
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
+future_idm_ss[0, 0]
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
@@ -801,7 +786,7 @@ sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
 idm_params = model_trainer.model.idm_layer(sampled_z)
-# idm_params = tf.ones([100, 5])*[27.63, 1.15, 1.0, 1.88, 2.51]
+# idm_params = tf.ones([100, 5])*[27.53, 1.14, 4, 1.93, 2.8]
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = idm_params.numpy()
 # idm_params[:, 4] = 1.4
@@ -827,12 +812,13 @@ for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act'
     true_params.append(round(features[features[:, 0] == episode][0, indxs[param_name]], 2))
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
 plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
-
+act_seq
+act_seq[0]
 ##########
 # %%
-plt.figure(figsize=(10, 10))
-time_axis = np.linspace(0., 4., 39)
-# plt.figure(figsize=(3, 2))
+# plt.figure(figsize=(10, 10))
+time_axis = np.linspace(0., 4., 59)
+plt.figure(figsize=(5, 3))
 # plt.legend(['Leader', 'Follower', 'Merger'])
 
 for sample_trace_i in range(traces_n):
@@ -853,7 +839,8 @@ plt.ylabel('Acceleration ($ms^{-2}$)')
 # plt.yticks([1, 0., -1, -2])
 # plt.xticks([0., 2, 4, 6])
 
-plt.grid(alpha=0.1)
+plt.grid()
+# plt.grid(alpha=0.1)
 plt.legend(['Ego', 'Merger', 'Leader'])
 
 ##########
@@ -940,7 +927,7 @@ plt.grid()
 ############
 plt.figure(figsize=(5, 3))
 plt.plot(em_delta_y[:20], color='black')
-plt.plot(range(29, 39), em_delta_y, color='red')
+plt.plot(range(29, 59), em_delta_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')

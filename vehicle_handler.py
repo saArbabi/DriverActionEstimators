@@ -127,19 +127,14 @@ class VehicleHandlerMerge(VehicleHandler):
         if not queuing_entries[lane_id]:
             queuing_entries[lane_id] = self.create_vehicle(lane_id)
 
-        if last_entries[lane_id+1].glob_x > 200 and \
-                            last_entries[lane_id+1].lane_decision == 'keep_lane':
-            # indication a vehicle has gotten stuck at merge point
-            pass
-        else:
-            leader = last_entries[lane_id]
-            follower = queuing_entries[lane_id]
-            delta_x = leader.glob_x - follower.glob_x
-            if delta_x > follower.initial_delta_x:
-                # check if cars are not too close
-                new_entries.append(follower)
-                last_entries[lane_id] = follower
-                queuing_entries[lane_id] = None
+        leader = last_entries[lane_id]
+        follower = queuing_entries[lane_id]
+        delta_x = leader.glob_x - follower.glob_x
+        if delta_x > follower.initial_delta_x:
+            # check if cars are not too close
+            new_entries.append(follower)
+            last_entries[lane_id] = follower
+            queuing_entries[lane_id] = None
 
         # ramp merge lane
         lane_id = 2
@@ -147,8 +142,9 @@ class VehicleHandlerMerge(VehicleHandler):
             queuing_entries[lane_id] = self.create_vehicle(lane_id)
 
         leader = last_entries[lane_id]
-        if leader.lane_decision != 'keep_lane':
-            follower = queuing_entries[lane_id]
+        follower = queuing_entries[lane_id]
+        delta_x = leader.glob_x - follower.glob_x
+        if delta_x > follower.initial_delta_x:
             new_entries.append(queuing_entries[lane_id])
             last_entries[lane_id] = queuing_entries[lane_id]
             queuing_entries[lane_id] = None
