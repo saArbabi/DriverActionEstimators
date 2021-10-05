@@ -337,7 +337,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '061')
+model_trainer.save_model('h_z_f_idm_act', '065')
 
 # %%
 """
@@ -594,7 +594,7 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 40:
+while Example_pred < 5:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -637,7 +637,7 @@ while Example_pred < 40:
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
-        idm_params = model_trainer.model.idm_layer(sampled_z)
+        idm_params = model_trainer.model.idm_layer([sampled_z, h_seq[:,-1,:]])
         act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
                                                     idm_params, future_idm_ss, sdv_actions])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()

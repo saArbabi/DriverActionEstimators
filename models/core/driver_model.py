@@ -95,12 +95,13 @@ class NeurIDMModel(AbstractModel):
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
         enc_f = self.f_seq_encoder(inputs[1])
+        current_s = inputs[0][:, -1, :]
 
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
         sampled_z = self.belief_net.sample_z(pos_params)
 
-        idm_params = self.idm_layer(sampled_z)
+        idm_params = self.idm_layer([sampled_z, current_s])
         act_seq, _ = self.forward_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
@@ -405,7 +406,7 @@ class IDMLayer(tf.keras.Model):
         minval = 0
         maxval = 5
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-    
+
     def get_max_act(self, x):
         output = self.max_act_neu(self.proj_layer_max_act(x))
         minval = 0.5
@@ -418,8 +419,8 @@ class IDMLayer(tf.keras.Model):
         maxval = 4
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
-    def call(self, sampled_z):
-        x = self.projection(sampled_z)
+    def call(self, inputs):
+        x = self.projection(tf.concat(inputs, axis=-1))
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
         min_jamx = self.get_min_jamx(x)
