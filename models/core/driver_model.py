@@ -112,7 +112,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 10
         self.proj_dim = 50
         self.architecture_def()
 
@@ -193,7 +193,7 @@ class FutureEncoder(tf.keras.Model):
 class IDMForwardSim(tf.keras.Model):
     def __init__(self):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
-        self.attention_temp = 1 # the higher, the sharper the attention
+        self.attention_temp = 5 # the higher, the sharper the attention
         self.proj_dim = 50
         self.architecture_def()
 
@@ -212,39 +212,12 @@ class IDMForwardSim(tf.keras.Model):
         min_jamx = idm_params[:,:,2:3]
         max_act = idm_params[:,:,3:4]
         min_act = idm_params[:,:,4:5]
-        # tf.print('#######################################')
-        # tf.print('desired_v: ', tf.reduce_mean(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_mean(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_mean(min_jamx))
-        # tf.print('max_act: ', tf.reduce_mean(max_act))
-        # tf.print('min_act: ', tf.reduce_mean(min_act))
-        # tf.print('#######################################')
 
-        # tf.print('################### min ####################')
-        # tf.print('desired_tgap: ', tf.reduce_min(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_min(min_jamx))
-        # tf.print('max_act: ', tf.reduce_min(max_act))
-        # tf.print('min_act: ', tf.reduce_min(min_act))
-        # tf.print('################### max ####################')
-        # tf.print('desired_tgap: ', tf.reduce_max(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_max(min_jamx))
-        # tf.print('max_act: ', tf.reduce_max(max_act))
-        # tf.print('min_act: ', tf.reduce_max(min_act))
-        # tf.print('#######################################')
-        # two = K.relu(desired_tgap*vel+(vel*dv)/ \
-        #                                 (2*tf.sqrt(max_act*min_act)))
         _gap_denum  = 2*tf.sqrt(max_act*min_act)
         _gap = desired_tgap*vel+(vel*dv)/_gap_denum
         desired_gap = min_jamx + K.relu(_gap)
-        # tf.print('_gap ', tf.reduce_mean(_gap))
-        # tf.print('_gap_denum ', tf.reduce_min(_gap_denum))
-
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        # tf.print('max_ego_act_value: ', tf.reduce_max(act))
-        # tf.print('min_act: ', tf.reduce_min(act))
-        # tf.print('vel: ', tf.reduce_max(vel))
-        # tf.print('desired_max_act: ', tf.reduce_mean(max_act))
         return self.action_clip(act)
 
     def action_clip(self, action):
@@ -365,87 +338,62 @@ class IDMLayer(tf.keras.Model):
         x = self.proj_layer_2(x)
         return x
 
-    # def get_des_v(self, x):
-    #     # minval = 15
-    #     # maxval = 35
-    #     # output = self.des_v_neu(self.proj_layer_des_v(x))
-    #     # return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-    #     output = self.des_v_neu(self.proj_layer_des_v(x))
-    #     return 10 + output
-    #
-    # def get_des_tgap(self, x):
-    #     output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-    #     return tf.math.softplus(output)
-    #
-    # def get_min_jamx(self, x):
-    #     output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
-    #     return tf.math.softplus(output)
-    #
-    # def get_max_act(self, x):
-    #     output = self.max_act_neu(self.proj_layer_max_act(x))
-    #     return tf.math.softplus(output)
-    #
-    # def get_min_act(self, x):
-    #     output = self.min_act_neu(self.proj_layer_min_act(x))
-    #     # tf.print('get_min_actMEAN: ', tf.reduce_mean(output))
-    #     # tf.print('get_min_actMAX: ', tf.reduce_max(output))
-    #     # tf.print('get_min_actMIN: ', tf.reduce_min(output))
-    #     return tf.math.softplus(output)
-
     def get_des_v(self, x):
+        # minval = 15
+        # maxval = 35
+        # output = self.des_v_neu(self.proj_layer_des_v(x))
+        # return minval + (maxval-minval)/(1+tf.exp(-1.*output))
         output = self.des_v_neu(self.proj_layer_des_v(x))
-        minval = 15
-        maxval = 35
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return 25 + output
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-        minval = 1
-        maxval = 2
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return tf.math.softplus(output)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
-        minval = 0
-        maxval = 4
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-
+        return tf.math.softplus(output)
+    
     def get_max_act(self, x):
         output = self.max_act_neu(self.proj_layer_max_act(x))
-        minval = 1
-        maxval = 2
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return tf.math.softplus(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.proj_layer_min_act(x))
-        minval = 1
-        maxval = 3
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        # tf.print('get_min_actMEAN: ', tf.reduce_mean(output))
+        # tf.print('get_min_actMAX: ', tf.reduce_max(output))
+        # tf.print('get_min_actMIN: ', tf.reduce_min(output))
+        return tf.math.softplus(output)
 
+    # def get_des_v(self, x):
+    #     output = self.des_v_neu(self.proj_layer_des_v(x))
+    #     minval = 15
+    #     maxval = 35
+    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+    #
     # def get_des_tgap(self, x):
     #     output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-    #     minval = 0.5
-    #     maxval = 2.5
+    #     minval = 1
+    #     maxval = 2
     #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
     #
     # def get_min_jamx(self, x):
     #     output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
     #     minval = 0
-    #     maxval = 5
+    #     maxval = 4
     #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
     #
     # def get_max_act(self, x):
     #     output = self.max_act_neu(self.proj_layer_max_act(x))
-    #     minval = 0.5
-    #     maxval = 2.5
+    #     minval = 1
+    #     maxval = 2
     #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
     #
     # def get_min_act(self, x):
     #     output = self.min_act_neu(self.proj_layer_min_act(x))
-    #     minval = 0.5
-    #     maxval = 3.5
+    #     minval = 1
+    #     maxval = 3
     #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-
 
     def call(self, sampled_z):
         x = self.projection(sampled_z)
@@ -454,12 +402,20 @@ class IDMLayer(tf.keras.Model):
         min_jamx = self.get_min_jamx(x)
         max_act = self.get_max_act(x)
         min_act = self.get_min_act(x)
-        # batch_size = tf.shape(sampled_z)[0]
-        # desired_v = self.get_des_v(x)
-        # desired_tgap = tf.ones([batch_size, 1])*1.5
-        # min_jamx = tf.ones([batch_size, 1])*2.
-        # max_act = tf.ones([batch_size, 1])*1.5
-        # min_act = tf.ones([batch_size, 1])*2.
+        # tf.print('################### min ####################')
+        # tf.print('desired_v: ', tf.reduce_min(desired_v))
+        # tf.print('desired_tgap: ', tf.reduce_min(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_min(min_jamx))
+        # tf.print('max_act: ', tf.reduce_min(max_act))
+        # tf.print('min_act: ', tf.reduce_min(min_act))
+        # tf.print('################### max ####################')
+        # tf.print('desired_v: ', tf.reduce_max(desired_v))
+        # tf.print('desired_tgap: ', tf.reduce_max(desired_tgap))
+        # tf.print('min_jamx: ', tf.reduce_max(min_jamx))
+        # tf.print('max_act: ', tf.reduce_max(max_act))
+        # tf.print('min_act: ', tf.reduce_max(min_act))
+        # tf.print('#######################################')
+
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
 #
