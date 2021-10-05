@@ -574,8 +574,8 @@ np.where((history_future_usc[:, 0, 0] == 8) & \
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 20
-traces_n = 20
+model_trainer.model.forward_sim.attention_temp = 5
+traces_n = 50
 np.where((history_future_usc[:, 0, 2] == 63))
 sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,  237,
          238,  239,  240,  752,  753,  754,  755,  756,  766,  767,  768,
@@ -591,10 +591,10 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
         8348, 8349, 8350]
 
 # for i in bad_examples[0]:
-for i in sepcific_examples:
+# for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 40:
+while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -607,7 +607,7 @@ for i in sepcific_examples:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -627,8 +627,8 @@ for i in sepcific_examples:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
     # if episode not in covered_episodes and e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
-    #                         and e_veh_att[:20].mean() == 0:
+    if episode not in covered_episodes and e_veh_att.mean() > 0 \
+                            and e_veh_att[:20].mean() == 0:
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
