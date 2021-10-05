@@ -250,22 +250,18 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act048_epo_15'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer = Trainer(data_arrays, model_type='lstm_model')
+exp_dir = './models/experiments/'+'h_z_f_idm_act057_epo_30'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
+# model_trainer = Trainer(data_arrays, model_type='lstm_model')``
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.test_mseloss
+model_trainer.test_mseloss
 # train_input = None
 # latent_samples(model_trainer, val_examples[0:10])
 
 # 1.5*(1-(25/15)**4 - 3)
 # Using 'auto'/'sum_over_batch_size' reduction type.
 # %%
-tf.sigmoid(100.)
-tf.reduce_sum(tf.cast(myOtherTensor, tf.float32))
-
-tf.math.count_nonzero([True, True])
 # fig = plt.figure(figsize=(15, 5))
 plt.style.use('default')
 #
@@ -341,7 +337,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '050')
+model_trainer.save_model('h_z_f_idm_act', '058')
 
 # %%
 """
@@ -362,7 +358,7 @@ def get_avg_loss_across_sim(examples_to_vis):
     loss = tf.reduce_mean(loss, axis=1).numpy()
     return loss
 
-loss = get_avg_loss_across_sim(val_examples[20000:30000])
+loss = get_avg_loss_across_sim(val_examples[0:5000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
 bad_examples = np.where(loss >100)
@@ -587,7 +583,7 @@ sepcific_examples = [20000+5567]
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -618,7 +614,8 @@ while Example_pred < 20:
     # if episode not in covered_episodes and aggressiveness == 0.5:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
+    # if episode not in covered_episodes and \
+    #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
     # if episode not in covered_episodes and e_veh_att.mean() > 0:
     if episode not in covered_episodes and e_veh_att.mean() > 0 \
                             and e_veh_att[:20].mean() == 0:
@@ -764,8 +761,8 @@ while Example_pred < 20:
 
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
-model_trainer.model.forward_sim.attention_temp = 1
-sample_index = [86851]
+model_trainer.model.forward_sim.attention_temp = 5
+sample_index = [39884]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -812,8 +809,6 @@ for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act'
     true_params.append(round(features[features[:, 0] == episode][0, indxs[param_name]], 2))
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
 plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
-act_seq
-act_seq[0]
 ##########
 # %%
 # plt.figure(figsize=(10, 10))

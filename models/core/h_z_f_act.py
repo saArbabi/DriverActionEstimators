@@ -17,11 +17,10 @@ class NeurLatentModel(AbstractModel):
         self.act_encoder = FutureEncoder() # sdv's future action
         self.belief_net = BeliefModel()
         self.forward_sim = ForwardSim()
-        self.vae_loss_weight = 0.01 # default
+        self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.Huber()
         # self.loss_function = tf.keras.losses.Huber()
         self.loss_function = tf.keras.losses.MeanSquaredError()
-
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -97,7 +96,7 @@ class NeurLatentModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 10
         self.architecture_def()
 
     def architecture_def(self):
@@ -203,7 +202,7 @@ class ForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 50])
         state_h = state_c = tf.zeros([batch_size, 100])
 
-        for step in range(20):
+        for step in range(40):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]

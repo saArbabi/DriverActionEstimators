@@ -339,10 +339,6 @@ class IDMLayer(tf.keras.Model):
         return x
 
     def get_des_v(self, x):
-        # minval = 15
-        # maxval = 35
-        # output = self.des_v_neu(self.proj_layer_des_v(x))
-        # return minval + (maxval-minval)/(1+tf.exp(-1.*output))
         output = self.des_v_neu(self.proj_layer_des_v(x))
         return 25 + output
 
@@ -353,16 +349,13 @@ class IDMLayer(tf.keras.Model):
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
         return tf.math.softplus(output)
-    
+
     def get_max_act(self, x):
         output = self.max_act_neu(self.proj_layer_max_act(x))
         return tf.math.softplus(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.proj_layer_min_act(x))
-        # tf.print('get_min_actMEAN: ', tf.reduce_mean(output))
-        # tf.print('get_min_actMAX: ', tf.reduce_max(output))
-        # tf.print('get_min_actMIN: ', tf.reduce_min(output))
         return tf.math.softplus(output)
 
     # def get_des_v(self, x):

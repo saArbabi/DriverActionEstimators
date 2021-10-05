@@ -19,13 +19,13 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_006.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_008.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 20, 20)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
+history_future_seqs = data_gen.sequence(features, 20, 40)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -74,7 +74,7 @@ class Trainer():
             from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
-        with open('./models/experiments/scaler_006.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_008.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -145,8 +145,8 @@ class Trainer():
 
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-# exp_dir = './models/experiments/'+'h_z_f_act003_epo_10'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_act006_epo_30'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(epochs=1)
 # model_trainer.test_mseloss
 # %%
@@ -183,7 +183,7 @@ model_trainer.model.vae_loss_weight = 0.1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=5)
+model_trainer.train(epochs=15)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -215,7 +215,31 @@ kl_axis.legend(['test', 'train'])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '005')
+model_trainer.save_model('h_z_f_act', '006')
+
+# %%
+"""
+Find bad examples
+"""
+
+import tensorflow as tf
+# examples_to_vis = val_examples
+# val_examples.shape
+def get_avg_loss_across_sim(examples_to_vis):
+    val_input = [history_sca[examples_to_vis , :, 2:],
+                future_sca[examples_to_vis, :, 2:],
+                future_idm_s[examples_to_vis, :, 2:],
+                future_m_veh_a[examples_to_vis, :, 2:]]
+    act_pred, pri_params, pos_params = model_trainer.model(val_input)
+    loss = (tf.square(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
+    # loss = (tf.abs(tf.subtract(act_pred, future_e_veh_a[examples_to_vis, :, 2:])))
+    loss = tf.reduce_mean(loss, axis=1).numpy()
+    return loss
+
+loss = get_avg_loss_across_sim(val_examples[0:5000])
+_ = plt.hist(loss, bins=150)
+# _ = plt.hist(loss[loss<0.1], bins=150)
+# bad_examples = np.where(loss >100)
 
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -355,8 +379,8 @@ while Example_pred < 40:
     #         e_veh_att[20:60].mean() > 0 and 0.5 > aggressiveness:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
-    if episode not in covered_episodes and e_veh_att.mean() > 0 and aggressiveness < 0.3:
-
+    if episode not in covered_episodes and e_veh_att.mean() > 0 \
+                            and e_veh_att[:20].mean() == 0:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -391,9 +415,9 @@ while Example_pred < 40:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
-           # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           # plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')
