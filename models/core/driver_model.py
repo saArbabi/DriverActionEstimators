@@ -21,8 +21,8 @@ class NeurIDMModel(AbstractModel):
         self.forward_sim = IDMForwardSim()
         self.vae_loss_weight = 0.1 # default
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        # self.loss_function = tf.keras.losses.Huber()
-        self.loss_function = tf.keras.losses.MeanSquaredError()
+        self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -249,7 +249,7 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(latent_projection, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, 100])
 
-        for step in range(40):
+        for step in range(20):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -338,25 +338,25 @@ class IDMLayer(tf.keras.Model):
         x = self.proj_layer_2(x)
         return x
 
-    def get_des_v(self, x):
-        output = self.des_v_neu(self.proj_layer_des_v(x))
-        return 25 + output
-
-    def get_des_tgap(self, x):
-        output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-        return tf.math.softplus(output)
-
-    def get_min_jamx(self, x):
-        output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
-        return tf.math.softplus(output)
-
-    def get_max_act(self, x):
-        output = self.max_act_neu(self.proj_layer_max_act(x))
-        return tf.math.softplus(output)
-
-    def get_min_act(self, x):
-        output = self.min_act_neu(self.proj_layer_min_act(x))
-        return tf.math.softplus(output)
+    # def get_des_v(self, x):
+    #     output = self.des_v_neu(self.proj_layer_des_v(x))
+    #     return 25 + output
+    #
+    # def get_des_tgap(self, x):
+    #     output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
+    #     return tf.math.softplus(output)
+    #
+    # def get_min_jamx(self, x):
+    #     output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
+    #     return tf.math.softplus(output)
+    #
+    # def get_max_act(self, x):
+    #     output = self.max_act_neu(self.proj_layer_max_act(x))
+    #     return tf.math.softplus(output)
+    #
+    # def get_min_act(self, x):
+    #     output = self.min_act_neu(self.proj_layer_min_act(x))
+    #     return tf.math.softplus(output)
 
     # def get_des_v(self, x):
     #     output = self.des_v_neu(self.proj_layer_des_v(x))
@@ -387,6 +387,36 @@ class IDMLayer(tf.keras.Model):
     #     minval = 1
     #     maxval = 3
     #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+
+    def get_des_v(self, x):
+        output = self.des_v_neu(self.proj_layer_des_v(x))
+        minval = 15
+        maxval = 35
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+
+    def get_des_tgap(self, x):
+        output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
+        minval = 0.5
+        maxval = 3
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+
+    def get_min_jamx(self, x):
+        output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
+        minval = 0
+        maxval = 5
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+    
+    def get_max_act(self, x):
+        output = self.max_act_neu(self.proj_layer_max_act(x))
+        minval = 0.5
+        maxval = 3
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+
+    def get_min_act(self, x):
+        output = self.min_act_neu(self.proj_layer_min_act(x))
+        minval = 0.5
+        maxval = 4
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def call(self, sampled_z):
         x = self.projection(sampled_z)
