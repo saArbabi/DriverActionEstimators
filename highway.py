@@ -142,7 +142,9 @@ class EnvMerge(Env):
                 self.vehicles.extend(new_entries)
         self.time_step += 1
 
-class EnvMC(EnvMerge):
+
+
+class EnvMC(Env):
     def __init__(self, config):
         super().__init__(config)
         self.real_vehicles = []

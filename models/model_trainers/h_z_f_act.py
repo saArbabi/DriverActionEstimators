@@ -24,8 +24,8 @@ with open('./models/experiments/sim_data_008.pickle', 'rb') as handle:
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 20, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -145,8 +145,8 @@ class Trainer():
 
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-exp_dir = './models/experiments/'+'h_z_f_act006_epo_30'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_act006_epo_30'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(epochs=1)
 # model_trainer.test_mseloss
 # %%
@@ -183,7 +183,7 @@ model_trainer.model.vae_loss_weight = 0.1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=15)
+model_trainer.train(epochs=30)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -215,7 +215,7 @@ kl_axis.legend(['test', 'train'])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '006')
+# model_trainer.save_model('h_z_f_act', '008')
 
 # %%
 """
@@ -236,10 +236,10 @@ def get_avg_loss_across_sim(examples_to_vis):
     loss = tf.reduce_mean(loss, axis=1).numpy()
     return loss
 
-loss = get_avg_loss_across_sim(val_examples[0:5000])
+loss = get_avg_loss_across_sim(val_examples[0:10000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-# bad_examples = np.where(loss >100)
+bad_examples = np.where(loss > 0.1)
 
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -353,12 +353,28 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 traces_n = 20
-sepcific_examples = [100000]
-# for i in bad_examples[0]:
+sepcific_examples = [237,  320,  322,  323,  325,  326,  327,  328,  329,  330,  331,
+         332,  333,  334,  335,  336,  337,  338,  339,  340,  341,  342,
+         343,  344,  345,  346,  347,  348,  752,  753,  754,  755,  756,
+         757,  758,  759,  760,  761,  764,  765,  766,  767,  768,  769,
+         770,  771,  772,  773,  774,  775,  776,  777,  778,  779,  780,
+         781,  782,  926,  927,  928,  929,  930,  931,  932,  933,  934,
+         935,  936,  938,  939,  940,  941,  942,  943,  944, 1419, 1420,
+        1421, 1422, 1423, 1424, 1425, 1426, 1427, 1428, 1429, 1430, 1431,
+        1432, 1433, 1434, 1435, 1436, 2073, 2075, 2076, 2081, 2085, 2086,
+        2087, 2088, 2089, 2090, 2091, 2927, 2928, 2929, 2930, 2931, 2932,
+        2933, 2934, 5583, 5584, 5585, 5586, 5587, 5588, 5589, 6121, 6122,
+        6123, 6124, 6125, 6126, 6127, 6128, 6129, 6130, 6131, 6132, 6133,
+        6134, 6135, 6136, 6137, 6138, 6139, 6140, 7272, 8128, 8129, 8133,
+        8345, 8346, 8347, 8348, 8349, 8350, 8351, 8352, 8353, 8354, 8355,
+        8356, 8357, 8358, 8359, 8839, 8840, 8841, 8842, 8843, 8845, 8846,
+        8848, 8849, 8850, 8851, 8852, 8853, 8854]
+
+for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 40:
+# while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
 
     sample_index = [val_examples[i]]
@@ -371,7 +387,7 @@ while Example_pred < 40:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # #
     #
@@ -379,8 +395,8 @@ while Example_pred < 40:
     #         e_veh_att[20:60].mean() > 0 and 0.5 > aggressiveness:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
-    if episode not in covered_episodes and e_veh_att.mean() > 0 \
-                            and e_veh_att[:20].mean() == 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
+    #                         and e_veh_att[:20].mean() == 0:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -415,9 +431,9 @@ while Example_pred < 40:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
-           # plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')

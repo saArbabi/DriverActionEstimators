@@ -43,8 +43,8 @@ with open('./models/experiments/sim_data_008.pickle', 'rb') as handle:
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
 
-history_future_seqs = data_gen.sequence(features, 20, 40)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 40)
+history_future_seqs = data_gen.sequence(features, 20, 20)
+history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -161,7 +161,7 @@ for i in range(future_sca.shape[-1]):
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 512,
+    "batch_size": 256,
     },
     "exp_id": "NA",
     "Note": ""
@@ -250,12 +250,12 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act057_epo_30'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_idm_act059_epo_30'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')``
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(train_input, val_input, epochs=1)
-model_trainer.test_mseloss
+# model_trainer.test_mseloss
 # train_input = None
 # latent_samples(model_trainer, val_examples[0:10])
 
@@ -326,7 +326,7 @@ print(model_trainer.test_mseloss[-1])
 # ax = latent_vis(2000)
 # %%
 
-
+model_trainer.model.config
 
 
 # %%
@@ -337,7 +337,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '058')
+model_trainer.save_model('h_z_f_idm_act', '061')
 
 # %%
 """
@@ -358,10 +358,10 @@ def get_avg_loss_across_sim(examples_to_vis):
     loss = tf.reduce_mean(loss, axis=1).numpy()
     return loss
 
-loss = get_avg_loss_across_sim(val_examples[0:5000])
+loss = get_avg_loss_across_sim(val_examples[0:10000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-bad_examples = np.where(loss >100)
+bad_examples = np.where(loss >0.1)
 
 
 
@@ -577,15 +577,25 @@ covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 20
 np.where((history_future_usc[:, 0, 2] == 63))
-sepcific_examples = [20000+5567]
+sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,  237,
+         238,  239,  240,  752,  753,  754,  755,  756,  766,  767,  768,
+         769,  770,  771,  772,  773,  774,  775,  776,  777,  778,  926,
+         927,  928,  929,  930,  931,  932,  933,  934,  935,  936,  937,
+         938,  939,  940,  941,  942,  943,  944,  945, 1419, 1420, 1421,
+        1422, 1423, 1424, 1425, 1430, 1431, 2073, 2074, 2075, 2076, 2077,
+        2078, 2079, 2080, 2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088,
+        2089, 2090, 2091, 6134, 6136, 6137, 6138, 6139, 7267, 7268, 7269,
+        7270, 7271, 7272, 7273, 7274, 7275, 7276, 7277, 7278, 7279, 7280,
+        7281, 7282, 7283, 7284, 7285, 7286, 7287, 7288, 7289, 7290, 8336,
+        8337, 8338, 8339, 8340, 8341, 8342, 8343, 8344, 8345, 8346, 8347,
+        8348, 8349, 8350]
 
 # for i in bad_examples[0]:
-# for i in sepcific_examples:
+for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 40:
+# while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
     # sample_index = [i]
@@ -597,7 +607,7 @@ while Example_pred < 40:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -617,8 +627,8 @@ while Example_pred < 40:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
     # if episode not in covered_episodes and e_veh_att.mean() > 0:
-    if episode not in covered_episodes and e_veh_att.mean() > 0 \
-                            and e_veh_att[:20].mean() == 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
+    #                         and e_veh_att[:20].mean() == 0:
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
@@ -660,9 +670,9 @@ while Example_pred < 40:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.5)
-           # plt.plot(range(19, 59), act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           # plt.plot(range(19, 39), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')
@@ -670,12 +680,12 @@ while Example_pred < 40:
 
         plt.figure(figsize=(5, 3))
         # plt.plot(e_veh_att[:40] , color='black')
-        plt.plot(range(59), e_veh_att, color='red')
+        plt.plot(range(39), e_veh_att, color='red')
         plt.plot([19, 19], [0, 1], color='black')
-        plt.plot([59, 59], [0, 1], color='black')
+        plt.plot([39, 39], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(range(19, 59), att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(range(19, 39), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         try:
@@ -744,7 +754,7 @@ while Example_pred < 40:
         plt.grid()
         ######\######
         plt.figure(figsize=(5, 3))
-        plt.plot(range(59), em_delta_y, color='red')
+        plt.plot(range(39), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
         # plt.plot([0, 40], [-1.5, -1 .5], color='red')
@@ -812,7 +822,7 @@ plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2))
 ##########
 # %%
 # plt.figure(figsize=(10, 10))
-time_axis = np.linspace(0., 4., 59)
+time_axis = np.linspace(0., 4., 39)
 plt.figure(figsize=(5, 3))
 # plt.legend(['Leader', 'Follower', 'Merger'])
 
@@ -922,7 +932,7 @@ plt.grid()
 ############
 plt.figure(figsize=(5, 3))
 plt.plot(em_delta_y[:20], color='black')
-plt.plot(range(29, 59), em_delta_y, color='red')
+plt.plot(range(29, 39), em_delta_y, color='red')
 # plt.plot([0, 40], [-0.37, -0.37], color='green')
 # plt.plot([0, 40], [-1, -1], color='red')
 # plt.plot([0, 40], [-1.5, -1.5], color='red')
