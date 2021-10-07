@@ -19,7 +19,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_008.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_009.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -74,7 +74,7 @@ class Trainer():
             from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
-        with open('./models/experiments/scaler_008.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -183,7 +183,7 @@ model_trainer.model.vae_loss_weight = 0.1
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(epochs=30)
+model_trainer.train(epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -211,11 +211,12 @@ kl_axis.set_xlabel('epochs')
 kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
+print(model_trainer.test_mseloss[-1])
 
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '008')
+model_trainer.save_model('h_z_f_act', '009')
 
 # %%
 """

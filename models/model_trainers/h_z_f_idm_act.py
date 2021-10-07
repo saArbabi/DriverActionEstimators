@@ -38,7 +38,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_008.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_009.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -51,16 +51,17 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
 future_idm_s[0, 0, :]
+future_idm_s.shape
 
 # %%
 """
 BALANCE DATA
 """
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).all(axis=1)
+cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
 data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).all(axis=1))/\
-                        np.count_nonzero((history_future_usc[:, :, -3] != 1).all(axis=1))
+balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
+                        np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
 print(balance_value)
 # %%
 indxs = {}
@@ -107,7 +108,7 @@ import pickle
 #
 # %%
 
-data_id = '_008'
+data_id = '_009'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -188,7 +189,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_008.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -337,7 +338,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '065')
+model_trainer.save_model('h_z_f_idm_act', '068')
 
 # %%
 """
@@ -574,7 +575,7 @@ np.where((history_future_usc[:, 0, 0] == 8) & \
 Example_pred = 0
 i = 0
 covered_episodes = []
-model_trainer.model.forward_sim.attention_temp = 5
+model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 np.where((history_future_usc[:, 0, 2] == 63))
 sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,  237,
@@ -594,7 +595,7 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 5:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -706,9 +707,6 @@ while Example_pred < 5:
         except:
             pass
 
-
-
-
         # if 0 <= aggressiveness <= 1/3:
         #     mean_dis = 0.15
         # elif 1/3 <= aggressiveness <= 2/3:
@@ -762,8 +760,6 @@ while Example_pred < 5:
         plt.grid()
         ############
         Example_pred += 1
-
-
 # %%
 
 """Single sample Anticipation visualisation
