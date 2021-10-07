@@ -251,8 +251,8 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act059_epo_30'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_idm_act067_epo_20'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')``
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(train_input, val_input, epochs=1)
