@@ -8,7 +8,7 @@ import os
 # print('directory: ' + os.getcwd())
 # directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
 
-from highway import EnvMergeMC
+from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
 # from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
@@ -28,8 +28,8 @@ def main():
     np.random.seed(0)
     # np.random.seed(2021)
     # tf.random.set_seed(0)
-    # env.debugging_mode = True
-    env.debugging_mode = False
+    env.debugging_mode = True
+    # env.debugging_mode = False
     while True:
         if env.time_step > 0:
             user_input = input()
