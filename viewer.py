@@ -158,12 +158,6 @@ class ViewerMC(Viewer):
         self.fig = plt.figure(figsize=(20, 4))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
-        self.fig = plt.figure(figsize=(5, 14))
-        self.act_ax = self.fig.add_subplot(511)
-        self.speed_ax = self.fig.add_subplot(512)
-        self.att_ax = self.fig.add_subplot(513)
-        self.desvel_ax = self.fig.add_subplot(514)
-        self.desparam_ax = self.fig.add_subplot(515)
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -197,7 +191,7 @@ class ViewerMC(Viewer):
                 print('#############  ', vehicle.id, env_type, '  ##############')
                 print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
-                    if neighbour:
+                    if neighbour and neighbour.id != 'dummy':
                         print(key+': ', neighbour.id)
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                 [vehicle.glob_y, neighbour.glob_y], linestyle='-',
@@ -240,6 +234,15 @@ class ViewerMC(Viewer):
     def info_plot(self, real_mc_log, ima_mc_log):
         if not self.focus_on_this_vehicle or self.focus_on_this_vehicle not in ima_mc_log:
             return
+
+        if not self.act_ax:
+            self.fig = plt.figure(figsize=(5, 14))
+            self.act_ax = self.fig.add_subplot(511)
+            self.speed_ax = self.fig.add_subplot(512)
+            self.att_ax = self.fig.add_subplot(513)
+            self.desvel_ax = self.fig.add_subplot(514)
+            self.desparam_ax = self.fig.add_subplot(515)
+
         self.act_ax.clear()
         self.speed_ax.clear()
         self.att_ax.clear()

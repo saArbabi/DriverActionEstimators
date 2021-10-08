@@ -8,30 +8,30 @@ import os
 # print('directory: ' + os.getcwd())
 # directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
 
-from highway import EnvMC
+from highway import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
-from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
-import tensorflow as tf
+# from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
+# import tensorflow as tf
 
 def main():
-    config = {'lanes_n':6,
+    config = {'lanes_n':2,
             'lane_width':3.75, # m
-            'lane_length':800 # m
+            'lane_length':600 # m
             }
-    env = EnvMC(config)
+    env = EnvMergeMC(config)
     # env.neural_vehicle = LSTMVehicle()
     # env.neural_vehicle = MLPVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = NeuralIDMVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
-    # np.random.seed(0)
+    np.random.seed(0)
     # np.random.seed(2021)
     # tf.random.set_seed(0)
-    env.debugging_mode = True
-    # env.debugging_mode = False
+    # env.debugging_mode = True
+    env.debugging_mode = False
     while True:
-        if env.time_step > 400:
+        if env.time_step > 0:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
