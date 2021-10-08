@@ -155,7 +155,7 @@ class Viewer():
 class ViewerMC(Viewer):
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(20, 4))
+        self.fig = plt.figure(figsize=(13, 2))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
 
@@ -232,10 +232,12 @@ class ViewerMC(Viewer):
         plt.pause(1e-10)
 
     def info_plot(self, real_mc_log, ima_mc_log):
+        print(self.focus_on_this_vehicle)
         if not self.focus_on_this_vehicle or self.focus_on_this_vehicle not in ima_mc_log:
             return
+        print(self.focus_on_this_vehicle)
 
-        if not self.act_ax:
+        if not hasattr(self, 'act_ax'):
             self.fig = plt.figure(figsize=(5, 14))
             self.act_ax = self.fig.add_subplot(511)
             self.speed_ax = self.fig.add_subplot(512)
@@ -269,7 +271,7 @@ class ViewerMC(Viewer):
         self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
         self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
-        self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
+        # self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
 
         color_i = 0
         for key in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
