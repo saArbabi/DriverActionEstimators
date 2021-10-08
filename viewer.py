@@ -232,10 +232,8 @@ class ViewerMC(Viewer):
         plt.pause(1e-10)
 
     def info_plot(self, real_mc_log, ima_mc_log):
-        print(self.focus_on_this_vehicle)
         if not self.focus_on_this_vehicle or self.focus_on_this_vehicle not in ima_mc_log:
             return
-        print(self.focus_on_this_vehicle)
 
         if not hasattr(self, 'act_ax'):
             self.fig = plt.figure(figsize=(5, 14))

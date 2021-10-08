@@ -179,7 +179,7 @@ class VehicleHandlerMergeMC(VehicleHandlerMerge):
             last_entries[lane_id] = follower
             queuing_entries[lane_id] = None
 
-        if env_time_step == 20 :
+        if env_time_step == 100 :
             # ramp merge lane
             lane_id = 2
             if not queuing_entries[lane_id]:
