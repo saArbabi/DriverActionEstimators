@@ -49,8 +49,7 @@ class IDMMOBILVehicle(Vehicle):
         self.act_long = 0
         self.time_lapse = 0 # since vehicle came to existance
         self.vehicle_type = 'idmmobil'
-
-
+        self.control_type = 'idmmobil'
         self.lateral_actions = {'move_left':0.75,
                                 'move_right':-0.75,
                                 'keep_lane':0}
@@ -612,7 +611,11 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
 
         return neighbours
 
-    def idm_mobil_act(self, reservations):
+    def act(self):
+        act_long, act_lat = self.idm_mobil_act()
+        return [act_long, act_lat]
+
+    def idm_mobil_act(self):
         neighbours = self.neighbours
         act_long = self.idm_action(self, neighbours['att'])
         # return [act_long, self.lateral_action()]
@@ -648,14 +651,13 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
 
             if lc_left_condition > self.driver_params['act_threshold']:
                 target_lane = self.target_lane - 1
-                if self.check_reservations(target_lane, reservations):
-                    self.lane_decision = 'move_left'
-                    self.neighbours['att'] = self.neighbours['fl']
-                    self.neighbours['f'] = self.neighbours['fl']
-                    # self.set_driver_params()
-                    self.target_lane -= 1
-                    if self.neighbours['rl']:
-                        self.neighbours['rl'].set_attentiveness()
-                    return [act_ego_lc_l, self.lateral_action()]
+                self.lane_decision = 'move_left'
+                self.neighbours['att'] = self.neighbours['fl']
+                self.neighbours['f'] = self.neighbours['fl']
+                # self.set_driver_params()
+                self.target_lane -= 1
+                if self.neighbours['rl']:
+                    self.neighbours['rl'].set_attentiveness()
+                return [act_ego_lc_l, self.lateral_action()]
 
         return [act_long, self.lateral_action()]

@@ -150,6 +150,45 @@ class VehicleHandlerMerge(VehicleHandler):
             queuing_entries[lane_id] = None
         return new_entries
 
+class VehicleHandlerMergeMC(VehicleHandlerMerge):
+    def __init__(self, config=None):
+        super().__init__(config)
+
+    def handle_vehicle_entries(self, queuing_entries, last_entries, env_time_step):
+        new_entries = []
+        if not last_entries:
+            for lane_id in range(1, self.lanes_n+1):
+                new_vehicle = self.create_vehicle(lane_id)
+                queuing_entries[lane_id] = None
+                last_entries[lane_id] = new_vehicle
+                if lane_id == 1:
+                    new_entries.append(new_vehicle)
+            return new_entries
+
+        # main lane
+        lane_id = 1
+        if not queuing_entries[lane_id]:
+            queuing_entries[lane_id] = self.create_vehicle(lane_id)
+
+        leader = last_entries[lane_id]
+        follower = queuing_entries[lane_id]
+        delta_x = leader.glob_x - follower.glob_x
+        if delta_x > follower.initial_delta_x:
+            # check if cars are not too close
+            new_entries.append(follower)
+            last_entries[lane_id] = follower
+            queuing_entries[lane_id] = None
+
+        if env_time_step == 50 :
+            # ramp merge lane
+            lane_id = 2
+            if not queuing_entries[lane_id]:
+                queuing_entries[lane_id] = self.create_vehicle(lane_id)
+
+            new_entries.append(queuing_entries[lane_id])
+            last_entries[lane_id] = queuing_entries[lane_id]
+            queuing_entries[lane_id] = None
+        return new_entries
 # class VehicleHandlerMC(VehicleHandler):
 #     def __init__(self, config=None):
 #         super().__init__(config)

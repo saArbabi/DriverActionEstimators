@@ -630,6 +630,9 @@ while Example_pred < 20:
     # if episode not in covered_episodes and e_veh_att.mean() > 0:
     if episode not in covered_episodes and e_veh_att.mean() > 0 \
                             and e_veh_att[:20].mean() == 0:
+    # avg_speed = future_idm_s[sample_index, :, 2].mean()
+    # if episode not in covered_episodes and aggressiveness > 0.8 \
+    #                         and avg_speed < 25:
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
