@@ -12,14 +12,14 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
     def initialize_agent(self, config=None):
         self.samples_n = 1
-        history_len = 30 # steps
+        history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        exp_dir = './models/experiments/'+'h_z_f_idm_act024_epo_4'+'/model'
-        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
+        exp_dir = './models/experiments/'+'h_z_f_idm_act067_epo_20'+'/model'
+        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
-        with open('./models/experiments/dummy_value_set_001.pickle', 'rb') as handle:
+        with open('./models/experiments/dummy_value_set_009.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
         from models.core import driver_model
@@ -81,8 +81,8 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
         return [obs_t0, m_veh_action_feature, neighbours]
 
-    def driver_params_update(self, sampled_z):
-        idm_params = self.model.idm_layer(sampled_z).numpy()[0]
+    def driver_params_update(self, inputs):
+        idm_params = self.model.idm_layer(inputs).numpy()[0]
         self.driver_params['desired_v'] = idm_params[0]
         self.driver_params['desired_tgap'] = idm_params[1]
         self.driver_params['min_jamx'] = idm_params[2]
@@ -91,35 +91,36 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
 
     def latent_projection_update(self, sampled_z):
         latent_projection = self.model.forward_sim.projection(sampled_z)
-        self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 100])
+        self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 50])
         # latent_projection = self.latent_projection([latent_projection, enc_h], batch_size)
-        self.state_h, self.state_c = latent_projection, latent_projection
+        # self.state_h, self.state_c = latent_projection, latent_projection
+        self.state_h = self.state_ = tf.zeros([self.samples_n, 100])
 
     def prep_obs_seq(self, obs_history):
         obs_history = np.float32(obs_history)
-        obs_history.shape = (self.samples_n*30, self.state_dim)
+        obs_history.shape = (self.samples_n*20, self.state_dim)
         obs_history[:, :-3] = self.scaler.transform(obs_history[:, :-3])
-        obs_history.shape = (self.samples_n, 30, self.state_dim)
+        obs_history.shape = (self.samples_n, 20, self.state_dim)
         return obs_history
 
     def get_neur_att(self, sdv_act):
         att_inputs = tf.concat([self.latent_projection, sdv_act], axis=-1)
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_inputs, initial_state=[self.state_h, self.state_c])
-        attention_temp = 1
+        attention_temp = 5
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
         return att_score
 
     def act(self, obs):
         obs_t0, m_veh_action_feature, neighbours = obs
 
-        if self.time_lapse_since_last_param_update % 30 == 0:
+        if self.time_lapse_since_last_param_update % 20 == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_z = self.model.belief_net.sample_z(prior_param)
 
-            self.driver_params_update(sampled_z)
+            self.driver_params_update([sampled_z, obs_history[:, -1, :]])
             self.latent_projection_update(sampled_z)
             self.time_lapse_since_last_param_update = 0
 
