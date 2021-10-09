@@ -94,7 +94,7 @@ class NeuralIDMVehicle(IDMMOBILVehicle):
         self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 50])
         # latent_projection = self.latent_projection([latent_projection, enc_h], batch_size)
         # self.state_h, self.state_c = latent_projection, latent_projection
-        self.state_h = self.state_ = tf.zeros([self.samples_n, 100])
+        self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
 
     def prep_obs_seq(self, obs_history):
         obs_history = np.float32(obs_history)

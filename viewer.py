@@ -187,7 +187,8 @@ class ViewerMC(Viewer):
             att_veh = vehicle.neighbours['att']
             f_veh = vehicle.neighbours['f']
 
-            if vehicle.id == self.focus_on_this_vehicle:
+            if self.focus_on_this_vehicle and (vehicle.id == self.focus_on_this_vehicle or \
+                                str(vehicle.id) == 'neur_'+str(self.focus_on_this_vehicle)):
                 print('#############  ', vehicle.id, env_type, '  ##############')
                 print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
@@ -213,6 +214,8 @@ class ViewerMC(Viewer):
                 # print('glob_x: ', vehicle.glob_x)
                 # print('glob_y: ', vehicle.glob_y)
                 # print('lane_y: ', vehicle.lane_y)
+                if vehicle.neighbours['f']:
+                    print('delta_x: ', vehicle.neighbours['f'].glob_x - vehicle.glob_x)
                 print('###########################')
 
     def draw_highway(self, ax, vehicles, env_type):
@@ -250,8 +253,8 @@ class ViewerMC(Viewer):
         self.desparam_ax.clear()
 
         veh_id = self.focus_on_this_vehicle
-        seq_len = len(real_mc_log[veh_id]['act'])
-        x_range = range(seq_len)
+        tace_len = len(real_mc_log[veh_id]['act'])
+        x_range = range(tace_len)
         colors = cm.rainbow(np.linspace(0, 1, 5))
 
         self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
@@ -268,6 +271,10 @@ class ViewerMC(Viewer):
         # Imagined vehicle
         self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
         self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
+        speed_lim_min = min(ima_mc_log[veh_id]['speed']+real_mc_log[veh_id]['speed'])-1
+        speed_lim_max = max(ima_mc_log[veh_id]['speed']+real_mc_log[veh_id]['speed'])+1
+        self.speed_ax.set_ylim(speed_lim_min, speed_lim_max)
+
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
         # self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
 
@@ -290,7 +297,7 @@ class ViewerMC(Viewer):
         self.att_ax.set_title('attention')
         self.desvel_ax.set_title('desvel')
 
-        major_tick = np.arange(35, len(real_mc_log[veh_id]['act']), 30)
+        major_tick = list(range(19, tace_len, 20))+[tace_len-1]
         for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax, self.desparam_ax]:
             axis.set_xticks(major_tick)
             axis.grid(axis='x')

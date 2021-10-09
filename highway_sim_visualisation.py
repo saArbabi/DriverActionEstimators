@@ -1,4 +1,4 @@
-from highway import EnvMerge
+from envs.merge import EnvMerge
 from viewer import Viewer
 import matplotlib.pyplot as plt
 import numpy as np

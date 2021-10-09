@@ -44,7 +44,7 @@ class EnvMergeMC(merge.EnvMerge):
         for key, neighbour in veh_real.neighbours.items():
             if neighbour:
                 for veh in self.ima_vehicles:
-                    if veh.id == neighbour.id:
+                    if veh.id == neighbour.id or veh.id == 'neur_'+str(neighbour.id):
                         veh_ima.neighbours[key] = veh
             else:
                 veh_ima.neighbours[key] = None
@@ -67,9 +67,12 @@ class EnvMergeMC(merge.EnvMerge):
             if veh_ima.vehicle_type == 'neural':
                 obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
                                                         veh_ima.neighbours['m'])
+                # if veh_real.id == 4:
+                #     print(veh_ima.obs_history)
                 if not veh_ima.collision_detected:
                     veh_ima.update_obs_history(obs[0])
-                    if not (veh_ima.obs_history[0,0,:]).all() == 0 and \
+
+                    if not (veh_ima.obs_history[0,0,:] == 0).all() and \
                                                         veh_ima.control_type != 'neural':
                         veh_ima.control_type = 'neural'
 
@@ -93,6 +96,8 @@ class EnvMergeMC(merge.EnvMerge):
                     veh_ima.collision_detected = True
 
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
+
+
             if self.debugging_mode:
                 if veh_ima.vehicle_type == 'neural':
                     if veh_ima.control_type == 'neural':
@@ -141,8 +146,10 @@ class EnvMergeMC(merge.EnvMerge):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if hasattr(self, 'veh_merger_real') and self.veh_merger_real.time_lapse == 30:
+        if hasattr(self, 'veh_merger_real') and self.veh_merger_real.time_lapse == 120:
             self.neuralize_vehicle_type()
+        # if hasattr(self, 'veh_merger_real'):
+        #     print('self.veh_merger_real.time_lapse ', self.veh_merger_real.time_lapse)
         self.add_new_vehicles()
         self.time_step += 1
 

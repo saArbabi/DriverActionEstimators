@@ -12,7 +12,7 @@ from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
 from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
-# import tensorflow as tf
+import tensorflow as tf
 
 def main():
     config = {'lanes_n':2,
@@ -27,7 +27,7 @@ def main():
     viewer = ViewerMC(config)
     np.random.seed(0)
     # np.random.seed(2021)
-    # tf.random.set_seed(0)
+    tf.random.set_seed(10)
     env.debugging_mode = True
     # env.debugging_mode = False
     while True:
