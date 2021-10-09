@@ -595,7 +595,7 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 1:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -628,11 +628,11 @@ while Example_pred < 1:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
     # if episode not in covered_episodes and e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
-    #                         and e_veh_att[:20].mean() == 0:
-    avg_speed = future_idm_s[sample_index, :, 2].mean()
-    if episode not in covered_episodes and aggressiveness > 0.8 \
-                            and avg_speed < 25:
+    if episode not in covered_episodes and e_veh_att.mean() > 0 \
+                            and e_veh_att[:20].mean() == 0:
+    # avg_speed = future_idm_s[sample_index, :, 2].mean()
+    # if episode not in covered_episodes and aggressiveness > 0.8 \
+    #                         and avg_speed < 25:
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)

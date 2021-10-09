@@ -176,26 +176,26 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
     def initialize_agent(self, config=None):
         self.samples_n = 1
-        history_len = 30 # steps
+        history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
         # self.action_history = [[0., 0.]]*20
 
-        with open('./models/experiments/scaler_001.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
-        with open('./models/experiments/dummy_value_set_001.pickle', 'rb') as handle:
+        with open('./models/experiments/dummy_value_set_009.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
         from models.core.h_z_f_act import NeurLatentModel
         self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_z_f_act003_epo_10'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_act009_epo_15'+'/model'
         self.model.load_weights(exp_dir).expect_partial()
 
     def latent_projection_update(self, sampled_z):
         latent_projection = self.model.forward_sim.projection(sampled_z)
-        self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 100])
-        self.state_h, self.state_c = latent_projection, latent_projection
+        self.latent_projection = tf.reshape(latent_projection, [self.samples_n, 1, 50])
+        self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
 
     def neur_observe(self, e_veh, f_veh, m_veh):
         if self.collision_detected:
@@ -257,7 +257,7 @@ class NeurLatentVehicle(NeuralIDMVehicle):
 
     def act(self, obs):
         obs_t0, m_veh_action_feature, env_state = obs
-        if self.time_lapse_since_last_param_update % 30 == 0:
+        if self.time_lapse_since_last_param_update % 20 == 0:
             obs_history = self.prep_obs_seq(self.obs_history.copy())
             enc_h = self.model.h_seq_encoder(obs_history)
             prior_param = self.model.belief_net(enc_h, dis_type='prior')

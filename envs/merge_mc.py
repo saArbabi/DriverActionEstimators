@@ -77,8 +77,8 @@ class EnvMergeMC(merge.EnvMerge):
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
-                        _act_long = veh_ima.act(obs)
-                        # act_long = veh_ima.act(obs)
+                        # _act_long = veh_ima.act(obs)
+                        act_long = veh_ima.act(obs)
                         # act_long = -0.5
                         # _ = veh_ima.act(obs)
                         if self.metric_collection_mode:
@@ -101,8 +101,8 @@ class EnvMergeMC(merge.EnvMerge):
             if self.debugging_mode:
                 if veh_ima.vehicle_type == 'neural':
                     if veh_ima.control_type == 'neural':
-                        veh_ima.act_long = _act_long
-                        # veh_ima.act_long = act_long
+                        # veh_ima.act_long = _act_long
+                        veh_ima.act_long = act_long
                     else:
                         veh_ima.act_long = act_long
                 else:
