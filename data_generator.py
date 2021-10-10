@@ -370,7 +370,7 @@ class DataGeneratorMerge(DataGenecrator):
             e_veh_ts = raw_recordings[e_veh_id]
             for time_step, e_veh in e_veh_ts.items():
                 att_veh_id = e_veh['att_veh_id']
-                if not att_veh_id or e_veh['lane_decision'] != 'keep_lane' or e_veh['speed'] < 10:
+                if not att_veh_id or e_veh['speed'] < 5:
                     if epis_features:
                         end_episode()
                     continue

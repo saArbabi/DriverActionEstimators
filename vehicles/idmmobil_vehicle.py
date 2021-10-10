@@ -70,7 +70,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':20, # m/s
+                                        'desired_v':25, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
