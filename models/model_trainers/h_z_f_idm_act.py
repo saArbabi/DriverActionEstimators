@@ -38,7 +38,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_009.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_010.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -108,7 +108,7 @@ import pickle
 #
 # %%
 
-data_id = '_009'
+data_id = '_010'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -189,7 +189,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_010.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -251,8 +251,8 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act067_epo_20'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_idm_act067_epo_20'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')``
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -338,7 +338,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '068')
+model_trainer.save_model('h_z_f_idm_act', '070')
 
 # %%
 """
@@ -767,11 +767,10 @@ while Example_pred < 20:
 
 """Single sample Anticipation visualisation
 """
-
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [39884]
+sample_index = [1788]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -791,7 +790,7 @@ sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 # min_act = idm_params.numpy()[:, -2]
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
-idm_params = model_trainer.model.idm_layer(sampled_z)
+idm_params = model_trainer.model.idm_layer([sampled_z, h_seq[:,-1,:]])
 # idm_params = tf.ones([100, 5])*[27.53, 1.14, 4, 1.93, 2.8]
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = idm_params.numpy()

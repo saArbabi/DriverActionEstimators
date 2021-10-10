@@ -19,7 +19,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_009.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_010.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -54,7 +54,7 @@ class Trainer():
         self.epoch_count = 0
         self.initiate_model()
         self.prep_data(training_data)
-
+#
     def initiate_model(self):
         if self.model_name == 'driver_model':
             from models.core import driver_model
@@ -74,7 +74,7 @@ class Trainer():
             from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
-        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_010.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -145,8 +145,8 @@ class Trainer():
 
 
 model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-exp_dir = './models/experiments/'+'h_z_f_act009_epo_15'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_act009_epo_15'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(epochs=1)
 # model_trainer.test_mseloss
 # %%
@@ -216,7 +216,7 @@ print(model_trainer.test_mseloss[-1])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '009')
+model_trainer.save_model('h_z_f_act', '014')
 
 # %%
 """
