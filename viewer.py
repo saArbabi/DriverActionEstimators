@@ -17,7 +17,7 @@ class Viewer():
     def draw_road(self, ax):
         lane_cor = self.config['lane_width']*self.config['lanes_n']
         ax.hlines(0, 0, self.config['lane_length'], colors='k', linestyles='solid')
-        ax.vlines(400, 0, self.config['lane_width'], \
+        ax.vlines(500, 0, self.config['lane_width'], \
                                                     colors='k', linestyles='solid')
         ax.hlines(lane_cor, 0, self.config['lane_length'],
                                                     colors='k', linestyles='solid')

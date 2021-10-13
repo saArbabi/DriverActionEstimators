@@ -6,7 +6,7 @@ import numpy as np
 def main():
     config = {'lanes_n':2,
             'lane_width':3.75, # m
-            'lane_length':600 # m
+            'lane_length':700 # m
             }
     env = EnvMerge(config)
     viewer = Viewer(config)

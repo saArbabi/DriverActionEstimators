@@ -1,17 +1,14 @@
-
 from envs.highway import Env
-from vehicle_handler import VehicleHandlerMerge
 from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 from importlib import reload
-import vehicle_handler
-reload(vehicle_handler)
-from vehicle_handler import VehicleHandler
+from env_initializor import EnvInitializor
+
 
 class EnvMerge(Env):
     def __init__(self, config):
         super().__init__(config)
-        self.dummy_stationary_car = IDMMOBILVehicle('dummy', 2, 400, 0, None)
-        self.handler = VehicleHandlerMerge(config)
+        self.dummy_stationary_car = IDMMOBILVehicle('dummy', 2, 500, 0, None)
+        self.vehicles = EnvInitializor(config).init_env(100)
 
     def get_joint_action(self):
         """
@@ -30,7 +27,6 @@ class EnvMerge(Env):
         """ steps the environment forward in time.
         """
         vehicle_stuck = False
-        self.remove_vehicles_outside_bound()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder()
@@ -40,11 +36,4 @@ class EnvMerge(Env):
             if vehicle.speed < 15 and vehicle.lane_decision == 'keep_lane':
                 vehicle_stuck = True
 
-
-        if not vehicle_stuck:
-            new_entries = self.handler.handle_vehicle_entries(
-                                                              self.queuing_entries,
-                                                              self.last_entries)
-            if new_entries:
-                self.vehicles.extend(new_entries)
         self.time_step += 1

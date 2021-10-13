@@ -60,7 +60,7 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':30, # m/s
+                                        'desired_v':27, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
                                         'max_act':2, # m/s^2
@@ -70,7 +70,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':25, # m/s
+                                        'desired_v':20, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
