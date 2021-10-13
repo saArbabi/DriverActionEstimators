@@ -331,17 +331,27 @@ class DataGeneratorMerge(DataGenecrator):
     def __init__(self, env=None, config=None):
         super().__init__(env, config)
 
+    def is_episode_complete(self):
+        """Episode is considered complete when merger has arrived in the new lane.
+        """
+        if self.env.merger_vehicle.lane_id == 1 and \
+                        self.env.merger_vehicle.lane_decision == 'keep_lane':
+            return True
+        return False
+
+    def run_sim(self):
+        for episode_id in range(self.episodes_n):
+            self.env.episodes_id = episode_id
+            self.env.initialize_env(episode_id)
+            while not self.is_episode_complete()
+                self.env.step()
+        return self.env.recordings
+
     def extract_features(self, raw_recordings):
         """
         Extrtacts features from e_veh's perspective.
-        Note: e_veh is the vehicle to be modelled. It can be found in one of the
-        following scenarios:
-        (1) e_veh following a f_veh in its lane.
-        (2) e_veh performing a lane change.
-        (3) e_veh yielding to a m_veh.
-        (4) e_veh following a f_veh who is changing lane.
+        Note: e_veh is the vehicle to be modelled.
         """
-
         def add_info(f_veh_id, m_veh_id, time_step):
             """Useful for debugging
             """
@@ -361,7 +371,10 @@ class DataGeneratorMerge(DataGenecrator):
 
         features = []
         epis_features = []
-        episode_id = 0
+        episode_ids = list(raw_recordings.keys())
+        for episode_id in episode_ids():
+
+            
         vehicle_ids = list(raw_recordings.keys())
         print(len(vehicle_ids))
         np.random.shuffle(vehicle_ids)

@@ -9,6 +9,8 @@ def main():
             'lane_length':700 # m
             }
     env = EnvMerge(config)
+    env.initialize_env(0)
+
     viewer = Viewer(config)
     np.random.seed(0)
     while True:
@@ -27,6 +29,11 @@ def main():
             print(env.time_step)
 
         env.step()
+        if env.merger_vehicle.lane_id == 1 and \
+                        env.merger_vehicle.lane_decision == 'keep_lane':
+            print('Episode complete')
+
+
         # print(env.time_step)
 
 

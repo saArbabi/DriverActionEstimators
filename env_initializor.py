@@ -36,7 +36,7 @@ class EnvInitializor():
         # main road vehicles
         lane_id = 1
         vehicles = []
-        pos_ranges = np.arange(700,-1, -100) 
+        pos_ranges = np.arange(700,-1, -100)
         for i in range(len(pos_ranges)-1):
             if not vehicles:
                 lead_vehicle = None
@@ -50,6 +50,6 @@ class EnvInitializor():
         # ramp vehicle
         lane_id = 2
         position_range = [100, 200]
-        new_vehicle = self.create_vehicle(None, position_range, lane_id)
-        vehicles.append(new_vehicle)
-        return vehicles
+        merger_vehicle = self.create_vehicle(None, position_range, lane_id)
+        vehicles.append(merger_vehicle)
+        return vehicles, merger_vehicle
