@@ -351,7 +351,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '070')
+model_trainer.save_model('h_z_f_idm_act', '073')
 
 # %%
 """
