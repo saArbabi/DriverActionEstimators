@@ -17,7 +17,7 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':20,
+                'episodes_n':160,
                 'model_type':'belief_net'
                 }
 
