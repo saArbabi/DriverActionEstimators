@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 10
+        self.latent_dim = 3
         self.proj_dim = 50
         self.architecture_def()
 

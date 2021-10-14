@@ -19,9 +19,9 @@ mean = 0.5
 precision = 5
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
-gen_samples = np.random.beta(alpha_param, beta_param, 100)*3
+gen_samples = np.random.beta(alpha_param, beta_param, 100)
 # gen_samples =  18 + np.random.beta(alpha_param, beta_param, 50)*14
-plt.xlim(0, 3)
+plt.xlim(0, 1)
 
 _ = plt.hist(gen_samples, bins=150)
 gen_samples.std()
@@ -70,10 +70,10 @@ plt.grid()
 BALANCE DATA
 """
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_a, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).any(axis=1)
+cond = (history_future_usc[:, :, -3] == 1).all(axis=1)
 data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).any(axis=1))/\
-                        np.count_nonzero((history_future_usc[:, :, -3] != 1).any(axis=1))
+balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).all(axis=1))/\
+                        np.count_nonzero((history_future_usc[:, :, -3] != 1).all(axis=1))
 print(balance_value)
 # %%
 indxs = {}
@@ -263,7 +263,7 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act067_epo_20'+'/model'
+# exp_dir = './models/experiments/'+'h_z_f_idm_act073_epo_20'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')``
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
@@ -307,7 +307,7 @@ model_trainer.model.forward_sim.attention_temp = 5
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=1)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -351,7 +351,7 @@ idm_params[:, 0].max()
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '073')
+model_trainer.save_model('h_z_f_idm_act', '076')
 
 # %%
 """
@@ -372,7 +372,7 @@ def get_avg_loss_across_sim(examples_to_vis):
     loss = tf.reduce_mean(loss, axis=1).numpy()
     return loss
 
-loss = get_avg_loss_across_sim(val_examples[0:10000])
+loss = get_avg_loss_across_sim(val_examples[0:15000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
 bad_examples = np.where(loss >0.1)
@@ -640,10 +640,12 @@ while Example_pred < 20:
     #         e_veh_att.mean() > 0:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
-    # if episode not in covered_episodes and e_veh_att.mean() > 0:
-    if episode not in covered_episodes and e_veh_att.mean() > 0 \
-                            and e_veh_att[:20].mean() == 0:
-    # avg_speed = future_idm_s[sample_index, :, 2].mean()
+    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0 and 0.6 > aggressiveness > 0.4:
+
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
+    #                         and e_veh_att[:20].mean() == 0:
+    # # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \
     #                         and avg_speed < 25:
 
@@ -779,6 +781,7 @@ while Example_pred < 20:
         plt.grid()
         ############
         Example_pred += 1
+
 # %%
 (features[features[:, 0] == episode]) & \
             (features[features[:, 2] == e_veh_id])][0, indxs[param_name]], 2))
@@ -790,7 +793,7 @@ while Example_pred < 20:
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [1788]
+sample_index = [8607]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -834,7 +837,10 @@ plt.text(0.1, 0.5,
             , fontsize=10)
 true_params = []
 for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
-    true_params.append(round(features[features[:, 0] == episode][0, indxs[param_name]], 2))
+    true_pram_val = features[(features[:, 0] == episode) & \
+                            (features[:, 2] == e_veh_id)][0, indxs[param_name]]
+
+    true_params.append(round(true_pram_val, 2))
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
 plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 ##########
