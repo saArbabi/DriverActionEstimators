@@ -307,7 +307,7 @@ model_trainer.model.forward_sim.attention_temp = 5
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(train_input, val_input, epochs=4)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -604,11 +604,11 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
         8337, 8338, 8339, 8340, 8341, 8342, 8343, 8344, 8345, 8346, 8347,
         8348, 8349, 8350]
 
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 10:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -621,7 +621,7 @@ for i in bad_examples[0]:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -640,7 +640,7 @@ for i in bad_examples[0]:
     #         e_veh_att.mean() > 0:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
-    # if episode not in covered_episodes and e_veh_att.mean() > 0:
+    if episode not in covered_episodes and e_veh_att.mean() > 0:
     # if episode not in covered_episodes and e_veh_att.mean() > 0 \
     #                         and e_veh_att[:20].mean() == 0:
     # avg_speed = future_idm_s[sample_index, :, 2].mean()
