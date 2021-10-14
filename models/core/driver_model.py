@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 10
         self.proj_dim = 50
         self.architecture_def()
 
@@ -391,8 +391,8 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x):
         output = self.des_v_neu(self.proj_layer_des_v(x))
-        minval = 23
-        maxval = 27
+        minval = 20
+        maxval = 30
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_des_tgap(self, x):

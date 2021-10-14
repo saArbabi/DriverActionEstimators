@@ -78,11 +78,13 @@ else:
 
 # %%
 
-epis = 0
-features_origin[:, 1].min()
-features_origin[:, 1].max()
+epis = 95
+veh_id = 5
+features_origin[(features_origin[:, 0] == epis) & \
+                            (features_origin[:, 2] == veh_id)][0, indxs['desired_v']]
 
-features_origin[features_origin[:, 0] == epis][0, indxs['desired_v']]
+# %%
+
 features_origin[features_origin[:, 0] == epis][0, indxs['desired_tgap']]
 features_origin[features_origin[:, 0] == epis][0, indxs['max_act']]
 features_origin[features_origin[:, 0] == epis][0, indxs['aggressiveness']]

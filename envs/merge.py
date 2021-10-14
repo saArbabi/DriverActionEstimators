@@ -1,9 +1,11 @@
 from envs.highway import Env
-from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 from importlib import reload
 import env_initializor
 reload(env_initializor)
 from env_initializor import EnvInitializor
+from vehicles import idmmobil_vehicle
+reload(idmmobil_vehicle)
+from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 
 class EnvMerge(Env):
     def __init__(self, config):
@@ -60,7 +62,7 @@ class EnvMerge(Env):
         """
         assert self.vehicles, 'Environment not yet initialized'
         vehicle_stuck = False
-        self.remove_vehicles_outside_bound() 
+        self.remove_vehicles_outside_bound()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder()

@@ -640,9 +640,9 @@ while Example_pred < 20:
     #         e_veh_att.mean() > 0:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
-    if episode not in covered_episodes and e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
-    #                         and e_veh_att[:20].mean() == 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0:
+    if episode not in covered_episodes and e_veh_att.mean() > 0 \
+                            and e_veh_att[:20].mean() == 0:
     # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \
     #                         and avg_speed < 25:
@@ -673,7 +673,10 @@ while Example_pred < 20:
 
         true_params = []
         for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
-            true_params.append(round(features[features[:, 0] == episode][0, indxs[param_name]], 2))
+            true_pram_val = features[(features[:, 0] == episode) & \
+                                    (features[:, 2] == e_veh_id)][0, indxs[param_name]]
+
+            true_params.append(round(true_pram_val, 2))
         plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
         plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
@@ -777,6 +780,10 @@ while Example_pred < 20:
         ############
         Example_pred += 1
 # %%
+(features[features[:, 0] == episode]) & \
+            (features[features[:, 2] == e_veh_id])][0, indxs[param_name]], 2))
+# %%
+
 
 """Single sample Anticipation visualisation
 """

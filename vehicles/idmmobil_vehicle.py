@@ -37,7 +37,7 @@ class Vehicle(object):
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
-        self.beta_precision = 15 
+        self.beta_precision = 15
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
@@ -105,10 +105,10 @@ class IDMMOBILVehicle(Vehicle):
 
     def sample_driver_param(self):
         # return self.driver_params['aggressiveness']
-        return np.random.triangular(0, self.driver_params['aggressiveness'], 1)
-        # alpha_param = self.beta_precision*self.driver_params['aggressiveness']
-        # beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
-        # return np.random.beta(alpha_param, beta_param)
+        # return np.random.triangular(0, self.driver_params['aggressiveness'], 1)
+        alpha_param = self.beta_precision*self.driver_params['aggressiveness']
+        beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
+        return np.random.beta(alpha_param, beta_param)
 
     def get_driver_param(self, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
