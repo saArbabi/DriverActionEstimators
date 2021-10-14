@@ -12,9 +12,9 @@ class EnvInitializor():
         Returns a vehicle with random temprements and initial
         states (position+velocity).
         """
-        aggressiveness = np.random.uniform(0, 1)
+        aggressiveness = np.random.uniform(0.2, 0.8)
         # speed = 24 + np.random.normal(0, 1)
-        speed = 20 + 7*aggressiveness
+        speed = 20 + 7*aggressiveness + np.random.normal()
 
         max_glob_x = position_range[1]
         min_glob_x = position_range[0]
@@ -37,7 +37,8 @@ class EnvInitializor():
         # main road vehicles
         lane_id = 1
         vehicles = []
-        pos_ranges = list(range(700, 0, -120))+[0]
+        traffic_density = int(np.random.uniform(100, 180))
+        pos_ranges = list(range(700, 0, -traffic_density))+[0]
         for i in range(len(pos_ranges)-1):
             if not vehicles:
                 lead_vehicle = None
