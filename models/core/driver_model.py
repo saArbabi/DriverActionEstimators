@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 10
+        self.latent_dim = 3
         self.proj_dim = 50
         self.architecture_def()
 
@@ -291,17 +291,17 @@ class IDMForwardSim(tf.keras.Model):
             # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
             #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             # env_state = self.scale_features(env_state)
-
-            sdv_act = sdv_acts[:, step:step+1, :]
-            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act], axis=-1), \
-                                    initial_state=[state_h, state_c])
-            att_x = self.attention_neu(lstm_output)
-            # att_x = tf.clip_by_value(att_x, clip_value_min=-5, clip_value_max=5)
-
-            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
-            # att_score = idm_s[:, step:step+1, -3:-2]
+            #
+            # sdv_act = sdv_acts[:, step:step+1, :]
+            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+            #                         proj_latent, sdv_act], axis=-1), \
+            #                         initial_state=[state_h, state_c])
+            # att_x = self.attention_neu(lstm_output)
+            # # att_x = tf.clip_by_value(att_x, clip_value_min=-5, clip_value_max=5)
+            #
+            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            # att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+            att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
                 act_seq = _act
@@ -391,8 +391,8 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x):
         output = self.des_v_neu(self.proj_layer_des_v(x))
-        minval = 15
-        maxval = 35
+        minval = 23
+        maxval = 27
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_des_tgap(self, x):

@@ -1,6 +1,8 @@
 from envs.highway import Env
 from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 from importlib import reload
+import env_initializor
+reload(env_initializor)
 from env_initializor import EnvInitializor
 
 class EnvMerge(Env):
@@ -11,6 +13,7 @@ class EnvMerge(Env):
 
     def initialize_env(self, episode_id):
         self.time_step = 0
+        self.env_initializor.next_vehicle_id = 1
         self.vehicles, self.merger_vehicle = self.env_initializor.init_env(episode_id)
 
     def recorder(self):
@@ -21,8 +24,11 @@ class EnvMerge(Env):
         for ego in self.vehicles:
             if ego.glob_x < 0:
                 continue
-            if not ego.id in self.recordings:
-                self.recordings[ego.id] = {}
+            if not self.episode_id in self.recordings:
+                self.recordings[self.episode_id] = {}
+            if not ego.id in self.recordings[self.episode_id]:
+                self.recordings[self.episode_id][ego.id] = {}
+
             log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
             log['f_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
             log['m_veh_id'] = None if not ego.neighbours['m'] else ego.neighbours['m'].id
@@ -54,6 +60,7 @@ class EnvMerge(Env):
         """
         assert self.vehicles, 'Environment not yet initialized'
         vehicle_stuck = False
+        self.remove_vehicles_outside_bound() 
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder()

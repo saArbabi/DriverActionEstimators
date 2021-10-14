@@ -5,7 +5,6 @@ class EnvInitializor():
     def __init__(self, config):
         self.lanes_n = config['lanes_n']
         self.lane_length = config['lane_length']
-        self.next_vehicle_id = 1
         self.lane_width = 3.7
 
     def create_vehicle(self, lead_vehicle, position_range, lane_id):
@@ -13,13 +12,15 @@ class EnvInitializor():
         Returns a vehicle with random temprements and initial
         states (position+velocity).
         """
-        aggressiveness = np.random.uniform(0.01, 0.99)
-        speed = 24 + np.random.normal(0, 1)
+        aggressiveness = np.random.uniform(0, 1)
+        # speed = 24 + np.random.normal(0, 1)
+        speed = 20 + 7*aggressiveness
 
         max_glob_x = position_range[1]
         min_glob_x = position_range[0]
         init_action = -1.
         while init_action <= -1. and max_glob_x > min_glob_x:
+            # glob_x = min_glob_x + (max_glob_x-min_glob_x)/2
             glob_x = np.random.uniform(min_glob_x, max_glob_x)
             new_vehicle = IDMMOBILVehicleMerge(\
                             self.next_vehicle_id, lane_id, glob_x, speed, aggressiveness)
@@ -36,7 +37,7 @@ class EnvInitializor():
         # main road vehicles
         lane_id = 1
         vehicles = []
-        pos_ranges = np.arange(700,-1, -100)
+        pos_ranges = list(range(700, 0, -120))+[0]
         for i in range(len(pos_ranges)-1):
             if not vehicles:
                 lead_vehicle = None

@@ -38,7 +38,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_010.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_011.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -51,9 +51,21 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
 future_idm_s[0, 0, :]
+future_idm_s[1, 0, :]
 future_idm_s.shape
+# %%
+history_future_usc[12, 0, :]
+plt.plot(history_future_usc[0, 0:5, 6])
+plt.grid()
+# %%
+
+plt.plot(history_future_usc[0, 0:5, 3])
+plt.grid()
+# %%
+
 
 # %%
+24 - 0.5*0.1
 """
 BALANCE DATA
 """
@@ -108,7 +120,7 @@ import pickle
 #
 # %%
 
-data_id = '_010'
+data_id = '_011'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -189,7 +201,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_010.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_011.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -295,7 +307,7 @@ model_trainer.model.forward_sim.attention_temp = 5
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=4)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -325,6 +337,7 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 print(model_trainer.test_mseloss[-1])
 # ax = latent_vis(2000)
+
 # %%
 
 model_trainer.model.config
@@ -591,11 +604,11 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
         8337, 8338, 8339, 8340, 8341, 8342, 8343, 8344, 8345, 8346, 8347,
         8348, 8349, 8350]
 
-# for i in bad_examples[0]:
+for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 20:
+# while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -608,7 +621,7 @@ while Example_pred < 20:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -628,8 +641,8 @@ while Example_pred < 20:
     # if episode not in covered_episodes and \
     #         m_veh_exists[:20].mean() == 0 and e_veh_att[25:35].mean() > 0:
     # if episode not in covered_episodes and e_veh_att.mean() > 0:
-    if episode not in covered_episodes and e_veh_att.mean() > 0 \
-                            and e_veh_att[:20].mean() == 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
+    #                         and e_veh_att[:20].mean() == 0:
     # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \
     #                         and avg_speed < 25:

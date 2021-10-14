@@ -9,10 +9,10 @@ def main():
             'lane_length':700 # m
             }
     env = EnvMerge(config)
-    env.initialize_env(0)
+    env.initialize_env(1)
 
     viewer = Viewer(config)
-    np.random.seed(0)
+    # np.random.seed(0)
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
