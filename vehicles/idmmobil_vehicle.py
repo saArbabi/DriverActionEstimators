@@ -37,8 +37,7 @@ class Vehicle(object):
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
-        # self.capability = 'IDM'
-        self.beta_precision = 15
+        self.beta_precision = 15 
         self.lane_id = lane_id
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
@@ -70,7 +69,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':20, # m/s
+                                        'desired_v':23, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
@@ -87,7 +86,7 @@ class IDMMOBILVehicle(Vehicle):
 
     def set_attentiveness(self):
         self.driver_params['attentiveness'] = \
-                            self.steps_to_new_lane_entry*self.sample_beta()
+                            self.steps_to_new_lane_entry*self.sample_driver_param()
 
     def set_driver_params(self):
         self.set_attentiveness()
@@ -104,34 +103,26 @@ class IDMMOBILVehicle(Vehicle):
         self.driver_params['safe_braking'] = self.get_driver_param('safe_braking')
         self.driver_params['act_threshold'] = self.get_driver_param('act_threshold')
 
-    def get_desired_v(self):
-        if self.lane_id in [1, 2]:
-            desired_v = np.random.uniform(25, 30)
-        elif self.lane_id in [3, 4]:
-            desired_v = np.random.uniform(20, 25)
-        elif self.lane_id in [5, 6]:
-            desired_v = np.random.uniform(15, 20)
-        return desired_v
-
-    def sample_beta(self):
+    def sample_driver_param(self):
         # return self.driver_params['aggressiveness']
-        alpha_param = self.beta_precision*self.driver_params['aggressiveness']
-        beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
-        return np.random.beta(alpha_param, beta_param)
+        return np.random.triangular(0, self.driver_params['aggressiveness'], 1)
+        # alpha_param = self.beta_precision*self.driver_params['aggressiveness']
+        # beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
+        # return np.random.beta(alpha_param, beta_param)
 
     def get_driver_param(self, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
             # the larger the param, the more aggressive the driver
             min_value = self.parameter_range['least_aggressvie'][param_name]
             max_value = self.parameter_range['most_aggressive'][param_name]
-            return  min_value + self.sample_beta()*(max_value-min_value)
+            return  min_value + self.sample_driver_param()*(max_value-min_value)
 
         elif param_name in ['desired_tgap', 'min_jamx', 'politeness',
                                                 'act_threshold', 'safe_braking']:
             # the larger the param, the more timid the driver
             min_value = self.parameter_range['most_aggressive'][param_name]
             max_value = self.parameter_range['least_aggressvie'][param_name]
-            return  max_value - self.sample_beta()*(max_value-min_value)
+            return  max_value - self.sample_driver_param()*(max_value-min_value)
 
     def my_neighbours(self, vehicles):
         """
