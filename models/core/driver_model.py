@@ -101,7 +101,7 @@ class NeurIDMModel(AbstractModel):
                                 [enc_h, enc_f], dis_type='both')
         sampled_z = self.belief_net.sample_z(pos_params)
 
-        idm_params = self.idm_layer([sampled_z, current_s])
+        idm_params = self.idm_layer(sampled_z)
         act_seq, _ = self.forward_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 2
         self.proj_dim = 50
         self.architecture_def()
 
@@ -420,7 +420,7 @@ class IDMLayer(tf.keras.Model):
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def call(self, inputs):
-        x = self.projection(tf.concat(inputs, axis=-1))
+        x = self.projection(inputs)
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
         min_jamx = self.get_min_jamx(x)
@@ -478,3 +478,5 @@ class IDMLayer(tf.keras.Model):
 #     def __init__(self, config=None):
 #         super().__init__(config)
 #         self.forward_sim = IDMForwardSimLaneKeep()
+
+ 
