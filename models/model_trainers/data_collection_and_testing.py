@@ -57,7 +57,7 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
-# features_origin[features_origin[:, indxs['e_veh_action']] < -2]
+features_origin[features_origin[:, indxs['e_veh_action']] < -4]
 features_origin[-1, :]
 
 

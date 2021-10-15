@@ -28,9 +28,13 @@ class EnvInitializor():
             init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
             max_glob_x -= 10
 
-        new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
-        self.next_vehicle_id += 1
-        return new_vehicle
+
+        if init_action > -1:
+            new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
+            self.next_vehicle_id += 1
+            return new_vehicle
+        else:
+            return None
 
     def init_env(self, episode_id):
         np.random.seed(episode_id)
@@ -47,7 +51,8 @@ class EnvInitializor():
 
             position_range = [pos_ranges[i+1], pos_ranges[i]]
             new_vehicle = self.create_vehicle(lead_vehicle, position_range, lane_id)
-            vehicles.append(new_vehicle)
+            if new_vehicle:
+                vehicles.append(new_vehicle)
 
         # ramp vehicle
         lane_id = 2
