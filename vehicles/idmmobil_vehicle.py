@@ -75,7 +75,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'max_act':1, # m/s^2
                                         'min_act':1, # m/s^2
                                         'politeness':1,
-                                        'safe_braking':-1.3,
+                                        'safe_braking':-1.5,
                                         'act_threshold':0.2
                                          }}
 

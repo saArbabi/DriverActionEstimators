@@ -341,8 +341,7 @@ class DataGeneratorMerge(DataGenecrator):
     def is_episode_complete(self):
         """Episode is considered complete when all cars have exited the road.
         """
-        if self.env.merger_vehicle.lane_id == 1 and \
-                self.env.merger_vehicle.lane_decision == 'keep_lane' or not self.env.vehicles:
+        if not self.env.vehicles:
             return True
         return False
 
@@ -387,7 +386,7 @@ class DataGeneratorMerge(DataGenecrator):
                 for time_step, e_veh in e_veh_ts.items():
                     att_veh_id = e_veh['att_veh_id']
                     if not att_veh_id or e_veh['speed'] < 5 or \
-                                            e_veh['lane_decision'] != 'keep_lane':
+                            e_veh['glob_x'] > 500 or e_veh['lane_decision'] != 'keep_lane':
                         if trace_features:
                             end_vehicle_tracing()
                         continue

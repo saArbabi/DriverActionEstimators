@@ -57,7 +57,7 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
-features_origin[features_origin[:, indxs['e_veh_action']] < -4]
+features_origin[features_origin[:, indxs['f_veh_action']] < -3]
 features_origin[-1, :]
 
 
@@ -67,7 +67,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_012'
+data_id = '_013'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):

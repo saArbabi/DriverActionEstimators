@@ -12,14 +12,15 @@ class EnvInitializor():
         Returns a vehicle with random temprements and initial
         states (position+velocity).
         """
-        aggressiveness = np.random.uniform(0.2, 0.8)
+        aggressiveness = np.random.uniform(0.01, 0.99)
         # speed = 24 + np.random.normal(0, 1)
-        speed = 20 + 7*aggressiveness + np.random.normal()
-
+        min_speed = 22
+        max_speed = 27
+        speed = min_speed + aggressiveness*(max_speed-min_speed) + np.random.normal(0, 2)
         max_glob_x = position_range[1]
         min_glob_x = position_range[0]
-        init_action = -1.
-        while init_action <= -1. and max_glob_x > min_glob_x:
+        init_action = -1.5
+        while init_action <= -1.5 and max_glob_x > min_glob_x:
             # glob_x = min_glob_x + (max_glob_x-min_glob_x)/2
             glob_x = np.random.uniform(min_glob_x, max_glob_x)
             new_vehicle = IDMMOBILVehicleMerge(\
@@ -29,7 +30,7 @@ class EnvInitializor():
             max_glob_x -= 10
 
 
-        if init_action > -1:
+        if init_action > -1.5:
             new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
             self.next_vehicle_id += 1
             return new_vehicle
@@ -56,7 +57,12 @@ class EnvInitializor():
 
         # ramp vehicle
         lane_id = 2
-        position_range = [100, 200]
+        position_range = [100, 300]
         merger_vehicle = self.create_vehicle(None, position_range, lane_id)
-        vehicles.append(merger_vehicle)
-        return vehicles, merger_vehicle
+        if merger_vehicle:
+            vehicles.append(merger_vehicle)
+            position_range = [100, merger_vehicle.glob_x]
+            merger_vehicle = self.create_vehicle(merger_vehicle, position_range, lane_id)
+            if merger_vehicle:
+                vehicles.append(merger_vehicle)
+        return vehicles
