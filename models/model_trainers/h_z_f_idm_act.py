@@ -765,7 +765,7 @@ p = norm.pdf(x, mu, sigma)
 plt.plot(x, p, linewidth=2)
 # %%
 
-datos = idm_params.numpy()[:, 2]
+datos = idm_params.numpy()[:, 4]
 (mu, sigma) = norm.fit(datos)
 
 x = np.linspace(-2, 5, 500)
@@ -779,7 +779,7 @@ plt.plot(x, p, linewidth=2)
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [9305]
+sample_index = [12511]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
