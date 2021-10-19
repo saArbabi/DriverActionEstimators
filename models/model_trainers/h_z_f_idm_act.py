@@ -579,11 +579,11 @@ np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6
 sepcific_examples = [8696, 8697, 8698, 8699, 8700,
         8701, 8702, 8703, 8704, 8705, 8706, 8707, 8708, 8709, 8710, 8711,
         8712, 8713, 8714, 8715, 8716, 8717, 8718, 8719, 8720, 8721, 8722]
-for i in bad_examples[0]:
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-# while Example_pred < 20:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -597,7 +597,7 @@ for i in bad_examples[0]:
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
     # if episode not in covered_episodes:
-    if 4 == 4:
+    # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
 
@@ -613,7 +613,7 @@ for i in bad_examples[0]:
     # if episode not in covered_episodes and aggressiveness == 0.5:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh`_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
 
     # # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \

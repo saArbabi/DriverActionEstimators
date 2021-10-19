@@ -19,7 +19,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_010.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_013.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -35,7 +35,7 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 config = {
  "model_config": {
      "learning_rate": 1e-3,
-    "batch_size": 256,
+    "batch_size": 512,
     },
     "exp_id": "NA",
     "Note": ""
@@ -74,7 +74,7 @@ class Trainer():
             from models.core.h_z_f_act import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
-        with open('./models/experiments/scaler_010.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_013.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -178,7 +178,7 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.001
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -216,7 +216,7 @@ print(model_trainer.test_mseloss[-1])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '014')
+model_trainer.save_model('h_z_f_act', '016')
 
 # %%
 """
@@ -354,18 +354,7 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 traces_n = 50
-sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,  237,
-         238,  239,  240,  752,  753,  754,  755,  756,  766,  767,  768,
-         769,  770,  771,  772,  773,  774,  775,  776,  777,  778,  926,
-         927,  928,  929,  930,  931,  932,  933,  934,  935,  936,  937,
-         938,  939,  940,  941,  942,  943,  944,  945, 1419, 1420, 1421,
-        1422, 1423, 1424, 1425, 1430, 1431, 2073, 2074, 2075, 2076, 2077,
-        2078, 2079, 2080, 2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088,
-        2089, 2090, 2091, 6134, 6136, 6137, 6138, 6139, 7267, 7268, 7269,
-        7270, 7271, 7272, 7273, 7274, 7275, 7276, 7277, 7278, 7279, 7280,
-        7281, 7282, 7283, 7284, 7285, 7286, 7287, 7288, 7289, 7290, 8336,
-        8337, 8338, 8339, 8340, 8341, 8342, 8343, 8344, 8345, 8346, 8347,
-        8348, 8349, 8350]
+sepcific_examples = []
 
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
@@ -373,7 +362,6 @@ sepcific_examples = [ 227,  228,  229,  230,  231,  232,  233,  234,  235,  236,
 # for i in bad_examples[0][0:10]:
 while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
     # sample_index = [i]
@@ -392,8 +380,11 @@ while Example_pred < 20:
     #         e_veh_att[20:60].mean() > 0 and 0.5 > aggressiveness:
     # if episode not in covered_episodes and \
     #         e_veh_att.mean() > 0 and  0.4 < aggressiveness < 0.6:
-    if episode not in covered_episodes and e_veh_att.mean() > 0 \
-                            and e_veh_att[:20].mean() == 0:
+    # if episode not in covered_episodes and e_veh_att.mean() > 0 \
+    #                         and e_veh_att[:20].mean() == 0:
+
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
