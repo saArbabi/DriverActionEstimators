@@ -17,7 +17,7 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':160,
+                'episodes_n':10,
                 'model_type':'belief_net'
                 }
 
@@ -41,7 +41,7 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
-# %%
+9# %%
 
 """
 Generate data
@@ -59,7 +59,6 @@ features_origin.shape
 features_origin.shape
 features_origin[features_origin[:, indxs['f_veh_action']] < -3]
 features_origin[-1, :]
-
 
 # %%
 veh_id = 33
@@ -235,54 +234,20 @@ for i in range(future_idm_s.shape[0]):
             print(loss.max())
 # %%
 """
-For debugging - all samples
+To get a sense of what action profiles are present in the dataset.
 """
-# with open('./models/experiments/sim_data.pickle', 'rb') as handle:
-#     features = pickle.load(handle)
-_epis = 333
-veh_arr = features[features[:, 0] == _epis]
+set_size = future_idm_s.shape[0]
+for i in range(50):
+    plt.figure()
+    random_indx = np.random.randint(0, set_size)
+    plt.plot(future_e_veh_a[random_indx, :, -1])
+    plt.ylim([-3, 3])
 
-aggressiveness = veh_arr[0, indxs['aggressiveness']]
-desired_v = veh_arr[0, indxs['desired_v']]
-desired_tgap = veh_arr[0, indxs['desired_tgap']]
-min_jamx = veh_arr[0, indxs['min_jamx']]
-max_act = veh_arr[0, indxs['max_act']]
-min_act = veh_arr[0, indxs['min_act']]
-vel = veh_arr[:, indxs['e_veh_speed']]
-f_veh_v = veh_arr[:, indxs['f_veh_speed']]
-m_veh_v = veh_arr[:, indxs['m_veh_speed']]
-e_veh_glob_x = veh_arr[:, indxs['e_veh_glob_x']]
-f_veh_glob_x = veh_arr[:, indxs['f_veh_glob_x']]
-m_veh_glob_x = veh_arr[:, indxs['m_veh_glob_x']]
-f_veh_exists = veh_arr[:, indxs['f_veh_exists']]
-m_veh_exists = veh_arr[:, indxs['m_veh_exists']]
-dv = (vel - f_veh_v)*f_veh_exists
-dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
 
-desired_gap = min_jamx + \
-np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
-ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 
-dv = (vel - m_veh_v)*m_veh_exists
-dx = (m_veh_glob_x - e_veh_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
-desired_gap = min_jamx + \
-np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
-
-em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-att_scores = veh_arr[:, indxs['e_veh_att']]
-
-act = (1-att_scores)*ef_act + att_scores*em_act
-# features = features[features[:, 6]==0] # merger exists
-loss = abs(act-veh_arr[:, indxs['e_veh_action']])
-if not loss.max() < 0.00001:
-    print('index:  ', _epis)
-    print(loss.max())
-plt.plot(loss)
-# plt.plot(act)
 # %%
-plt.plot(act)
-plt.plot(veh_arr[:, indxs['e_veh_action']])
+
 # %%
 
 """
