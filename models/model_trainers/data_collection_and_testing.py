@@ -190,49 +190,48 @@ For debugging - all samples
 """
 # with open('./models/experiments/sim_data.pickle', 'rb') as handle:
 #     features = pickle.load(handle)
-all_epis = np.unique(features[:, 0])
-for _epis in all_epis:
-    all_vehs = np.unique(features[features[:, 0] == _epis][:, 2])
-    for veh_id in all_vehs:
-        veh_arr = features[(features[:, 0] == _epis) & (features[:, 2] == veh_id)]
-        # if veh_arr[0, 1] > 1000:
-        #     continue
-        aggressiveness = veh_arr[0, indxs['aggressiveness']]
+for i in range(future_idm_s.shape[0]):
+# for i in range(10):
+        aggressiveness = history_future_usc[i, 0, -1]
+        veh_id = history_future_usc[i, 0, 2]
+        episode_id = history_future_usc[i, 0, 0]
+        veh_arr = features[(features[:, 0] == episode_id) & \
+                                (features[:, 2] == veh_id)]
         desired_v = veh_arr[0, indxs['desired_v']]
         desired_tgap = veh_arr[0, indxs['desired_tgap']]
         min_jamx = veh_arr[0, indxs['min_jamx']]
         max_act = veh_arr[0, indxs['max_act']]
         min_act = veh_arr[0, indxs['min_act']]
 
-        vel = veh_arr[:, indxs['e_veh_speed']]
-        f_veh_v = veh_arr[:, indxs['f_veh_speed']]
-        m_veh_v = veh_arr[:, indxs['m_veh_speed']]
-        e_veh_glob_x = veh_arr[:, indxs['e_veh_glob_x']]
-        f_veh_glob_x = veh_arr[:, indxs['f_veh_glob_x']]
-        m_veh_glob_x = veh_arr[:, indxs['m_veh_glob_x']]
-        f_veh_exists = veh_arr[:, indxs['f_veh_exists']]
-        m_veh_exists = veh_arr[:, indxs['m_veh_exists']]
+        vel = future_idm_s[i, :, 2]
+        f_veh_v = future_idm_s[i, :, 3]
+        m_veh_v = future_idm_s[i, :, 4]
+        e_veh_glob_x = future_idm_s[i, :, 5]
+        f_veh_glob_x = future_idm_s[i, :, 6]
+        m_veh_glob_x = future_idm_s[i, :, 7]
+        f_veh_exists = future_idm_s[i, :, -2]
+        m_veh_exists = future_idm_s[i, :, -1]
 
-        dv = (vel - f_veh_v)*f_veh_exists
-        dx = (f_veh_glob_x - e_veh_glob_x)*f_veh_exists + 1000*(1-f_veh_exists)
+        dv = (vel - f_veh_v)
+        dx = (f_veh_glob_x - e_veh_glob_x)
 
         desired_gap = min_jamx + \
         np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
         ef_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
 
-        dv = (vel - m_veh_v)*m_veh_exists
-        dx = (m_veh_glob_x - e_veh_glob_x)*m_veh_exists + 1000*(1-m_veh_exists)
+        dv = (vel - m_veh_v)
+        dx = (m_veh_glob_x - e_veh_glob_x)
         desired_gap = min_jamx + \
         np.clip(desired_tgap*vel+(vel*dv)/(2*np.sqrt(max_act*min_act)), a_min=0,a_max=None)
 
         em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
-        att_scores = veh_arr[:, indxs['e_veh_att']]
+        att_scores = future_idm_s[i, :, -3]
         act = (1-att_scores)*ef_act + att_scores*em_act
         # features = features[features[:, 6]==0] # merger exists
-        loss = abs(act-veh_arr[:, indxs['e_veh_action']])
+        loss = abs(act-future_e_veh_a[i, :, -1])
         if not loss.max() < 0.00001:
-            print('_epis:  ', _epis)
+            print('sample-i: :  ', i)
             print(loss.max())
 # %%
 """
