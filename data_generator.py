@@ -433,11 +433,17 @@ class DataGeneratorMerge(DataGenecrator):
                 trace_data = epis_data[epis_data[:, 2] == e_veh_id]
                 history_seq = deque(maxlen=history_length)
                 for step in range(len(trace_data)):
+                    if trace_data[step, 1] != trace_data[step-1, 1] + 1:
+                        # ensures no breaks in seqs
+                        history_seq = deque(maxlen=history_length)
+                        continue
+                    
                     history_seq.append(trace_data[step])
                     if len(history_seq) == history_length:
                         future_indx = step + future_length
                         if future_indx > len(trace_data):
                             break
+
 
                         history_seqs.append(list(history_seq))
                         future_seqs.append(trace_data[step:future_indx])
