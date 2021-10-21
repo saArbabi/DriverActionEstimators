@@ -437,7 +437,7 @@ class DataGeneratorMerge(DataGenecrator):
                         # ensures no breaks in seqs
                         history_seq = deque(maxlen=history_length)
                         continue
-                    
+
                     history_seq.append(trace_data[step])
                     if len(history_seq) == history_length:
                         future_indx = step + future_length

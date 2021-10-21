@@ -7,62 +7,80 @@ class EnvInitializor():
         self.lane_length = config['lane_length']
         self.lane_width = 3.7
 
-    def create_vehicle(self, lead_vehicle, position_range, lane_id):
-        """
-        Returns a vehicle with random temprements and initial
-        states (position+velocity).
-        """
+    def create_main_lane_vehicle(self, lead_vehicle, lane_id):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        # speed = 24 + np.random.normal(0, 1)
-        min_speed = 22
-        max_speed = 27
-        speed = min_speed + aggressiveness*(max_speed-min_speed) + np.random.normal(0, 2)
-        max_glob_x = position_range[1]
-        min_glob_x = position_range[0]
-        init_action = -1.5
-        while init_action <= -1.5 and max_glob_x > min_glob_x:
-            # glob_x = min_glob_x + (max_glob_x-min_glob_x)/2
-            glob_x = np.random.uniform(min_glob_x, max_glob_x)
+        init_speed = np.random.normal(23, 1)
+        if not lead_vehicle:
+            init_x = np.random.uniform(600, 700)
             new_vehicle = IDMMOBILVehicleMerge(\
-                            self.next_vehicle_id, lane_id, glob_x, speed, aggressiveness)
-
-            init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
-            max_glob_x -= 10
-
-
-        if init_action > -1.5:
-            new_vehicle.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
-            self.next_vehicle_id += 1
+                        self.next_vehicle_id, lane_id, init_x, init_speed, aggressiveness)
             return new_vehicle
+
         else:
-            return None
+            new_vehicle = IDMMOBILVehicleMerge(\
+                        self.next_vehicle_id, lane_id, 0,\
+                                                    init_speed, aggressiveness)
+            min_glob_x = max([0, lead_vehicle.glob_x-200])
+            init_action = -3
+            while init_action <= -3 and lead_vehicle.glob_x-min_glob_x > 100:
+                new_vehicle.glob_x = np.random.uniform(min_glob_x,\
+                                                        lead_vehicle.glob_x)
+                init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
+                if init_action >= -3:
+                    return new_vehicle
+
+    def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
+        aggressiveness = np.random.uniform(0.2, 0.99)
+        init_speed = np.random.normal(23, 1)
+
+        if not lead_vehicle:
+            lead_vehicle = self.dummy_stationary_car
+
+        new_vehicle = IDMMOBILVehicleMerge(\
+                    self.next_vehicle_id, lane_id, 0,\
+                                                init_speed, aggressiveness)
+        new_vehicle.perception_range = 500
+        min_glob_x = max([0, lead_vehicle.glob_x-200])
+        init_action = -3
+        while init_action <= -3 and lead_vehicle.glob_x-min_glob_x > 100:
+            new_vehicle.glob_x = np.random.uniform(min_glob_x,\
+                                                    lead_vehicle.glob_x)
+            init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
+            if init_action >= -3:
+                return new_vehicle
 
     def init_env(self, episode_id):
+        """Operations for creating a scenario
+        (1) Create a traffic leader with random speed.
+        (2) Create series of followers with similar speeds. The follower positions
+            are set to comply with a random initial action value.
+        """
+        print(episode_id)
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1
         vehicles = []
-        traffic_density = int(np.random.uniform(100, 180))
-        pos_ranges = list(range(700, 0, -traffic_density))+[0]
-        for i in range(len(pos_ranges)-1):
-            if not vehicles:
-                lead_vehicle = None
-            else:
-                lead_vehicle = vehicles[-1]
 
-            position_range = [pos_ranges[i+1], pos_ranges[i]]
-            new_vehicle = self.create_vehicle(lead_vehicle, position_range, lane_id)
+        new_vehicle = self.create_main_lane_vehicle(None, lane_id)
+        vehicles.append(new_vehicle)
+        self.next_vehicle_id += 1
+
+        while new_vehicle:
+            new_vehicle = self.create_main_lane_vehicle(vehicles[-1], lane_id)
             if new_vehicle:
                 vehicles.append(new_vehicle)
+                self.next_vehicle_id += 1
 
-        # ramp vehicle
+        # ramp vehicles
         lane_id = 2
-        position_range = [100, 300]
-        merger_vehicle = self.create_vehicle(None, position_range, lane_id)
-        if merger_vehicle:
-            vehicles.append(merger_vehicle)
-            position_range = [100, merger_vehicle.glob_x]
-            merger_vehicle = self.create_vehicle(merger_vehicle, position_range, lane_id)
-            if merger_vehicle:
-                vehicles.append(merger_vehicle)
+        new_vehicle = self.create_ramp_merge_vehicle(None, lane_id)
+        if new_vehicle:
+            vehicles.append(new_vehicle)
+            self.next_vehicle_id += 1
+
+        while new_vehicle:
+            new_vehicle = self.create_ramp_merge_vehicle(vehicles[-1], lane_id)
+            if new_vehicle:
+                vehicles.append(new_vehicle)
+                self.next_vehicle_id += 1
         return vehicles

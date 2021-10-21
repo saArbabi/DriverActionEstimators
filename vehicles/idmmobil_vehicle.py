@@ -39,12 +39,14 @@ class IDMMOBILVehicle(Vehicle):
         super().__init__(id, lane_id, glob_x, speed)
         self.beta_precision = 10
         self.lane_id = lane_id
+        self.lane_width = 3.75
+        self.lanes_n = 2
+        self.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
         self.target_lane = lane_id
         self.lane_decision = 'keep_lane'
         self.neighbours = {veh_name: None for veh_name in\
                             ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm', 'att']}
-        self.perception_range = 500 #m
-        self.lane_width = 3.75
+        self.perception_range = 100 #m
         self.act_long = 0
         self.time_lapse = 0 # since vehicle came to existance
         self.vehicle_type = 'idmmobil'
@@ -59,22 +61,22 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':27, # m/s
+                                        'desired_v':30, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
-                                        'max_act':2, # m/s^2
-                                        'min_act':3, # m/s^2
+                                        'max_act':4, # m/s^2
+                                        'min_act':4, # m/s^2
                                         'politeness':0,
                                         'safe_braking':-3,
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':23, # m/s
+                                        'desired_v':21, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':1, # m/s^2
                                         'min_act':1, # m/s^2
-                                        'politeness':1,
+                                        'politeness':0,
                                         'safe_braking':-1,
                                         'act_threshold':0.2
                                          }}
@@ -343,6 +345,9 @@ class IDMMOBILVehicle(Vehicle):
         if not follower:
             return 0
         delta_v, delta_x = self.observe(follower, leader)
+        if delta_x < 0.2 and self.speed < 0.2:
+            self.speed = 0
+            return 0
         desired_gap = follower.driver_params['min_jamx'] + \
                         max(0,
                         follower.driver_params['desired_tgap']*\
@@ -652,3 +657,26 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 return [act_ego_lc_l, self.lateral_action()]
 
         return [act_long, self.lateral_action()]
+
+    def am_i_attending(self, vehicle, delta_x, delta_xs):
+        """Am I attending to the vehicle?
+            There are x3 scenarios:
+            - I am alreading attending to a merger and there is no closer merger
+            - I am alreading attending to a merger and there is a new, closer merger
+            - There is a new merger
+                - happens either due to attentiveness or to avoid dangerous scenarios
+        """
+        # am I already attending to a merge car?
+        if self.neighbours['m']:
+            if self.neighbours['m'] == self.neighbours['att'] != vehicle:
+                if vehicle.glob_x <= self.neighbours['att'].glob_x and delta_x < min(delta_xs):
+                    return True
+                else:
+                    return False
+            elif self.neighbours['m'] == self.neighbours['att'] == vehicle:
+                return True
+
+        if  delta_x < min(delta_xs) and \
+                vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
+            return True
+        return False

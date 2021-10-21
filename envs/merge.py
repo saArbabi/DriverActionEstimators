@@ -16,6 +16,7 @@ class EnvMerge(Env):
     def initialize_env(self, episode_id):
         self.time_step = 0
         self.env_initializor.next_vehicle_id = 1
+        self.env_initializor.dummy_stationary_car = self.dummy_stationary_car
         self.vehicles = self.env_initializor.init_env(episode_id)
 
     def recorder(self):

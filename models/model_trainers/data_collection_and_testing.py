@@ -17,7 +17,7 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':10,
+                'episodes_n':160,
                 'model_type':'belief_net'
                 }
 
@@ -41,7 +41,9 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
-9# %%
+
+
+# %%
 
 """
 Generate data
@@ -57,8 +59,13 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
-features_origin[features_origin[:, indxs['f_veh_action']] < -3]
+features_origin[features_origin[:, indxs['e_veh_action']] > 2]
 features_origin[-1, :]
+
+_ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
+plt.figure()
+_ = plt.hist(features_origin[:, indxs['e_veh_action']], bins=150)
+
 
 # %%
 veh_id = 33

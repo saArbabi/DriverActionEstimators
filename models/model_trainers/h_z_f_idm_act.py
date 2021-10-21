@@ -15,6 +15,40 @@ import os
 
 
 # %%
+timid_idm = {
+                'desired_v':21, # m/s
+                'desired_tgap':2, # s
+                'min_jamx':4, # m
+                'max_act':1, # m/s^2
+                'min_act':1, # m/s^2
+                }
+desired_v, desired_tgap, min_jamx, max_act, min_act = timid_idm.values()
+_v = 22
+_dv = 0
+_dx = 30
+# _dx = np.linspace(10, 50, 100)
+
+desired_gap = min_jamx + desired_tgap*_v+(_v*_dv)/ \
+                                (2*np.sqrt(max_act*min_act))
+
+
+act = max_act*(1-(_v/desired_v)**4-\
+                                    (desired_gap/_dx)**2)
+
+act
+
+# %%
+# act = 0.8
+act = 0.8
+# act = -5
+# act = np.linspace(-3, 3, 100)
+equ = ((act/max_act)-1+(_v/desired_v)**4)
+delta_x = desired_gap/(equ**0.5)
+# plt.plot(delta_x, act)
+delta_x
+# plt.plot(act, delta_x)
+
+# %%
 mean = 0.01
 precision = 10
 alpha_param = precision*mean
