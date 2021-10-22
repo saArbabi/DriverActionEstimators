@@ -39,7 +39,6 @@ class EnvInitializor():
         new_vehicle = IDMMOBILVehicleMerge(\
                     self.next_vehicle_id, lane_id, 0,\
                                                 init_speed, aggressiveness)
-        new_vehicle.perception_range = 500
         min_glob_x = max([0, lead_vehicle.glob_x-200])
         init_action = -3
         while init_action <= -3 and lead_vehicle.glob_x-min_glob_x > 100:

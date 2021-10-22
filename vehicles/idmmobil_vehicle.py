@@ -46,7 +46,7 @@ class IDMMOBILVehicle(Vehicle):
         self.lane_decision = 'keep_lane'
         self.neighbours = {veh_name: None for veh_name in\
                             ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm', 'att']}
-        self.perception_range = 100 #m
+        self.perception_range = 500 #m
         self.act_long = 0
         self.time_lapse = 0 # since vehicle came to existance
         self.vehicle_type = 'idmmobil'
@@ -61,7 +61,7 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':30, # m/s
+                                        'desired_v':27, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
                                         'max_act':4, # m/s^2
@@ -316,7 +316,7 @@ class IDMMOBILVehicle(Vehicle):
         act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
                 (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
-                                                                            or act_long < -3):
+                                            or act_long < -self.driver_params['min_act']):
             return True
         return False
 
@@ -654,26 +654,3 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 return [act_ego_lc_l, self.lateral_action()]
 
         return [act_long, self.lateral_action()]
-
-    def am_i_attending(self, vehicle, delta_x, delta_xs):
-        """Am I attending to the vehicle?
-            There are x3 scenarios:
-            - I am alreading attending to a merger and there is no closer merger
-            - I am alreading attending to a merger and there is a new, closer merger
-            - There is a new merger
-                - happens either due to attentiveness or to avoid dangerous scenarios
-        """
-        # am I already attending to a merge car?
-        if self.neighbours['m']:
-            if self.neighbours['m'] == self.neighbours['att'] != vehicle:
-                if vehicle.glob_x <= self.neighbours['att'].glob_x and delta_x < min(delta_xs):
-                    return True
-                else:
-                    return False
-            elif self.neighbours['m'] == self.neighbours['att'] == vehicle:
-                return True
-
-        if  delta_x < min(delta_xs) and \
-                vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
-            return True
-        return False

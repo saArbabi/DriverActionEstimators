@@ -59,7 +59,8 @@ features_origin = data_gen.prep_data()
 features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
-features_origin[features_origin[:, indxs['e_veh_action']] > 2]
+features_origin[features_origin[:, indxs['e_veh_action']] > 3]
+features_origin[features_origin[:, indxs['e_veh_action']] < -20]
 features_origin[-1, :]
 
 _ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
