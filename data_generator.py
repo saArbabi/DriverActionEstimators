@@ -440,9 +440,11 @@ class DataGeneratorMerge(DataGenecrator):
                     history_seq.append(trace_data[step])
                     if len(history_seq) == history_length:
                         future_indx = step + future_length
-                        if future_indx > len(trace_data):
-                            break
+                        time_steps = trace_data[step:future_indx, 1]
 
+                        if future_indx > len(trace_data) or \
+                            not (time_steps[0:-1]-time_steps[1:] == -1).all():
+                            break
 
                         history_seqs.append(list(history_seq))
                         future_seqs.append(trace_data[step:future_indx])
