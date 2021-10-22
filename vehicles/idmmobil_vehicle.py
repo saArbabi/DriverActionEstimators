@@ -61,23 +61,23 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':27, # m/s
+                                        'desired_v':30, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
                                         'max_act':4, # m/s^2
                                         'min_act':4, # m/s^2
                                         'politeness':0,
-                                        'safe_braking':-3,
+                                        'safe_braking':-4,
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':21, # m/s
+                                        'desired_v':20, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
-                                        'max_act':1, # m/s^2
-                                        'min_act':1, # m/s^2
+                                        'max_act':2, # m/s^2
+                                        'min_act':2, # m/s^2
                                         'politeness':0,
-                                        'safe_braking':-1,
+                                        'safe_braking':-2,
                                         'act_threshold':0.2
                                          }}
 
@@ -305,13 +305,13 @@ class IDMMOBILVehicle(Vehicle):
         """
         # am I already attending to a merge car?
         if self.neighbours['m']:
-            if self.neighbours['m'] == self.neighbours['att'] != vehicle:
+            if self.neighbours['m'] == self.neighbours['att'] == vehicle:
+                return True
+            elif self.neighbours['m'] == self.neighbours['att'] != vehicle:
                 if vehicle.glob_x <= self.neighbours['att'].glob_x and delta_x < min(delta_xs):
                     return True
                 else:
                     return False
-            elif self.neighbours['m'] == self.neighbours['att'] == vehicle:
-                return True
 
         act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \

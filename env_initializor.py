@@ -21,12 +21,14 @@ class EnvInitializor():
                         self.next_vehicle_id, lane_id, 0,\
                                                     init_speed, aggressiveness)
             min_glob_x = max([0, lead_vehicle.glob_x-200])
-            init_action = -3
-            while init_action <= -3 and lead_vehicle.glob_x-min_glob_x > 100:
+            init_action = -new_vehicle.driver_params['min_act']
+            while init_action <= -new_vehicle.driver_params['min_act'] \
+                                                    and min_glob_x>= 0:
                 new_vehicle.glob_x = np.random.uniform(min_glob_x,\
                                                         lead_vehicle.glob_x)
+                min_glob_x -= 20
                 init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
-                if init_action >= -3:
+                if init_action >= -new_vehicle.driver_params['min_act']:
                     return new_vehicle
 
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
@@ -40,12 +42,14 @@ class EnvInitializor():
                     self.next_vehicle_id, lane_id, 0,\
                                                 init_speed, aggressiveness)
         min_glob_x = max([0, lead_vehicle.glob_x-200])
-        init_action = -3
-        while init_action <= -3 and lead_vehicle.glob_x-min_glob_x > 100:
+        init_action = -new_vehicle.driver_params['min_act']
+        while init_action <= -new_vehicle.driver_params['min_act']\
+                                    and min_glob_x >= 0:
             new_vehicle.glob_x = np.random.uniform(min_glob_x,\
                                                     lead_vehicle.glob_x)
             init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
-            if init_action >= -3:
+            min_glob_x -= 20
+            if init_action >= -new_vehicle.driver_params['min_act']:
                 return new_vehicle
 
     def init_env(self, episode_id):
@@ -54,7 +58,7 @@ class EnvInitializor():
         (2) Create series of followers with similar speeds. The follower positions
             are set to comply with a random initial action value.
         """
-        print(episode_id)
+        # print(episode_id)
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1

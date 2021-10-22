@@ -41,8 +41,6 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
-
-
 # %%
 
 """
@@ -60,7 +58,7 @@ features_origin[:, indxs['e_veh_action']].min()
 features_origin.shape
 features_origin.shape
 features_origin[features_origin[:, indxs['e_veh_action']] > 3]
-features_origin[features_origin[:, indxs['e_veh_action']] < -20]
+features_origin[features_origin[:, indxs['e_veh_action']] < -4]
 features_origin[-1, :]
 
 _ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
@@ -74,7 +72,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_013'
+data_id = '_014'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -197,8 +195,8 @@ For debugging - all samples
 """
 # with open('./models/experiments/sim_data.pickle', 'rb') as handle:
 #     features = pickle.load(handle)
-for i in range(future_idm_s.shape[0]):
-# for i in range(10):
+# for i in range(future_idm_s.shape[0]):
+for i in range(10000):
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]
         episode_id = history_future_usc[i, 0, 0]
@@ -250,6 +248,11 @@ for i in range(50):
     random_indx = np.random.randint(0, set_size)
     plt.plot(future_e_veh_a[random_indx, :, -1])
     plt.ylim([-3, 3])
+    title = 'epis: '+str(history_future_usc[random_indx, 0, 0])+'   ' + \
+                'veh_id: ' + str(history_future_usc[random_indx, 0, 2])+'   ' + \
+                'agg: ' + str(history_future_usc[random_indx, 0, -1].round(2))
+    plt.title(title)
+    plt.grid()
 
 
 

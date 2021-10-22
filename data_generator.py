@@ -385,8 +385,7 @@ class DataGeneratorMerge(DataGenecrator):
                 e_veh_ts = epis_data[e_veh_id]
                 for time_step, e_veh in e_veh_ts.items():
                     att_veh_id = e_veh['att_veh_id']
-                    if not att_veh_id or e_veh['speed'] < 5 or \
-                            e_veh['glob_x'] > 500 or e_veh['lane_decision'] != 'keep_lane':
+                    if not att_veh_id or e_veh['lane_decision'] != 'keep_lane':
                         if trace_features:
                             end_vehicle_tracing()
                         continue
