@@ -345,9 +345,6 @@ class IDMMOBILVehicle(Vehicle):
         if not follower:
             return 0
         delta_v, delta_x = self.observe(follower, leader)
-        if delta_x < 0.2 and self.speed < 0.2:
-            self.speed = 0
-            return 0
         desired_gap = follower.driver_params['min_jamx'] + \
                         max(0,
                         follower.driver_params['desired_tgap']*\

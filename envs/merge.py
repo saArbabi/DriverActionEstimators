@@ -58,12 +58,25 @@ class EnvMerge(Env):
             # self.handler.update_reservations(vehicle)
         return joint_action
 
+    def remove_unwanted_vehicles(self):
+        """vehicles are removed if:
+        - they exit highway
+        - they are stuck at merge point
+        """
+        vehicles = []
+
+        for vehicle in self.vehicles:
+            if vehicle.glob_x > self.lane_length or vehicle.speed < 5:
+                continue
+            vehicles.append(vehicle)
+        self.vehicles = vehicles
+
     def step(self, actions=None):
         """ steps the environment forward in time.
         """
         assert self.vehicles, 'Environment not yet initialized'
         vehicle_stuck = False
-        self.remove_vehicles_outside_bound()
+        self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder()
