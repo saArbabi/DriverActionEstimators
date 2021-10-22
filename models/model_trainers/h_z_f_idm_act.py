@@ -15,29 +15,6 @@ import os
 
 
 # %%
-timid_idm = {
-                'desired_v':21, # m/s
-                'desired_tgap':2, # s
-                'min_jamx':4, # m
-                'max_act':1, # m/s^2
-                'min_act':1, # m/s^2
-                }
-desired_v, desired_tgap, min_jamx, max_act, min_act = timid_idm.values()
-_v = 22
-_dv = 0
-_dx = 30
-# _dx = np.linspace(10, 50, 100)
-
-desired_gap = min_jamx + desired_tgap*_v+(_v*_dv)/ \
-                                (2*np.sqrt(max_act*min_act))
-
-
-act = max_act*(1-(_v/desired_v)**4-\
-                                    (desired_gap/_dx)**2)
-
-act
-
-# %%
 # act = 0.8
 act = 0.8
 # act = -5
@@ -49,7 +26,7 @@ delta_x
 # plt.plot(act, delta_x)
 
 # %%
-mean = 0.01
+mean = 0.5
 precision = 10
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
@@ -72,7 +49,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_013.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_014.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -88,6 +65,7 @@ future_idm_s[0, 0, :]
 future_idm_s[1, 0, :]
 future_idm_s.shape
 future_e_veh_a[:, :, -1].std()
+future_e_veh_a[:, :, -1].mean()
 # %%
 history_future_usc[12, 0, :]
 plt.plot(history_future_usc[0, 0:5, 6])
@@ -154,7 +132,7 @@ import pickle
 #
 # %%
 
-data_id = '_013'
+data_id = '_014'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -235,7 +213,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_013.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_014.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -334,14 +312,14 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 1.
+model_trainer.model.vae_loss_weight = 0.1
 model_trainer.model.forward_sim.attention_temp = 5
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(train_input, val_input, epochs=1)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -406,11 +384,11 @@ def get_avg_loss_across_sim(examples_to_vis):
     loss = tf.reduce_mean(loss, axis=1).numpy()
     return loss
 
-# loss = get_avg_loss_across_sim(val_examples[0:15000])
-loss = get_avg_loss_across_sim(train_indxs[0:15000])
+loss = get_avg_loss_across_sim(val_examples[0:15000])
+# loss = get_avg_loss_across_sim(train_indxs[0:15000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-bad_examples = np.where(loss >0.02)
+bad_examples = np.where(loss > 0.3)
 
 
 
@@ -616,17 +594,15 @@ model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
-sepcific_examples = [8696, 8697, 8698, 8699, 8700,
-        8701, 8702, 8703, 8704, 8705, 8706, 8707, 8708, 8709, 8710, 8711,
-        8712, 8713, 8714, 8715, 8716, 8717, 8718, 8719, 8720, 8721, 8722]
-for i in bad_examples[0]:
+sepcific_examples = [48103]
+# for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
-# for i in bad_examples[0][0:10]:
-# while Example_pred < 5:
+# for i in bad_examples[0]:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    # sample_index = [val_examples[i]]
-    sample_index = [train_indxs[i]]
+    sample_index = [val_examples[i]]
+    # sample_index = [train_indxs[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -636,7 +612,7 @@ for i in bad_examples[0]:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -653,7 +629,7 @@ for i in bad_examples[0]:
     # if episode not in covered_episodes and aggressiveness == 0.5:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
 
     # # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \
@@ -683,7 +659,8 @@ for i in bad_examples[0]:
                         'episode_id: '+ info[0] +
                         'time_0: '+ info[1] +
                         'e_veh_id: '+ info[2] +
-                        'aggressiveness: '+ info[3]
+                        'aggressiveness: '+ info[3] +
+                        'mean_speed: '+ str(future_idm_ss[0, :, 0].mean())
                             , fontsize=10)
 
         true_params = []
@@ -808,20 +785,20 @@ x = np.linspace(1, 3, 100)
 p = norm.pdf(x, mu, sigma)
 plt.plot(x, p, linewidth=2)
 # %%
-true_val = 25.44
+true_val = 28.79
 datos = idm_params.numpy()[:, 0]
 (mu, sigma) = norm.fit(datos)
 
-x = np.linspace(25, 27, 500)
+x = np.linspace(27, 30, 500)
 p = norm.pdf(x, mu, sigma)
 plt.plot(x, p, linewidth=2)
 plt.plot([true_val, true_val], [0, 1], linewidth=2, color='red')
 # %%
-true_val = 1.45
-datos = idm_params.numpy()[:, 2]
+true_val = 3.71
+datos = idm_params.numpy()[:, -2]
 (mu, sigma) = norm.fit(datos)
 
-x = np.linspace(1, 2, 500)
+x = np.linspace(2, 4, 500)
 p = norm.pdf(x, mu, sigma)
 plt.plot(x, p, linewidth=2)
 plt.plot([true_val, true_val], [0, 1], linewidth=2, color='red')
@@ -841,7 +818,7 @@ plt.plot(x, p, linewidth=2)
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [7139]
+sample_index = [17180]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -862,7 +839,8 @@ sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
 idm_params = model_trainer.model.idm_layer(sampled_z)
-# idm_params = tf.ones([100, 5])*[26.15, 1.37, 2.04, 1.54, 1.64]
+# idm_params = tf.ones([100, 5])*[20.17, 1.94, 3.94, 2.08, 2.29]
+
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = idm_params.numpy()
 # idm_params[:, 4] = 1.4
