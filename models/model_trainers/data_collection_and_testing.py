@@ -17,7 +17,7 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':10,
+                'episodes_n':160,
                 'model_type':'belief_net'
                 }
 
@@ -74,7 +74,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_016'
+data_id = '_017'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -111,14 +111,6 @@ for veh_id in range(2, 8):
 Driver model - neural idm
 """
 features = features_origin.copy()
-((history_future_usc[:,:,0] == 1) & (history_future_usc[:,:,2] == 3)).all(axis=1)
-(history_future_usc[:, :, 0] == 1).all(axis=1)
-(history_future_usc[:, :, 0] == 1).all(axis=1)
-
-np.all([
-        (history_sca[:, :, 0] == 1).all(axis=0)
-        ,(future_sca[:, :, 0] == 1).all(axis=0)
-        ], axis=0)
 import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
@@ -211,11 +203,11 @@ For debugging - all samples
 # for i in range(future_idm_s.shape[0]):
 # history_future_usc[i, :, 1]
 # history_future_usc[i, :, 1]
-plt.plot(future_idm_s[5317, :, 1])
-plt.plot(history_future_usc[5317, :, 8])
-plt.plot(history_future_usc[5317, :, 8])
-for i in [5317]:
-# for i in range(10000):
+# plt.plot(future_idm_s[5317, :, 1])
+# plt.plot(history_future_usc[5317, :, 8])
+# plt.plot(history_future_usc[5317, :, 8])
+# for i in [5317]:
+for i in range(100):
 
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]

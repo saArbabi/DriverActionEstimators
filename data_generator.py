@@ -390,10 +390,11 @@ class DataGeneratorMerge(DataGenecrator):
                     f_veh_id = e_veh['f_veh_id']
                     m_veh_id = e_veh['m_veh_id']
 
-                    # try:
-                    #     f_veh = epis_data[f_veh_id][time_step]
-                    # except:
-                    f_veh = None
+                    if f_veh_id and f_veh_id != 'dummy':
+                        f_veh = epis_data[f_veh_id][time_step]
+                    else:
+                        f_veh = None
+                        f_veh_id = None
 
                     if m_veh_id:
                         m_veh = epis_data[m_veh_id][time_step]
@@ -410,18 +411,18 @@ class DataGeneratorMerge(DataGenecrator):
                     trace_features.append(step_feature)
         return np.array(features)
 
-    def clean_sequences(self, history_seqs, future_seq):
+    def clean_sequences(self, history_seqs, future_seqs):
         """
         Remove unwanted samples
         """
         cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
                 (history_seqs[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
 
-        cond_fut = ((future_seq[:,:, self.names_to_index('f_veh_id')] != -1) &\
-                (future_seq[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
+        cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
+                (future_seqs[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
 
         cond = np.all([cond_hist, cond_fut], axis=0)
-        return history_seqs[cond], future_seq[cond]
+        return history_seqs[cond], future_seqs[cond]
 
     def sequence(self, features, history_length, future_length):
         """
@@ -440,7 +441,8 @@ class DataGeneratorMerge(DataGenecrator):
                     history_seq.append(trace_data[step])
                     if len(history_seq) == history_length:
                         future_indx = step + future_length
-                        time_steps = trace_data[step:future_indx, 1]
+                        if future_indx > len(trace_data):
+                            break
                         history_seqs.append(list(history_seq))
                         future_seqs.append(trace_data[step:future_indx])
 

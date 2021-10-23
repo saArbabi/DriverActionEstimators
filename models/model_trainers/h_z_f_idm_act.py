@@ -49,7 +49,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_016.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_017.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -138,7 +138,7 @@ import pickle
 #
 # %%
 
-data_id = '_016'
+data_id = '_017'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -218,7 +218,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_016.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_017.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -368,7 +368,7 @@ idm_params.shape
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '080')
+model_trainer.save_model('h_z_f_idm_act', '081')
 
 # %%
 """
