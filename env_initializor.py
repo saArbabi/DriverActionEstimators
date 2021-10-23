@@ -9,7 +9,7 @@ class EnvInitializor():
 
     def create_main_lane_vehicle(self, lead_vehicle, lane_id):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        init_speed = np.random.normal(23, 1)
+        init_speed = np.random.normal(20, 1)
         if not lead_vehicle:
             init_x = np.random.uniform(600, 700)
             new_vehicle = IDMMOBILVehicleMerge(\
@@ -33,7 +33,7 @@ class EnvInitializor():
 
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
         aggressiveness = np.random.uniform(0.2, 0.99)
-        init_speed = np.random.normal(23, 1)
+        init_speed = np.random.normal(20, 1)
 
         if not lead_vehicle:
             lead_vehicle = self.dummy_stationary_car
@@ -41,10 +41,10 @@ class EnvInitializor():
         new_vehicle = IDMMOBILVehicleMerge(\
                     self.next_vehicle_id, lane_id, 0,\
                                                 init_speed, aggressiveness)
-        min_glob_x = max([0, lead_vehicle.glob_x-200])
+        min_glob_x = max([100, lead_vehicle.glob_x-200])
         init_action = -new_vehicle.driver_params['min_act']
         while init_action <= -new_vehicle.driver_params['min_act']\
-                                    and min_glob_x >= 0:
+                                    and min_glob_x >= 100:
             new_vehicle.glob_x = np.random.uniform(min_glob_x,\
                                                     lead_vehicle.glob_x)
             init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)

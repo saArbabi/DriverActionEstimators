@@ -284,17 +284,13 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
             #
-            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            # env_state = self.scale_features(env_state)
-
-            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-            #                 ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            # env_state = self.scale_features(env_state)
+            env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+                            ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = self.scale_features(env_state)
 
             sdv_act = sdv_acts[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act], axis=-1), \
+                                    proj_latent, sdv_act, env_state], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_x = self.attention_neu(lstm_output)
             # att_x = tf.clip_by_value(att_x, clip_value_min=-5, clip_value_max=5)
@@ -311,7 +307,7 @@ class IDMForwardSim(tf.keras.Model):
                 att_seq = tf.concat([att_seq, att_score], axis=1)
 
         # tf.print('_act: ', tf.reduce_min(_act))
-        # tf.print('dx: ', tf.reduce_min(ef_delta_x))
+
         return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):

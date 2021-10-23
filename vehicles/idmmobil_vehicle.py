@@ -620,8 +620,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         if self.lane_decision != 'keep_lane':
             self.is_lane_change_complete()
 
-        elif self.lane_decision == 'keep_lane' and self.glob_x > 50 and \
-                                                self.check_neighbours(neighbours):
+        elif self.lane_decision == 'keep_lane' and self.glob_x > 300:
             lc_left_condition = 0
             lc_right_condition = 0
 
