@@ -49,7 +49,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_014.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_017.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -138,7 +138,7 @@ import pickle
 #
 # %%
 
-data_id = '_014'
+data_id = '_017'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -175,7 +175,6 @@ for i in range(history_future_usc.shape[-1]):
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
     # plt.grid()
-
 # %%
 col_names = ['episode_id', 'time_step',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
@@ -219,7 +218,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_014.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_017.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -369,7 +368,7 @@ idm_params.shape
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '079')
+model_trainer.save_model('h_z_f_idm_act', '081')
 
 # %%
 """
@@ -605,10 +604,10 @@ np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 30:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    # sample_index = [val_examples[i]]
-    sample_index = [train_indxs[i]]
+    sample_index = [val_examples[i]]
+    # sample_index = [train_indxs[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -644,12 +643,13 @@ while Example_pred < 30:
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
-        f_seq = vectorise(future_sca[sample_index, :, 2:], traces_n)
+        # f_seq = vectorise(future_sca[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
-        enc_f = model_trainer.model.f_seq_encoder(f_seq)
+        # enc_f = model_trainer.model.f_seq_encoder(f_seq)
         # _, prior_param = model_trainer.model.belief_net([enc_h, enc_f], dis_type='both')
-        prior_param, _ = model_trainer.model.belief_net([enc_h, enc_f], dis_type='both')
+        # _, prior_param = model_trainer.model.belief_net([enc_h, enc_f], dis_type='both')
+        prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
         idm_params = model_trainer.model.idm_layer(sampled_z)
         act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \

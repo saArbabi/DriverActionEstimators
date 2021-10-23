@@ -232,7 +232,10 @@ class DataGenecrator():
             return [np.array(history_seqs), np.array(future_seqs)]
 
     def names_to_index(self, col_names):
-        return [self.indxs[item] for item in col_names]
+        if type(col_names) == list:
+            return [self.indxs[item] for item in col_names]
+        else:
+            return self.indxs[col_names]
 
     def split_data(self, history_future_seqs, history_future_seqs_scaled):
         history_seqs, future_seqs = history_future_seqs
@@ -374,7 +377,6 @@ class DataGeneratorMerge(DataGenecrator):
             trace_features = []
 
         episode_ids = list(raw_recordings.keys())
-        print(len(episode_ids))
         features = []
         for episode_id in episode_ids:
             trace_features = []
@@ -385,17 +387,18 @@ class DataGeneratorMerge(DataGenecrator):
                 e_veh_ts = epis_data[e_veh_id]
                 for time_step, e_veh in e_veh_ts.items():
                     att_veh_id = e_veh['att_veh_id']
-                    if not att_veh_id or e_veh['lane_decision'] != 'keep_lane':
-                        if trace_features:
-                            end_vehicle_tracing()
-                        continue
-
                     f_veh_id = e_veh['f_veh_id']
                     m_veh_id = e_veh['m_veh_id']
 
+                    if f_veh_id and f_veh_id != 'dummy':
+                        f_veh = epis_data[f_veh_id][time_step]
+                    else:
+                        f_veh = None
+                        f_veh_id = None
+
                     if m_veh_id:
                         m_veh = epis_data[m_veh_id][time_step]
-                        if m_veh_id == att_veh_id:
+                        if m_veh_id and m_veh_id == att_veh_id:
                             e_veh_att = 1
                         else:
                             e_veh_att = 0
@@ -403,27 +406,29 @@ class DataGeneratorMerge(DataGenecrator):
                         m_veh = None
                         e_veh_att = 0
 
-                    if f_veh_id:
-                        try:
-                            f_veh = epis_data[f_veh_id][time_step]
-                        except:
-                            if trace_features:
-                                end_vehicle_tracing()
-                            continue
-                    else:
-                        f_veh = None
-
                     step_feature = self.get_step_feature(e_veh, f_veh, m_veh, e_veh_att)
                     step_feature[0:0] = add_info(f_veh_id, m_veh_id, time_step, episode_id)
                     trace_features.append(step_feature)
         return np.array(features)
+
+    def clean_sequences(self, history_seqs, future_seqs):
+        """
+        Remove unwanted samples
+        """
+        cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
+                (history_seqs[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
+
+        cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
+                (future_seqs[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
+
+        cond = np.all([cond_hist, cond_fut], axis=0)
+        return history_seqs[cond], future_seqs[cond]
 
     def sequence(self, features, history_length, future_length):
         """
         Sequence the data into history/future sequences.
         """
         episode_ids = list(np.unique(features[:, 0]))
-        print(episode_ids)
         history_seqs, future_seqs = [], []
         for episode_id in episode_ids:
             epis_data = features[features[:, 0] == episode_id]
@@ -433,21 +438,12 @@ class DataGeneratorMerge(DataGenecrator):
                 trace_data = epis_data[epis_data[:, 2] == e_veh_id]
                 history_seq = deque(maxlen=history_length)
                 for step in range(len(trace_data)):
-                    if step > 0 and \
-                                trace_data[step, 1] != trace_data[step-1, 1] + 1:
-                        # ensures no breaks in seqs
-                        history_seq = deque(maxlen=history_length)
-                        continue
-
                     history_seq.append(trace_data[step])
                     if len(history_seq) == history_length:
                         future_indx = step + future_length
-                        time_steps = trace_data[step:future_indx, 1]
-
-                        if future_indx > len(trace_data) or \
-                            not (time_steps[0:-1]-time_steps[1:] == -1).all():
+                        if future_indx > len(trace_data):
                             break
-
                         history_seqs.append(list(history_seq))
                         future_seqs.append(trace_data[step:future_indx])
-        return [np.array(history_seqs), np.array(future_seqs)]
+
+        return self.clean_sequences(np.array(history_seqs), np.array(future_seqs))

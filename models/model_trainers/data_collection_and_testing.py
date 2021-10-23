@@ -54,13 +54,15 @@ data_gen = DataGeneratorMerge(env, data_config)
 features_origin = data_gen.prep_data()
 # features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
-features_origin[:, indxs['e_veh_action']].min()
+features_origin[0, :]
+# %%
+
 features_origin.shape
 features_origin.shape
 features_origin[features_origin[:, indxs['e_veh_action']] > 3]
 features_origin[features_origin[:, indxs['e_veh_action']] < -4]
 features_origin[-1, :]
-
+features_origin[:, indxs['m_veh_id']]
 _ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
 plt.figure()
 _ = plt.hist(features_origin[:, indxs['e_veh_action']], bins=150)
@@ -72,7 +74,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_014'
+data_id = '_017'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -109,6 +111,10 @@ for veh_id in range(2, 8):
 Driver model - neural idm
 """
 features = features_origin.copy()
+import data_generator
+reload(data_generator)
+from data_generator import DataGeneratorMerge
+data_gen = DataGeneratorMerge(env, data_config)
 # features = features[features[:, indxs['aggressiveness']] == 0.5]
 # features[features[:, indxs['m_veh_exists']] == 1].shape
 features, dummy_value_set = data_gen.fill_missing_values(features)
@@ -197,9 +203,11 @@ For debugging - all samples
 # for i in range(future_idm_s.shape[0]):
 # history_future_usc[i, :, 1]
 # history_future_usc[i, :, 1]
-# plt.plot(future_idm_s[4822, :, 1])
-# for i in [4822]:
-for i in range(10000):
+# plt.plot(future_idm_s[5317, :, 1])
+# plt.plot(history_future_usc[5317, :, 8])
+# plt.plot(history_future_usc[5317, :, 8])
+# for i in [5317]:
+for i in range(100):
 
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]
