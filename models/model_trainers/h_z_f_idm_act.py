@@ -61,9 +61,14 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 
+features[0,:]
+history_future_usc[:,0,:]
+history_future_usc[:,0,0].min()
+features[:, indxs['e_veh_speed']].var()
+features[:, indxs['e_veh_speed']].std()
 future_idm_s[0, 0, :]
 future_idm_s[1, 0, :]
-future_idm_s.shape
+future_sca.shape
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 # %%
@@ -106,6 +111,7 @@ for item_name in feature_names:
     index += 1
 indxs['e_veh_att']
 indxs['desired_v']
+
 features[:, indxs['el_delta_x']].min()
 features[:, indxs['em_delta_x']].min()
 # %%
@@ -594,15 +600,15 @@ model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
-sepcific_examples = [48103]
+# sepcific_examples = [24826]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 20:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    sample_index = [val_examples[i]]
-    # sample_index = [train_indxs[i]]
+    # sample_index = [val_examples[i]]
+    sample_index = [train_indxs[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -700,23 +706,24 @@ while Example_pred < 20:
            plt.plot(range(19, 39), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
+        precision = 10
+        alpha_param = precision*aggressiveness
+        beta_param = precision*(1-aggressiveness)
         try:
-            precision = 10
-            alpha_param = precision*aggressiveness
-            beta_param = precision*(1-aggressiveness)
             start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-            plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-            end_point = start_point + 45
-            max_prob_point = start_point + aggressiveness*45
-            plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
-            # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
-            x = np.linspace(start_point, end_point, 100)
-            p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
-            p = p/p.max()
-            plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-            plt.xlim(0, 60)
         except:
-            pass
+            start_point = 0
+
+        plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
+        end_point = start_point + 45
+        max_prob_point = start_point + aggressiveness*45
+        plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
+        # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
+        x = np.linspace(start_point, end_point, 100)
+        p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
+        p = p/p.max()
+        plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+        plt.xlim(0, 60)
 
         # if 0 <= aggressiveness <= 1/3:
         #     mean_dis = 0.15

@@ -423,6 +423,7 @@ class DataGeneratorMerge(DataGenecrator):
         Sequence the data into history/future sequences.
         """
         episode_ids = list(np.unique(features[:, 0]))
+        print(episode_ids)
         history_seqs, future_seqs = [], []
         for episode_id in episode_ids:
             epis_data = features[features[:, 0] == episode_id]
@@ -432,7 +433,8 @@ class DataGeneratorMerge(DataGenecrator):
                 trace_data = epis_data[epis_data[:, 2] == e_veh_id]
                 history_seq = deque(maxlen=history_length)
                 for step in range(len(trace_data)):
-                    if trace_data[step, 1] != trace_data[step-1, 1] + 1:
+                    if step > 0 and \
+                                trace_data[step, 1] != trace_data[step-1, 1] + 1:
                         # ensures no breaks in seqs
                         history_seq = deque(maxlen=history_length)
                         continue
