@@ -15,7 +15,6 @@ class EnvInitializor():
             new_vehicle = IDMMOBILVehicleMerge(\
                         self.next_vehicle_id, lane_id, init_x, init_speed, aggressiveness)
             return new_vehicle
-
         else:
             new_vehicle = IDMMOBILVehicleMerge(\
                         self.next_vehicle_id, lane_id, 0,\

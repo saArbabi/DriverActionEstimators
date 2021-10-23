@@ -118,7 +118,6 @@ history_future_seqs = data_gen.sequence(features, 20, 20)
 history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
--
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_a, future_e_veh_a = data_arrays
 future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
@@ -196,11 +195,12 @@ For debugging - all samples
 # with open('./models/experiments/sim_data.pickle', 'rb') as handle:
 #     features = pickle.load(handle)
 # for i in range(future_idm_s.shape[0]):
-# for i in range(10000):
 # history_future_usc[i, :, 1]
 # history_future_usc[i, :, 1]
 # plt.plot(future_idm_s[4822, :, 1])
-for i in [4822]:
+# for i in [4822]:
+for i in range(10000):
+
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]
         episode_id = history_future_usc[i, 0, 0]
