@@ -74,7 +74,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_017'
+data_id = '_018'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -206,8 +206,8 @@ For debugging - all samples
 # plt.plot(future_idm_s[5317, :, 1])
 # plt.plot(history_future_usc[5317, :, 8])
 # plt.plot(history_future_usc[5317, :, 8])
-# for i in [5317]:
-for i in range(100):
+for i in [4522]:
+# for i in range(100):
 
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]

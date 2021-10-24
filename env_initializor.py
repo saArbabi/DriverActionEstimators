@@ -9,16 +9,15 @@ class EnvInitializor():
 
     def create_main_lane_vehicle(self, lead_vehicle, lane_id):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        init_speed = np.random.normal(20, 1)
         if not lead_vehicle:
             init_x = np.random.uniform(600, 700)
             new_vehicle = IDMMOBILVehicleMerge(\
-                        self.next_vehicle_id, lane_id, init_x, init_speed, aggressiveness)
+                        self.next_vehicle_id, lane_id, init_x, self.init_speed, aggressiveness)
             return new_vehicle
         else:
             new_vehicle = IDMMOBILVehicleMerge(\
                         self.next_vehicle_id, lane_id, 0,\
-                                                    init_speed, aggressiveness)
+                                                    self.init_speed, aggressiveness)
             min_glob_x = max([0, lead_vehicle.glob_x-200])
             init_action = -new_vehicle.driver_params['min_act']
             while init_action <= -new_vehicle.driver_params['min_act'] \
@@ -32,14 +31,13 @@ class EnvInitializor():
 
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
         aggressiveness = np.random.uniform(0.2, 0.99)
-        init_speed = np.random.normal(20, 1)
 
         if not lead_vehicle:
             lead_vehicle = self.dummy_stationary_car
 
         new_vehicle = IDMMOBILVehicleMerge(\
                     self.next_vehicle_id, lane_id, 0,\
-                                                init_speed, aggressiveness)
+                                                self.init_speed, aggressiveness)
         min_glob_x = max([100, lead_vehicle.glob_x-200])
         init_action = -new_vehicle.driver_params['min_act']
         while init_action <= -new_vehicle.driver_params['min_act']\
@@ -59,6 +57,8 @@ class EnvInitializor():
         """
         # print(episode_id)
         np.random.seed(episode_id)
+        self.init_speed = np.random.uniform(19, 25)
+
         # main road vehicles
         lane_id = 1
         vehicles = []
