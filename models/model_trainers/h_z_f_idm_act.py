@@ -26,13 +26,13 @@ delta_x
 # plt.plot(act, delta_x)
 
 # %%
-mean = 0.5
+mean = 0.4
 precision = 10
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
-gen_samples = np.random.beta(alpha_param, beta_param, 100)
+gen_samples = np.random.beta(alpha_param, beta_param, 100)*45
 # gen_samples =  18 + np.random.beta(alpha_param, beta_param, 50)*14
-plt.xlim(0, 1)
+# plt.xlim(0, 1)
 
 _ = plt.hist(gen_samples, bins=150)
 gen_samples.std()
@@ -393,7 +393,7 @@ loss = get_avg_loss_across_sim(val_examples[0:15000])
 # loss = get_avg_loss_across_sim(train_indxs[0:15000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-bad_examples = np.where(loss > 0.3)
+bad_examples = np.where(loss > 1)
 
 
 
@@ -562,6 +562,14 @@ def get_e_veh_att(e_veh_id, e_veh_decision, e_veh_att):
     e_veh_att[atten_on_e_veh_changing_lane] = 0
     return e_veh_att
 
+def find_when_merger_appears(episode, e_veh_id):
+    veh_seq = features[(features[:, 0] == episode) & \
+                                    (features[:, 2] == e_veh_id)]
+    m_veh_exists = veh_seq[:, indxs['m_veh_exists']]
+    start_indx = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
+    start_time = veh_seq[start_indx, 1]
+    return start_time
+
 hf_usc_indexs = {}
 col_names = ['episode_id', 'time_step', 'e_veh_id',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
@@ -599,12 +607,12 @@ model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
-# sepcific_examples = [24826]
+sepcific_examples = [24665]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
-# for i in bad_examples[0]:
-while Example_pred < 20:
+for i in bad_examples[0]:
+# while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -617,7 +625,7 @@ while Example_pred < 20:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -634,7 +642,7 @@ while Example_pred < 20:
     # if episode not in covered_episodes and aggressiveness == 0.5:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
 
     # # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \
@@ -647,7 +655,6 @@ while Example_pred < 20:
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model_trainer.model.h_seq_encoder(h_seq)
         # enc_f = model_trainer.model.f_seq_encoder(f_seq)
-        # _, prior_param = model_trainer.model.belief_net([enc_h, enc_f], dis_type='both')
         # _, prior_param = model_trainer.model.belief_net([enc_h, enc_f], dis_type='both')
         prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
@@ -709,21 +716,18 @@ while Example_pred < 20:
         precision = 10
         alpha_param = precision*aggressiveness
         beta_param = precision*(1-aggressiveness)
-        try:
-            start_point = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-        except:
-            start_point = 0
-
+        start_time = find_when_merger_appears(episode, e_veh_id)
+        start_point = start_time - time_0
         plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
         end_point = start_point + 45
-        max_prob_point = start_point + aggressiveness*45
+        max_prob_point = start_point + aggressiveness*(end_point-start_point)
         plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
         # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
         x = np.linspace(start_point, end_point, 100)
         p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
         p = p/p.max()
         plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-        plt.xlim(0, 60)
+        plt.xlim(0, 50)
 
         # if 0 <= aggressiveness <= 1/3:
         #     mean_dis = 0.15
