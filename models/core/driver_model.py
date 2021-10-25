@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 2
         self.proj_dim = 50
         self.architecture_def()
 
@@ -206,7 +206,7 @@ class IDMForwardSim(tf.keras.Model):
         # self.action_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=0.1, clip_value_max=1000.)
+        dx = tf.clip_by_value(dx, clip_value_min=0.2, clip_value_max=1000.)
         # tf.Assert(tf.greater(tf.reduce_min(dx), 0.),[dx])
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
@@ -283,7 +283,7 @@ class IDMForwardSim(tf.keras.Model):
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
-            #
+            
             env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
                             ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_features(env_state)
@@ -293,10 +293,9 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, sdv_act, env_state], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_x = self.attention_neu(lstm_output)
-            # att_x = tf.clip_by_value(att_x, clip_value_min=-5, clip_value_max=5)
-
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
@@ -318,7 +317,7 @@ class IDMLayer(tf.keras.Model):
 
     def architecture_def(self):
         self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
-        self.proj_layer_2 = Dense(self.`proj_dim, activation='relu')
+        self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
         self.des_v_neu = Dense(1)
         self.proj_layer_des_v = Dense(self.proj_dim, activation='relu')
         self.des_tgap_neu = Dense(1)

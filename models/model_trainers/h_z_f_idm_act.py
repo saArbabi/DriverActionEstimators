@@ -49,7 +49,7 @@ import data_generator
 reload(data_generator)
 from data_generator import DataGeneratorMerge
 data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_017.pickle', 'rb') as handle:
+with open('./models/experiments/sim_data_019.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
 features_scaled, scaler = data_gen.scale_data(features)
@@ -65,12 +65,14 @@ features[0,:]
 history_future_usc[:,0,:]
 history_future_usc[:,0,0].min()
 features[:, indxs['e_veh_speed']].var()
-features[:, indxs['e_veh_speed']].std()
+features[:, indxs['el_delta_x']].min()
 future_idm_s[0, 0, :]
 future_idm_s[1, 0, :]
 future_sca.shape
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
+features[features[:, indxs['el_delta_x']] < 0.3]
+
 # %%
 history_future_usc[12, 0, :]
 plt.plot(history_future_usc[0, 0:5, 6])
@@ -138,7 +140,7 @@ import pickle
 #
 # %%
 
-data_id = '_017'
+data_id = '_019'
 file_name = 'scaler'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -218,7 +220,7 @@ class Trainer():
             from models.core.driver_model import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/scaler_017.pickle', 'rb') as handle:
+        with open('./models/experiments/scaler_019.pickle', 'rb') as handle:
             self.model.forward_sim.scaler = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -280,10 +282,8 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-exp_dir = './models/experiments/'+'h_z_f_idm_act083_epo_20'+'/model'
+exp_dir = './models/experiments/'+'h_z_f_idm_act087_epo_20'+'/model'
 model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer = Trainer(data_arrays, model_type='lstm_model')``
-# model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
 # train_input = None
@@ -317,14 +317,14 @@ future_idm_s = np.float32(future_idm_s)
 future_m_veh_a = np.float32(future_m_veh_a)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
-model_trainer.model.vae_loss_weight = 0.1
+model_trainer.model.vae_loss_weight = 0.001
 model_trainer.model.forward_sim.attention_temp = 5
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
 # model_trainer.train(epochs=10)
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=10)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -368,7 +368,7 @@ idm_params.shape
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '083')
+model_trainer.save_model('h_z_f_idm_act', '087')
 
 # %%
 """
@@ -566,9 +566,13 @@ def find_when_merger_appears(episode, e_veh_id):
     veh_seq = features[(features[:, 0] == episode) & \
                                     (features[:, 2] == e_veh_id)]
     m_veh_exists = veh_seq[:, indxs['m_veh_exists']]
-    start_indx = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-    start_time = veh_seq[start_indx, 1]
-    return start_time
+    try:
+        start_indx = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
+        start_time = veh_seq[start_indx, 1]
+        return start_time
+    except:
+        return
+
 
 hf_usc_indexs = {}
 col_names = ['episode_id', 'time_step', 'e_veh_id',
@@ -607,15 +611,15 @@ model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
-sepcific_examples = [24665]
+sepcific_examples = [4538]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 40:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    sample_index = [val_examples[i]]
-    # sample_index = [train_indxs[i]]
+    # sample_index = [val_examples[i]]
+    sample_index = [train_indxs[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -713,21 +717,22 @@ while Example_pred < 40:
            plt.plot(range(19, 39), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
-        precision = 10
-        alpha_param = precision*aggressiveness
-        beta_param = precision*(1-aggressiveness)
         start_time = find_when_merger_appears(episode, e_veh_id)
-        start_point = start_time - time_0
-        plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-        end_point = start_point + 45
-        max_prob_point = start_point + aggressiveness*(end_point-start_point)
-        plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
-        # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
-        x = np.linspace(start_point, end_point, 100)
-        p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
-        p = p/p.max()
-        plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-        plt.xlim(0, 50)
+        if start_time:
+            precision = 10
+            alpha_param = precision*aggressiveness
+            beta_param = precision*(1-aggressiveness)
+            start_point = start_time - time_0
+            plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
+            end_point = start_point + 45
+            max_prob_point = start_point + aggressiveness*(end_point-start_point)
+            plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
+            # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
+            x = np.linspace(start_point, end_point, 100)
+            p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
+            p = p/p.max()
+            plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
+            plt.xlim(0, 50)
 
         # if 0 <= aggressiveness <= 1/3:
         #     mean_dis = 0.15
@@ -791,35 +796,28 @@ from scipy.stats import norm
 datos = sampled_z.numpy()[:, 0]
 (mu, sigma) = norm.fit(datos)
 datos.std()
-x = np.linspace(1, 3, 100)
+x = np.linspace(-4, -3, 100)
 p = norm.pdf(x, mu, sigma)
 plt.plot(x, p, linewidth=2)
 # %%
-true_val = 28.79
-datos = idm_params.numpy()[:, 0]
-(mu, sigma) = norm.fit(datos)
+param_names = ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
+for i in range(5):
+    plt.figure(figsize=(3, 2))
+    true_val = true_params[i]
+    param_name = param_names[i]
 
-x = np.linspace(27, 30, 500)
-p = norm.pdf(x, mu, sigma)
-plt.plot(x, p, linewidth=2)
-plt.plot([true_val, true_val], [0, 1], linewidth=2, color='red')
-# %%
-true_val = 3.71
-datos = idm_params.numpy()[:, -2]
-(mu, sigma) = norm.fit(datos)
+    datos = idm_params.numpy()[:, i]
+    mean_val = datos.mean()
+    (mu, sigma) = norm.fit(datos)
 
-x = np.linspace(2, 4, 500)
-p = norm.pdf(x, mu, sigma)
-plt.plot(x, p, linewidth=2)
-plt.plot([true_val, true_val], [0, 1], linewidth=2, color='red')
-# %%
+    x = np.linspace(mean_val*0.6, mean_val*1.4, 300)
+    p = norm.pdf(x, mu, sigma)
+    plt.plot(x, p, linewidth=2)
+    plt.title(param_name)
+    plt.axis('off')
 
-datos = idm_params.numpy()[:, 0]
-(mu, sigma) = norm.fit(datos)
+    plt.plot([true_val, true_val], [0, p.max()], linewidth=2, color='red')
 
-x = np.linspace(-2, 5, 500)
-p = norm.pdf(x, mu, sigma)
-plt.plot(x, p, linewidth=2)
 # %%
 
 
@@ -828,7 +826,7 @@ plt.plot(x, p, linewidth=2)
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [17180]
+sample_index = [4538]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -840,16 +838,16 @@ sdv_actions = vectorise(future_m_veh_a[sample_index, :, 2:], traces_n)
 # sdv_actions[:, 10, -1] = 0
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
-future_idm_ss[0, 0]
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 prior_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(prior_param)
+idm_params = model_trainer.model.idm_layer(sampled_z)
+
 #
 # min_act = idm_params.numpy()[:, -2]
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
-idm_params = model_trainer.model.idm_layer(sampled_z)
-# idm_params = tf.ones([100, 5])*[20.17, 1.94, 3.94, 2.08, 2.29]
+idm_params = tf.ones([100, 5])*[26.08, 1.43, 2.12, 2.76, 3]
 
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = idm_params.numpy()
