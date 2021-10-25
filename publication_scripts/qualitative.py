@@ -44,13 +44,13 @@ for mean in range_means:
 
 
 # %%
-precision = 5
+precision = 15
 mean = 0.5
 color_i = 0
 alpha_param = precision*mean
 beta_param = precision*(1-mean)
 p = beta.pdf(x, alpha_param, beta_param)
-plt.plot(x*35, p, color=colors[color_i], linewidth=1)
+plt.plot(x*45, p, color=colors[color_i], linewidth=1)
 
 # mean = 0.3
 # precision = 10

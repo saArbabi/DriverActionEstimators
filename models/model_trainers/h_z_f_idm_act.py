@@ -280,8 +280,8 @@ tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(epochs=1)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act079_epo_20'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_idm_act083_epo_20'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer = Trainer(data_arrays, model_type='lstm_model')``
 # model_trainer = Trainer(data_arrays, model_type='mlp_model')
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -368,7 +368,7 @@ idm_params.shape
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '081')
+model_trainer.save_model('h_z_f_idm_act', '083')
 
 # %%
 """
@@ -611,8 +611,8 @@ sepcific_examples = [24665]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
-for i in bad_examples[0]:
-# while Example_pred < 40:
+# for i in bad_examples[0]:
+while Example_pred < 40:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -625,7 +625,7 @@ for i in bad_examples[0]:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes and aggressiveness > 0.8:
     # if episode not in covered_episodes and 0.6 > aggressiveness > 0.4:
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
     # if episode == 21 and sample_index[0] > 3300:
@@ -642,7 +642,7 @@ for i in bad_examples[0]:
     # if episode not in covered_episodes and aggressiveness == 0.5:
     # if episode not in covered_episodes and m_veh_exists[:20].mean() == 0 and \
     #         e_veh_att.mean() > 0:
-    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
 
     # # avg_speed = future_idm_s[sample_index, :, 2].mean()
     # if episode not in covered_episodes and aggressiveness > 0.8 \
@@ -783,7 +783,6 @@ for i in bad_examples[0]:
         plt.grid()
         ############
         Example_pred += 1
-
 # %%
 (features[features[:, 0] == episode]) & \
             (features[features[:, 2] == e_veh_id])][0, indxs[param_name]], 2))

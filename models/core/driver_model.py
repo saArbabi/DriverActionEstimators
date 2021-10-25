@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 2
+        self.latent_dim = 3
         self.proj_dim = 50
         self.architecture_def()
 
@@ -318,7 +318,7 @@ class IDMLayer(tf.keras.Model):
 
     def architecture_def(self):
         self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
-        self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
+        self.proj_layer_2 = Dense(self.`proj_dim, activation='relu')
         self.des_v_neu = Dense(1)
         self.proj_layer_des_v = Dense(self.proj_dim, activation='relu')
         self.des_tgap_neu = Dense(1)

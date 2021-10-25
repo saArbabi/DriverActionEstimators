@@ -61,7 +61,7 @@ class IDMMOBILVehicle(Vehicle):
                         (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':15, # m/s
+                                        'desired_v':30, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':0, # m
                                         'max_act':4, # m/s^2
@@ -71,7 +71,7 @@ class IDMMOBILVehicle(Vehicle):
                                         'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':10, # m/s
+                                        'desired_v':20, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':4, # m
                                         'max_act':2, # m/s^2
@@ -316,7 +316,7 @@ class IDMMOBILVehicle(Vehicle):
         act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
                 (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
-                                            or act_long < -4):
+                                            or act_long < -self.driver_params['min_act']):
             return True
         return False
 
@@ -490,55 +490,7 @@ class IDMMOBILVehicle(Vehicle):
 
 class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
-        super().__init__(id, lane_id, glob_x, speed)
-        self.beta_precision = 10
-        self.lane_id = lane_id
-        self.lane_width = 3.75
-        self.lanes_n = 2
-        self.glob_y = (self.lanes_n-lane_id+1)*self.lane_width-self.lane_width/2
-        self.target_lane = lane_id
-        self.lane_decision = 'keep_lane'
-        self.neighbours = {veh_name: None for veh_name in\
-                            ['f', 'fl', 'rl', 'r', 'rr', 'fr', 'm', 'att']}
-        self.perception_range = 500 #m
-        self.act_long = 0
-        self.time_lapse = 0 # since vehicle came to existance
-        self.vehicle_type = 'idmmobil'
-        self.control_type = 'idmmobil'
-        self.lateral_actions = {'move_left':0.75,
-                                'move_right':-0.75,
-                                'keep_lane':0}
-        self.steps_since_lc_initiation = 0
-        self.steps_prior_lc = 20 # steps
-        self.steps_since_new_lane_arrival = 0
-        self.steps_to_new_lane_entry = self.steps_prior_lc + \
-                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left'])
-
-        self.parameter_range = {'most_aggressive': {
-                                        'desired_v':speed+5, # m/s
-                                        'desired_tgap':1, # s
-                                        'min_jamx':0, # m
-                                        'max_act':4, # m/s^2
-                                        'min_act':4, # m/s^2
-                                        'politeness':0,
-                                        'safe_braking':-4,
-                                        'act_threshold':0
-                                        },
-                         'least_aggressvie': {
-                                        'desired_v':speed, # m/s
-                                        'desired_tgap':2, # s
-                                        'min_jamx':4, # m
-                                        'max_act':2, # m/s^2
-                                        'min_act':2, # m/s^2
-                                        'politeness':0,
-                                        'safe_braking':-2,
-                                        'act_threshold':0.2
-                                         }}
-
-        self.driver_params = {}
-        self.driver_params['aggressiveness'] = aggressiveness  # in range [0, 1]
-        if aggressiveness != None:
-            self.set_driver_params()
+        super().__init__(id, lane_id, glob_x, speed, aggressiveness)
 
     def my_neighbours(self, vehicles):
         """
