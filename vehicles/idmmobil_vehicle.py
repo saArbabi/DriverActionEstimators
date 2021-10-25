@@ -107,10 +107,10 @@ class IDMMOBILVehicle(Vehicle):
 
     def sample_driver_param(self):
         # return self.driver_params['aggressiveness']
-        # return np.random.triangular(0, self.driver_params['aggressiveness'], 1)
-        alpha_param = self.beta_precision*self.driver_params['aggressiveness']
-        beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
-        return np.random.beta(alpha_param, beta_param)
+        return np.random.triangular(0, self.driver_params['aggressiveness'], 1)
+        # alpha_param = self.beta_precision*self.driver_params['aggressiveness']
+        # beta_param = self.beta_precision*(1-self.driver_params['aggressiveness'])
+        # return np.random.beta(alpha_param, beta_param)
 
     def get_driver_param(self, param_name):
         if param_name in ['desired_v', 'max_act', 'min_act']:
@@ -316,7 +316,7 @@ class IDMMOBILVehicle(Vehicle):
         act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
                 (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
-                                            or act_long < -self.driver_params['min_act']):
+                                            or act_long < -5):
             return True
         return False
 
