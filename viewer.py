@@ -82,6 +82,7 @@ class Viewer():
                 print('ego_lane_id: ', vehicle.lane_id)
                 print('ego_lane_id_target: ', vehicle.target_lane)
                 print('lane_y: ', round(vehicle.lane_y, 2))
+                print('glob_x: ', round(vehicle.glob_x, 2))
                 print('ego_act: ', vehicle.act_long)
                 print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
                 # print('lane_y: ', vehicle.lane_y)

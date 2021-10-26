@@ -520,11 +520,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                             if  min(delta_xs_f) > delta_x < min(delta_xs_m):
                                 delta_xs_m.append(delta_x)
                                 candidate_m = vehicle
-                                if candidate_m and \
-                                    self.am_i_attending(vehicle, delta_x, delta_xs_att):
-                                    # for merging cars
-                                    delta_xs_att.append(delta_x)
-                                    candidate_att = vehicle
 
                         if vehicle.target_lane == self.target_lane:
                             if vehicle.lane_decision == 'keep_lane' or \
@@ -575,12 +570,40 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['att'] = candidate_att
         if candidate_att and candidate_f != candidate_att and candidate_att != candidate_m:
             neighbours['att'] = candidate_m
-        if not candidate_m and candidate_fr and candidate_fr.glob_x > 300:
+        if not candidate_m and candidate_fr and candidate_fr.id != 'dummy' \
+                                                    and candidate_fr.glob_x > 200:
             neighbours['m'] = candidate_fr
-        # if self.id == 6:
-        #     print(candidate_m)
+
+        if self.am_i_attending(neighbours['m']):
+            neighbours['att'] = neighbours['m']
+        # if self.id == 6 and neighbours['m']:
+        #     neighbours['att'] = candidate_fr
+
 
         return neighbours
+
+    def am_i_attending(self, vehicle):
+        """Am I attending to the vehicle?
+            There are x3 scenarios:
+            - I am alreading attending to a merger and there is no closer merger
+            - There is a new merger
+                - happens either due to attentiveness
+        """
+        # am I already attending to a merge car?
+        if not vehicle:
+            return
+        if self.neighbours['m']:
+            if self.neighbours['m'] == self.neighbours['att'] == vehicle:
+                return True
+            elif self.neighbours['m'] == self.neighbours['att'] != vehicle:
+                if vehicle.glob_x <= self.neighbours['att'].glob_x:
+                    return True
+                else:
+                    return False
+
+        if  vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
+            return True
+        return False
 
     def act(self):
         act_long, act_lat = self.idm_mobil_act()
@@ -591,6 +614,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         act_rl_lc = self.idm_action(self.neighbours['rl'], self)
 
         if act_rl_lc <= self.driver_params['safe_braking']:
+            print(act_rl_lc)
             self.lane_decision = 'keep_lane'
             self.steps_since_lc_initiation = 0
             self.target_lane += 1
@@ -600,8 +624,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # return [act_long, self.lateral_action()]
         if self.lane_decision != 'keep_lane':
             self.is_lc_complete()
-            if self.neighbours['rl'] and self.lane_id != self.target_lane:
-                self.should_lc_be_aborted()
+            # if self.neighbours['rl'] and self.lane_id != self.target_lane:
+            #     self.should_lc_be_aborted()
 
         elif self.lane_decision == 'keep_lane' and self.glob_x > 300:
             lc_left_condition = 0

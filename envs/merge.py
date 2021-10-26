@@ -65,8 +65,8 @@ class EnvMerge(Env):
         """
         vehicles = []
         for vehicle in self.vehicles:
-            if vehicle.speed < 5 or (vehicle.lane_id == 2 and \
-                                     vehicle.glob_x >= 500):
+            if vehicle.glob_x > self.lane_length or \
+                                vehicle.speed < 5:
                 continue
             vehicles.append(vehicle)
         self.vehicles = vehicles
