@@ -113,7 +113,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 2
+        self.latent_dim = 3
         self.proj_dim = 50
         self.architecture_def()
 
@@ -283,7 +283,7 @@ class IDMForwardSim(tf.keras.Model):
             # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
-            
+
             env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
                             ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_features(env_state)
