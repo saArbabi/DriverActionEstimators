@@ -31,7 +31,7 @@ class EnvInitializor():
                     return new_vehicle
 
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
-        aggressiveness = np.random.uniform(0.2, 0.99)
+        aggressiveness = np.random.uniform(0.01, 0.99)
         init_speed = np.random.normal(20, 1)
 
         if not lead_vehicle:
@@ -57,7 +57,7 @@ class EnvInitializor():
         (2) Create series of followers with similar speeds. The follower positions
             are set to comply with a random initial action value.
         """
-        # print(episode_id)
+        print(episode_id)
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1

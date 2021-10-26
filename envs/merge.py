@@ -64,9 +64,9 @@ class EnvMerge(Env):
         - they are stuck at merge point
         """
         vehicles = []
-
         for vehicle in self.vehicles:
-            if vehicle.glob_x > self.lane_length - 100 or vehicle.speed < 5:
+            if vehicle.speed < 5 or (vehicle.lane_id == 2 and \
+                                     vehicle.glob_x >= 500):
                 continue
             vehicles.append(vehicle)
         self.vehicles = vehicles
@@ -75,7 +75,6 @@ class EnvMerge(Env):
         """ steps the environment forward in time.
         """
         assert self.vehicles, 'Environment not yet initialized'
-        vehicle_stuck = False
         self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
@@ -83,7 +82,5 @@ class EnvMerge(Env):
         for vehicle, actions in zip(self.vehicles, joint_action):
             vehicle.step(actions)
             vehicle.time_lapse += 1
-            if vehicle.speed < 15 and vehicle.lane_decision == 'keep_lane':
-                vehicle_stuck = True
 
         self.time_step += 1

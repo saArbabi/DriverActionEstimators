@@ -342,9 +342,9 @@ class DataGeneratorMerge(DataGenecrator):
         self.initiate()
 
     def is_episode_complete(self):
-        """Episode is considered complete when all cars have exited the road.
+        """Episode is considered complete after 200 time-steps
         """
-        if not self.env.vehicles:
+        if self.env.time_step >= 200:
             return True
         return False
 
