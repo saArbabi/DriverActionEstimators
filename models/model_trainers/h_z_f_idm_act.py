@@ -574,7 +574,6 @@ def find_when_merger_appears(episode, e_veh_id):
     except:
         return
 
-
 hf_usc_indexs = {}
 col_names = ['episode_id', 'time_step', 'e_veh_id',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
@@ -612,16 +611,16 @@ model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
-sepcific_examples = [4538]
+sepcific_examples = [5939]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 10:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    sample_index = [val_examples[i]]
+    # sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
-    # sample_index = [i]
+    sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
     m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
@@ -719,7 +718,7 @@ while Example_pred < 10:
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         start_time = find_when_merger_appears(episode, e_veh_id)
-        if start_time:
+        if start_time != None:
             precision = 10
             alpha_param = precision*aggressiveness
             beta_param = precision*(1-aggressiveness)
@@ -827,7 +826,7 @@ for i in range(5):
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [24977]
+sample_index = [9668]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -912,8 +911,8 @@ plt.legend(['Ego', 'Merger', 'Leader'])
 # plt.savefig("example_actions.png", dpi=500)
 
 # %%
-plt.figure(figsize=(10, 10))
-# plt.figure(figsize=(3, 2))
+# plt.figure(figsize=(10, 10))
+plt.figure(figsize=(5, 4))
 for sample_trace_i in range(traces_n):
    plt.plot(time_axis[19:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')

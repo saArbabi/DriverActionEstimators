@@ -316,7 +316,7 @@ class IDMMOBILVehicle(Vehicle):
         act_long = self.idm_action(self, vehicle)
         if  delta_x < min(delta_xs) and \
                 (vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
-                                            or act_long < -5):
+                                            or act_long < -self.driver_params['min_act']):
             return True
         return False
 
