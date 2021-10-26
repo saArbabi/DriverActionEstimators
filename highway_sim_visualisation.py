@@ -6,15 +6,17 @@ import numpy as np
 def main():
     config = {'lanes_n':2,
             'lane_width':3.75, # m
-            'lane_length':600 # m
+            'lane_length':700 # m
             }
     env = EnvMerge(config)
+    env.initialize_env(30)
+
     viewer = Viewer(config)
-    np.random.seed(0)
+    # np.random.seed(0)
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step > 0:
+        if env.time_step >= 0:
             user_input = input()
             if user_input == 'n':
                 sys.exit()
@@ -28,8 +30,6 @@ def main():
 
         env.step()
         # print(env.time_step)
-
-
 
 if __name__=='__main__':
     main()

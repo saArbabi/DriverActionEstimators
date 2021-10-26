@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import cm
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
 
 class Viewer():
     def __init__(self, config):
@@ -17,11 +19,15 @@ class Viewer():
     def draw_road(self, ax):
         lane_cor = self.config['lane_width']*self.config['lanes_n']
         ax.hlines(0, 0, self.config['lane_length'], colors='k', linestyles='solid')
-        ax.vlines(400, 0, self.config['lane_width'], \
+        ax.vlines(500, 0, self.config['lane_width'], \
                                                     colors='k', linestyles='solid')
         ax.hlines(lane_cor, 0, self.config['lane_length'],
                                                     colors='k', linestyles='solid')
 
+        # Create patch collection with specified colour/alpha
+        merge_box = [Rectangle((300, 0), 200, 3.75)]
+        pc = PatchCollection(merge_box, hatch='/', alpha=0.2)
+        ax.add_collection(pc)
         if self.config['lanes_n'] > 1:
             lane_cor = self.config['lane_width']
             for lane in range(self.config['lanes_n']-1):
