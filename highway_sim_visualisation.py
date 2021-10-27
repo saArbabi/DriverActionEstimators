@@ -9,14 +9,14 @@ def main():
             'lane_length':700 # m
             }
     env = EnvMerge(config)
-    env.initialize_env(76)
+    env.initialize_env(39)
 
     viewer = Viewer(config)
     # np.random.seed(0)
     while True:
         # if env.time_step > 200:
         # if env.time_step > 640:
-        if env.time_step >= 80:
+        if env.time_step >= 0:
             user_input = input()
             if user_input == 'n':
                 sys.exit()

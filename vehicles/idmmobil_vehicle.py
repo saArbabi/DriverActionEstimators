@@ -500,9 +500,10 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         """
         neighbours = {}
         delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
-        delta_xs_m, delta_xs_att, delta_xs_mf = ([self.perception_range] for i in range(7))
+        delta_xs_fr, delta_xs_m, delta_xs_att = \
+                                            ([self.perception_range] for i in range(7))
         candidate_f, candidate_fl, candidate_rl, candidate_r, \
-                        candidate_m, candidate_att, candidate_mf = (None for i in range(7))
+        candidate_fr, candidate_m, candidate_att = (None for i in range(7))
 
         right_lane_id = self.lane_id + 1
         left_lane_id = self.lane_id - 1
@@ -510,18 +511,13 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         for vehicle in vehicles:
             if vehicle.id != self.id:
                 delta_x = abs(vehicle.glob_x-self.glob_x)
-                if vehicle.lane_id in [self.lane_id, right_lane_id, left_lane_id] and \
-                                                    delta_x < self.perception_range:
-
+                if delta_x < self.perception_range:
                     if vehicle.glob_x > self.glob_x:
                         # front neibouring cars
-                        if vehicle.id != 'dummy':
-                            if (self.lane_id == 1 and vehicle.lane_id == 2) or \
-                                (self.lane_id == 1 and vehicle.lane_decision != 'keep_lane'):
-
-                                if min(delta_xs_f) > delta_x < min(delta_xs_m):
-                                    delta_xs_m.append(delta_x)
-                                    candidate_m = vehicle
+                        if self.is_it_merger(vehicle):
+                            if min(delta_xs_f) > delta_x < min(delta_xs_m):
+                                delta_xs_m.append(delta_x)
+                                candidate_m = vehicle
 
                         if vehicle.target_lane == self.target_lane:
                             if vehicle.lane_decision == 'keep_lane' or \
@@ -534,17 +530,16 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                                     delta_xs_att.append(delta_x)
                                     candidate_att = vehicle
 
+                        if vehicle.target_lane == right_lane_id and vehicle.id != 'dummy':
+                            if delta_x < min(delta_xs_fr):
+                                # neighbour keeping lane
+                                delta_xs_fr.append(delta_x)
+                                candidate_fr = vehicle
+
                         if vehicle.target_lane == left_lane_id:
                             if delta_x < min(delta_xs_fl):
                                 delta_xs_fl.append(delta_x)
                                 candidate_fl = vehicle
-
-                        if self.lane_id == vehicle.lane_id == 2 and \
-                                        vehicle.lane_decision == 'keep_lane':
-
-                            if delta_x < min(delta_xs_mf):
-                                delta_xs_mf.append(delta_x)
-                                candidate_mf = vehicle
                     else:
                         if vehicle.target_lane == left_lane_id:
                             if delta_x < min(delta_xs_rl):
@@ -561,13 +556,14 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['fl'] = candidate_fl
         neighbours['rl'] = candidate_rl
         neighbours['r'] = candidate_r
-        if candidate_m and candidate_f and candidate_m.glob_x < candidate_f.glob_x:
+        if not candidate_m and candidate_fr and candidate_fr.glob_x < candidate_f.glob_x:
+            neighbours['m'] = candidate_fr
+        elif candidate_m and candidate_f and candidate_m.glob_x < candidate_f.glob_x:
             neighbours['m'] = candidate_m
         else:
             neighbours['m'] = None
 
-        neighbours['mf'] = candidate_mf
-        if self.am_i_attending(neighbours['m']):
+        if self.am_i_attending(candidate_m):
             neighbours['att'] = neighbours['m']
         else:
             neighbours['att'] = candidate_att
@@ -575,6 +571,18 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # if self.id == 6 and neighbours['m']:
         #     neighbours['att'] = candidate_fr
         return neighbours
+
+    def is_it_merger(self, vehicle):
+        """Several scenarios are possible:
+        (1) two vehicles merging simultaneously
+        (2) one vehicle mering infront of another keeping lane
+        """
+        if vehicle.id == 'dummy':
+            return False
+        elif vehicle.target_lane == self.lane_id and \
+                                    vehicle.lane_decision != 'keep_lane':
+            return True
+        return False
 
     def am_i_attending(self, vehicle):
         """Am I attending to the vehicle?

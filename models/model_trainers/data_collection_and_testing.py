@@ -59,7 +59,7 @@ features_origin[0, :]
 features_origin.shape
 features_origin.shape
 features_origin[features_origin[:, indxs['e_veh_action']] > 3]
-features_origin[features_origin[:, indxs['e_veh_action']] < -10]
+features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
 features_origin[-1, :]
 features_origin[:, indxs['m_veh_id']]
 _ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
