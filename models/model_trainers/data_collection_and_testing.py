@@ -8,6 +8,7 @@ reload(merge)
 from envs.merge import EnvMerge
 import os
 import time
+import pandas as pd
 config = {'lanes_n':2,
         'lane_width':3.75, # m
         'lane_length':700 # m
@@ -17,21 +18,23 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':100,
+                'episodes_n':150,
                 'model_type':'belief_net'
                 }
 
 indxs = {}
 feature_names = [
          'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id',
-         'e_veh_decision', 'f_veh_exists', 'm_veh_exists', 'e_veh_att',
+         'e_veh_id', 'f_veh_id', 'm_veh_id', 'mf_veh_id',
+         'e_veh_decision', 'e_veh_lane',
+         'f_veh_exists', 'm_veh_exists', 'mf_veh_exists', 'e_veh_att',
          'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed', 'mf_veh_speed',
          'e_veh_action', 'f_veh_action', 'm_veh_action',
          'aggressiveness', 'desired_v',
          'desired_tgap', 'min_jamx', 'max_act', 'min_act',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x', 'em_delta_y']
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x', 'em_delta_y',
+         'mmf_delta_v', 'mmf_delta_x']
 
 index = 0
 for item_name in feature_names:
@@ -41,7 +44,7 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
-# %%
+# -%%
 
 """
 Generate data
@@ -55,10 +58,35 @@ features_origin = data_gen.prep_data()
 # features_origin.shape
 # features_origin = features_origin[features_origin[:, indxs['m_veh_exists']] == 1]
 features_origin[0, :]
+# df = pd.DataFrame(features_origin[100:101, :], columns=feature_names)
+# df.iloc[0]
+features_origin.shape
+
+# %%
+"""
+retrieve scenarios
+"""
+episode = 1
+time_step = 92
+vehicle_id = 5
+array = features_origin[(features_origin[:, indxs['episode_id']] == episode) &
+                        (features_origin[:, indxs['time_step']] == time_step) &
+                        (features_origin[:, indxs['e_veh_id']] == vehicle_id)]
+
+pd.DataFrame(array, columns=feature_names).iloc[0]
+
+# %%
+def haha(a):
+    a.append(4)
+haha(b)
+b
+20*60*60/1600
+# %%
+
 # %%
 features_origin.shape
 features_origin.shape
-features_origin[features_origin[:, indxs['e_veh_action']] > 3]
+features_origin[features_origin[:, indxs['e_veh_action']] < -4]
 features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
 features_origin[-1, :]
 features_origin[:, indxs['m_veh_id']]
@@ -73,7 +101,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_019'
+data_id = '_020'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -117,19 +145,24 @@ data_gen = DataGeneratorMerge(env, data_config)
 # features = features[features[:, indxs['aggressiveness']] == 0.5]
 # features[features[:, indxs['m_veh_exists']] == 1].shape
 features, dummy_value_set = data_gen.fill_missing_values(features)
-features_scaled, scaler = data_gen.scale_data(features)
+features_scaled, env_scaler, m_scaler = data_gen.scale_data(features)
 
 history_future_seqs = data_gen.sequence(features, 20, 20)
 history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
 data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_a, future_e_veh_a = data_arrays
-future_m_veh_a[future_m_veh_a[:, :, 2] == 1]
+                future_m_veh_c, future_e_veh_a = data_arrays
+future_m_veh_c[future_m_veh_c[:, :, 2] == 1]
 
 # data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
-future_m_veh_a.shape
-future_m_veh_a.shape
+future_m_veh_c.shape
+future_m_veh_c[:, :, 2].max()
+future_m_veh_c[:, :, 2].min()
+future_m_veh_c[:, :, 3].min()
+future_m_veh_c[:, :, -1].min()
+future_m_veh_c[:, :, 2].mean()
+future_m_veh_c.shape
 # plt.plot(future_e_veh_a[0, :, -1])
 
 # %%
@@ -143,7 +176,7 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_a, future_e_veh_a = data_arrays
+                future_m_veh_c, future_e_veh_a = data_arrays
 
 future_e_veh_a.shape
 # %%
@@ -156,7 +189,7 @@ data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scale
 # data_arrays = [data_array[:5000, :, :] for data_array in data_arrays]
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_a, future_e_veh_a = data_arrays
+                future_m_veh_c, future_e_veh_a = data_arrays
 
 future_e_veh_a.shape
 
@@ -205,8 +238,8 @@ For debugging - all samples
 # plt.plot(future_idm_s[5317, :, 1])
 # plt.plot(history_future_usc[5317, :, 8])
 # plt.plot(history_future_usc[5317, :, 8])
-for i in [4522]:
-# for i in range(100):
+# for i in [4522]:
+for i in range(5000):
 
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]
@@ -249,11 +282,16 @@ for i in [4522]:
         if not loss.max() < 0.00001:
             print('sample-i: :  ', i)
             print(loss.max())
+
 # plt.plot(act)
-# plt.plot(future_e_veh_a[i, :, -1])
+# plt.plot(future_e_veh_a[3567, :, -1])
 # plt.plot(att_scores)
 # plt.plot(m_veh_exists)
 #
+# %%
+plt.plot()
+history_future_usc[3567, 0, :]
+
 # %%
 """
 To get a sense of what action profiles are present in the dataset.
@@ -265,6 +303,7 @@ for i in range(50):
     plt.plot(future_e_veh_a[random_indx, :, -1])
     plt.ylim([-3, 3])
     title = 'epis: '+str(history_future_usc[random_indx, 0, 0])+'   ' + \
+                'time: ' + str(history_future_usc[random_indx, 0, 1])+'   ' + \
                 'veh_id: ' + str(history_future_usc[random_indx, 0, 2])+'   ' + \
                 'agg: ' + str(history_future_usc[random_indx, 0, -1].round(2))
     plt.title(title)
@@ -290,9 +329,9 @@ np.where(veh_arr[:, indxs['e_veh_att']] == 1)
 veh_arr[:, indxs['f_veh_id']]
 veh_arr[:, indxs['em_delta_y']][13]
 veh_arr[:, indxs['em_delta_y']][85+39]
-future_m_veh_a[37964, :, -1]
+future_m_veh_c[37964, :, -1]
 history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_a, future_e_veh_a = data_arrays
+                future_m_veh_c, future_e_veh_a = data_arrays
 history_future_usc[37964, :, -6]
 
 veh_arr[:, indxs['e_veh_decision']]
@@ -351,9 +390,9 @@ for i in range(future_sca.shape[-1]):
 # %%
 col_names = ['episode_id', 'time_step', 'em_delta_y', 'm_veh_action',\
                                             'f_veh_exists', 'm_veh_exists']
-for i in range(future_m_veh_a.shape[-1]):
+for i in range(future_m_veh_c.shape[-1]):
     plt.figure(figsize=(3, 3))
-    to_plot = future_m_veh_a[:, :, i].flatten()
+    to_plot = future_m_veh_c[:, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
 # %%
@@ -362,7 +401,7 @@ col_names = ['episode_id', 'time_step', 'e_veh_id',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
         'e_veh_action', 'f_veh_action', 'm_veh_action',
         'ef_delta_v', 'ef_delta_x', 'em_delta_v', 'em_delta_x',
-        'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists',
+        'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists',
         'e_veh_decision', 'aggressiveness']
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
 

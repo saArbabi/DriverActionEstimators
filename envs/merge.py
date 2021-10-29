@@ -19,14 +19,11 @@ class EnvMerge(Env):
         self.env_initializor.dummy_stationary_car = self.dummy_stationary_car
         self.vehicles = self.env_initializor.init_env(episode_id)
 
-    def recorder(self):
+    def recorder(self, vehicles):
         """For recording vehicle trajectories. Used for:
         - model training
-        - perfromance validations # TODO
         """
-        for ego in self.vehicles:
-            if ego.glob_x < 0:
-                continue
+        for ego in vehicles:
             if not self.episode_id in self.recordings:
                 self.recordings[self.episode_id] = {}
             if not ego.id in self.recordings[self.episode_id]:
@@ -34,15 +31,27 @@ class EnvMerge(Env):
 
             log = {attrname: getattr(ego, attrname) for attrname in self.veh_log}
             log['f_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
-            log['m_veh_id'] = None if not ego.neighbours['m'] else ego.neighbours['m'].id
+            m_veh = ego.neighbours['m']
+            log['m_veh_id'] = None if not m_veh else m_veh.id
+            if m_veh:
+                if m_veh.lane_decision == 'keep_lane':
+                    log['mf_veh_id'] = m_veh.neighbours['f'].id
+                else:
+                    log['mf_veh_id'] = None if not m_veh.neighbours['fr'] \
+                                                    else m_veh.neighbours['fr'].id
+
+            else:
+                log['mf_veh_id'] = None
+
             log['att_veh_id'] = None if not ego.neighbours['att'] else ego.neighbours['att'].id
-            log['aggressiveness'] = ego.driver_params['aggressiveness']
-            log['desired_v'] = ego.driver_params['desired_v']
-            log['desired_tgap'] = ego.driver_params['desired_tgap']
-            log['min_jamx'] = ego.driver_params['min_jamx']
-            log['max_act'] = ego.driver_params['max_act']
-            log['min_act'] = ego.driver_params['min_act']
-            log['act_long'] = ego.act_long
+            if ego.id != 'dummy':
+                log['aggressiveness'] = ego.driver_params['aggressiveness']
+                log['desired_v'] = ego.driver_params['desired_v']
+                log['desired_tgap'] = ego.driver_params['desired_tgap']
+                log['min_jamx'] = ego.driver_params['min_jamx']
+                log['max_act'] = ego.driver_params['max_act']
+                log['min_act'] = ego.driver_params['min_act']
+                log['act_long'] = ego.act_long
             self.recordings[self.episode_id][ego.id][self.time_step] = log
 
     def get_joint_action(self):
@@ -79,7 +88,7 @@ class EnvMerge(Env):
         self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
-            self.recorder()
+            self.recorder(self.vehicles+[self.dummy_stationary_car])
         for vehicle, actions in zip(self.vehicles, joint_action):
             vehicle.step(actions)
             vehicle.time_lapse += 1
