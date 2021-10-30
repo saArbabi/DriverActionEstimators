@@ -66,13 +66,16 @@ features[0,:]
 history_future_usc[:,0,:]
 history_future_usc[:,0,0].min()
 features[:, indxs['e_veh_action']].var()
-features[:, indxs['el_delta_x']].min()
+features[:, indxs['em_delta_x']].min()
+features[features[:, indxs['e_veh_att']] ==1][:, indxs['em_delta_x']].min()
+
+[:, indxs['em_delta_x']].min()
 future_idm_s[0, 0, :]
 future_idm_s[1, 0, :]
 future_sca.shape
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
-features[features[:, indxs['el_delta_x']] < 10]
+features[features[:, indxs['em_delta_x']] < 0.1]
 
 # %%
 history_future_usc[12, 0, :]
@@ -626,8 +629,8 @@ sepcific_examples = [5939]
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
-# for i in bad_examples[0]:
-while Example_pred < 10:
+for i in bad_examples[0]:
+# while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -639,8 +642,8 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
-    # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[25:35].mean():
+    if 4 == 4:
+    # if episode not in covered_episodes and e_veh_att[25:35].mean():
 
         covered_episodes.append(episode)
         sdv_actions = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -816,7 +819,7 @@ for i in range(5):
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [22506]
+sample_index = [697]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])

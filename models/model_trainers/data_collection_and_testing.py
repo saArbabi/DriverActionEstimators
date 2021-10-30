@@ -66,9 +66,9 @@ features_origin.shape
 """
 retrieve scenarios
 """
-episode = 1
-time_step = 92
-vehicle_id = 5
+episode = 16
+time_step = 62
+vehicle_id = 4
 array = features_origin[(features_origin[:, indxs['episode_id']] == episode) &
                         (features_origin[:, indxs['time_step']] == time_step) &
                         (features_origin[:, indxs['e_veh_id']] == vehicle_id)]
