@@ -9,7 +9,7 @@ class EnvInitializor():
 
     def create_main_lane_vehicle(self, lead_vehicle, lane_id, spacing_bound):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        init_speed = np.random.normal(25, 1)
+        init_speed = np.random.normal(20, 1)
         # init_speed = np.random.uniform(10, 20)
         if not lead_vehicle:
             init_x = 500
@@ -33,7 +33,7 @@ class EnvInitializor():
 
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id, spacing_bound):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        init_speed = np.random.normal(25, 1)
+        init_speed = np.random.normal(20, 1)
         # init_speed = np.random.uniform(10, 20)
 
         if not lead_vehicle:
@@ -60,11 +60,12 @@ class EnvInitializor():
             are set to comply with a random initial action value.
         """
         print(episode_id)
+
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1
         vehicles = []
-        spacing_bound = np.random.uniform(80, 200) # sets the traffic density
+        spacing_bound = np.random.uniform(100, 200) # sets the traffic density
         new_vehicle = self.create_main_lane_vehicle(None, lane_id, spacing_bound)
         vehicles.append(new_vehicle)
         self.next_vehicle_id += 1

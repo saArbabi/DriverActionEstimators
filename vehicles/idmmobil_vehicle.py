@@ -603,7 +603,9 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 else:
                     return False
 
-        if  vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness']:
+        act_long = self.idm_action(self, vehicle)
+        if  vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
+                                                                    or act_long <= -5:
             return True
         return False
 
@@ -611,38 +613,15 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         act_long, act_lat = self.idm_mobil_act()
         return [act_long, act_lat]
 
-    def abort_lc(self):
-        act_rl_lc = self.idm_action(self.neighbours['rl'], self)
-        if act_rl_lc <= self.driver_params['safe_braking']:
-            self.neighbours['f'] = self.neighbours['fr']
-            self.neighbours['att'] = self.neighbours['f']
-            self.lane_decision = 'keep_lane'
-            self.steps_since_lc_initiation = 0
-            self.target_lane += 1
-            self.lc_aborted = True
-            self.abort_vehicle = self.neighbours['rl']
-            print('######## ABORT #########')
-
     def can_lc_be_considered(self, act_rl_lc):
-        if not self.neighbours['rl']:
-            self.lc_aborted = False
-
-        elif self.lc_aborted and self.neighbours['rl'] != self.abort_vehicle:
-            self.lc_aborted = False
-
-        if not self.lc_aborted and self.lane_id > 1 and \
+        if self.lane_id > 1 and \
                 self.driver_params['safe_braking'] <= act_rl_lc:
             return True
 
     def idm_mobil_act(self):
         act_long = self.idm_action(self, self.neighbours['att'])
-        assert act_long > -5, 'follower with id:' + str(self.id) \
-                            + ' ' + 'is avoiding collision - action:' + str(act_long)
-        # return [act_long, self.lateral_action()]
         if self.lane_decision != 'keep_lane':
             self.is_lc_complete()
-            # if self.lane_id == 2 and self.glob_x < 500:
-            #     self.abort_lc()
 
         elif self.lane_decision == 'keep_lane' and self.glob_x > 200:
             lc_left_condition = 0

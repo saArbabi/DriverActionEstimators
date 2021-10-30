@@ -233,8 +233,12 @@ class IDMForwardSim(tf.keras.Model):
                 (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
         return idm_action
 
-    def scale_features(self, env_state):
+    def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
+        return env_state
+
+    def scale_merger_c(self, env_state):
+        env_state = (env_state-self.m_scaler.mean_)/self.m_scaler.var_**0.5
         return env_state
 
     def projection(self, x):
@@ -286,11 +290,13 @@ class IDMForwardSim(tf.keras.Model):
 
             env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            env_state = self.scale_features(env_state)
-            env_state = tf.concat([env_state, f_veh_exists, m_veh_exists], axis=-1)
+            env_state = tf.concat([self.scale_env_s(env_state), \
+                                   f_veh_exists, m_veh_exists], axis=-1)
+
+            merger_c = merger_cs[:, step:step+1, :]
             # merger_c = merger_cs[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, env_state], axis=-1), \
+                                    proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
@@ -305,7 +311,7 @@ class IDMForwardSim(tf.keras.Model):
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
 
-        # tf.print('_act: ', tf.reduce_min(_act))
+        # tf.print('att_score: ', tf.reduce_max(att_seq))
 
         return act_seq, att_seq
 

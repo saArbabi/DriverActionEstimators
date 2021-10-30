@@ -65,7 +65,7 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 features[0,:]
 history_future_usc[:,0,:]
 history_future_usc[:,0,0].min()
-features[:, indxs['e_veh_speed']].var()
+features[:, indxs['e_veh_action']].var()
 features[:, indxs['el_delta_x']].min()
 future_idm_s[0, 0, :]
 future_idm_s[1, 0, :]
@@ -234,6 +234,9 @@ class Trainer():
         with open('./models/experiments/env_scaler_020.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
 
+        with open('./models/experiments/m_scaler_020.pickle', 'rb') as handle:
+            self.model.forward_sim.m_scaler = pickle.load(handle)
+
     def prep_data(self, training_data):
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
@@ -368,10 +371,7 @@ print(model_trainer.test_mseloss[-1])
 
 # %%
 0.5/0.75
-
 model_trainer.model.config
-
-
 # %%
 sampled_zs = latent_samples(model_trainer, val_examples[0:1000])
 idm_params = model_trainer.model.idm_layer(sampled_zs).numpy()
@@ -380,7 +380,7 @@ idm_params.shape
 
 idm_params
 # %%
-model_trainer.save_model('h_z_f_idm_act', '087')
+model_trainer.save_model('h_z_f_idm_act333', '087')
 
 # %%
 """
@@ -816,7 +816,7 @@ for i in range(5):
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [60685]
+sample_index = [22506]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
