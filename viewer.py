@@ -25,7 +25,7 @@ class Viewer():
                                                     colors='k', linestyles='solid')
 
         # Create patch collection with specified colour/alpha
-        merge_box = [Rectangle((300, 0), 200, 3.75)]
+        merge_box = [Rectangle((200, 0), 300, 3.75)]
         pc = PatchCollection(merge_box, hatch='/', alpha=0.2)
         ax.add_collection(pc)
         if self.config['lanes_n'] > 1:
@@ -68,7 +68,7 @@ class Viewer():
                 print('#############  ', vehicle.id, '  ##############')
                 print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
-                    if neighbour and neighbour.id != 'dummy':
+                    if neighbour:
                         print(key+': ', neighbour.id)
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                 [vehicle.glob_y, neighbour.glob_y], linestyle='-',
@@ -76,12 +76,12 @@ class Viewer():
                     else:
                         print(key+': ', None)
 
-
                 # print('target_lane: ', vehicle.target_lane)
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_lane_id: ', vehicle.lane_id)
                 print('ego_lane_id_target: ', vehicle.target_lane)
                 print('lane_y: ', round(vehicle.lane_y, 2))
+                print('glob_x: ', round(vehicle.glob_x, 2))
                 print('ego_act: ', vehicle.act_long)
                 print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
                 # print('lane_y: ', vehicle.lane_y)
@@ -104,7 +104,7 @@ class Viewer():
 
             if 'att' in vehicle.neighbours:
                 neighbour = vehicle.neighbours['att']
-                if neighbour and neighbour.id != 'dummy':
+                if neighbour:
                     line_1 = [vehicle.glob_y, neighbour.glob_y+.6]
                     line_2 = [vehicle.glob_y, neighbour.glob_y-.6]
                     ax.fill_between([vehicle.glob_x, neighbour.glob_x+1], \
@@ -198,7 +198,7 @@ class ViewerMC(Viewer):
                 print('#############  ', vehicle.id, env_type, '  ##############')
                 print('My neighbours: ')
                 for key, neighbour in vehicle.neighbours.items():
-                    if neighbour and neighbour.id != 'dummy':
+                    if neighbour:
                         print(key+': ', neighbour.id)
                         ax.plot([vehicle.glob_x, neighbour.glob_x], \
                                 [vehicle.glob_y, neighbour.glob_y], linestyle='-',

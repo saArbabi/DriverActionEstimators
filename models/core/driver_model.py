@@ -52,14 +52,14 @@ class NeurIDMModel(AbstractModel):
         # tf.print('######## TRAIN #######:')
         train_ds = self.batch_data(data_objs)
 
-        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
-            self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
+        for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
+            self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
 
     def test_loop(self, data_objs, epoch):
         # tf.print('######## TEST #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
-            self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
+        for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
+            self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -134,7 +134,7 @@ class BeliefModel(tf.keras.Model):
         # sampled_z = z_mean
         # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
         # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
-        # tf.print('z1_max: ', tf.reduce_max(z_sigma[:, 0]))
+        # tf.print('z1_max: ', tf.reduce_max(z_sigma[:, :]))
         # tf.print('z2_max: ', tf.reduce_max(z_sigma[:, 1]))
         # tf.print('z3_max: ', tf.reduce_max(z_sigma[:, 2]))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
@@ -223,7 +223,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-100000., clip_value_max=100000.)
+        return tf.clip_by_value(action, clip_value_min=-10., clip_value_max=10.)
 
     def add_noise(self, idm_action, idm_veh_exists, batch_size):
         """
@@ -233,8 +233,12 @@ class IDMForwardSim(tf.keras.Model):
                 (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
         return idm_action
 
-    def scale_features(self, env_state):
-        env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
+    def scale_env_s(self, env_state):
+        env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
+        return env_state
+
+    def scale_merger_c(self, env_state):
+        env_state = (env_state-self.m_scaler.mean_)/self.m_scaler.var_**0.5
         return env_state
 
     def projection(self, x):
@@ -243,7 +247,7 @@ class IDMForwardSim(tf.keras.Model):
         return x
 
     def rollout(self, inputs):
-        sampled_z, idm_params, idm_s, sdv_acts = inputs
+        sampled_z, idm_params, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         latent_projection = self.projection(sampled_z)
@@ -285,12 +289,14 @@ class IDMForwardSim(tf.keras.Model):
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
             env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-                            ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            env_state = self.scale_features(env_state)
+                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = tf.concat([self.scale_env_s(env_state), \
+                                   f_veh_exists, m_veh_exists], axis=-1)
 
-            sdv_act = sdv_acts[:, step:step+1, :]
+            merger_c = merger_cs[:, step:step+1, :]
+            # merger_c = merger_cs[:, step:step+1, :]
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act, env_state], axis=-1), \
+                                    proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
             att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
@@ -305,7 +311,7 @@ class IDMForwardSim(tf.keras.Model):
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
 
-        # tf.print('_act: ', tf.reduce_min(_act))
+        # tf.print('att_score: ', tf.reduce_max(att_seq))
 
         return act_seq, att_seq
 
@@ -443,7 +449,7 @@ class IDMLayer(tf.keras.Model):
 #         super().__init__()
 #
 #     def rollout(self, inputs):
-#         att_inputs, idm_params, idm_s, sdv_acts = inputs
+#         att_inputs, idm_params, idm_s, merger_cs = inputs
 #         sampled_att_z, enc_h = att_inputs
 #         batch_size = tf.shape(idm_s)[0]
 #         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
