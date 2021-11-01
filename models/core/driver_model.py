@@ -340,85 +340,35 @@ class IDMLayer(tf.keras.Model):
         x = self.proj_layer_2(x)
         return x
 
-    # def get_des_v(self, x):
-    #     output = self.des_v_neu(self.proj_layer_des_v(x))
-    #     return 25 + output
-    #
-    # def get_des_tgap(self, x):
-    #     output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-    #     return tf.math.softplus(output)
-    #
-    # def get_min_jamx(self, x):
-    #     output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
-    #     return tf.math.softplus(output)
-    #
-    # def get_max_act(self, x):
-    #     output = self.max_act_neu(self.proj_layer_max_act(x))
-    #     return tf.math.softplus(output)
-    #
-    # def get_min_act(self, x):
-    #     output = self.min_act_neu(self.proj_layer_min_act(x))
-    #     return tf.math.softplus(output)
-
-    # def get_des_v(self, x):
-    #     output = self.des_v_neu(self.proj_layer_des_v(x))
-    #     minval = 15
-    #     maxval = 35
-    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-    #
-    # def get_des_tgap(self, x):
-    #     output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-    #     minval = 1
-    #     maxval = 2
-    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-    #
-    # def get_min_jamx(self, x):
-    #     output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
-    #     minval = 0
-    #     maxval = 4
-    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-    #
-    # def get_max_act(self, x):
-    #     output = self.max_act_neu(self.proj_layer_max_act(x))
-    #     minval = 1
-    #     maxval = 2
-    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-    #
-    # def get_min_act(self, x):
-    #     output = self.min_act_neu(self.proj_layer_min_act(x))
-    #     minval = 1
-    #     maxval = 3
-    #     return minval + (maxval-minval)/(1+tf.exp(-1.*output))
-
     def get_des_v(self, x):
         output = self.des_v_neu(self.proj_layer_des_v(x))
         minval = 15
-        maxval = 35
+        maxval = 30
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
-        minval = 0.5
+        minval = 0
         maxval = 3
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
         minval = 0
-        maxval = 5
+        maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.proj_layer_max_act(x))
-        minval = 0.5
-        maxval = 5
+        minval = 1
+        maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.proj_layer_min_act(x))
-        minval = 0.5
-        maxval = 5
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        minval = 1
+        maxval = 6
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output)) 
 
     def call(self, inputs):
         x = self.projection(inputs)

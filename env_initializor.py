@@ -1,5 +1,6 @@
-from vehicles.idmmobil_vehicle import IDMMOBILVehicleMerge
 import numpy as np
+from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
+
 
 class EnvInitializor():
     def __init__(self, config):

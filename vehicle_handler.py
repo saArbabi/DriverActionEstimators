@@ -1,7 +1,7 @@
 from importlib import reload
 from vehicles import idmmobil_vehicle
 reload(idmmobil_vehicle)
-from vehicles.idmmobil_vehicle import IDMMOBILVehicleMerge
+from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 import numpy as np
 
 
