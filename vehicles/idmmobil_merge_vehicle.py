@@ -1,3 +1,6 @@
+from importlib import reload
+from vehicles import idmmobil_vehicle
+reload(idmmobil_vehicle)
 from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 
 class IDMMOBILVehicleMerge(IDMMOBILVehicle):
@@ -78,7 +81,10 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['rl'] = candidate_rl
         neighbours['fr'] = candidate_fr
         neighbours['r'] = candidate_r
-        if not candidate_m and candidate_fr and candidate_fr.id != 'dummy':
+        if not candidate_m and candidate_fr and candidate_fr.lane_decision == 'keep_lane' \
+                                                and candidate_fr.glob_x-self.glob_x > 10 \
+                                                        and candidate_fr.id != 'dummy':
+
             neighbours['m'] = candidate_fr
         elif candidate_m and candidate_f and candidate_m.glob_x < candidate_f.glob_x:
             neighbours['m'] = candidate_m
@@ -89,6 +95,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             neighbours['att'] = neighbours['m']
         else:
             neighbours['att'] = candidate_att
+        # if neighbours['m'] and self.id == 7:
+        #     print(self)
         return neighbours
 
     def is_it_merger(self, vehicle):
@@ -112,7 +120,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         """
         # am I already attending to a merge car?
         if not vehicle or vehicle.lane_decision == 'keep_lane':
-            return
+            return False
         if self.neighbours['m']:
             if self.neighbours['m'] == self.neighbours['att'] == vehicle:
                 return True
@@ -124,7 +132,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
 
         act_long = self.idm_action(self, vehicle)
         if  vehicle.steps_since_lc_initiation >= self.driver_params['attentiveness'] \
-                                                                    or act_long <= -5:
+                                    or act_long <= -5:
             return True
         return False
 
@@ -138,6 +146,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             return True
 
     def idm_mobil_act(self):
+
         act_long = self.idm_action(self, self.neighbours['att'])
         if self.lane_decision != 'keep_lane':
             self.is_lc_complete()

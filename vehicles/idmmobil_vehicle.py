@@ -30,26 +30,24 @@ class IDMMOBILVehicle(Vehicle):
                         (self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':27, # m/s
+                                        'desired_v':30, # m/s
                                         'desired_tgap':1, # s
-                                        'min_jamx':0, # m
+                                        'min_jamx':1, # m
                                         'max_act':5, # m/s^2
                                         'min_act':5, # m/s^2
                                         'politeness':0,
                                         'safe_braking':-5,
-                                        'act_threshold':0,
-                                        'stochasticity':0.5
+                                        'act_threshold':0
                                         },
                          'least_aggressvie': {
-                                        'desired_v':23, # m/s
+                                        'desired_v':20, # m/s
                                         'desired_tgap':2, # s
                                         'min_jamx':5, # m
                                         'max_act':2, # m/s^2
                                         'min_act':2, # m/s^2
                                         'politeness':1,
                                         'safe_braking':-3,
-                                        'act_threshold':0.2,
-                                        'stochasticity':0.1
+                                        'act_threshold':0.2
                                          }}
 
         self.driver_params = {}
@@ -63,7 +61,6 @@ class IDMMOBILVehicle(Vehicle):
 
     def set_driver_params(self):
         self.set_attentiveness()
-        # self.driver_params['stochasticity'] = np.random.uniform()
         # IDM params
         self.driver_params['desired_v'] = self.get_driver_param('desired_v')
         # self.driver_params['desired_v'] += np.random.normal()

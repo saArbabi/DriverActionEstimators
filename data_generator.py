@@ -407,6 +407,7 @@ class DataGeneratorMerge(DataGenecrator):
                     m_veh_id = e_veh['m_veh_id']
                     mf_veh_id = e_veh['mf_veh_id']
 
+
                     if f_veh_id:
                         f_veh = epis_data[f_veh_id][time_step]
                     else:

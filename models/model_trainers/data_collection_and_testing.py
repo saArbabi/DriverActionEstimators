@@ -44,7 +44,9 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
-# -%%
+# %%
+
+# %%
 
 """
 Generate data
@@ -61,6 +63,7 @@ features_origin[0, :]
 # df = pd.DataFrame(features_origin[100:101, :], columns=feature_names)
 # df.iloc[0]
 features_origin.shape
+features_origin.shape
 
 # %%
 # %%
@@ -68,32 +71,34 @@ features_origin.shape
 retrieve scenarios
 """
 episode = 16
-time_step = 62
+time_step = 66
 vehicle_id = 4
 array = features_origin[(features_origin[:, indxs['episode_id']] == episode) &
                         (features_origin[:, indxs['time_step']] == time_step) &
                         (features_origin[:, indxs['e_veh_id']] == vehicle_id)]
 
 pd.DataFrame(array, columns=feature_names).iloc[0]
-
-# %%
-def haha(a):
-    a.append(4)
-haha(b)
-b
-20*60*60/1600
 # %%
 
+array = features_origin[(features_origin[:, indxs['episode_id']] == episode) &
+                (features_origin[:, indxs['e_veh_id']] == vehicle_id)][:, indxs['m_veh_speed']]
+
+plt.plot(array)
 # %%
-features_origin.shape
-features_origin.shape
-features_origin[features_origin[:, indxs['e_veh_action']] < -4]
-features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
-features_origin[-1, :]
-features_origin[:, indxs['m_veh_id']]
+
+# %%
 _ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
 plt.figure()
 _ = plt.hist(features_origin[:, indxs['e_veh_action']], bins=150)
+
+# %%
+features_origin.shape
+features_origin.shape
+features_origin[features_origin[:, indxs['e_veh_action']] < -6]
+features_origin[features_origin[:, indxs['m_veh_action']] < -10]
+features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
+features_origin[-1, :]
+# features_origin[:, indxs['m_veh_action']].mean()
 
 
 # %%
@@ -102,7 +107,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_020'
+data_id = '_022'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -158,13 +163,30 @@ future_m_veh_c[future_m_veh_c[:, :, 2] == 1]
 
 # data_arrays = [np.nan_to_num(data_array, 0) for data_array in data_arrays]
 future_m_veh_c.shape
-future_m_veh_c[:, :, 2].max()
-future_m_veh_c[:, :, 2].min()
-future_m_veh_c[:, :, 3].min()
-future_m_veh_c[:, :, -1].min()
-future_m_veh_c[:, :, 2].mean()
 future_m_veh_c.shape
-# plt.plot(future_e_veh_a[0, :, -1])
+# %%
+
+history_future_usc[:,0,:]
+history_future_usc[:,0,0].min()
+features[:, indxs['e_veh_action']].var()
+features[:, indxs['em_delta_x']].min()
+features[features[:, indxs['e_veh_att']] == 0][:, indxs['em_delta_x']].min()
+features[features[:, indxs['m_veh_id']] == ][:, indxs['em_delta_x']].min()
+features[(features[:, indxs['m_veh_id']] == -1) & (features[:, indxs['mf_veh_id']] == -1)]
+
+
+features[features[:, indxs['em_delta_x']] < 14]
+
+
+[:, indxs['em_delta_x']].min()
+
+[:, indxs['em_delta_x']].min()
+future_idm_s[0, 0, :]
+future_idm_s[1, 0, :]
+future_sca.shape
+future_e_veh_a[:, :, -1].std()
+future_e_veh_a[:, :, -1].mean()
+features[features[:, indxs['em_delta_x']] < 0.1]
 
 # %%
 
@@ -240,7 +262,8 @@ For debugging - all samples
 # plt.plot(history_future_usc[5317, :, 8])
 # plt.plot(history_future_usc[5317, :, 8])
 # for i in [4522]:
-for i in range(5000):
+
+for i in np.random.randint(0, future_idm_s.shape[0], 5000):
 
         aggressiveness = history_future_usc[i, 0, -1]
         veh_id = history_future_usc[i, 0, 2]
@@ -298,7 +321,7 @@ history_future_usc[3567, 0, :]
 To get a sense of what action profiles are present in the dataset.
 """
 set_size = future_idm_s.shape[0]
-for i in range(50):
+for i in np.random.randint(0, future_idm_s.shape[0], 50):
     plt.figure()
     random_indx = np.random.randint(0, set_size)
     plt.plot(future_e_veh_a[random_indx, :, -1])

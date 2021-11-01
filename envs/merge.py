@@ -3,14 +3,14 @@ from importlib import reload
 import env_initializor
 reload(env_initializor)
 from env_initializor import EnvInitializor
-from vehicles import idmmobil_vehicle
-reload(idmmobil_vehicle)
-from vehicles.idmmobil_vehicle import IDMMOBILVehicle
+from vehicles import idmmobil_merge_vehicle
+reload(idmmobil_merge_vehicle)
+from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 
 class EnvMerge(Env):
     def __init__(self, config):
         super().__init__(config)
-        self.dummy_stationary_car = IDMMOBILVehicle('dummy', 2, 500, 0, None)
+        self.dummy_stationary_car = IDMMOBILVehicleMerge('dummy', 2, 500, 0, None)
         self.env_initializor = EnvInitializor(config)
 
     def initialize_env(self, episode_id):
@@ -85,7 +85,7 @@ class EnvMerge(Env):
         """ steps the environment forward in time.
         """
         assert self.vehicles, 'Environment not yet initialized'
-        self.remove_unwanted_vehicles()
+        # self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder(self.vehicles+[self.dummy_stationary_car])

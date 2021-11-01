@@ -1,6 +1,9 @@
 import numpy as np
+from importlib import reload
+from vehicles import idmmobil_merge_vehicle
+reload(idmmobil_merge_vehicle)
 from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
-
+# import time
 
 class EnvInitializor():
     def __init__(self, config):
@@ -11,7 +14,6 @@ class EnvInitializor():
     def create_main_lane_vehicle(self, lead_vehicle, lane_id, spacing_bound):
         aggressiveness = np.random.uniform(0.01, 0.99)
         init_speed = np.random.normal(20, 1)
-        # init_speed = np.random.uniform(10, 20)
         if not lead_vehicle:
             init_x = 500
             new_vehicle = IDMMOBILVehicleMerge(\
@@ -35,7 +37,6 @@ class EnvInitializor():
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id, spacing_bound):
         aggressiveness = np.random.uniform(0.01, 0.99)
         init_speed = np.random.normal(20, 1)
-        # init_speed = np.random.uniform(10, 20)
 
         if not lead_vehicle:
             lead_vehicle = self.dummy_stationary_car
@@ -45,8 +46,9 @@ class EnvInitializor():
                                                 init_speed, aggressiveness)
         min_glob_x = max([0, lead_vehicle.glob_x-spacing_bound])
         init_action = -new_vehicle.driver_params['min_act']
+
         while init_action <= -new_vehicle.driver_params['min_act']\
-                                    and min_glob_x >= spacing_bound:
+                                    and min_glob_x >= 0:
             new_vehicle.glob_x = np.random.uniform(min_glob_x,\
                                                     lead_vehicle.glob_x)
             init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
@@ -62,11 +64,12 @@ class EnvInitializor():
         """
         print(episode_id)
 
+        # time.sleep(1)
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1
         vehicles = []
-        spacing_bound = np.random.uniform(100, 200) # sets the traffic density
+        spacing_bound = np.random.uniform(150, 200) # sets the traffic density
         new_vehicle = self.create_main_lane_vehicle(None, lane_id, spacing_bound)
         vehicles.append(new_vehicle)
         self.next_vehicle_id += 1
