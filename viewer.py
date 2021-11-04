@@ -17,15 +17,16 @@ class Viewer():
         # self.elapsed_steps = []
 
     def draw_road(self, ax):
+        merge_point = (2/3)*self.config['lane_length']
         lane_cor = self.config['lane_width']*self.config['lanes_n']
         ax.hlines(0, 0, self.config['lane_length'], colors='k', linestyles='solid')
-        ax.vlines(500, 0, self.config['lane_width'], \
+        ax.vlines(merge_point, 0, self.config['lane_width'], \
                                                     colors='k', linestyles='solid')
         ax.hlines(lane_cor, 0, self.config['lane_length'],
                                                     colors='k', linestyles='solid')
 
         # Create patch collection with specified colour/alpha
-        merge_box = [Rectangle((200, 0), 300, 3.75)]
+        merge_box = [Rectangle((100, 0), 100, 3.75)]
         pc = PatchCollection(merge_box, hatch='/', alpha=0.2)
         ax.add_collection(pc)
         if self.config['lanes_n'] > 1:
@@ -80,7 +81,7 @@ class Viewer():
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_lane_id: ', vehicle.lane_id)
                 print('ego_lane_id_target: ', vehicle.target_lane)
-                print('glob_y: ', vehicle.glob_y) 
+                print('glob_y: ', vehicle.glob_y)
                 print('glob_x: ', round(vehicle.glob_x, 2))
                 print('ego_act: ', vehicle.act_long)
                 print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)

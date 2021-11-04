@@ -10,7 +10,8 @@ from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 class EnvMerge(Env):
     def __init__(self, config):
         super().__init__(config)
-        self.dummy_stationary_car = IDMMOBILVehicleMerge('dummy', 2, 500, 0, None)
+        self.dummy_stationary_car = IDMMOBILVehicleMerge('dummy', 2, \
+                                                         (2/3)*config['lane_length'], 0, None)
         self.env_initializor = EnvInitializor(config)
 
     def initialize_env(self, episode_id):
@@ -70,13 +71,10 @@ class EnvMerge(Env):
     def remove_unwanted_vehicles(self):
         """vehicles are removed if:
         - they exit highway
-        - they are stuck at merge point
         """
         vehicles = []
         for vehicle in self.vehicles:
-            if vehicle.glob_x > self.lane_length or \
-                        (vehicle.lane_decision == 'keep_lane' and \
-                         vehicle.lane_id == 2 and vehicle.glob_x > 500):
+            if vehicle.glob_x > self.lane_length:
                 continue
             vehicles.append(vehicle)
         self.vehicles = vehicles
@@ -85,7 +83,7 @@ class EnvMerge(Env):
         """ steps the environment forward in time.
         """
         assert self.vehicles, 'Environment not yet initialized'
-        # self.remove_unwanted_vehicles()
+        self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder(self.vehicles+[self.dummy_stationary_car])

@@ -6,10 +6,10 @@ import numpy as np
 def main():
     config = {'lanes_n':2,
             'lane_width':3.75, # m
-            'lane_length':700 # m
+            'lane_length':300 # m
             }
     env = EnvMerge(config)
-    env.initialize_env(16)
+    env.initialize_env(63)
 
     viewer = Viewer(config)
     # np.random.seed(0)

@@ -151,7 +151,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         if self.lane_decision != 'keep_lane':
             self.is_lc_complete()
 
-        elif self.lane_decision == 'keep_lane' and self.glob_x > 200:
+        elif self.lane_decision == 'keep_lane' and self.glob_x > 150:
             lc_left_condition = 0
             lc_right_condition = 0
             act_ego_lc_l = self.idm_action(self, self.neighbours['fl'])

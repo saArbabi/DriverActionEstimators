@@ -307,7 +307,7 @@ class DataGeneratorMerge(DataGenecrator):
     def is_episode_complete(self):
         """Episode is considered complete after 200 time-steps
         """
-        if self.env.time_step >= 200:
+        if not self.env.vehicles:
             return True
         return False
 
@@ -506,7 +506,7 @@ class DataGeneratorMerge(DataGenecrator):
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         #  history and future info for debugging/ visualisation
-        col_names = ['episode_id', 'time_step', 'e_veh_id',
+        col_names = ['episode_id', 'time_step', 'e_veh_id', 'm_veh_id',
                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                 'e_veh_action', 'f_veh_action', 'm_veh_action',
                 'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',

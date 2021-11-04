@@ -11,7 +11,7 @@ import time
 import pandas as pd
 config = {'lanes_n':2,
         'lane_width':3.75, # m
-        'lane_length':700 # m
+        'lane_length':300 # m
         }
 env = EnvMerge(config)
 # viewer = Viewer(config)
@@ -66,12 +66,11 @@ features_origin.shape
 features_origin.shape
 
 # %%
-# %%
 """
 retrieve scenarios
 """
-episode = 16
-time_step = 66
+episode = 6
+time_step = 111
 vehicle_id = 4
 array = features_origin[(features_origin[:, indxs['episode_id']] == episode) &
                         (features_origin[:, indxs['time_step']] == time_step) &
@@ -81,9 +80,9 @@ pd.DataFrame(array, columns=feature_names).iloc[0]
 # %%
 
 array = features_origin[(features_origin[:, indxs['episode_id']] == episode) &
-                (features_origin[:, indxs['e_veh_id']] == vehicle_id)][:, indxs['m_veh_speed']]
+                (features_origin[:, indxs['e_veh_id']] == vehicle_id)][:, indxs['m_veh_id']]
 
-plt.plot(array)
+plt.plot(array[24:])
 # %%
 
 # %%
@@ -94,7 +93,7 @@ _ = plt.hist(features_origin[:, indxs['e_veh_action']], bins=150)
 # %%
 features_origin.shape
 features_origin.shape
-features_origin[features_origin[:, indxs['e_veh_action']] < -6]
+features_origin[features_origin[:, indxs['time_step']] > 500]
 features_origin[features_origin[:, indxs['m_veh_action']] < -10]
 features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
 features_origin[-1, :]
@@ -107,7 +106,7 @@ for param_name in [ 'aggressiveness', 'desired_v',
                             'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     print(param_name, ' ', features_origin[features_origin[:, 2] == veh_id][0, indxs[param_name]])
 # %%
-data_id = '_022'
+data_id = '_023'
 file_name = 'sim_data'+data_id+'.pickle'
 file_address = './models/experiments/'+file_name
 if not os.path.exists(file_address):
@@ -170,9 +169,9 @@ history_future_usc[:,0,:]
 history_future_usc[:,0,0].min()
 features[:, indxs['e_veh_action']].var()
 features[:, indxs['em_delta_x']].min()
-features[features[:, indxs['e_veh_att']] == 0][:, indxs['em_delta_x']].min()
+features[features[:, indxs['e_veh_att']] == 1][:, indxs['em_delta_x']].min()
 features[features[:, indxs['m_veh_id']] == ][:, indxs['em_delta_x']].min()
-features[(features[:, indxs['m_veh_id']] == -1) & (features[:, indxs['mf_veh_id']] == -1)]
+features[(features[:, indxs['m_veh_id']] == -1) & (features[:, indxs['mf_veh_id']] == 1)]
 
 
 features[features[:, indxs['em_delta_x']] < 14]
@@ -421,10 +420,10 @@ for i in range(future_m_veh_c.shape[-1]):
     plt.title(col_names[i])
 # %%
 
-col_names = ['episode_id', 'time_step', 'e_veh_id',
+col_names = ['episode_id', 'time_step', 'e_veh_id', 'm_veh_id',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
         'e_veh_action', 'f_veh_action', 'm_veh_action',
-        'ef_delta_v', 'ef_delta_x', 'em_delta_v', 'em_delta_x',
+        'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
         'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists',
         'e_veh_decision', 'aggressiveness']
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
