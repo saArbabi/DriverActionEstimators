@@ -374,13 +374,13 @@ class IDMLayer(tf.keras.Model):
 
     def get_max_act(self, x):
         output = self.max_act_neu(x)
-        minval = 0
+        minval = 1
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(x)
-        minval = 0
+        minval = 1
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 

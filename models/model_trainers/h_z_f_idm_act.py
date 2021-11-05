@@ -277,8 +277,8 @@ train_input, val_input = model_trainer.prep_data(data_arrays)
 # data_arrays = [data_array[0:20000, :, :] for data_array in data_arrays]
 # exp_dir = './models/experiments/'+'h_z_f_idm_act083_epo_20'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.test_mseloss
+model_trainer.train(train_input, val_input, epochs=1)
+model_trainer.test_mseloss
 # train_input = None
 # latent_samples(model_trainer, val_examples[0:10])
 
@@ -611,8 +611,8 @@ sepcific_examples = [  37,   39,   40,   41,   42,   43,   44,   45,   46,   47,
        2435, 2559, 2560, 2561, 2562, 2563, 2564, 2977, 2980, 2981, 2982,
        2983, 2984, 2985, 2986, 2987, 2988, 2989, 2990, 2991, 2992, 2993,
        2994, 2995]
-# distribution_name = 'prior'
-distribution_name = 'posterior'
+distribution_name = 'prior'
+# distribution_name = 'posterior'
 # for i in bad_examples[0]:
 for i in sepcific_examples:
 # for i in bad_zs:
