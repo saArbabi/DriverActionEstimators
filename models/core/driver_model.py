@@ -1,5 +1,5 @@
 
-from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed, Masking
+from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed, LeakyReLU
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -15,7 +15,6 @@ class NeurIDMModel(AbstractModel):
         super(NeurIDMModel, self).__init__(config)
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
-        self.act_encoder = FutureEncoder() # sdv's future action
         self.belief_net = BeliefModel()
         self.idm_layer = IDMLayer()
         self.forward_sim = IDMForwardSim()
@@ -113,7 +112,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
+        self.latent_dim = 2
         self.proj_dim = 50
         self.architecture_def()
 
@@ -160,6 +159,8 @@ class BeliefModel(tf.keras.Model):
 
         elif dis_type == 'prior':
             pri_context = self.pri_projection(inputs)
+            # tf.print(pri_context[0, :])
+            # tf.print(tf.math.count_nonzero(pri_context[0, :]))
             pri_mean = self.pri_mean(pri_context)
             pri_logsigma = self.pri_logsigma(pri_context)
             pri_params = [pri_mean, pri_logsigma]
@@ -201,8 +202,8 @@ class IDMForwardSim(tf.keras.Model):
     def architecture_def(self):
         self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
         self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
-        self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
-        self.attention_neu = TimeDistributed(Dense(1))
+        # self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
+        # self.attention_neu = TimeDistributed(Dense(1))
         # self.action_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
@@ -250,8 +251,8 @@ class IDMForwardSim(tf.keras.Model):
         sampled_z, idm_params, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        latent_projection = self.projection(sampled_z)
-        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, self.proj_dim])
+        # latent_projection = self.projection(sampled_z)
+        # proj_latent  = tf.reshape(latent_projection, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, 100])
 
         for step in range(20):
@@ -288,21 +289,21 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
             # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
-            env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            env_state = tf.concat([self.scale_env_s(env_state), \
-                                   f_veh_exists, m_veh_exists], axis=-1)
-
-            merger_c = merger_cs[:, step:step+1, :]
+            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
+            #                         ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            # env_state = tf.concat([self.scale_env_s(env_state), \
+            #                        f_veh_exists, m_veh_exists], axis=-1)
+            #
             # merger_c = merger_cs[:, step:step+1, :]
-            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, env_state, merger_c], axis=-1), \
-                                    initial_state=[state_h, state_c])
-            att_x = self.attention_neu(lstm_output)
-            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+            # # merger_c = merger_cs[:, step:step+1, :]
+            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+            #                         proj_latent, env_state, merger_c], axis=-1), \
+            #                         initial_state=[state_h, state_c])
+            # att_x = self.attention_neu(lstm_output)
+            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            # att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
 
-            # att_score = idm_s[:, step:step+1, -3:-2]
+            att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
                 act_seq = _act
@@ -312,7 +313,6 @@ class IDMForwardSim(tf.keras.Model):
                 att_seq = tf.concat([att_seq, att_score], axis=1)
 
         # tf.print('att_score: ', tf.reduce_max(att_seq))
-
         return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
@@ -322,53 +322,67 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
-        self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
+        self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_layer_3 = Dense(self.proj_dim)
+
+        # self.des_v_neu = Dense(1)
+        # self.proj_layer_des_v = Dense(self.proj_dim, activation='relu')
+        # self.des_tgap_neu = Dense(1)
+        # self.proj_layer_des_tgap = Dense(self.proj_dim, activation='relu')
+        # self.min_jamx_neu = Dense(1)
+        # self.proj_layer_min_jamx = Dense(self.proj_dim, activation='relu')
+        # self.max_act_neu = Dense(1)
+        # self.proj_layer_max_act = Dense(self.proj_dim, activation='relu')
+        # self.min_act_neu = Dense(1)
+        # self.proj_layer_min_act = Dense(self.proj_dim, activation='relu')
+        #
         self.des_v_neu = Dense(1)
-        self.proj_layer_des_v = Dense(self.proj_dim, activation='relu')
+        # self.proj_layer_des_v = Dense(self.proj_dim, activation=LeakyReLU())
         self.des_tgap_neu = Dense(1)
-        self.proj_layer_des_tgap = Dense(self.proj_dim, activation='relu')
+        # self.proj_layer_des_tgap = Dense(self.proj_dim, activation=LeakyReLU())
         self.min_jamx_neu = Dense(1)
-        self.proj_layer_min_jamx = Dense(self.proj_dim, activation='relu')
+        # self.proj_layer_min_jamx = Dense(self.proj_dim, activation=LeakyReLU())
         self.max_act_neu = Dense(1)
-        self.proj_layer_max_act = Dense(self.proj_dim, activation='relu')
+        # self.proj_layer_max_act = Dense(self.proj_dim, activation=LeakyReLU())
         self.min_act_neu = Dense(1)
-        self.proj_layer_min_act = Dense(self.proj_dim, activation='relu')
+        # self.proj_layer_min_act = Dense(self.proj_dim, activation=LeakyReLU())
 
     def projection(self, x):
         x = self.proj_layer_1(x)
         x = self.proj_layer_2(x)
+        x = self.proj_layer_3(x)
         return x
 
     def get_des_v(self, x):
-        output = self.des_v_neu(self.proj_layer_des_v(x))
-        minval = 15
-        maxval = 30
+        output = self.des_v_neu(x)
+        minval = 10
+        maxval = 25
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_des_tgap(self, x):
-        output = self.des_tgap_neu(self.proj_layer_des_tgap(x))
+        output = self.des_tgap_neu(x)
         minval = 0
         maxval = 3
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_jamx(self, x):
-        output = self.min_jamx_neu(self.proj_layer_min_jamx(x))
+        output = self.min_jamx_neu(x)
         minval = 0
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_max_act(self, x):
-        output = self.max_act_neu(self.proj_layer_max_act(x))
-        minval = 1
+        output = self.max_act_neu(x)
+        minval = 0
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_act(self, x):
-        output = self.min_act_neu(self.proj_layer_min_act(x))
-        minval = 1
+        output = self.min_act_neu(x)
+        minval = 0
         maxval = 6
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output)) 
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def call(self, inputs):
         x = self.projection(inputs)
