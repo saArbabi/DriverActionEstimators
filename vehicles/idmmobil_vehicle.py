@@ -33,9 +33,9 @@ class IDMMOBILVehicle(Vehicle):
                                         'desired_v':20, # m/s
                                         'desired_tgap':1, # s
                                         'min_jamx':1, # m
-                                        'max_act':5, # m/s^2
-                                        'min_act':5, # m/s^2
-                                        'politeness':0,
+                                        'max_act':4, # m/s^2
+                                        'min_act':4, # m/s^2
+                                        'politeness':0.,
                                         'safe_braking':-5,
                                         'act_threshold':0
                                         },

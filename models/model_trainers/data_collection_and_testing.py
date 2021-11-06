@@ -18,7 +18,7 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':50,
+                'episodes_n':150,
                 'model_type':'belief_net'
                 }
 
@@ -45,7 +45,9 @@ indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
 # %%
-
+a =
+np.sort(np.random.randint(0, 200, 5))[::-1]
+a
 # %%
 
 """
@@ -94,8 +96,9 @@ _ = plt.hist(features_origin[:, indxs['e_veh_action']], bins=150)
 features_origin.shape
 features_origin.shape
 features_origin[features_origin[:, indxs['time_step']] > 500]
-features_origin[features_origin[:, indxs['m_veh_action']] < -10]
-features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
+features_origin[features_origin[:, indxs['m_veh_action']] < -4]
+features_origin[features_origin[:, indxs['e_veh_action']] < -4]
+features_origin[features_origin[:, indxs['m_veh_id']] > 8]
 features_origin[-1, :]
 # features_origin[:, indxs['m_veh_action']].mean()
 
@@ -172,6 +175,7 @@ features[:, indxs['em_delta_x']].min()
 features[features[:, indxs['e_veh_att']] == 1][:, indxs['em_delta_x']].min()
 features[features[:, indxs['m_veh_id']] == ][:, indxs['em_delta_x']].min()
 features[(features[:, indxs['m_veh_id']] == -1) & (features[:, indxs['mf_veh_id']] == 1)]
+features[(features[:, indxs['e_veh_att']] == 1) & (features[:, indxs['mf_veh_id']] == 1)]
 
 
 features[features[:, indxs['em_delta_x']] < 14]
@@ -261,7 +265,7 @@ For debugging - all samples
 # plt.plot(history_future_usc[5317, :, 8])
 # plt.plot(history_future_usc[5317, :, 8])
 # for i in [4522]:
-
+np.random.seed(0)
 for i in np.random.randint(0, future_idm_s.shape[0], 5000):
 
         aggressiveness = history_future_usc[i, 0, -1]
@@ -305,6 +309,12 @@ for i in np.random.randint(0, future_idm_s.shape[0], 5000):
         if not loss.max() < 0.00001:
             print('sample-i: :  ', i)
             print(loss.max())
+            plt.figure()
+            plt.plot(act)
+            plt.plot(future_e_veh_a[i, :, -1])
+            plt.legend(['here_act', 'sim_gen_act'])
+
+            break
 
 # plt.plot(act)
 # plt.plot(future_e_veh_a[3567, :, -1])
@@ -313,7 +323,7 @@ for i in np.random.randint(0, future_idm_s.shape[0], 5000):
 #
 # %%
 plt.plot()
-history_future_usc[3567, 0, :]
+history_future_usc[12483, 0, :]
 
 # %%
 """
