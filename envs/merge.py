@@ -83,7 +83,7 @@ class EnvMerge(Env):
         """ steps the environment forward in time.
         """
         assert self.vehicles, 'Environment not yet initialized'
-        self.remove_unwanted_vehicles()
+        # self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder(self.vehicles+[self.dummy_stationary_car])

@@ -305,11 +305,14 @@ class DataGeneratorMerge(DataGenecrator):
             index += 1
 
     def is_episode_complete(self):
-        """Episode is considered complete after 200 time-steps
+        """Episode is considered complete if there are no merging cars.
         """
-        if not self.env.vehicles:
+        merging_car_exists = False
+        for vehicle in self.env.vehicles:
+            if vehicle.lane_id == 2 or vehicle.lane_decision != 'keep_lane':
+                merging_car_exists = True
+        if not merging_car_exists:
             return True
-        return False
 
     def run_sim(self):
         for episode_id in range(1, self.episodes_n+1):

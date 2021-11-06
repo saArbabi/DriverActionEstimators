@@ -86,7 +86,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                                                         and candidate_fr.id != 'dummy':
 
             neighbours['m'] = candidate_fr
-        elif candidate_m and candidate_f and candidate_m.glob_x < candidate_f.glob_x:
+        elif (candidate_m and not candidate_f) or \
+                (candidate_m and candidate_f and candidate_m.glob_x < candidate_f.glob_x):
             neighbours['m'] = candidate_m
         else:
             neighbours['m'] = None
@@ -121,6 +122,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # am I already attending to a merge car?
         if not vehicle or vehicle.lane_decision == 'keep_lane':
             return False
+        if self.id == 3:
+            print('hi')
         if self.neighbours['m']:
             if self.neighbours['m'] == self.neighbours['att'] == vehicle:
                 return True

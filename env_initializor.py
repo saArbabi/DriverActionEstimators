@@ -17,12 +17,10 @@ class EnvInitializor():
         init_speed = np.random.normal(self.init_speed, 1)
         spacing_bound = np.random.uniform(30, 100) # sets the traffic density
         if not lead_vehicle:
-            init_speed = np.random.uniform(5, 20)
             init_x = (2/3)*self.lane_length
             new_vehicle = IDMMOBILVehicleMerge(\
                         self.next_vehicle_id, lane_id, init_x, init_speed, aggressiveness)
             self.next_vehicle_id += 1
-            new_vehicle.driver_params['desired_v'] = init_speed
             return new_vehicle
         else:
             new_vehicle = IDMMOBILVehicleMerge(\
