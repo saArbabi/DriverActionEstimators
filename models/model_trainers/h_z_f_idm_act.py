@@ -63,32 +63,37 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
-'e_veh_att'
+future_m_veh_c.shape
+future_m_veh_c.shape
+12519/58528
+(58528, 20, 7)
+# plt.plot(history_future_usc[5641, :, hf_usc_indexs['m_veh_action']])
 # %%
 """
 BALANCE DATA
 """
+# history_future_usc[:, :, -4].mean()
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_c, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -3] == 1).all(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -3] == 1).all(axis=1))/\
-                        np.count_nonzero((history_future_usc[:, :, -3] != 1).all(axis=1))
+cond = (history_future_usc[:, :, -6] == 1).all(axis=1)
+# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+balance_value = np.count_nonzero((history_future_usc[:, :, -6] == 1).all(axis=1))/\
+                        history_future_usc.shape[0]
 print(balance_value)
 
 # %%
 indxs = {}
 feature_names = [
          'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id', 'mf_veh_id',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
          'e_veh_decision', 'e_veh_lane',
-         'f_veh_exists', 'm_veh_exists', 'mf_veh_exists', 'e_veh_att',
+         'f_veh_exists', 'm_veh_exists', 'e_veh_att',
          'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed', 'mf_veh_speed',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'e_veh_action', 'f_veh_action', 'm_veh_action',
          'aggressiveness', 'desired_v',
          'desired_tgap', 'min_jamx', 'max_act', 'min_act',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x', 'em_delta_y',
-         'mmf_delta_v', 'mmf_delta_x']
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
 
 index = 0
 for item_name in feature_names:
@@ -98,7 +103,6 @@ indxs['e_veh_att']
 indxs['desired_v']
 
 features[:, indxs['el_delta_x']].min()
-features[:, indxs['mmf_delta_x']].min()
 # %%
 epis = 47
 for param_name in [ 'aggressiveness', 'desired_v',
@@ -148,30 +152,34 @@ else:
     print('This data id exists')
 # %%
 future_m_veh_c.shape
-future_m_veh_c.shape
 # plt.plot(history_future_usc[0, :, 6])
 plt.plot(history_future_usc[10450, :, 6])
 # %%
 
-col_names = ['episode_id', 'time_step', 'e_veh_id', 'm_veh_id',
-        'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-        'e_veh_action', 'f_veh_action', 'm_veh_action',
-        'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-        'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists',
-        'e_veh_decision', 'aggressiveness']
+col_names =[
+         'episode_id', 'time_step',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
+         'm_veh_exists', 'e_veh_att',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+         'e_veh_action', 'f_veh_action', 'm_veh_action',
+         'aggressiveness',
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
-
+_sample_indxs = np.random.randint(0, history_future_usc.shape[0], 5000)
 for i in range(history_future_usc.shape[-1]):
     plt.figure(figsize=(5, 3))
-    to_plot = history_future_usc[:, :, i].flatten()
+    to_plot = history_future_usc[_sample_indxs, :, i].flatten()
     _ = plt.hist(to_plot, bins=150)
     plt.title(col_names[i])
     # plt.grid()
 # %%
 col_names = ['episode_id', 'time_step',
         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-        'ef_delta_v', 'ef_delta_x', 'em_delta_v', 'em_delta_x',
-        'em_delta_y', 'f_veh_exists', 'm_veh_exists']
+        'el_delta_v', 'el_delta_x',
+        'em_delta_v', 'em_delta_x',
+        'delta_x_to_merge',
+        'em_delta_y', 'm_veh_exists']
 
 for i in range(future_sca.shape[-1]):
     plt.figure(figsize=(3, 3))
@@ -277,20 +285,21 @@ train_input, val_input = model_trainer.prep_data(data_arrays)
 # data_arrays = [data_array[0:20000, :, :] for data_array in data_arrays]
 # exp_dir = './models/experiments/'+'h_z_f_idm_act083_epo_20'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
-model_trainer.train(train_input, val_input, epochs=1)
-model_trainer.test_mseloss
+# model_trainer.train(train_input, val_input, epochs=1)
+# model_trainer.test_mseloss
 # train_input = None
 # latent_samples(model_trainer, val_examples[0:10])
 
 # 1.5*(1-(25/15)**4 - 3)
 # Using 'auto'/'sum_over_batch_size' reduction type.
+# ax = latent_vis(3000)
+
 # %%
         # tf.print(x[0, :])
         # output = self.proj_layer_des_v(x)
         # tf.print(tf.shape(output))
         # tf.print(tf.math.count_nonzero(output[0, :]))
         # tf.print(output[0, :])
- 11538/(512*50)
 # fig = plt.figure(figsize=(15, 5))
 plt.style.use('default')
 #
@@ -308,9 +317,10 @@ val_epis = np.setdiff1d(all_epis, train_epis)
 np.where(train_epis == 64)
 train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
-history_sca.shape
-train_indxs.shape
-val_examples.shape
+# history_sca.shape
+# train_indxs.shape
+# val_examples.shape
+# val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_c = np.float32(future_m_veh_c)
@@ -352,26 +362,11 @@ kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 print(model_trainer.test_mseloss[-1])
-ax = latent_vis(2000)
+ax = latent_vis(3000)
+#
 
 # %%
-a = tf.constant([0,1, 0])
-tf.math.count_nonzero(a)
-# %%
-i = 0
-def change(i):
-    i += 1
-change(i)
-i
-# %%
-sampled_zs = latent_samples(model_trainer, val_examples[0:1000])
-idm_params = model_trainer.model.idm_layer(sampled_zs).numpy()
-idm_params.shape
-# idm_params[:, 0].max()
-
-idm_params
-# %%
-model_trainer.save_model('h_z_f_idm_act333', '087')
+model_trainer.save_model('h_z_f_idm_act', '088')
 
 # %%
 """
@@ -394,9 +389,8 @@ def get_avg_loss_across_sim(examples_to_vis):
     true_actions = future_e_veh_a[examples_to_vis, :, 2:]
     loss = (tf.square(tf.subtract(act_seq, true_actions)))
     return tf.reduce_mean(loss, axis=1).numpy()
-loss.shape
-loss = get_avg_loss_across_sim(val_examples[0:150])
-# loss = get_avg_loss_across_sim(train_indxs[0:15000])
+# loss = get_avg_loss_across_sim(val_examples[0:15000])
+loss = get_avg_loss_across_sim(train_indxs[0:15000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
 bad_examples = np.where(loss > 0.1)
@@ -421,7 +415,7 @@ def latent_vis(n_z_samples):
     ax = fig.add_subplot(211)
     examples_to_vis = np.random.choice(val_examples, n_z_samples, replace=False)
     sampled_z = latent_samples(model_trainer, examples_to_vis)
-    aggressiveness = history_future_usc[examples_to_vis, 0, -1]
+    aggressiveness = history_future_usc[examples_to_vis, 0, -7]
     color_shade = aggressiveness
     att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1],
                         s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
@@ -556,12 +550,15 @@ def find_when_merger_appears(episode, e_veh_id):
         return
 
 hf_usc_indexs = {}
-col_names = ['episode_id', 'time_step', 'e_veh_id', 'm_veh_id',
-        'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-        'e_veh_action', 'f_veh_action', 'm_veh_action',
-        'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-        'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists',
-        'e_veh_decision', 'aggressiveness']
+col_names = [
+         'episode_id', 'time_step',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
+         'm_veh_exists', 'e_veh_att',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+         'e_veh_action', 'f_veh_action', 'm_veh_action',
+         'aggressiveness',
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
 
 index = 0
 for item_name in col_names:
@@ -592,32 +589,14 @@ model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
-sepcific_examples = [  37,   39,   40,   41,   42,   43,   44,   45,   46,   47,   48,
-         49,   50,   51,   52,   53,   54,   55,   56,   57,   58,   59,
-         60,   61,   62,   63,   64,   65,   66,  127,  129,  130,  131,
-        132,  133,  134,  135,  136,  137,  138,  139,  140,  141,  142,
-        143,  217,  218,  220,  222,  223,  224,  225,  226,  227,  228,
-        229,  230,  327, 1902, 1903, 1904, 1905, 1906, 1907, 1908, 1909,
-       1910, 1911, 1912, 1913, 1914, 1915, 1916, 1917, 1918, 1919, 1920,
-       1921, 1922, 1923, 1924, 1925, 1926, 2160, 2162, 2163, 2164, 2165,
-       2166, 2167, 2168, 2169, 2170, 2171, 2172, 2173, 2174, 2175, 2176,
-       2177, 2178, 2179, 2180, 2181, 2182, 2183, 2184, 2185, 2186, 2187,
-       2188, 2189, 2190, 2191, 2192, 2193, 2194, 2195, 2196, 2197, 2198,
-       2199, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2285, 2286,
-       2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297,
-       2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308,
-       2309, 2310, 2311, 2312, 2313, 2314, 2315, 2316, 2419, 2421, 2423,
-       2424, 2425, 2426, 2427, 2428, 2429, 2430, 2431, 2432, 2433, 2434,
-       2435, 2559, 2560, 2561, 2562, 2563, 2564, 2977, 2980, 2981, 2982,
-       2983, 2984, 2985, 2986, 2987, 2988, 2989, 2990, 2991, 2992, 2993,
-       2994, 2995]
+sepcific_examples = []
 distribution_name = 'prior'
 # distribution_name = 'posterior'
 # for i in bad_examples[0]:
-for i in sepcific_examples:
+# for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-# while Example_pred < 10:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -628,9 +607,9 @@ for i in sepcific_examples:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
-    # if episode not in covered_episodes and e_veh_att[25:35].mean():
+    if episode not in covered_episodes and e_veh_att[25:35].mean():
 
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -644,8 +623,9 @@ for i in sepcific_examples:
         elif distribution_name == 'prior':
             latent_dis_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(latent_dis_param)
-        idm_params = model_trainer.model.idm_layer(sampled_z)
-        act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
+        proj_belief = model_trainer.model.belief_net.belief_proj(sampled_z)
+        idm_params = model_trainer.model.idm_layer(proj_belief)
+        act_seq, att_scores = model_trainer.model.forward_sim.rollout([proj_belief, \
                                                     idm_params, future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -699,32 +679,6 @@ for i in sepcific_examples:
            plt.plot(range(19, 39), att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
-        # start_time = find_when_merger_appears(episode, e_veh_id)
-        # if start_time != None:
-        #     precision = 10
-        #     alpha_param = precision*aggressiveness
-        #     beta_param = precision*(1-aggressiveness)
-        #     start_point = start_time - time_0
-        #     plt.plot([start_point, start_point], [0, 1], color='black', linestyle='--')
-        #     end_point = start_point + 45
-        #     max_prob_point = start_point + aggressiveness*(end_point-start_point)
-        #     plt.plot([max_prob_point, max_prob_point], [0, 1], color='red', linestyle='--')
-        #     # plt.plot([start_point+22.5, start_point+22.5], [0, 1], color='red', linestyle='--')
-        #     x = np.linspace(start_point, end_point, 100)
-        #     p = beta.pdf(np.linspace(0.01, 0.99, 100), alpha_param, beta_param)
-        #     p = p/p.max()
-        #     plt.plot(np.linspace(start_point, end_point, 100), p, color='purple')
-        #     plt.xlim(0, 50)
-
-        # if 0 <= aggressiveness <= 1/3:
-        #     mean_dis = 0.15
-        # elif 1/3 <= aggressiveness <= 2/3:
-        #     mean_dis = 0.45
-        # elif 2/3 <= aggressiveness:
-        #     mean_dis = 0.75
-        # att_max_likelihood = mean_dis*35 + \
-        #                         np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-
         ##########
         # m_veh_id = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_id'])
         # plt.figure(figsize=(5, 3))
@@ -749,8 +703,8 @@ for i in sepcific_examples:
         ############
         ##########
         # lATENT
-        ax = latent_vis(2000)
-        ax.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, color='black')
+        # ax = latent_vis(2000)
+        # ax.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, color='black')
         ##########
 
         """
@@ -771,7 +725,6 @@ for i in sepcific_examples:
         # plt.scatter(30, 1, color='red')
         # plt.xlim(25, 35)
         # plt.ylim(0, 2)
-
 
         plt.title(str(sample_index[0]) + ' -- Param')
         plt.grid()
@@ -827,8 +780,8 @@ for i in range(5):
 
     mean_val = datos.mean()
     (mu, sigma) = norm.fit(datos)
-    mean_bound = (parameter_range['most_aggressive'][param_name] + \
-                             parameter_range['least_aggressvie'][param_name])/2
+    # mean_bound = (parameter_range['most_aggressive'][param_name] + \
+    #                          parameter_range['least_aggressvie'][param_name])/2
 
     x = np.linspace(mean_val-1, mean_val+1, 300)
     p = norm.pdf(x, mu, sigma)
@@ -846,7 +799,7 @@ for i in range(5):
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [13780]
+sample_index = [11739]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
@@ -861,20 +814,21 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model_trainer.model.h_seq_encoder(h_seq)
 latent_dis_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
 sampled_z = model_trainer.model.belief_net.sample_z(latent_dis_param)
-idm_params = model_trainer.model.idm_layer(sampled_z)
+proj_belief = model_trainer.model.belief_net.belief_proj(sampled_z)
+idm_params = model_trainer.model.idm_layer(proj_belief)
 
 #
 # min_act = idm_params.numpy()[:, -2]
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
-# idm_params = tf.ones([100, 5])*[18.49, 1.74, 1.77, 2.63, 3.57]
+# idm_params = tf.ones([100, 5])*[19.9, 1.01, 1.02, 3.83, 3.83]
 
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
-idm_params = idm_params.numpy()
-idm_params[:, -2] = 3.38
-idm_params[:, -1] = 3.97
+# idm_params = idm_params.numpy()
+# idm_params[:, -2] = 3.38
+# idm_params[:, -1] = 3.97
 # idm_params[:, 1] += 0.4
-act_seq, att_scores = model_trainer.model.forward_sim.rollout([sampled_z, \
+act_seq, att_scores = model_trainer.model.forward_sim.rollout([proj_belief, \
                                             idm_params, future_idm_ss, merger_cs])
 act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 att_ = att_scores.flatten()
@@ -898,8 +852,8 @@ for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act'
 
     true_params.append(round(true_pram_val, 2))
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
-plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
-# plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].numpy().mean(axis=0).round(2)))
+# plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
+plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].numpy().mean(axis=0).round(2)))
 ##########
 # %%
 # plt.figure(figsize=(10, 10))
