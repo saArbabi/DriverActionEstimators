@@ -1,5 +1,5 @@
 
-from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed, Masking
+from tensorflow.keras.layers import Dense, LSTM, Bidirectional, TimeDistributed, LeakyReLU
 from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
@@ -88,14 +88,16 @@ class NeurLatentModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
         sampled_z = self.belief_net.sample_z(pos_params)
-        act_seq = self.forward_sim.rollout([sampled_z, inputs[2], inputs[-1]])
+        proj_belief = self.belief_net.belief_proj(sampled_z)
+        act_seq = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
 
         return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 2
+        self.latent_dim = 3
+        self.proj_dim = 50
         self.architecture_def()
 
     def architecture_def(self):
@@ -103,8 +105,13 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(50, activation='relu')
-        self.pos_projection = Dense(50, activation='relu')
+        self.pri_projection = Dense(self.proj_dim, activation='relu')
+        self.pos_projection = Dense(self.proj_dim, activation='relu')
+
+        ####
+        self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_layer_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -121,6 +128,12 @@ class BeliefModel(tf.keras.Model):
 
         return sampled_z
         # return sampled_z, sampled_z for single latent
+
+    def belief_proj(self, x):
+        x = self.proj_layer_1(x)
+        x = self.proj_layer_2(x)
+        x = self.proj_layer_3(x)
+        return x
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -153,12 +166,10 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.linear_layer = TimeDistributed(Dense(100))
         self.lstm_layer = LSTM(self.enc_units)
         # self.masking = Masking()
     def call(self, inputs):
-        # enc_h = self.lstm_layer(self.masking(inputs))
-        enc_h = self.lstm_layer(self.linear_layer(inputs))
+        enc_h = self.lstm_layer(inputs)
         return enc_h
 
 class FutureEncoder(tf.keras.Model):
@@ -177,28 +188,21 @@ class FutureEncoder(tf.keras.Model):
 class ForwardSim(tf.keras.Model):
     def __init__(self):
         super(ForwardSim, self).__init__(name="ForwardSim")
+        self.proj_dim = 50
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(50, activation='relu')
-        self.proj_layer_2 = Dense(50, activation='relu')
         self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
         self.action_neu = TimeDistributed(Dense(1)) # a form
 
-    def scale_features(self, env_state):
-        env_state = (env_state-self.scaler.mean_)/self.scaler.var_**0.5
+    def scale_env_s(self, env_state):
+        env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def projection(self, x):
-        x = self.proj_layer_1(x)
-        x = self.proj_layer_2(x)
-        return x
-
     def rollout(self, inputs):
-        sampled_z, idm_s, sdv_acts = inputs
+        proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
-        latent_projection = self.projection(sampled_z)
-        proj_latent  = tf.reshape(latent_projection, [batch_size, 1, 50])
+        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, 50])
         state_h = state_c = tf.zeros([batch_size, 100])
 
         for step in range(20):
@@ -230,14 +234,15 @@ class ForwardSim(tf.keras.Model):
                                                 (1-f_veh_exists)*ef_dv_true
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                                                 (1-m_veh_exists)*em_dv_true
-            sdv_act = sdv_acts[:, step:step+1, :]
-            env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-                            ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            env_state = self.scale_features(env_state)
+            env_state = tf.concat([ego_v, f_veh_v, \
+                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = self.scale_env_s(env_state)
+            merger_c = tf.concat([merger_cs[:, step:step+1, :], m_veh_exists], axis=-1)
 
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, sdv_act, env_state], axis=-1), \
+                                    proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
+
             _act = self.action_neu(lstm_output)
             if step == 0:
                 act_seq = _act
