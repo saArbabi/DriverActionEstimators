@@ -4,7 +4,7 @@ from vehicles.vehicle import Vehicle
 class IDMMOBILVehicle(Vehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed)
-        self.beta_precision = 10
+        self.beta_precision = 15
         self.lane_id = lane_id
         self.lane_width = 3.75
         self.lanes_n = 2
@@ -30,8 +30,8 @@ class IDMMOBILVehicle(Vehicle):
                         (self.lane_width)/(0.1*self.lateral_actions['move_left'])
 
         self.parameter_range = {'most_aggressive': {
-                                        'desired_v':20, # m/s
-                                        'desired_tgap':1, # s
+                                        'desired_v':25, # m/s
+                                        'desired_tgap': 0.5, # s
                                         'min_jamx':1, # m
                                         'max_act':4, # m/s^2
                                         'min_act':4, # m/s^2

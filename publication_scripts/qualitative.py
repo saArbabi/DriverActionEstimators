@@ -20,7 +20,7 @@ Driver generation - beta distribution with aggressiveness levels
 # plt.style.use('default')
 x = np.linspace(0.0, 1, 100)
 color_i = 0
-range_means = np.linspace(0.2, 0.8, 10)
+range_means = np.linspace(0.01, 0.99, 10)
 colors = [cm.rainbow(i) for i in np.linspace(0, 1, len(range_means))]
 alpha_val_plot = 0.3
 fig = plt.figure(figsize=(4, 3))
@@ -45,7 +45,7 @@ for mean in range_means:
 
 # %%
 precision = 15
-mean = 0.5
+mean = 0.99
 color_i = 0
 alpha_param = precision*mean
 beta_param = precision*(1-mean)

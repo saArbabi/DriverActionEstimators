@@ -7,7 +7,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
         self.STM_m_veh = self.steps_prior_lc + \
-                        (self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
+                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
         self.TTM_m_veh = self.STM_m_veh*0.1 # time to merge
 
     def my_neighbours(self, vehicles):
@@ -45,9 +45,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                                 delta_xs_m.append(delta_x)
                                 candidate_m = vehicle
 
-                        if vehicle.target_lane == self.target_lane:
-                            if vehicle.lane_decision == 'keep_lane' or \
-                                        vehicle.lane_decision == self.lane_decision:
+                        if vehicle.target_lane == self.target_lane and \
+                                vehicle.lane_decision == 'keep_lane':
                                 if delta_x < min(delta_xs_f):
                                     delta_xs_f.append(delta_x)
                                     candidate_f = vehicle
@@ -117,22 +116,28 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         return False
 
     def am_i_attending(self, m_veh, f_veh):
-        if not m_veh or (f_veh and m_veh.glob_x > f_veh.glob_x):
+        if not m_veh or (f_veh and m_veh.glob_x > f_veh.glob_x) or m_veh.glob_x < 150:
             return False
         if m_veh == self.neighbours['att'] == m_veh or \
-                            m_veh != self.neighbours['att'] and \
-                                            m_veh.lane_decision != 'keep_lane':
+                                                    m_veh.lane_id == self.lane_id:
             return True
 
         gap_to_merge = self.TTM_m_veh*m_veh.speed + m_veh.glob_x-self.glob_x
         TTM_e_veh = gap_to_merge/self.speed
         act_long = self.idm_action(self, m_veh)
-        # print('TTM_e_veh ', self.driver_params['politeness']*TTM_e_veh)
+        # print('TTM_e_veh + polit', self.driver_params['politeness']*TTM_e_veh)
+        # print('TTM_m_veh ', self.TTM_m_veh)
+        # print('TTM_e_veh ', TTM_e_veh)
         # print('act_long ', act_long)
-        if self.TTM_m_veh < self.driver_params['politeness']*TTM_e_veh and \
-                                act_long >= -self.driver_params['min_act']:
+        if m_veh.lane_decision !='keep_lane' and \
+                                act_long < self.driver_params['safe_braking']:
+            # emergency situation
             return True
-        if self.TTM_m_veh >= self.driver_params['politeness']*TTM_e_veh:
+        elif self.TTM_m_veh < self.driver_params['politeness']*TTM_e_veh and \
+                                act_long > -self.driver_params['min_act']:
+            # print('hi')
+            return True
+        elif self.TTM_m_veh >= self.driver_params['politeness']*TTM_e_veh:
             return False
 
     def act(self):
@@ -140,12 +145,12 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         return [act_long, act_lat]
 
     def can_lc_be_considered(self, act_rl_lc):
-        if self.lane_id > 1 and \
+        # return False
+        if self.lane_id > 1 and self.glob_x > 150 and \
                 self.driver_params['safe_braking'] <= act_rl_lc:
             return True
 
     def idm_mobil_act(self):
-
         act_long = self.idm_action(self, self.neighbours['att'])
         if self.lane_decision != 'keep_lane':
             self.is_lc_complete()
@@ -169,7 +174,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 lc_left_condition = self.mobil_condition([ego_gain, \
                                         new_follower_gain, old_follower_gain])
 
-                # if self.id == 6:
+                # if self.id == 7:
                 #     print('ego_gain ', ego_gain)
                 #     print('old_follower_gain ', old_follower_gain)
                 #     print('new_follower_gain ', new_follower_gain)
