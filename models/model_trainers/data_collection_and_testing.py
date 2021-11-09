@@ -18,23 +18,23 @@ env = EnvMerge(config)
 data_config = {
                 # 'future_scaeq_length':40,
                 'history_scaeq_length':20,
-                'episodes_n':50,
+                'episodes_n':300,
                 'model_type':'belief_net'
                 }
 
 indxs = {}
 feature_names = [
          'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id', 'mf_veh_id',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
          'e_veh_decision', 'e_veh_lane',
-         'f_veh_exists', 'm_veh_exists', 'mf_veh_exists', 'e_veh_att',
+         'f_veh_exists', 'm_veh_exists', 'e_veh_att',
          'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed', 'mf_veh_speed',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'e_veh_action', 'f_veh_action', 'm_veh_action',
          'aggressiveness', 'desired_v',
          'desired_tgap', 'min_jamx', 'max_act', 'min_act',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x', 'em_delta_y',
-         'mmf_delta_v', 'mmf_delta_x']
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
 
 index = 0
 for item_name in feature_names:
@@ -44,10 +44,9 @@ indxs['e_veh_att']
 indxs['desired_v']
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_v']]
 # features_origin[features_origin[:, 0] == 102][0, indxs['desired_tgap']]
+50/9
+2 - np.nan
 # %%
-
-# %%
-
 """
 Generate data
 """
@@ -63,7 +62,7 @@ features_origin[0, :]
 # df = pd.DataFrame(features_origin[100:101, :], columns=feature_names)
 # df.iloc[0]
 features_origin.shape
-features_origin.shape
+
 
 # %%
 """
@@ -89,13 +88,13 @@ plt.plot(array[24:])
 _ = plt.hist(features_origin[:, indxs['e_veh_speed']], bins=150)
 plt.figure()
 _ = plt.hist(features_origin[:, indxs['e_veh_action']], bins=150)
-
 # %%
 features_origin.shape
 features_origin.shape
 features_origin[features_origin[:, indxs['time_step']] > 500]
-features_origin[features_origin[:, indxs['m_veh_action']] < -10]
-features_origin[features_origin[:, indxs['e_veh_speed']] < -0]
+features_origin[features_origin[:, indxs['m_veh_action']] < -3]
+features_origin[features_origin[:, indxs['e_veh_action']] < -4]
+features_origin[features_origin[:, indxs['m_veh_id']] > 8]
 features_origin[-1, :]
 # features_origin[:, indxs['m_veh_action']].mean()
 
@@ -172,7 +171,14 @@ features[:, indxs['em_delta_x']].min()
 features[features[:, indxs['e_veh_att']] == 1][:, indxs['em_delta_x']].min()
 features[features[:, indxs['m_veh_id']] == ][:, indxs['em_delta_x']].min()
 features[(features[:, indxs['m_veh_id']] == -1) & (features[:, indxs['mf_veh_id']] == 1)]
+features[(features[:, indxs['e_veh_att']] == 1) & (features[:, indxs['aggressiveness']] > 0.8)][:, 0]
 
+_ = plt.hist(features[(features[:, indxs['e_veh_att']] == 1)][:, indxs['aggressiveness']], bins=150)
+_ = plt.hist(features[(features[:, indxs['e_veh_att']] == 1)][:, indxs['aggressiveness']], bins=150)
+_ = plt.hist(features[(features[:, indxs['m_veh_exists']] == 1)][:, indxs['aggressiveness']], bins=150)
+
+
+features[(features[:, indxs['delta_x_to_merge']] < 200) & (features[:, indxs['m_veh_id']] == -1)]
 
 features[features[:, indxs['em_delta_x']] < 14]
 
@@ -261,7 +267,7 @@ For debugging - all samples
 # plt.plot(history_future_usc[5317, :, 8])
 # plt.plot(history_future_usc[5317, :, 8])
 # for i in [4522]:
-
+np.random.seed(0)
 for i in np.random.randint(0, future_idm_s.shape[0], 5000):
 
         aggressiveness = history_future_usc[i, 0, -1]
@@ -305,6 +311,12 @@ for i in np.random.randint(0, future_idm_s.shape[0], 5000):
         if not loss.max() < 0.00001:
             print('sample-i: :  ', i)
             print(loss.max())
+            plt.figure()
+            plt.plot(act)
+            plt.plot(future_e_veh_a[i, :, -1])
+            plt.legend(['here_act', 'sim_gen_act'])
+
+            break
 
 # plt.plot(act)
 # plt.plot(future_e_veh_a[3567, :, -1])
@@ -313,7 +325,7 @@ for i in np.random.randint(0, future_idm_s.shape[0], 5000):
 #
 # %%
 plt.plot()
-history_future_usc[3567, 0, :]
+history_future_usc[12483, 0, :]
 
 # %%
 """
@@ -420,12 +432,15 @@ for i in range(future_m_veh_c.shape[-1]):
     plt.title(col_names[i])
 # %%
 
-col_names = ['episode_id', 'time_step', 'e_veh_id', 'm_veh_id',
-        'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-        'e_veh_action', 'f_veh_action', 'm_veh_action',
-        'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-        'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists',
-        'e_veh_decision', 'aggressiveness']
+col_names = [
+         'episode_id', 'time_step',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
+         'm_veh_exists', 'e_veh_att',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+         'e_veh_action', 'f_veh_action', 'm_veh_action',
+         'aggressiveness',
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)
 
 for i in range(history_future_usc.shape[-1]):

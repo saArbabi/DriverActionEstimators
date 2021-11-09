@@ -34,16 +34,6 @@ class EnvMerge(Env):
             log['f_veh_id'] = None if not ego.neighbours['f'] else ego.neighbours['f'].id
             m_veh = ego.neighbours['m']
             log['m_veh_id'] = None if not m_veh else m_veh.id
-            if m_veh:
-                if m_veh.lane_decision == 'keep_lane':
-                    log['mf_veh_id'] = m_veh.neighbours['f'].id
-                else:
-                    log['mf_veh_id'] = None if not m_veh.neighbours['fr'] \
-                                                    else m_veh.neighbours['fr'].id
-
-            else:
-                log['mf_veh_id'] = None
-
             log['att_veh_id'] = None if not ego.neighbours['att'] else ego.neighbours['att'].id
             if ego.id != 'dummy':
                 log['aggressiveness'] = ego.driver_params['aggressiveness']
@@ -83,7 +73,7 @@ class EnvMerge(Env):
         """ steps the environment forward in time.
         """
         assert self.vehicles, 'Environment not yet initialized'
-        self.remove_unwanted_vehicles()
+        # self.remove_unwanted_vehicles()
         joint_action = self.get_joint_action()
         if self.usage == 'data generation':
             self.recorder(self.vehicles+[self.dummy_stationary_car])

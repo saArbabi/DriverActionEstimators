@@ -100,19 +100,19 @@ class NeurIDMModel(AbstractModel):
                                 [enc_h, enc_f], dis_type='both')
         sampled_z = self.belief_net.sample_z(pos_params)
 
-        idm_params = self.idm_layer(sampled_z)
-        act_seq, _ = self.forward_sim.rollout([sampled_z, idm_params, inputs[2], inputs[-1]])
+        proj_belief = self.belief_net.belief_proj(sampled_z)
+        idm_params = self.idm_layer(proj_belief)
+        act_seq, _ = self.forward_sim.rollout([proj_belief, idm_params, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
         # tf.print('att_scoreean: ', tf.reduce_mean(att_scores))
-
         return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 2
+        self.latent_dim = 3
         self.proj_dim = 50
         self.architecture_def()
 
@@ -123,6 +123,10 @@ class BeliefModel(tf.keras.Model):
         self.pos_logsigma = Dense(self.latent_dim)
         self.pri_projection = Dense(self.proj_dim, activation='relu')
         self.pos_projection = Dense(self.proj_dim, activation='relu')
+        ####
+        self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_layer_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -139,6 +143,12 @@ class BeliefModel(tf.keras.Model):
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         return sampled_z
+
+    def belief_proj(self, x):
+        x = self.proj_layer_1(x)
+        x = self.proj_layer_2(x)
+        x = self.proj_layer_3(x)
+        return x
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -200,11 +210,9 @@ class IDMForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(self.proj_dim, activation='relu')
-        self.proj_layer_2 = Dense(self.proj_dim, activation='relu')
-        # self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
-        # self.attention_neu = TimeDistributed(Dense(1))
-        # self.action_neu = TimeDistributed(Dense(1))
+        self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
+        self.attention_neu = TimeDistributed(Dense(1))
+        self.action_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=0.2, clip_value_max=1000.)
@@ -242,17 +250,11 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.m_scaler.mean_)/self.m_scaler.var_**0.5
         return env_state
 
-    def projection(self, x):
-        x = self.proj_layer_1(x)
-        x = self.proj_layer_2(x)
-        return x
-
     def rollout(self, inputs):
-        sampled_z, idm_params, idm_s, merger_cs = inputs
+        proj_belief, idm_params, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        # latent_projection = self.projection(sampled_z)
-        # proj_latent  = tf.reshape(latent_projection, [batch_size, 1, self.proj_dim])
+        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, 100])
 
         for step in range(20):
@@ -267,7 +269,6 @@ class IDMForwardSim(tf.keras.Model):
             em_delta_x_true = idm_s[:, step:step+1, 9:10]
 
             # these to deal with missing cars
-            f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
@@ -282,28 +283,23 @@ class IDMForwardSim(tf.keras.Model):
             em_dv = (ego_v - m_veh_v)
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-            # ef_act = self.add_noise(ef_act, f_veh_exists, batch_size)
 
             # tf.print('############ em_act ############')
-            # tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            # em_act = self.add_noise(em_act, m_veh_exists, batch_size)
 
-            # env_state = tf.concat([ego_v, f_veh_v, m_veh_v, \
-            #                         ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            # env_state = tf.concat([self.scale_env_s(env_state), \
-            #                        f_veh_exists, m_veh_exists], axis=-1)
-            #
-            # merger_c = merger_cs[:, step:step+1, :]
-            # # merger_c = merger_cs[:, step:step+1, :]
-            # lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-            #                         proj_latent, env_state, merger_c], axis=-1), \
-            #                         initial_state=[state_h, state_c])
-            # att_x = self.attention_neu(lstm_output)
-            # att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            # att_score = (f_veh_exists*att_score + 1*(1-f_veh_exists))*m_veh_exists
+            env_state = tf.concat([ego_v, f_veh_v, \
+                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = self.scale_env_s(env_state)
+            merger_c = tf.concat([merger_cs[:, step:step+1, :], m_veh_exists], axis=-1)
 
-            att_score = idm_s[:, step:step+1, -3:-2]
+            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
+                                    proj_latent, env_state, merger_c], axis=-1), \
+                                    initial_state=[state_h, state_c])
+            att_x = self.attention_neu(lstm_output)
+            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
+            att_score = att_score*m_veh_exists
+
+            # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
                 act_seq = _act
@@ -312,7 +308,7 @@ class IDMForwardSim(tf.keras.Model):
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
 
-        # tf.print('att_score: ', tf.reduce_max(att_seq))
+        # tf.print('att_score: ', tf.reduce_mean(att_seq))
         return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
@@ -322,42 +318,16 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_3 = Dense(self.proj_dim)
-
-        # self.des_v_neu = Dense(1)
-        # self.proj_layer_des_v = Dense(self.proj_dim, activation='relu')
-        # self.des_tgap_neu = Dense(1)
-        # self.proj_layer_des_tgap = Dense(self.proj_dim, activation='relu')
-        # self.min_jamx_neu = Dense(1)
-        # self.proj_layer_min_jamx = Dense(self.proj_dim, activation='relu')
-        # self.max_act_neu = Dense(1)
-        # self.proj_layer_max_act = Dense(self.proj_dim, activation='relu')
-        # self.min_act_neu = Dense(1)
-        # self.proj_layer_min_act = Dense(self.proj_dim, activation='relu')
-        #
         self.des_v_neu = Dense(1)
-        # self.proj_layer_des_v = Dense(self.proj_dim, activation=LeakyReLU())
         self.des_tgap_neu = Dense(1)
-        # self.proj_layer_des_tgap = Dense(self.proj_dim, activation=LeakyReLU())
         self.min_jamx_neu = Dense(1)
-        # self.proj_layer_min_jamx = Dense(self.proj_dim, activation=LeakyReLU())
         self.max_act_neu = Dense(1)
-        # self.proj_layer_max_act = Dense(self.proj_dim, activation=LeakyReLU())
         self.min_act_neu = Dense(1)
-        # self.proj_layer_min_act = Dense(self.proj_dim, activation=LeakyReLU())
-
-    def projection(self, x):
-        x = self.proj_layer_1(x)
-        x = self.proj_layer_2(x)
-        x = self.proj_layer_3(x)
-        return x
 
     def get_des_v(self, x):
         output = self.des_v_neu(x)
         minval = 10
-        maxval = 25
+        maxval = 30
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_des_tgap(self, x):
@@ -384,8 +354,7 @@ class IDMLayer(tf.keras.Model):
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
-    def call(self, inputs):
-        x = self.projection(inputs)
+    def call(self, x):
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
         min_jamx = self.get_min_jamx(x)
@@ -407,39 +376,3 @@ class IDMLayer(tf.keras.Model):
 
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
-#
-# class IDMForwardSimLaneKeep(IDMForwardSim):
-#     def __init__(self):
-#         super().__init__()
-#
-#     def rollout(self, inputs):
-#         att_inputs, idm_params, idm_s, merger_cs = inputs
-#         sampled_att_z, enc_h = att_inputs
-#         batch_size = tf.shape(idm_s)[0]
-#         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-#         for step in range(40):
-#             f_veh_v = idm_s[:, step:step+1, 1:2]
-#             f_veh_glob_x = idm_s[:, step:step+1, 3:4]
-#
-#             if step == 0:
-#                 ego_v = idm_s[:, step:step+1, 0:1]
-#                 ego_glob_x = idm_s[:, step:step+1, 2:3]
-#             else:
-#                 ego_v += ef_act*0.1
-#                 ego_glob_x += ego_v*0.1 + 0.5*ef_act*0.1**2
-#
-#             ef_delta_x = (f_veh_glob_x - ego_glob_x)
-#             ef_dv = (ego_v - f_veh_v)
-#             tf.Assert(tf.greater(tf.reduce_min(ef_delta_x), 0.),[ef_delta_x])
-#             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-#             if step == 0:
-#                 act_seq = ef_act
-#             else:
-#                 act_seq = tf.concat([act_seq, ef_act], axis=1)
-#
-#         return act_seq, act_seq
-
-# class NeurIDMModelLaneKeep(NeurIDMModel):
-#     def __init__(self, config=None):
-#         super().__init__(config)
-#         self.forward_sim = IDMForwardSimLaneKeep()

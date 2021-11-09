@@ -22,7 +22,7 @@ class DataGenecrator():
         feature_names = [
                  'episode_id', 'time_step',
                  'e_veh_id', 'f_veh_id', 'm_veh_id',
-                 'e_veh_decision', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists', 'e_veh_att',
+                 'e_veh_decision', 'f_veh_exists', 'm_veh_exists', 'e_veh_att',
                  'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
                  'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                  'e_veh_action', 'f_veh_action', 'm_veh_action',
@@ -288,16 +288,16 @@ class DataGeneratorMerge(DataGenecrator):
                 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
         feature_names = [
                  'episode_id', 'time_step',
-                 'e_veh_id', 'f_veh_id', 'm_veh_id', 'mf_veh_id',
+                 'e_veh_id', 'f_veh_id', 'm_veh_id',
                  'e_veh_decision', 'e_veh_lane',
-                 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists', 'e_veh_att',
+                 'f_veh_exists', 'm_veh_exists', 'e_veh_att',
                  'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
-                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed', 'mf_veh_speed',
+                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                  'e_veh_action', 'f_veh_action', 'm_veh_action',
                  'aggressiveness', 'desired_v',
                  'desired_tgap', 'min_jamx', 'max_act', 'min_act',
-                 'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x', 'em_delta_y',
-                 'mmf_delta_v', 'mmf_delta_x']
+                 'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+                 'em_delta_y', 'delta_x_to_merge']
 
         index = 0
         for item_name in feature_names:
@@ -305,11 +305,14 @@ class DataGeneratorMerge(DataGenecrator):
             index += 1
 
     def is_episode_complete(self):
-        """Episode is considered complete after 200 time-steps
+        """Episode is considered complete if there are no merging cars.
         """
-        if not self.env.vehicles:
+        merging_car_exists = False
+        for vehicle in self.env.vehicles:
+            if vehicle.lane_id == 2 or vehicle.lane_decision != 'keep_lane':
+                merging_car_exists = True
+        if not merging_car_exists:
             return True
-        return False
 
     def run_sim(self):
         for episode_id in range(1, self.episodes_n+1):
@@ -320,7 +323,7 @@ class DataGeneratorMerge(DataGenecrator):
         return self.env.recordings
 
     def get_step_feature(self, vehicles):
-        e_veh, f_veh, m_veh, mf_veh, e_veh_att = vehicles
+        e_veh, f_veh, m_veh, e_veh_att = vehicles
         if not f_veh:
             f_veh = {key: np.nan for key in self.env.veh_log}
             f_veh_exists = 0
@@ -333,17 +336,11 @@ class DataGeneratorMerge(DataGenecrator):
         else:
             m_veh_exists = 1
 
-        if not mf_veh:
-            mf_veh = {key: np.nan for key in self.env.veh_log}
-            mf_veh_exists = 0
-        else:
-            mf_veh_exists = 1
-
         e_veh_decision = 1 if e_veh['lane_decision'] != 'keep_lane' else 0
         step_feature = [e_veh_decision, e_veh['lane_id'],
-                        f_veh_exists, m_veh_exists, mf_veh_exists, e_veh_att,
+                        f_veh_exists, m_veh_exists, e_veh_att,
                         e_veh['glob_x'], f_veh['glob_x'], m_veh['glob_x'],
-                        e_veh['speed'], f_veh['speed'], m_veh['speed'], mf_veh['speed'],
+                        e_veh['speed'], f_veh['speed'], m_veh['speed'],
                         e_veh['act_long'], f_veh['act_long'], m_veh['act_long']]
 
         ego_internal_state = [e_veh.get(key) for key in self.ego_internal_state]
@@ -356,13 +353,8 @@ class DataGeneratorMerge(DataGenecrator):
         step_feature.extend([
                              e_veh['speed']-m_veh['speed'],
                              m_veh['glob_x']-e_veh['glob_x'],
-                             abs(m_veh['glob_y']-e_veh['glob_y'])])
-
-        step_feature.extend([
-                             m_veh['speed']-mf_veh['speed'],
-                             mf_veh['glob_x']-m_veh['glob_x']])
-        # print(f_veh['glob_x']-e_veh['glob_x'])
-        # print()
+                             abs(m_veh['glob_y']-e_veh['glob_y']),
+                             200-m_veh['glob_x']])
         return step_feature
 
     def extract_features(self, raw_recordings):
@@ -373,13 +365,11 @@ class DataGeneratorMerge(DataGenecrator):
         def add_info(vehicle_ids):
             """Useful for debugging
             """
-            f_veh_id, m_veh_id, mf_veh_id = vehicle_ids
+            f_veh_id, m_veh_id = vehicle_ids
             f_veh_id = f_veh_id if f_veh_id else -1
             m_veh_id = m_veh_id if m_veh_id else -1
-            if not mf_veh_id or mf_veh_id == 'dummy':
-                mf_veh_id = -1
 
-            return [episode_id, time_step, e_veh_id, f_veh_id, m_veh_id, mf_veh_id]
+            return [episode_id, time_step, e_veh_id, f_veh_id, m_veh_id]
 
         def end_vehicle_tracing():
             """
@@ -405,8 +395,6 @@ class DataGeneratorMerge(DataGenecrator):
                     att_veh_id = e_veh['att_veh_id']
                     f_veh_id = e_veh['f_veh_id']
                     m_veh_id = e_veh['m_veh_id']
-                    mf_veh_id = e_veh['mf_veh_id']
-
 
                     if f_veh_id:
                         f_veh = epis_data[f_veh_id][time_step]
@@ -424,14 +412,8 @@ class DataGeneratorMerge(DataGenecrator):
                         m_veh = None
                         e_veh_att = 0
 
-                    if mf_veh_id:
-                        mf_veh = epis_data[mf_veh_id][time_step]
-                    else:
-                        mf_veh = None
-                        mf_veh_id = None
-
-                    vehicle_ids = [f_veh_id, m_veh_id, mf_veh_id]
-                    vehicles = [e_veh, f_veh, m_veh, mf_veh, e_veh_att]
+                    vehicle_ids = [f_veh_id, m_veh_id]
+                    vehicles = [e_veh, f_veh, m_veh, e_veh_att]
                     step_feature = self.get_step_feature(vehicles)
                     step_feature[0:0] = add_info(vehicle_ids)
                     trace_features.append(step_feature)
@@ -442,10 +424,10 @@ class DataGeneratorMerge(DataGenecrator):
         Remove unwanted samples
         """
         cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
-                (history_seqs[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
+                (history_seqs[:,:, self.names_to_index('e_veh_glob_x')] < 250)).all(axis=1)
 
         cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
-                (future_seqs[:,:, self.names_to_index('e_veh_decision')] == 0)).all(axis=1)
+                (future_seqs[:,:, self.names_to_index('e_veh_glob_x')] < 250)).all(axis=1)
 
         cond = np.all([cond_hist, cond_fut], axis=0)
         return history_seqs[cond], future_seqs[cond]
@@ -477,14 +459,14 @@ class DataGeneratorMerge(DataGenecrator):
     def scale_data(self, features):
         features_scaled = features.copy()
         # env state
-        col_names = ['e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+        col_names = ['e_veh_speed', 'f_veh_speed',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
 
         scalar_indexs = self.names_to_index(col_names)
         env_scaler = preprocessing.StandardScaler().fit(features[:, scalar_indexs])
         features_scaled[:, scalar_indexs] = env_scaler.transform(features[:, scalar_indexs])
         # merger context
-        col_names = ['mf_veh_speed', 'em_delta_y', 'mmf_delta_v', 'mmf_delta_x']
+        col_names = ['m_veh_speed','em_delta_y', 'delta_x_to_merge']
         scalar_indexs = self.names_to_index(col_names)
         m_scaler = preprocessing.StandardScaler().fit(features[:, scalar_indexs])
         features_scaled[:, scalar_indexs] = m_scaler.transform(features[:, scalar_indexs])
@@ -496,22 +478,24 @@ class DataGeneratorMerge(DataGenecrator):
         history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
         col_names = ['episode_id', 'time_step',
-                'e_veh_speed', 'f_veh_speed', 'm_veh_speed', 'mf_veh_speed',
+                'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                 'el_delta_v', 'el_delta_x',
                 'em_delta_v', 'em_delta_x',
-                'mmf_delta_v', 'mmf_delta_x',
-                'em_delta_y',
-                'f_veh_exists', 'm_veh_exists', 'mf_veh_exists']
+                'delta_x_to_merge',
+                'em_delta_y', 'm_veh_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         #  history and future info for debugging/ visualisation
-        col_names = ['episode_id', 'time_step', 'e_veh_id', 'm_veh_id',
-                'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-                'e_veh_action', 'f_veh_action', 'm_veh_action',
-                'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-                'em_delta_y', 'e_veh_att', 'f_veh_exists', 'm_veh_exists', 'mf_veh_exists',
-                'e_veh_decision', 'aggressiveness']
+        col_names = [
+                 'episode_id', 'time_step',
+                 'e_veh_id', 'f_veh_id', 'm_veh_id',
+                 'm_veh_exists', 'e_veh_att',
+                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+                 'e_veh_action', 'f_veh_action', 'm_veh_action',
+                 'aggressiveness',
+                 'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+                 'em_delta_y', 'delta_x_to_merge']
 
         history_usc = history_seqs[:, :, self.names_to_index(col_names)]
         future_usc = future_seqs[:, :, self.names_to_index(col_names)]
@@ -527,8 +511,7 @@ class DataGeneratorMerge(DataGenecrator):
 
         # future context of m_veh - fed to LSTMs
         # this holds all the context needed to infer merger type
-        col_names = ['episode_id', 'time_step', 'mf_veh_speed',
-                                'em_delta_y', 'mmf_delta_v', 'mmf_delta_x', 'mf_veh_exists']
+        col_names = ['episode_id', 'time_step', 'm_veh_speed', 'em_delta_y', 'delta_x_to_merge']
         future_m_veh_c = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         # future action of e_veh - used as target
@@ -558,11 +541,11 @@ class DataGeneratorMerge(DataGenecrator):
             features[nan_indx, indx] = dummy_value
             return dummy_value
 
-        cols_with_nans = ['f_veh_speed', 'm_veh_speed', 'mf_veh_speed',
+        cols_with_nans = ['f_veh_speed', 'm_veh_speed',
                           'f_veh_action','m_veh_action',
                           'el_delta_v', 'el_delta_x',
                           'em_delta_v', 'em_delta_x',
-                          'mmf_delta_v', 'mmf_delta_x',
+                          'delta_x_to_merge',
                           'em_delta_y',
                           'f_veh_glob_x', 'm_veh_glob_x']
         dummy_value_set = {}
