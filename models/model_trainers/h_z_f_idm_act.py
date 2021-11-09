@@ -282,7 +282,6 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
-# data_arrays = [data_array[0:20000, :, :] for data_array in data_arrays]
 # exp_dir = './models/experiments/'+'h_z_f_idm_act083_epo_20'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)

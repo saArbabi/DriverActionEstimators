@@ -104,10 +104,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         return neighbours
 
     def is_it_merger(self, vehicle):
-        """Several scenarios are possible:
-        (1) two vehicles merging simultaneously
-        (2) one vehicle mering infront of another keeping lane
-        """
         if vehicle.id == 'dummy':
             return False
         elif vehicle.target_lane == self.lane_id and \
@@ -116,6 +112,11 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         return False
 
     def am_i_attending(self, m_veh, f_veh):
+        """Several scenarios are possible:
+        (1) Ego attends because merger has entered its lane
+        (2) Ego attends following the IDM-C
+        (2) Ego attends for safety
+        """
         if not m_veh or (f_veh and m_veh.glob_x > f_veh.glob_x) or m_veh.glob_x < 150:
             return False
         if m_veh == self.neighbours['att'] == m_veh or \
