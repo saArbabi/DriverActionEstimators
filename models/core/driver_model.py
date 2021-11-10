@@ -295,6 +295,7 @@ class IDMForwardSim(tf.keras.Model):
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
+
             att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = att_score*m_veh_exists
