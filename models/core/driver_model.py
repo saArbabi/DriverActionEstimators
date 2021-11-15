@@ -263,8 +263,7 @@ class IDMForwardSim(tf.keras.Model):
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
 
-            ef_dv_true = idm_s[:, step:step+1, 6:7]
-            ef_delta_x_true = idm_s[:, step:step+1, 7:8]
+
             em_dv_true = idm_s[:, step:step+1, 8:9]
             em_delta_x_true = idm_s[:, step:step+1, 9:10]
 
@@ -278,9 +277,11 @@ class IDMForwardSim(tf.keras.Model):
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)
+            em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
+                            (1-m_veh_exists)*self.dummy_value_set['em_delta_x']
             ef_dv = (ego_v - f_veh_v)
-            em_dv = (ego_v - m_veh_v)
+            em_dv = (ego_v - m_veh_v)*m_veh_exists+\
+                            (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
             # tf.print('############ ef_act ############')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
 

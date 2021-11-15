@@ -234,6 +234,7 @@ class ForwardSim(tf.keras.Model):
                                                 (1-f_veh_exists)*ef_dv_true
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                                                 (1-m_veh_exists)*em_dv_true
+
             env_state = tf.concat([ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)

@@ -366,7 +366,7 @@ sepcific_examples = []
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 10:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -425,5 +425,6 @@ while Example_pred < 10:
 
         plt.figure(figsize=(5, 3))
         Example_pred += 1
+
 
 # %%

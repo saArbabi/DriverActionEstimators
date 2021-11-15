@@ -53,6 +53,8 @@ data_gen = DataGeneratorMerge()
 with open('./models/experiments/sim_data_024.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
+# features[features[:, indxs['m_veh_exists']] == 0][:, indxs['m_veh_speed']]
+
 features_scaled, env_scaler, m_scaler = data_gen.scale_data(features)
 
 history_future_seqs = data_gen.sequence(features, 20, 20)
@@ -64,7 +66,7 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 future_m_veh_c.shape
-future_m_veh_c.shape
+history_sca.shape
 12519/58528
 (58528, 20, 7)
 # plt.plot(history_future_usc[5641, :, hf_usc_indexs['m_veh_action']])
@@ -224,6 +226,9 @@ class Trainer():
         with open('./models/experiments/m_scaler_024.pickle', 'rb') as handle:
             self.model.forward_sim.m_scaler = pickle.load(handle)
 
+        with open('./models/experiments/dummy_value_set_024.pickle', 'rb') as handle:
+            self.model.forward_sim.dummy_value_set = pickle.load(handle)
+
     def prep_data(self, training_data):
         all_epis = np.unique(training_data[0][:, 0, 0])
         np.random.seed(2021)
@@ -282,7 +287,7 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
-exp_dir = './models/experiments/'+'h_z_f_idm_act083_epo_20'+'/model'
+exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
 model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
@@ -365,7 +370,7 @@ ax = latent_vis(3000)
 #
 
 # %%
-model_trainer.save_model('h_z_f_idm_act', '088')
+model_trainer.save_model('h_z_f_idm_act', '089')
 
 # %%
 """
@@ -456,7 +461,7 @@ def latent_vis(n_z_samples):
     # ax.set_zlabel('$z_{3}$', labelpad=1)
     plt.subplots_adjust(wspace=0.2, hspace=None)
 
-latent_vis(2000)
+latent_vis(3000)
 # plt.savefig("latent.png", dpi=500)
 
 
@@ -616,7 +621,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 10:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -629,7 +634,7 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[25:35].mean():
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
 
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -713,13 +718,13 @@ while Example_pred < 10:
         plt.title(str(sample_index[0]) + ' -- m_veh_exists')
         plt.grid()
         ######\######
-        # plt.figure(figsize=(5, 3))
-        # plt.plot(range(39), em_delta_y, color='red')
+        plt.figure(figsize=(5, 3))
+        plt.plot(range(39), em_delta_y, color='red')
         # plt.plot([0, 40], [-0.37, -0.37], color='green')
         # plt.plot([0, 40], [-1, -1], color='red')
-        # plt.plot([0, 40], [-1.5, -1 .5], color='red')
-        # plt.title(str(sample_index[0]) + ' -- em_delta_y')
-        # plt.grid()
+        # plt.plot([0, 40], [-1.5, -1.5], color='red')
+        plt.title(str(sample_index[0]) + ' -- em_delta_y')
+        plt.grid()
         ############
         ##########
         # lATENT
@@ -819,10 +824,9 @@ for i in range(5):
 # model_trainer.model.arbiter.attention_temp = 5
 traces_n = 100
 model_trainer.model.forward_sim.attention_temp = 5
-sample_index = [11739]
+sample_index = [23287]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
-f_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
 em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
 episode = future_idm_s[sample_index, 0, 0][0]
