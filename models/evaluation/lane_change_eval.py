@@ -39,9 +39,9 @@ for trace in range(trace_n):
     env.metric_collection_mode = True
 
     # env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle = NeuralIDMVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
-    env.neural_vehicle = NeurLatentOneStepVehicle()
+    # env.neural_vehicle = NeurLatentOneStepVehicle()
     # env.neural_vehicle = LSTMVehicle()
     np.random.seed(0) # ensures environment remains the same
     tf.random.set_seed(trace) # each trace has a unique seed

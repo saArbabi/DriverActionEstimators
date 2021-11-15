@@ -11,25 +11,27 @@ import os
 from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
-from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
+from vehicles.neural_vehicles import NeuralIDMVehicle
 import tensorflow as tf
 
 def main():
     config = {'lanes_n':2,
             'lane_width':3.75, # m
-            'lane_length':600 # m
+            'lane_length':300 # m
             }
     env = EnvMergeMC(config)
+    episode_id = 294
+    env.initialize_env(episode_id)
     # env.neural_vehicle = LSTMVehicle()
     # env.neural_vehicle = MLPVehicle()
     # env.neural_vehicle = NeuralIDMVehicle()
-    env.neural_vehicle = NeurLatentVehicle()
+    # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
     np.random.seed(0)
     # np.random.seed(2021)
-    tf.random.set_seed(10)
-    env.debugging_mode = True
-    # env.debugging_mode = False
+    # tf.random.set_seed(10)
+    # env.debugging_mode = True
+    env.debugging_mode = False
     while True:
         if env.time_step > 0:
             user_input = input()
