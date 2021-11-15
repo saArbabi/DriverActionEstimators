@@ -6,9 +6,10 @@ from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
-        self.STM_m_veh = self.steps_prior_lc + \
-                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
-        self.TTM_m_veh = self.STM_m_veh*0.1 # time to merge
+        if id:
+            self.STM_m_veh = self.steps_prior_lc + \
+                            (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
+            self.TTM_m_veh = self.STM_m_veh*0.1 # time to merge
 
     def my_neighbours(self, vehicles):
         """

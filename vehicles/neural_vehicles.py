@@ -1,10 +1,10 @@
-from vehicles.idmmobil_vehicle import IDMMOBILVehicle
+from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 import numpy as np
 import pickle
 from importlib import reload
 import tensorflow as tf
 
-class NeuralIDMVehicle(IDMMOBILVehicle):
+class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
         self.time_lapse_since_last_param_update = 0

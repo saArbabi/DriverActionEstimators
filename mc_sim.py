@@ -24,7 +24,8 @@ def main():
     env.initialize_env(episode_id)
     # env.neural_vehicle = LSTMVehicle()
     # env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle = NeuralIDMVehicle()
+
     # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
     np.random.seed(0)
