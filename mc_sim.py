@@ -20,7 +20,7 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    episode_id = 95
+    episode_id = 6
     env.initialize_env(episode_id)
     # env.neural_vehicle = LSTMVehicle()
     # env.neural_vehicle = MLPVehicle()
@@ -28,11 +28,12 @@ def main():
 
     # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
-    np.random.seed(0)
+    # np.random.seed(0)
     # np.random.seed(2021)
     # tf.random.set_seed(10)
     env.debugging_mode = True
     # env.debugging_mode = False
+    # tf.random.set_seed(0)
     while True:
         if env.time_step > 0:
             user_input = input()

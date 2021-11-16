@@ -122,8 +122,9 @@ class EnvMergeMC(EnvMerge):
         """
         ima_vehicles = []
         for vehicle in self.ima_vehicles:
-            if vehicle.vehicle_type != 'idmmobil_merge' \
-                    and vehicle.neighbours['att'] and vehicle.time_lapse > 0:
+            if vehicle.vehicle_type != 'idmmobil_merge':
+                    # and vehicle.neighbours['att']:
+                    # and vehicle.neighbours['att'] and vehicle.time_lapse > 0:
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                 neural_vehicle.id = 'neur_'+str(vehicle.id)
                 imagined_vehicle = neural_vehicle
@@ -137,6 +138,8 @@ class EnvMergeMC(EnvMerge):
         """ steps the environment forward in time.
         """
         # self.remove_vehicles_outside_bound()
+        if self.time_step == 0:
+            self.neuralize_vehicle_type()
         acts_real, acts_ima = self.get_joint_action()
         for veh_real, veh_ima, act_real, act_ima in zip(
                                                     self.real_vehicles,
@@ -149,8 +152,7 @@ class EnvMergeMC(EnvMerge):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if self.time_step == 5:
-            self.neuralize_vehicle_type()
+
         self.time_step += 1
 
     def vis_log_info(self, veh_real, veh_ima):

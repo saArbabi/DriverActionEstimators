@@ -287,8 +287,8 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
-exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
 # train_input = None
@@ -603,8 +603,7 @@ plt.grid(axis='x')
 # plt.xaxis.grid()
 
 # %%
-np.where((history_future_usc[:, 0, 0] == 8) & \
-                             (history_future_usc[:, 0, 1] == 488))
+
 
 # %%
 
@@ -612,7 +611,7 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
-traces_n = 50
+traces_n = 1
 # np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
 sepcific_examples = []
@@ -621,8 +620,8 @@ distribution_name = 'prior'
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
-for i in bad_examples[0]:
-# while Example_pred < 30:
+# for i in bad_examples[0]:
+while Example_pred < 1:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -633,9 +632,9 @@ for i in bad_examples[0]:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
-    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -648,6 +647,7 @@ for i in bad_examples[0]:
         elif distribution_name == 'prior':
             latent_dis_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
         sampled_z = model_trainer.model.belief_net.sample_z(latent_dis_param)
+        # print(sampled_z)
         proj_belief = model_trainer.model.belief_net.belief_proj(sampled_z)
         idm_params = model_trainer.model.idm_layer(proj_belief)
         act_seq, att_scores = model_trainer.model.forward_sim.rollout([proj_belief, \
@@ -819,6 +819,8 @@ for i in range(5):
     # plt.plot([mean_bound, mean_bound], [0, p.max()], linewidth=2, color='black')
 
 # %%
+sample_index = [866]
+
 for col, col_indx in hf_usc_indexs.items():
     val = history_future_usc[sample_index, 20, col_indx][0]
     print(col, ': ', val)

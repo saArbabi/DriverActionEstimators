@@ -15,7 +15,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        exp_dir = './models/experiments/'+'h_z_f_idm_act_test_epo_10'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
 
         with open('./models/experiments/env_scaler_024.pickle', 'rb') as handle:
             self.env_scaler = pickle.load(handle)
@@ -131,11 +131,11 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                 (state[:, :, scalar_indexs]-self.env_scaler.mean_)/self.env_scaler.var_**0.5
 
             # merger context
-            col_names = ['m_veh_speed','em_delta_y', 'delta_x_to_merge']
+            col_names = ['m_veh_speed', 'em_delta_y', 'delta_x_to_merge']
             scalar_indexs = self.names_to_index(col_names)
             state[:, :, scalar_indexs] = \
                 (state[:, :, scalar_indexs]-self.m_scaler.mean_)/self.m_scaler.var_**0.5
-
+            state[:,:,]
         elif state_type == 'env_state':
             col_names = ['e_veh_speed', 'f_veh_speed',
                             'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
@@ -150,23 +150,32 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             state = \
                 (state[:, :, scalar_indexs]-self.m_scaler.mean_)/self.m_scaler.var_**0.5
 
-        return state
+        return np.float32(state)
 
     def get_neur_att(self, att_context):
         # att_inputs = tf.concat([self.proj_latent, sdv_act], axis=-1)
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 5
+        attention_temp = 20
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
         return att_score
 
     def act(self, obs):
         obs_t0, m_veh_exists, neighbours = obs
         if self.time_lapse_since_last_param_update % 20 == 0:
+            tf.random.set_seed(0)
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_z = self.model.belief_net.sample_z(latent_dis_param)
+            if self.id == 'neur_3':
+                print(sampled_z)
+                # print(obs_history)
+            #     # print(enc_h)
+            #     # print(obs_history.dtype)
+            #     # print(np.array2string(obs_history, separator=','))
+            #
+            #     print(obs_t0)
             proj_belief = self.model.belief_net.belief_proj(sampled_z)
             idm_params = self.model.idm_layer(proj_belief)
             self.driver_params_update(idm_params)
@@ -177,9 +186,9 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         merger_c = self.scale_state(obs_t0, 'merger_c')
         att_context = tf.concat([self.proj_latent, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
-        # att_score = self.get_neur_att(att_context)[0][0][0]
-        att_score = 0
-        print(att_score)
+        att_score = self.get_neur_att(att_context)[0][0][0]
+        # att_score = 0
+        # print(att_score)
         # att_score = att_score*m_veh_exists
         self.att = att_score
 
