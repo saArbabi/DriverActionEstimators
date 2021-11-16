@@ -82,11 +82,9 @@ class EnvMergeMC(EnvMerge):
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
-                        print('act_long')
                         # _act_long = veh_ima.act(obs)
-                        # act_long = veh_ima.act(obs)
-                        act_long = -0.5
-                        # _ = veh_ima.act(obs)
+                        act_long = veh_ima.act(obs)
+                        # act_long = -0.5
                         veh_ima.act_long = act_long
                         if self.metric_collection_mode:
                             self.mc_log_info(veh_real, veh_ima)
@@ -94,7 +92,6 @@ class EnvMergeMC(EnvMerge):
                         act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
                 else:
                     act_long = 0
-                    print(act_long)
 
             elif veh_ima.vehicle_type == 'idmmobil' and not veh_ima.collision_detected:
                 try:
@@ -152,7 +149,7 @@ class EnvMergeMC(EnvMerge):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if self.time_step == 10:
+        if self.time_step == 5:
             self.neuralize_vehicle_type()
         self.time_step += 1
 

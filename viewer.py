@@ -246,7 +246,7 @@ class ViewerMC(Viewer):
             return
 
         if not hasattr(self, 'act_ax'):
-            self.fig = plt.figure(figsize=(5, 14))
+            self.fig = plt.figure(figsize=(10, 14))
             self.act_ax = self.fig.add_subplot(511)
             self.speed_ax = self.fig.add_subplot(512)
             self.att_ax = self.fig.add_subplot(513)
