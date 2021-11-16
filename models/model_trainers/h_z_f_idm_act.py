@@ -394,11 +394,11 @@ def get_avg_loss_across_sim(examples_to_vis):
     true_actions = future_e_veh_a[examples_to_vis, :, 2:]
     loss = (tf.square(tf.subtract(act_seq, true_actions)))
     return tf.reduce_mean(loss, axis=1).numpy()
-loss = get_avg_loss_across_sim(val_examples[0:15000])
-# loss = get_avg_loss_across_sim(train_indxs[0:15000])
+# loss = get_avg_loss_across_sim(val_examples[0:15000])
+loss = get_avg_loss_across_sim(train_indxs[0:15000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-bad_examples = np.where(loss > 0.5)
+bad_examples = np.where(loss > 1)
 
 # %%
 
@@ -620,8 +620,8 @@ distribution_name = 'prior'
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
-# for i in bad_examples[0]:
-while Example_pred < 20:
+for i in bad_examples[0]:
+# while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -632,9 +632,9 @@ while Example_pred < 20:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -680,14 +680,14 @@ while Example_pred < 20:
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
         plt.plot(time_steps, traj, color='purple')
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
-        plt.plot(time_steps, traj, color='black')
+        plt.plot(time_steps, traj, color='black', linewidth=2)
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
         plt.plot(time_steps, traj, color='red')
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
            plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
-                                        color='grey', alpha=0.5)
+                                        color='grey', alpha=0.4)
            # plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)

@@ -189,7 +189,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         att_score = self.get_neur_att(att_context)[0][0][0]
         # att_score = 0
         # print(att_score)
-        # att_score = att_score*m_veh_exists
+        att_score = att_score*m_veh_exists
         self.att = att_score
 
         f_veh, m_veh = neighbours
