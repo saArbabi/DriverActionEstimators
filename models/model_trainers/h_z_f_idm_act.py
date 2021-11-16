@@ -65,22 +65,22 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
+future_e_veh_a[:, :, -1].min()
 future_m_veh_c.shape
 history_sca.shape
-12519/58528
-(58528, 20, 7)
 # plt.plot(history_future_usc[5641, :, hf_usc_indexs['m_veh_action']])
+features
 # %%
 """
 BALANCE DATA
 """
 # history_future_usc[:, :, -4].mean()
 history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_c, future_e_veh_a = data_arrays
-cond = (history_future_usc[:, :, -6] == 1).all(axis=1)
-# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-balance_value = np.count_nonzero((history_future_usc[:, :, -6] == 1).all(axis=1))/\
+balance_value = np.count_nonzero((history_future_usc[:, :, -14] == 1).all(axis=1))/\
                         history_future_usc.shape[0]
 print(balance_value)
+cond = (history_future_usc[:, :, -14] == 1).all(axis=1)
+data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
 
 # %%
 indxs = {}
@@ -287,8 +287,8 @@ class Trainer():
 tf.random.set_seed(2021)
 model_trainer = Trainer(model_type='cvae', model_name='driver_model')
 train_input, val_input = model_trainer.prep_data(data_arrays)
-# exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+'h_z_f_idm_act094_epo_20'+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
 # train_input = None
@@ -370,7 +370,7 @@ ax = latent_vis(3000)
 #
 
 # %%
-model_trainer.save_model('h_z_f_idm_act', '089')
+model_trainer.save_model('h_z_f_idm_act', '094')
 
 # %%
 """
@@ -611,7 +611,7 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
-traces_n = 1
+traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
 
 sepcific_examples = []
@@ -621,7 +621,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 1:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
