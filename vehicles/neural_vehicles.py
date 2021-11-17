@@ -11,7 +11,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.initialize_agent()
 
     def load_model(self):
-        exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
+        exp_dir = './models/experiments/'+'h_z_f_idm_act095_epo_25'+'/model'
         from models.core import driver_model
         reload(driver_model)
         from models.core.driver_model import  NeurIDMModel
@@ -100,7 +100,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]], neighbours]
 
     def driver_params_update(self, idm_params):
-        idm_params = idm_params.numpy()[0]
+        idm_params = idm_params.numpy()[0][0]
         self.driver_params['desired_v'] = idm_params[0]
         self.driver_params['desired_tgap'] = idm_params[1]
         self.driver_params['min_jamx'] = idm_params[2]
@@ -160,7 +160,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                                     att_context, initial_state=[self.state_h, self.state_c])
         attention_temp = 20
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
-        return att_score
+        return att_score, lstm_output
 
     def act(self, obs):
         obs_t0, m_veh_exists, neighbours = obs
@@ -179,8 +179,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             #
             #     print(obs_t0)
             proj_belief = self.model.belief_net.belief_proj(sampled_z)
-            idm_params = self.model.idm_layer(proj_belief)
-            self.driver_params_update(idm_params)
             self.belief_update(proj_belief)
             self.time_lapse_since_last_param_update = 0
 
@@ -188,10 +186,12 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         merger_c = self.scale_state(obs_t0, 'merger_c')
         att_context = tf.concat([self.proj_latent, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
-        att_score = self.get_neur_att(att_context)[0][0][0]
+        att_score, lstm_output = self.get_neur_att(att_context)
+        idm_params = self.model.forward_sim.idm_layer(lstm_output)
+        self.driver_params_update(idm_params)
         # att_score = 0
         # print(att_score)
-        att_score = att_score*self.m_veh_exists
+        att_score = att_score[0][0][0]*self.m_veh_exists
         self.att = att_score
 
         f_veh, m_veh = neighbours

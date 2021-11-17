@@ -20,12 +20,12 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    episode_id = 8
+    episode_id = 6
     env.initialize_env(episode_id)
     # env.neural_vehicle = LSTMVehicle()
     # env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeuralIDMVehicle()
-    env.neural_vehicle = NeurLatentVehicle()
+    env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
     # np.random.seed(0)
     # np.random.seed(2021)
