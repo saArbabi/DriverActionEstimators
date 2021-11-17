@@ -82,8 +82,8 @@ class EnvMergeMC(EnvMerge):
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
-                        _act_long = veh_ima.act(obs)
-                        # act_long = veh_ima.act(obs)
+                        # _act_long = veh_ima.act(obs)
+                        act_long = veh_ima.act(obs)
                         # act_long = -0.5
                         veh_ima.act_long = act_long
                         if self.metric_collection_mode:
@@ -105,8 +105,8 @@ class EnvMergeMC(EnvMerge):
             if self.debugging_mode:
                 if veh_ima.vehicle_type == 'neural':
                     if veh_ima.control_type == 'neural':
-                        veh_ima.act_long = _act_long
-                        # veh_ima.act_long = act_long
+                        # veh_ima.act_long = _act_long
+                        veh_ima.act_long = act_long
                     else:
                         veh_ima.act_long = act_long
                 else:
@@ -122,7 +122,7 @@ class EnvMergeMC(EnvMerge):
         """
         ima_vehicles = []
         for vehicle in self.ima_vehicles:
-            if vehicle.vehicle_type != 'idmmobil_merge':
+            if vehicle.vehicle_type != 'idmmobil_merge' and vehicle.id != 1:
                     # and vehicle.neighbours['att']:
                     # and vehicle.neighbours['att'] and vehicle.time_lapse > 0:
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
@@ -214,6 +214,7 @@ class EnvMergeMC(EnvMerge):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
+
         veh_id =  veh_real.id
         if veh_id not in self.real_mc_log:
             self.real_mc_log[veh_id] = {}

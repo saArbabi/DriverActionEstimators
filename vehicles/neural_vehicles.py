@@ -168,8 +168,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_z = self.model.belief_net.sample_z(latent_dis_param)
-            if self.id == 'neur_3':
-                print(sampled_z)
+            # if self.id == 'neur_3':
+                # print(sampled_z)
                 # print(obs_history)
             #     # print(enc_h)
             #     # print(obs_history.dtype)
@@ -189,7 +189,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         att_score = self.get_neur_att(att_context)[0][0][0]
         # att_score = 0
         # print(att_score)
-        att_score = att_score*m_veh_exists
+        att_score = att_score*self.m_veh_exists
         self.att = att_score
 
         f_veh, m_veh = neighbours
