@@ -305,7 +305,7 @@ def latent_vis(n_z_samples):
     # ax.set_ylabel('$z_{2}$', labelpad=1)
     # ax.set_zlabel('$z_{3}$', labelpad=1)
     plt.subplots_adjust(wspace=0.2, hspace=None)
-# latent_vis(2000)
+latent_vis(3000)
 
 # %%
 import matplotlib.pyplot as plt

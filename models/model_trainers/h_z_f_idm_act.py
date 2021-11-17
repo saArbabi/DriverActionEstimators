@@ -372,11 +372,11 @@ kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 print(model_trainer.test_mseloss[-1])
-ax = latent_vis(3000)
+# ax = latent_vis(3000)
 #
 
 # %%
-model_trainer.save_model('h_z_f_idm_act', '097')
+model_trainer.save_model('h_z_f_idm_act', '095')
 
 # %%
 """
@@ -655,9 +655,8 @@ while Example_pred < 30:
         sampled_z = model_trainer.model.belief_net.sample_z(latent_dis_param)
         # print(sampled_z)
         proj_belief = model_trainer.model.belief_net.belief_proj(sampled_z)
-        idm_params = model_trainer.model.idm_layer(proj_belief)
         act_seq, att_scores = model_trainer.model.forward_sim.rollout([proj_belief, \
-                                                    idm_params, future_idm_ss, merger_cs])
+                                                     future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
         plt.figure(figsize=(5, 4))
@@ -682,7 +681,7 @@ while Example_pred < 30:
 
             true_params.append(round(true_pram_val, 2))
         plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
-        plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
+        # plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
         plt.figure(figsize=(5, 3))
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
         plt.plot(time_steps, traj, color='purple')
