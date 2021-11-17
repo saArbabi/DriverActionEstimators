@@ -11,7 +11,7 @@ import os
 from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
-from vehicles.neural_vehicles import NeuralIDMVehicle
+from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
 import tensorflow as tf
 
 def main():
@@ -24,9 +24,8 @@ def main():
     env.initialize_env(episode_id)
     # env.neural_vehicle = LSTMVehicle()
     # env.neural_vehicle = MLPVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
-
-    # env.neural_vehicle = NeurLatentVehicle()
+    # env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
     # np.random.seed(0)
     # np.random.seed(2021)

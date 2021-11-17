@@ -10,12 +10,19 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.time_lapse_since_last_param_update = 0
         self.initialize_agent()
 
+    def load_model(self):
+        exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
+        from models.core import driver_model
+        reload(driver_model)
+        from models.core.driver_model import  NeurIDMModel
+        self.model = NeurIDMModel()
+        self.model.load_weights(exp_dir).expect_partial()
+
     def initialize_agent(self, config=None):
         self.samples_n = 1
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
 
         with open('./models/experiments/env_scaler_024.pickle', 'rb') as handle:
             self.env_scaler = pickle.load(handle)
@@ -25,12 +32,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
         with open('./models/experiments/dummy_value_set_024.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
-
-        from models.core import driver_model
-        reload(driver_model)
-        from models.core.driver_model import  NeurIDMModel
-        self.model = NeurIDMModel()
-        self.model.load_weights(exp_dir).expect_partial()
 
         self.indxs = {}
         feature_names = ['e_veh_speed', 'f_veh_speed','m_veh_speed',
@@ -42,6 +43,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             self.indxs[item_name] = index
             index += 1
         # self.model.forward_sim.attention_temp = 20
+        self.load_model()
 
     def update_obs_history(self, o_t):
         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
@@ -153,7 +155,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return np.float32(state)
 
     def get_neur_att(self, att_context):
-        # att_inputs = tf.concat([self.proj_latent, sdv_act], axis=-1)
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
         attention_temp = 20
@@ -163,7 +164,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def act(self, obs):
         obs_t0, m_veh_exists, neighbours = obs
         if self.time_lapse_since_last_param_update % 20 == 0:
-            tf.random.set_seed(0)
+            # tf.random.set_seed(0)
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
@@ -234,105 +235,31 @@ class NeurLatentVehicle(NeuralIDMVehicle):
     def __init__(self):
         super().__init__()
 
-    def initialize_agent(self, config=None):
-        self.samples_n = 1
-        history_len = 20 # steps
-        self.state_dim = 10
-        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        # self.action_history = [[0., 0.]]*20
-
-        with open('./models/experiments/scaler_009.pickle', 'rb') as handle:
-            self.scaler = pickle.load(handle)
-
-        with open('./models/experiments/dummy_value_set_009.pickle', 'rb') as handle:
-            self.dummy_value_set = pickle.load(handle)
-
+    def load_model(self):
+        exp_dir = './models/experiments/'+'h_z_f_act017_epo_25'+'/model'
         from models.core.h_z_f_act import NeurLatentModel
         self.model = NeurLatentModel()
-        exp_dir = './models/experiments/'+'h_z_f_act009_epo_15'+'/model'
         self.model.load_weights(exp_dir).expect_partial()
 
-    def belief_update(self, sampled_z):
-        latent_projection = self.model.forward_sim.projection(sampled_z)
-        self.proj_latent = tf.reshape(latent_projection, [self.samples_n, 1, 50])
-        self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
-
-    def neur_observe(self, e_veh, f_veh, m_veh):
-        if self.collision_detected:
-            return
-        if not m_veh:
-            m_veh_exists = 0
-            m_veh_speed = self.dummy_value_set['m_veh_speed']
-            m_veh_action = self.dummy_value_set['m_veh_action']
-            em_delta_x = self.dummy_value_set['em_delta_x']
-            em_delta_v = self.dummy_value_set['em_delta_v']
-            em_delta_y = self.dummy_value_set['em_delta_y']
-        else:
-            m_veh_exists = 1
-            m_veh_speed = m_veh.speed
-            m_veh_action = m_veh.act_long
-            em_delta_x = m_veh.glob_x-e_veh.glob_x
-            em_delta_y = abs(m_veh.glob_y-e_veh.glob_y)
-            em_delta_v = e_veh.speed-m_veh_speed
-
-        if not f_veh:
-            f_veh_exists = 0
-            f_veh_speed = self.dummy_value_set['f_veh_speed']
-            el_delta_x = self.dummy_value_set['el_delta_x']
-            el_delta_v = self.dummy_value_set['el_delta_v']
-        else:
-            f_veh_exists = 1
-            f_veh_speed = f_veh.speed
-            el_delta_x = f_veh.glob_x-e_veh.glob_x
-            el_delta_v = e_veh.speed-f_veh_speed
-
-        obs_t0 = [e_veh.speed, f_veh_speed, m_veh_speed]
-
-        obs_t0.extend([el_delta_v,
-                             el_delta_x])
-        obs_t0.extend([em_delta_v,
-                             em_delta_x,
-                             em_delta_y])
-
-        obs_t0.extend([f_veh_exists, m_veh_exists])
-        self.m_veh_exists = m_veh_exists
-        merger_c = [em_delta_y, m_veh_action, f_veh_exists, m_veh_exists]
-
-        env_state = [e_veh.speed, f_veh_speed, m_veh_speed,
-                     el_delta_v, el_delta_x, em_delta_v, em_delta_x]
-
-        neighbours = [f_veh, m_veh]
-        if min([el_delta_x, em_delta_x]) <= 0:
-            self.collision_detected = True
-            return
-
-        return [obs_t0, merger_c, env_state]
-
-    def scale_features(self, env_state):
-        env_state = np.float32(env_state)
-        env_state.shape = (self.samples_n*1, self.state_dim-3)
-        env_state[:, :] = self.scaler.transform(env_state[:, :])
-        env_state.shape = (self.samples_n, 1, self.state_dim-3)
-        return env_state
-
     def act(self, obs):
-        obs_t0, merger_c, env_state = obs
+        obs_t0, m_veh_exists, _ = obs
         if self.time_lapse_since_last_param_update % 20 == 0:
-            obs_history = self.prep_obs_seq(self.obs_history.copy())
+            obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
-            prior_param = self.model.belief_net(enc_h, dis_type='prior')
-            sampled_z = self.model.belief_net.sample_z(prior_param)
-            self.proj_latent_update(sampled_z)
+            latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
+            sampled_z = self.model.belief_net.sample_z(latent_dis_param)
+            proj_belief = self.model.belief_net.belief_proj(sampled_z)
+            self.belief_update(proj_belief)
             self.time_lapse_since_last_param_update = 0
 
-        sdv_act = np.array([[merger_c]])
-        env_state = self.scale_features(env_state)
+        env_state = self.scale_state(obs_t0, 'env_state')
+        merger_c = self.scale_state(obs_t0, 'merger_c')
+        _context = tf.concat([self.proj_latent, env_state, merger_c, \
+                                                        m_veh_exists], axis=-1)
 
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
-                             tf.concat([self.proj_latent, sdv_act, env_state], axis=-1)\
-                             , initial_state=[self.state_h, self.state_c])
+                                    _context, initial_state=[self.state_h, self.state_c])
         act_long = self.model.forward_sim.action_neu(lstm_output).numpy()
-
         self.time_lapse_since_last_param_update += 1
         return act_long[0][0][0]
 
