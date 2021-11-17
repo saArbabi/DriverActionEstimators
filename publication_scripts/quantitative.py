@@ -28,7 +28,7 @@ real_collections = {}
 ima_collections = {}
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act']
-model_names = ['test2', 'test3', 'test4']
+model_names = ['test2', 'test3', 'test4', 'h_z_f_idm_act095_epo_25']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -87,7 +87,7 @@ snip_collection_pred['test4'][0,0,0,:]
 Vis speeds true vs pred
 """
 state_index = indxs['speed']
-model_name = 'test3'
+model_name = 'h_z_f_idm_act095_epo_25'
 
 collection = []
 for i in range(15):
@@ -212,7 +212,7 @@ position_axis = fig.add_subplot(211)
 speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.05)
 # for model_name in model_names:
-for model_name, label in zip(model_names, legends):
+for model_name, label in zip(model_names, model_names):
     error_total = get_rwse(indxs['glob_x'], model_name)
     position_axis.plot(time_vals, error_total, label=label)
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
@@ -220,11 +220,11 @@ for model_name, label in zip(model_names, legends):
 # legends = ['NIDM', 'Latent-Seq', 'Latent-Single', 'Latent-Single-o']
 position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
-# position_axis.selegend(legends)
+position_axis.legend(model_names)
 position_axis.minorticks_off()
 # position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
-#j %%
+# %%
 """
 rwse speed
 """

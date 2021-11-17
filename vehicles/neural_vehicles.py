@@ -109,7 +109,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
     def belief_update(self, proj_belief):
         self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 50])
-        self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
+        if self.time_lapse_since_last_param_update == 0:
+            self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
 
     # def prep_obs_seq(self, obs_history):
     #     obs_history = np.float32(obs_history)
@@ -164,7 +165,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def act(self, obs):
         obs_t0, m_veh_exists, neighbours = obs
         if self.time_lapse_since_last_param_update % 20 == 0:
-            # tf.random.set_seed(0)
+            tf.random.set_seed(0)
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
