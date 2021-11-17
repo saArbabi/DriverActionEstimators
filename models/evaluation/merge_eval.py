@@ -16,7 +16,7 @@ from importlib import reload
 # import tensorflow as tf
 from vehicles import neural_vehicles
 reload(neural_vehicles)
-from vehicles.neural_vehicles import NeuralIDMVehicle
+from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
 
 import envs.merge_mc
 reload(envs.merge_mc)
@@ -80,8 +80,6 @@ for episode_id in [6,   8,  10,  12,  18]:
             real_collection[episode_id][veh_id].append(data_log)
 time_end = time.time()
 
-real_collection.keys()
-real_collection[0]
 print((time_end-time_start)/60)
 
 # %%
@@ -90,7 +88,7 @@ Save recordings
 """
 # model_name = 'h_lat_f_act'
 # model_name = 'h_lat_f_idm_act'
-model_name = 'test2'
+model_name = 'test3'
 
 directory = './publication_results/'+model_name
 if not os.path.exists(directory):

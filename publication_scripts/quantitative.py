@@ -28,7 +28,7 @@ real_collections = {}
 ima_collections = {}
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act']
-model_names = ['test2']
+model_names = ['test2', 'test3']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -74,7 +74,7 @@ for model_name in model_names:
     snip_collection_pred[model_name] = np.array(snip_collection_pred[model_name])
     snip_collection_true[model_name] = np.array(snip_collection_true[model_name])
 
-snip_collection_pred['test2'].shape
+snip_collection_pred['test3'].shape
 snip_collection_true['test2'].shape
 # snip_collection_true[model_names[0]][0 , 0, :, indxs['glob_x']] += 5
 # %%
@@ -82,13 +82,15 @@ snip_collection_true['test2'].shape
 Vis speeds true vs pred
 """
 state_index = indxs['speed']
+model_name = 'test3'
+
 collection = []
 for i in range(15):
     plt.figure()
-    epis_id = snip_collection_true['test2'][i,0,0,1]
-    veh_id = snip_collection_true['test2'][i,0,0,2]
-    state_true = snip_collection_true['test2'][i,0,:,state_index]
-    state_pred = snip_collection_pred['test2'][i,0,:,state_index]
+    epis_id = snip_collection_true['test3'][i,0,0,1]
+    veh_id = snip_collection_true['test3'][i,0,0,2]
+    state_true = snip_collection_true['test3'][i,0,:,state_index]
+    state_pred = snip_collection_pred['test3'][i,0,:,state_index]
     collection.append((state_true-state_pred)**2)
     plt.plot(state_true, color='red')
     plt.plot(state_pred, color='grey')
