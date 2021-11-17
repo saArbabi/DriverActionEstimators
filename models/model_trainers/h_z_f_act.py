@@ -157,7 +157,7 @@ model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
 # model_trainer.train(epochs=5)
 #
 # fig = plt.figure(figsize=(15, 5))
-plt.style.use('default')
+# plt.style.use('default')
 #
 # mse_axis = fig.add_subplot(131)
 # kl_axis = fig.add_subplot(132)
@@ -305,7 +305,7 @@ def latent_vis(n_z_samples):
     # ax.set_ylabel('$z_{2}$', labelpad=1)
     # ax.set_zlabel('$z_{3}$', labelpad=1)
     plt.subplots_adjust(wspace=0.2, hspace=None)
-latent_vis(2000)
+# latent_vis(2000)
 
 # %%
 import matplotlib.pyplot as plt
@@ -361,12 +361,11 @@ i = 0
 covered_episodes = []
 traces_n = 50
 sepcific_examples = []
-
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0][0:10]:
-while Example_pred < 10:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -425,5 +424,6 @@ while Example_pred < 10:
 
         plt.figure(figsize=(5, 3))
         Example_pred += 1
+
 
 # %%

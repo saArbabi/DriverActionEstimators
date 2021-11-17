@@ -1,11 +1,11 @@
-from envs import merge
+from envs.merge import EnvMerge
 from vehicle_handler import VehicleHandlerMergeMC
+
 import copy
 
-class EnvMergeMC(merge.EnvMerge):
+class EnvMergeMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
-        self.handler = VehicleHandlerMergeMC(config)
         self.real_vehicles = []
         self.ima_vehicles = []
         self.real_mc_log = {}
@@ -15,25 +15,29 @@ class EnvMergeMC(merge.EnvMerge):
         self.debugging_mode = False
         self.metric_collection_mode = False
 
-    def idm_to_neural_vehicle(self, vehicle):
-        neural_vehicle = copy.deepcopy(self.neural_vehicle)
-        for attrname, attrvalue in list(vehicle.__dict__.items()):
-            if attrname != 'act':
-                setattr(neural_vehicle, attrname, copy.copy(attrvalue))
-        return neural_vehicle
-
-    def add_new_vehicles(self):
-        new_entries = self.handler.handle_vehicle_entries(self.queuing_entries,
-                                                  self.last_entries, self.time_step)
-        for vehicle in new_entries:
+    def initialize_env(self, episode_id):
+        """Initates the environment, but with a real and imagined (to be predicted)
+            copy of traffic state.
+        """
+        self.time_step = 0
+        self.env_initializor.next_vehicle_id = 1
+        self.env_initializor.dummy_stationary_car = self.dummy_stationary_car
+        vehicles = self.env_initializor.init_env(episode_id)
+        for vehicle in vehicles:
             imagined_vehicle = copy.deepcopy(vehicle)
             imagined_vehicle.collision_detected = False
             if imagined_vehicle.lane_id == 2:
                 imagined_vehicle.vehicle_type = 'idmmobil_merge'
-                self.veh_merger_real = vehicle
-                self.veh_merger_ima = imagined_vehicle
             self.ima_vehicles.append(imagined_vehicle)
             self.real_vehicles.append(vehicle)
+
+    def idm_to_neural_vehicle(self, vehicle):
+        neural_vehicle = copy.deepcopy(self.neural_vehicle)
+
+        for attrname, attrvalue in list(vehicle.__dict__.items()):
+            if attrname != 'act':
+                setattr(neural_vehicle, attrname, copy.copy(attrvalue))
+        return neural_vehicle
 
     def set_ima_veh_decision(self, veh_real, veh_ima):
         for attrname in ['lane_decision', 'lane_y', 'target_lane']:
@@ -67,22 +71,22 @@ class EnvMergeMC(merge.EnvMerge):
             if veh_ima.vehicle_type == 'neural':
                 obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
                                                         veh_ima.neighbours['m'])
-                # if veh_real.id == 4:
+                # if veh_real.id == 3:
                 #     print(veh_ima.obs_history)
                 if not veh_ima.collision_detected:
                     veh_ima.update_obs_history(obs[0])
 
                     if not (veh_ima.obs_history[0,0,:] == 0).all() and \
                                                         veh_ima.control_type != 'neural':
+                        # controller change
                         veh_ima.control_type = 'neural'
 
                     if veh_ima.control_type == 'neural':
                         # _act_long = veh_ima.act(obs)
                         act_long = veh_ima.act(obs)
                         # act_long = -0.5
-                        # _ = veh_ima.act(obs)
+                        veh_ima.act_long = act_long
                         if self.metric_collection_mode:
-                            veh_ima.act_long = act_long
                             self.mc_log_info(veh_real, veh_ima)
                     else:
                         act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
@@ -118,9 +122,9 @@ class EnvMergeMC(merge.EnvMerge):
         """
         ima_vehicles = []
         for vehicle in self.ima_vehicles:
-            if vehicle.lane_id == 1 and vehicle.id != self.veh_merger_real.id \
-                    and vehicle.neighbours['att'] and vehicle.time_lapse > 20:
-
+            if vehicle.vehicle_type != 'idmmobil_merge' and vehicle.id != 1:
+                    # and vehicle.neighbours['att']:
+                    # and vehicle.neighbours['att'] and vehicle.time_lapse > 0:
                 neural_vehicle = self.idm_to_neural_vehicle(vehicle)
                 neural_vehicle.id = 'neur_'+str(vehicle.id)
                 imagined_vehicle = neural_vehicle
@@ -134,6 +138,8 @@ class EnvMergeMC(merge.EnvMerge):
         """ steps the environment forward in time.
         """
         # self.remove_vehicles_outside_bound()
+        if self.time_step == 0:
+            self.neuralize_vehicle_type()
         acts_real, acts_ima = self.get_joint_action()
         for veh_real, veh_ima, act_real, act_ima in zip(
                                                     self.real_vehicles,
@@ -146,11 +152,7 @@ class EnvMergeMC(merge.EnvMerge):
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
 
-        if hasattr(self, 'veh_merger_real') and self.veh_merger_real.time_lapse == 120:
-            self.neuralize_vehicle_type()
-        # if hasattr(self, 'veh_merger_real'):
-        #     print('self.veh_merger_real.time_lapse ', self.veh_merger_real.time_lapse)
-        self.add_new_vehicles()
+
         self.time_step += 1
 
     def vis_log_info(self, veh_real, veh_ima):
@@ -212,6 +214,7 @@ class EnvMergeMC(merge.EnvMerge):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
+
         veh_id =  veh_real.id
         if veh_id not in self.real_mc_log:
             self.real_mc_log[veh_id] = {}

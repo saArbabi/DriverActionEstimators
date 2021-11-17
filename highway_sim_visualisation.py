@@ -9,7 +9,8 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMerge(config)
-    env.initialize_env(61)
+    episode_id = 91
+    env.initialize_env(episode_id)
 
     viewer = Viewer(config)
     # np.random.seed(0)

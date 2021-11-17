@@ -481,8 +481,7 @@ class DataGeneratorMerge(DataGenecrator):
                 'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                 'el_delta_v', 'el_delta_x',
                 'em_delta_v', 'em_delta_x',
-                'delta_x_to_merge',
-                'em_delta_y', 'm_veh_exists']
+                'em_delta_y', 'delta_x_to_merge', 'm_veh_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 

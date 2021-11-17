@@ -6,9 +6,10 @@ from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
-        self.STM_m_veh = self.steps_prior_lc + \
-                        (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
-        self.TTM_m_veh = self.STM_m_veh*0.1 # time to merge
+        if id:
+            self.STM_m_veh = self.steps_prior_lc + \
+                            (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
+            self.TTM_m_veh = self.STM_m_veh*0.1 # time to merge
 
     def my_neighbours(self, vehicles):
         """
@@ -147,6 +148,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
 
     def can_lc_be_considered(self, act_rl_lc):
         # return False
+        # if self.id == 4:
+        #     print(act_rl_lc)
         if self.lane_id > 1 and self.glob_x > 150 and \
                 self.driver_params['safe_braking'] <= act_rl_lc:
             return True
@@ -175,11 +178,12 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 lc_left_condition = self.mobil_condition([ego_gain, \
                                         new_follower_gain, old_follower_gain])
 
-                # if self.id == 7:
+                # if self.id == 4:
                 #     print('ego_gain ', ego_gain)
                 #     print('old_follower_gain ', old_follower_gain)
                 #     print('new_follower_gain ', new_follower_gain)
                 #     print('lc_left_condition ', lc_left_condition)
+
             if lc_left_condition > self.driver_params['act_threshold']:
                 target_lane = self.target_lane - 1
                 self.lane_decision = 'move_left'
