@@ -13,7 +13,7 @@ import pickle
 # print('directory: ' + os.getcwd())
 # directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
 from importlib import reload
-# import tensorflow as tf
+import tensorflow as tf
 from vehicles import neural_vehicles
 reload(neural_vehicles)
 from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
@@ -34,39 +34,40 @@ ima_collection = {}
 real_collection = {}
 collision_log = []
 time_start = time.time()
-trace = 0
+# trace = 0
 for episode_id in [6,   8,  10,  12,  18]:
-    env = EnvMergeMC(config)
-    env.metric_collection_mode = True
-    # env.neural_vehicle = MLPVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
-    # env.neural_vehicle = NeurLatentVehicle()
-    # env.neural_vehicle = NeurLatentOneStepVehicle()
-    # env.neural_vehicle = LSTMVehicle()
-    # np.random.seed(0) # ensures environment remains the same
-    # tf.random.set_seed(trace) # each trace has a unique seed
-    # tf.random.set_seed(2021)
-    env.initialize_env(episode_id)
-    for i in range(100):
-        env.step()
+    for trace in range(5):
+        env = EnvMergeMC(config)
+        env.metric_collection_mode = True
+        # env.neural_vehicle = MLPVehicle()
+        # env.neural_vehicle = NeuralIDMVehicle()
+        env.neural_vehicle = NeurLatentVehicle()
+        # env.neural_vehicle = NeurLatentOneStepVehicle()
+        # env.neural_vehicle = LSTMVehicle()
+        # np.random.seed(0) # ensures environment remains the same
+        tf.random.set_seed(trace) # each trace has a unique seed
+        # tf.random.set_seed(2021)
+        env.initialize_env(episode_id)
+        for i in range(100):
+            env.step()
 
-    for veh_ima in env.ima_vehicles:
-        # print(env.time_step)
-        if veh_ima.collision_detected and veh_ima.time_lapse < 200:
-            print('Oh no, collision detected within 20s')
-            info = [veh_ima.id, veh_ima.time_lapse, trace]
-            collision_log.append(info)
+        for veh_ima in env.ima_vehicles:
+            # print(env.time_step)
+            if veh_ima.collision_detected and veh_ima.time_lapse < 200:
+                print('Oh no, collision detected within 20s')
+                info = [veh_ima.id, veh_ima.time_lapse, trace]
+                collision_log.append(info)
 
-    for veh_id, data_log in env.ima_mc_log.items():
-        for step_log in data_log:
-            step_log[1:1] = [episode_id, veh_id, trace]
-        if not episode_id in ima_collection:
-            ima_collection[episode_id] = {}
-        if not veh_id in ima_collection[episode_id]:
-            ima_collection[episode_id][veh_id] = [data_log]
-        else:
-            # in case there are multiple traces per episode
-            ima_collection[episode_id][veh_id].append(data_log)
+        for veh_id, data_log in env.ima_mc_log.items():
+            for step_log in data_log:
+                step_log[1:1] = [episode_id, veh_id, trace]
+            if not episode_id in ima_collection:
+                ima_collection[episode_id] = {}
+            if not veh_id in ima_collection[episode_id]:
+                ima_collection[episode_id][veh_id] = [data_log]
+            else:
+                # in case there are multiple traces per episode
+                ima_collection[episode_id][veh_id].append(data_log)
 
     for veh_id, data_log in env.real_mc_log.items():
         for step_log in data_log:

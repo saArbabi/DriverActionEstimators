@@ -28,7 +28,7 @@ real_collections = {}
 ima_collections = {}
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act']
-model_names = ['test2', 'test3']
+model_names = ['test2', 'test3', 'test4']
 for model_name in model_names:
     with open('./publication_results/'+model_name+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -62,11 +62,12 @@ for model_name in model_names:
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:horizon_steps_n, :]
             _true.shape
-            # flatten_ima = []
-            # for trace in range(len(ima_collections[model_name][veh_id])):
-            #     flatten_ima.append(ima_collections[model_name][veh_id][trace][:horizon_steps_n])
-            # _pred = np.array(flatten_ima)[:, :, :]
-            _pred = np.array(ima_collections[model_name][epis_id][veh_id])
+            flatten_ima = []
+            for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
+                flatten_ima.append(\
+                    ima_collections[model_name][epis_id][veh_id][trace][:horizon_steps_n])
+
+            _pred = np.array(flatten_ima)
             _pred = _pred[:,:horizon_steps_n, :]
             # xposition_error = rwse(pred_traces, true_trace)
             snip_collection_true[model_name].append(_true)
@@ -75,8 +76,12 @@ for model_name in model_names:
     snip_collection_true[model_name] = np.array(snip_collection_true[model_name])
 
 snip_collection_pred['test3'].shape
-snip_collection_true['test2'].shape
+snip_collection_true['test4'].shape
+snip_collection_pred['test4'].shape
 # snip_collection_true[model_names[0]][0 , 0, :, indxs['glob_x']] += 5
+snip_collection_pred['test3'][0,0,0,:]
+snip_collection_pred['test4'][0,0,0,:]
+snip_collection_pred['test4'][0,0,0,:]
 # %%
 """
 Vis speeds true vs pred
@@ -87,14 +92,15 @@ model_name = 'test3'
 collection = []
 for i in range(15):
     plt.figure()
-    epis_id = snip_collection_true['test3'][i,0,0,1]
-    veh_id = snip_collection_true['test3'][i,0,0,2]
-    state_true = snip_collection_true['test3'][i,0,:,state_index]
-    state_pred = snip_collection_pred['test3'][i,0,:,state_index]
-    collection.append((state_true-state_pred)**2)
-    plt.plot(state_true, color='red')
-    plt.plot(state_pred, color='grey')
-    plt.title(str(i)+'   Episode_id:'+str(epis_id)+'   Veh_id:'+str(veh_id))
+    for trace in range(5):
+        epis_id = snip_collection_true[model_name][i,0,0,1]
+        veh_id = snip_collection_true[model_name][i,0,0,2]
+        state_true = snip_collection_true[model_name][i,0,:,state_index]
+        state_pred = snip_collection_pred[model_name][i,trace,:,state_index]
+        collection.append((state_true-state_pred)**2)
+        plt.plot(state_true, color='red')
+        plt.plot(state_pred, color='grey')
+        plt.title(str(i)+'   Episode_id:'+str(epis_id)+'   Veh_id:'+str(veh_id))
 # %%
 """
 Vis speeds true vs pred for specific vehicle trace
@@ -216,7 +222,7 @@ position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
 # position_axis.selegend(legends)
 position_axis.minorticks_off()
-position_axis.set_ylim(0, 5)
+# position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
 #j %%
 """
@@ -224,14 +230,14 @@ rwse speed
 """
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 
-for model_name, label in zip(model_names, legends):
+for model_name, label in zip(model_names, model_names):
     error_total = get_rwse(indxs['speed'], model_name)
     speed_axis.plot(time_vals, error_total, label=label)
 
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
-speed_axis.set_ylim(0, 2)
+# speed_axis.set_ylim(0, 2)
 # speed_axis.set_yticks([0, 0.2, 0.4])
 # speed_axis.legend(legends)
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
