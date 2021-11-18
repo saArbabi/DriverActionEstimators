@@ -289,12 +289,12 @@ class Trainer():
             print('This model is already saved')
 
 tf.random.set_seed(2021)
-experiment_name = 'temp 20'
+experiment_name = 'h_z_f_idm_act089_epo_25'
 model_trainer = Trainer(model_type='cvae',
         model_name='driver_model', experiment_name=experiment_name)
 train_input, val_input = model_trainer.prep_data(data_arrays)
-# exp_dir = './models/experiments/'+experiment_name+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+experiment_name+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
 # train_input = None
@@ -627,7 +627,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 30:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
