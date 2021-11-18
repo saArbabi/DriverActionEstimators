@@ -40,8 +40,8 @@ for episode_id in [6,   8,  10,  12,  18]:
         env = EnvMergeMC(config)
         env.metric_collection_mode = True
         # env.neural_vehicle = MLPVehicle()
-        # env.neural_vehicle = NeuralIDMVehicle()
-        env.neural_vehicle = NeurLatentVehicle()
+        env.neural_vehicle = NeuralIDMVehicle()
+        # env.neural_vehicle = NeurLatentVehicle()
         # env.neural_vehicle = NeurLatentOneStepVehicle()
         # env.neural_vehicle = LSTMVehicle()
         # np.random.seed(0) # ensures environment remains the same
@@ -89,7 +89,7 @@ Save recordings
 """
 # model_name = 'h_lat_f_act'
 # model_name = 'h_lat_f_idm_act'
-model_name = 'test3'
+model_name = 'h_z_f_idm_act095_epo_25'
 
 directory = './publication_results/'+model_name
 if not os.path.exists(directory):
