@@ -200,10 +200,12 @@ config = {
 }
 
 class Trainer():
-    def __init__(self, model_type, model_name):
+    def __init__(self, model_type, model_name, experiment_name):
         self.model = None
         self.model_type = model_type
         self.model_name = model_name
+        self.experiment_name = experiment_name
+        print('This is experiment ' + self.experiment_name)
 
         self.train_mseloss = []
         self.train_klloss = []
@@ -275,20 +277,24 @@ class Trainer():
             # print('vae_loss_weight', self.model.vae_loss_weight)
             # self.model.vae_loss_weight += 0.03
 
-    def save_model(self, model_name, exp_id):
-        model_name += exp_id + '_epo_'+str(self.epoch_count)
-        print(model_name)
-        exp_dir = './models/experiments/'+model_name+'/model'
-        if not os.path.exists('./models/experiments/'+model_name):
+    def save_model(self, experiment_name, exp_id):
+        experiment_name += exp_id + '_epo_'+str(self.epoch_count)
+        exp_dir = './models/experiments/'+experiment_name+'/model'
+        self.experiment_name = experiment_name
+        print('This is experiment ' + self.experiment_name)
+
+        if not os.path.exists('./models/experiments/'+experiment_name):
             self.model.save_weights(exp_dir)
         else:
             print('This model is already saved')
 
 tf.random.set_seed(2021)
-model_trainer = Trainer(model_type='cvae', model_name='driver_model')
+experiment_name = 'temp 20'
+model_trainer = Trainer(model_type='cvae',
+        model_name='driver_model', experiment_name=experiment_name)
 train_input, val_input = model_trainer.prep_data(data_arrays)
-exp_dir = './models/experiments/'+'h_z_f_idm_act089_epo_25'+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+# exp_dir = './models/experiments/'+experiment_name+'/model'
+# model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
 # train_input = None
@@ -331,7 +337,7 @@ future_m_veh_c = np.float32(future_m_veh_c)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.model.forward_sim.attention_temp = 5
+model_trainer.model.forward_sim.attention_temp = 20
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -370,7 +376,7 @@ ax = latent_vis(3000)
 #
 
 # %%
-model_trainer.save_model('h_z_f_idm_act', '094')
+model_trainer.save_model('h_z_f_idm_act', '097')
 
 # %%
 """
@@ -613,7 +619,7 @@ covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
-
+# class
 sepcific_examples = []
 distribution_name = 'prior'
 # distribution_name = 'posterior'
@@ -621,7 +627,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 20:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -654,13 +660,14 @@ while Example_pred < 20:
                                                     idm_params, future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
-        plt.figure(figsize=(5, 3))
+        plt.figure(figsize=(5, 4))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
         time_steps = range(time_0, time_0+39)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
-        plt.text(0.1, 0.5,
+        plt.text(0.1, 0.4,
+                        'experiment_name: '+ model_trainer.experiment_name +' '+'\n'
                         'episode_id: '+ info[0] +
                         'time_0: '+ info[1] +
                         'e_veh_id: '+ info[2] +
