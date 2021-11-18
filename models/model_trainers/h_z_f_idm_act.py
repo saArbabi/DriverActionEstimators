@@ -337,7 +337,7 @@ future_m_veh_c = np.float32(future_m_veh_c)
 # np.count_nonzero(np.isnan(history_sca))
 # %%
 model_trainer.model.vae_loss_weight = 0.1
-model_trainer.model.forward_sim.attention_temp = 20
+model_trainer.model.forward_sim.attention_temp = 5
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
