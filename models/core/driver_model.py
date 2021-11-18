@@ -100,7 +100,7 @@ class NeurIDMModel(AbstractModel):
         sampled_z = self.belief_net.sample_z(pos_params)
 
         proj_belief = self.belief_net.belief_proj(sampled_z)
-        act_seq, _ = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
+        act_seq, _, _ = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
@@ -304,12 +304,14 @@ class IDMForwardSim(tf.keras.Model):
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
+                idm_params_seq = idm_params
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
+                idm_params_seq = tf.concat([idm_params_seq, idm_params], axis=1)
 
         # tf.print('att_score: ', tf.reduce_mean(att_seq))
-        return act_seq, att_seq
+        return act_seq, att_seq, idm_params_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):

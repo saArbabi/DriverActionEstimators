@@ -289,12 +289,12 @@ class Trainer():
             print('This model is already saved')
 
 tf.random.set_seed(2021)
-experiment_name = 'temp 20'
+experiment_name = 'h_z_f_idm_act095_epo_25'
 model_trainer = Trainer(model_type='cvae',
         model_name='driver_model', experiment_name=experiment_name)
 train_input, val_input = model_trainer.prep_data(data_arrays)
-# exp_dir = './models/experiments/'+experiment_name+'/model'
-# model_trainer.model.load_weights(exp_dir).expect_partial()
+exp_dir = './models/experiments/'+experiment_name+'/model'
+model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.test_mseloss
 # train_input = None
@@ -303,6 +303,7 @@ train_input, val_input = model_trainer.prep_data(data_arrays)
 # 1.5*(1-(25/15)**4 - 3)
 # Using 'auto'/'sum_over_batch_size' reduction type.
 # ax = latent_vis(3000)
+# class
 
 # %%
         # tf.print(x[0, :])
@@ -619,7 +620,6 @@ covered_episodes = []
 model_trainer.model.forward_sim.attention_temp = 20
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
-# class
 sepcific_examples = []
 distribution_name = 'prior'
 # distribution_name = 'posterior'
@@ -627,7 +627,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 30:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_indxs[i]]
@@ -655,7 +655,7 @@ while Example_pred < 30:
         sampled_z = model_trainer.model.belief_net.sample_z(latent_dis_param)
         # print(sampled_z)
         proj_belief = model_trainer.model.belief_net.belief_proj(sampled_z)
-        act_seq, att_scores = model_trainer.model.forward_sim.rollout([proj_belief, \
+        act_seq, att_scores, idm_params_seq = model_trainer.model.forward_sim.rollout([proj_belief, \
                                                      future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -681,7 +681,7 @@ while Example_pred < 30:
 
             true_params.append(round(true_pram_val, 2))
         plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
-        # plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
+        plt.text(0.1, 0.1, 'pred: '+ str(idm_params_seq.numpy()[:, 0, :].mean(axis=0).round(2)))
         plt.figure(figsize=(5, 3))
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
         plt.plot(time_steps, traj, color='purple')
@@ -762,6 +762,8 @@ while Example_pred < 30:
         """
         Example_pred += 1
 # %%
+# class
+
 (features[features[:, 0] == episode]) & \
             (features[features[:, 2] == e_veh_id])][0, indxs[param_name]], 2))
 # %%
