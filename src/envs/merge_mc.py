@@ -1,6 +1,4 @@
 from envs.merge import EnvMerge
-from vehicle_handler import VehicleHandlerMergeMC
-
 import copy
 
 class EnvMergeMC(EnvMerge):

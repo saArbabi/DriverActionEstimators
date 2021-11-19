@@ -9,11 +9,20 @@ class EnvInitializor():
     def __init__(self, config):
         self.lanes_n = config['lanes_n']
         self.lane_length = config['lane_length']
-        self.lane_width = 3.7
+        self.lane_width = config['lane_width']
+        self.min_desired_v = 15
+        self.max_desired_v = 25
+        self.desired_v_range = self.max_desired_v-self.min_desired_v
+
+    def get_init_speed(self, aggressiveness):
+        init_speed = self.min_desired_v + \
+                    aggressiveness*(self.desired_v_range) + \
+                    np.random.uniform(0, 1)
+        return init_speed
 
     def create_main_lane_vehicle(self, lead_vehicle, lane_id, glob_x):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        init_speed = 15 + aggressiveness*(10) + np.random.uniform(0, 1)
+        init_speed = self.get_init_speed(aggressiveness)
         new_vehicle = IDMMOBILVehicleMerge(\
                     self.next_vehicle_id, lane_id, glob_x,\
                                                 init_speed, aggressiveness)
@@ -24,7 +33,7 @@ class EnvInitializor():
 
     def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
         aggressiveness = np.random.uniform(0.01, 0.99)
-        init_speed = 15 + aggressiveness*(10)
+        init_speed = self.get_init_speed(aggressiveness)
         if not lead_vehicle:
             lead_vehicle = self.dummy_stationary_car
 
@@ -68,7 +77,7 @@ class EnvInitializor():
 
         # ramp vehicles
         lane_id = 2
-        new_vehicle = self.create_ramp_merge_vehicle(None, lane_id)
+        new_vehicle = self.create_ramp_merge_vehicle(lead_vehicle=None, lane_id=lane_id)
         if new_vehicle:
             vehicles.append(new_vehicle)
         return vehicles

@@ -1,13 +1,8 @@
-from envs.highway import Env
-from importlib import reload
-import env_initializor
-reload(env_initializor)
-from env_initializor import EnvInitializor
-from vehicles import idmmobil_merge_vehicle
-reload(idmmobil_merge_vehicle)
+from envs import highway
+from envs.env_initializor import EnvInitializor
 from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 
-class EnvMerge(Env):
+class EnvMerge(highway.Env):
     def __init__(self, config):
         super().__init__(config)
         self.dummy_stationary_car = IDMMOBILVehicleMerge('dummy', 2, \

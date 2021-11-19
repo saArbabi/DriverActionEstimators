@@ -1,4 +1,3 @@
-
 from envs.highway import Env
 from vehicle_handler import VehicleHandlerMerge, VehicleHandlerMergeMC
 
