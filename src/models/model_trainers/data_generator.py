@@ -189,19 +189,19 @@ class DataGenecrator():
 
         return features, dummy_value_set
 
-    def sequence(self, features, history_length, future_length):
+    def sequence(self, features, history_len, rollout_len):
         """
         Sequence the data into history/future sequences.
         """
-        if future_length == 1:
+        if rollout_len == 1:
             episode_ids = list(np.unique(features[:, 0]))
             history_seqs, future_seqs = [], []
             for episode_id in episode_ids:
                 epis_data = features[features[:, 0] == episode_id]
-                history_seq = deque(maxlen=history_length)
+                history_seq = deque(maxlen=history_len)
                 for step in range(len(epis_data)):
                     history_seq.append(epis_data[step])
-                    if len(history_seq) == history_length:
+                    if len(history_seq) == history_len:
                         history_seqs.append(list(history_seq))
                         future_seqs.append(epis_data[step:step+1])
             return [np.array(history_seqs), np.array(future_seqs)]
@@ -210,11 +210,11 @@ class DataGenecrator():
             history_seqs, future_seqs = [], []
             for episode_id in episode_ids:
                 epis_data = features[features[:, 0] == episode_id]
-                history_seq = deque(maxlen=history_length)
+                history_seq = deque(maxlen=history_len)
                 for step in range(len(epis_data)):
                     history_seq.append(epis_data[step])
-                    if len(history_seq) == history_length:
-                        future_indx = step + future_length
+                    if len(history_seq) == history_len:
+                        future_indx = step + rollout_len
                         if future_indx > len(epis_data):
                             break
 
@@ -271,9 +271,8 @@ class DataGenecrator():
         return features
 
 class DataGeneratorMerge(DataGenecrator):
-    def __init__(self, env=None, config=None):
-        if config:
-            self.episodes_n = config['episodes_n']
+    def __init__(self, env, episodes_n):
+        self.episodes_n = episodes_n
         if env:
             self.env = env
             self.env.usage = 'data generation'
@@ -432,7 +431,7 @@ class DataGeneratorMerge(DataGenecrator):
         cond = np.all([cond_hist, cond_fut], axis=0)
         return history_seqs[cond], future_seqs[cond]
 
-    def sequence(self, features, history_length, future_length):
+    def sequence(self, features, history_len, rollout_len):
         """
         Sequence the data into history/future sequences.
         """
@@ -444,11 +443,11 @@ class DataGeneratorMerge(DataGenecrator):
 
             for e_veh_id in vehicle_ids:
                 trace_data = epis_data[epis_data[:, 2] == e_veh_id]
-                history_seq = deque(maxlen=history_length)
+                history_seq = deque(maxlen=history_len)
                 for step in range(len(trace_data)):
                     history_seq.append(trace_data[step])
-                    if len(history_seq) == history_length:
-                        future_indx = step + future_length
+                    if len(history_seq) == history_len:
+                        future_indx = step + rollout_len
                         if future_indx > len(trace_data):
                             break
                         history_seqs.append(list(history_seq))
