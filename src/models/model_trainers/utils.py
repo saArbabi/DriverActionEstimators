@@ -62,3 +62,6 @@ def fetch_traj(data, sample_index, colum_index):
     # data: [sample_index, time, feature]
     traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
     return traj.flatten()
+
+def pickle_this(item_address, item, item_name):
+    item_address += item_name+'.pickle'

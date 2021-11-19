@@ -7,25 +7,36 @@ from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 np.set_printoptions(suppress=True)
+from importlib import reload
+import pickle
 import os
-
+import sys
+sys.path.insert(0, './src')
+# %%
+def pickle_this(item, data_files_dir, item_name):
+    data_files_dir += item_name+'.pickle'
+    if not os.path.exists(data_files_dir):
+        with open(data_files_dir, 'wb') as handle:
+            pickle.dump(item, handle)
+    else:
+        print('This data id exists')
 # %%
 """
 Data prep
 """
 history_len = 20 # steps
 rollout_len = 20
-import data_generator
-reload(data_generator)
-from data_generator import DataGenMerge
-data_gen = DataGenMerge()
-with open('./models/experiments/sim_data_024.pickle', 'rb') as handle:
+from data import data_prep
+reload(data_prep)
+from data.data_prep import DataPrep
+data_prep = DataPrep()
+with open('./src/models/experiments/data_files/sim_data_025.pickle', 'rb') as handle:
     features = pickle.load(handle)
-features, dummy_value_set = data_gen.fill_missing_values(features)
-features_scaled, env_scaler, m_scaler = data_gen.scale_data(features)
-history_future_seqs = data_gen.sequence(features, history_len, rollout_len)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, history_len, rollout_len)
-data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
+features, dummy_value_set = data_prep.fill_missing_values(features)
+features_scaled, env_scaler, m_scaler = data_prep.scale_data(features)
+history_future_seqs = data_prep.sequence(features, history_len, rollout_len)
+history_future_seqs_scaled = data_prep.sequence(features_scaled, history_len, rollout_len)
+data_arrays = data_prep.split_data(history_future_seqs, history_future_seqs_scaled)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
@@ -42,31 +53,20 @@ future_e_veh_a[:, :, -1].mean()
 # cond = (history_future_usc[:, :, -14] == 1).all(axis=1)
 # data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
 # %%
+"""
+Anywhere an array is fed to a model, the data is first scaled.
+Scalers are pickled here.
+"""
+data_id = '_025'
+item_name = 'env_scaler'+data_id
+data_files_dir = './src/models/experiments/data_files/'
+pickle_this(env_scaler, data_files_dir, item_name)
 
-data_id = '_024'
-file_name = 'env_scaler'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
-if not os.path.exists(file_address):
-    with open(file_address, 'wb') as handle:
-        pickle.dump(env_scaler, handle)
-else:
-    print('This data id exists')
+item_name = 'm_scaler'+data_id
+pickle_this(m_scaler, data_files_dir, item_name)
 
-file_name = 'm_scaler'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
-if not os.path.exists(file_address):
-    with open(file_address, 'wb') as handle:
-        pickle.dump(m_scaler, handle)
-else:
-    print('This data id exists')
-
-file_name = 'dummy_value_set'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
-if not os.path.exists(file_address):
-    with open(file_address, 'wb') as handle:
-        pickle.dump(dummy_value_set, handle)
-else:
-    print('This data id exists')
+item_name = 'dummy_value_set'+data_id
+pickle_this(dummy_value_set, data_files_dir, item_name)
 
 # %%
 config = {
@@ -79,13 +79,9 @@ config = {
 }
 
 class Trainer():
-    def __init__(self, model_type, model_name, experiment_name):
-        self.model = None
-        self.model_type = model_type
-        self.model_name = model_name
-        self.experiment_name = experiment_name
-        print('This is experiment ' + self.experiment_name)
-
+    def __init__(self, exp_id):
+        self.experiment_name = 'h_z_f_idm_act_'+exp_id
+        self.exp_dir = './src/models/experiments/'+self.experiment_name
         self.train_mseloss = []
         self.train_klloss = []
 
@@ -95,19 +91,18 @@ class Trainer():
         self.initiate_model()
 
     def initiate_model(self):
-        if self.model_name == 'driver_model':
-            from models.core import driver_model
-            reload(driver_model)
-            from models.core.driver_model import  NeurIDMModel
-            self.model = NeurIDMModel(config)
+        from models.core import driver_model
+        reload(driver_model)
+        from models.core.driver_model import  NeurIDMModel
+        self.model = NeurIDMModel(config)
 
-        with open('./models/experiments/env_scaler_024.pickle', 'rb') as handle:
+        with open(data_files_dir+'env_scaler_025.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
 
-        with open('./models/experiments/m_scaler_024.pickle', 'rb') as handle:
+        with open(data_files_dir+'m_scaler_025.pickle', 'rb') as handle:
             self.model.forward_sim.m_scaler = pickle.load(handle)
 
-        with open('./models/experiments/dummy_value_set_024.pickle', 'rb') as handle:
+        with open(data_files_dir+'dummy_value_set_025.pickle', 'rb') as handle:
             self.model.forward_sim.dummy_value_set = pickle.load(handle)
 
     def prep_data(self, training_data):
@@ -120,21 +115,19 @@ class Trainer():
         train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
-
         _, history_sca, future_sca, future_idm_s,\
                     future_m_veh_c, future_e_veh_a = training_data
-        if self.model_type == 'cvae':
-            train_input = [history_sca[train_indxs, :, 2:],
-                        future_sca[train_indxs, :, 2:],
-                        future_idm_s[train_indxs, :, 2:],
-                        future_m_veh_c[train_indxs, :, 2:],
-                        future_e_veh_a[train_indxs, :, 2:]]
+        train_input = [history_sca[train_indxs, :, 2:],
+                    future_sca[train_indxs, :, 2:],
+                    future_idm_s[train_indxs, :, 2:],
+                    future_m_veh_c[train_indxs, :, 2:],
+                    future_e_veh_a[train_indxs, :, 2:]]
 
-            val_input = [history_sca[val_indxs, :, 2:],
-                        future_sca[val_indxs, :, 2:],
-                        future_idm_s[val_indxs, :, 2:],
-                        future_m_veh_c[val_indxs, :, 2:],
-                        future_e_veh_a[val_indxs, :, 2:]]
+        val_input = [history_sca[val_indxs, :, 2:],
+                    future_sca[val_indxs, :, 2:],
+                    future_idm_s[val_indxs, :, 2:],
+                    future_m_veh_c[val_indxs, :, 2:],
+                    future_e_veh_a[val_indxs, :, 2:]]
 
         return train_input, val_input
 
@@ -143,38 +136,43 @@ class Trainer():
             self.epoch_count += 1
             self.model.train_loop(train_input)
             self.model.test_loop(val_input, epoch)
-            if self.model_type == 'cvae':
-                self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
-                self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
-                self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
-                self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
+            self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
+            self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
+            self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
+            self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
 
             print(self.epoch_count, 'epochs completed')
-            # print('vae_loss_weight', self.model.vae_loss_weight)
-            # self.model.vae_loss_weight += 0.03
 
-    def save_model(self, experiment_name, exp_id):
-        experiment_name += exp_id + '_epo_'+str(self.epoch_count)
-        exp_dir = './models/experiments/'+experiment_name
-        self.experiment_name = experiment_name
-        print('This is experiment ' + self.experiment_name)
-
-        if not os.path.exists('./models/experiments/'+experiment_name):
-            self.model.save_weights(exp_dir+'/model')
-
+    def save_model(self):
+        if not os.path.exists(self.exp_dir):
+            os.makedirs(self.exp_dir)
+        check_point_dir = self.exp_dir+'/model_epo{epoch}'.format(\
+                                                    epoch=self.epoch_count)
+        if not os.path.exists(check_point_dir+'.index'):
+            self.model.save_weights(check_point_dir)
         else:
-            print('This model is already saved')
+            print('This checkpoint is already saved')
 
-tf.random.set_seed(2021)
-experiment_name = 'h_z_f_idm_act095_epo_25'
-model_trainer = Trainer(model_type='cvae',
-        model_name='driver_model', experiment_name=experiment_name)
-train_input, val_input = model_trainer.prep_data(data_arrays)
-exp_dir = './models/experiments/'+experiment_name+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
+    def save_loss(self):
+        losses = {'train_mseloss':self.train_mseloss,
+                  'train_klloss':self.train_klloss,
+                  'test_mseloss':self.test_mseloss,
+                  'test_klloss':self.test_klloss}
+
+        with open(self.exp_dir+'/losses', 'wb') as handle:
+            pickle.dump(losses, handle)
+
+# tf.random.set_seed(2021)
+# experiment_name = 'h_z_f_idm_act095_epo_25'
+exp_id = 'test_model'
+model_trainer = Trainer(exp_id)
+# train_input, val_input = model_trainer.prep_data(data_arrays)
+# self.exp_dir = data_files_dir+''+experiment_name+'/model'
+# model_trainer.model.load_weights(self.exp_dir).expect_partial()
 
 
 # %%
-model_trainer.save_model('h_z_f_idm_act', '095')
+model_trainer.save_model()
+model_trainer.save_loss()
 
 # %%
