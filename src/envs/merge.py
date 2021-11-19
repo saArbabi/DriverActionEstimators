@@ -14,6 +14,7 @@ class EnvMerge(highway.Env):
         self.env_initializor.next_vehicle_id = 1
         self.env_initializor.dummy_stationary_car = self.dummy_stationary_car
         self.vehicles = self.env_initializor.init_env(episode_id)
+        self.lane_length = self.config['lane_length']
 
     def recorder(self, vehicles):
         """For recording vehicle trajectories. Used for:
@@ -50,7 +51,6 @@ class EnvMerge(highway.Env):
             actions = vehicle.act()
             joint_action.append(actions)
             vehicle.act_long = actions[0]
-            # self.handler.update_reservations(vehicle)
         return joint_action
 
     def remove_unwanted_vehicles(self):

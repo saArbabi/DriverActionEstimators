@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, './src')
-# import os
-os.getcwd()
+import os
+# os.getcwd()
 # os.chdir('../')
 from envs import merge
 from importlib import reload
@@ -54,9 +54,9 @@ data_arr.shape
 """
 Pickle generated data.
 """
-data_id = '_024'
+data_id = '_025'
 file_name = 'sim_data'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
+file_address = './src/models/experiments/data_files/'+file_name
 if not os.path.exists(file_address):
     with open(file_address, 'wb') as handle:
         pickle.dump(data_arr, handle)

@@ -37,13 +37,14 @@ class DataGenMerge(DataGen):
             index += 1
 
     def is_episode_complete(self):
-        """Episode is considered complete if there are no merging cars.
+        """Episode is considered complete if all
+            cars exit the road.
         """
-        merging_car_exists = False
+        car_exists = True
         for vehicle in self.env.vehicles:
-            if vehicle.lane_id == 2 or vehicle.lane_decision != 'keep_lane':
-                merging_car_exists = True
-        if not merging_car_exists:
+            if vehicle.glob_x < self.env.lane_length:
+                return False
+        else:
             return True
 
     def run_sim(self):
