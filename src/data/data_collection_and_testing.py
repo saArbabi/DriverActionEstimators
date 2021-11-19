@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, './src')
-import os
+# import os
 # os.getcwd()
 # os.chdir('../')
 from envs import merge
@@ -50,6 +50,7 @@ from data.merge_data_gen import DataGenMerge
 data_gen = DataGenMerge(env=env, episodes_n=300)
 data_arr = data_gen.prep_data()
 data_arr.shape
+
 # %%
 """
 Pickle generated data.
