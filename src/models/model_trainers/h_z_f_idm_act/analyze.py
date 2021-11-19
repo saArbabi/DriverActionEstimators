@@ -1,89 +1,11 @@
 import matplotlib.pyplot as plt
-from importlib import reload
-import pickle
-import sys
-import tensorflow as tf
-reload(plt)
-import matplotlib.pyplot as plt
 from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.stats import beta
-
 import numpy as np
 np.set_printoptions(suppress=True)
 import os
 
-
 # %%
-# act = 0.8
-act = 0.8
-# act = -5
-# act = np.linspace(-3, 3, 100)
-equ = ((act/max_act)-1+(_v/desired_v)**4)
-delta_x = desired_gap/(equ**0.5)
-# plt.plot(delta_x, act)
-delta_x
-# plt.plot(act, delta_x)
-
-# %%
-mean = 0.4
-precision = 10
-alpha_param = precision*mean
-beta_param = precision*(1-mean)
-gen_samples = np.random.beta(alpha_param, beta_param, 100)*45
-# gen_samples =  18 + np.random.beta(alpha_param, beta_param, 50)*14
-# plt.xlim(0, 1)
-
-_ = plt.hist(gen_samples, bins=150)
-gen_samples.std()
-
-
-# %%
-# %%
-"""
-Data prep
-Note:
-If you change sequence length, you need also change visualisation ranges AND
-the fetch_traj method.
-"""
-import data_generator
-reload(data_generator)
-from data_generator import DataGeneratorMerge
-data_gen = DataGeneratorMerge()
-with open('./models/experiments/sim_data_024.pickle', 'rb') as handle:
-    features = pickle.load(handle)
-features, dummy_value_set = data_gen.fill_missing_values(features)
-# features[features[:, indxs['m_veh_exists']] == 0][:, indxs['m_veh_speed']]
-
-features_scaled, env_scaler, m_scaler = data_gen.scale_data(features)
-
-history_future_seqs = data_gen.sequence(features, 20, 20)
-history_future_seqs_scaled = data_gen.sequence(features_scaled, 20, 20)
-data_arrays = data_gen.split_data(history_future_seqs, history_future_seqs_scaled)
-
-history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_c, future_e_veh_a = data_arrays
-future_e_veh_a[:, :, -1].std()
-future_e_veh_a[:, :, -1].mean()
-future_e_veh_a[:, :, -1].min()
-future_m_veh_c.shape
-history_sca.shape
-# plt.plot(history_future_usc[5641, :, hf_usc_indexs['m_veh_action']])
-features
-# %%
-"""
-BALANCE DATA
-"""
-# history_future_usc[:, :, -4].mean()
-history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_c, future_e_veh_a = data_arrays
-balance_value = np.count_nonzero((history_future_usc[:, :, -14] == 1).all(axis=1))/\
-                        history_future_usc.shape[0]
-print(balance_value)
-cond = (history_future_usc[:, :, -14] == 1).all(axis=1)
-data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
-
-# %%
-indxs = {}
+data_arr_indexes = {}
 feature_names = [
          'episode_id', 'time_step',
          'e_veh_id', 'f_veh_id', 'm_veh_id',
@@ -99,227 +21,10 @@ feature_names = [
 
 index = 0
 for item_name in feature_names:
-    indxs[item_name] = index
+    data_arr_indexes[item_name] = index
     index += 1
-indxs['e_veh_att']
-indxs['desired_v']
-
-features[:, indxs['el_delta_x']].min()
-# %%
-epis = 47
-for param_name in [ 'aggressiveness', 'desired_v',
-                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
-    print(param_name, ' ', features[features[:, 0] == epis][0, indxs[param_name]])
-
-# %%
-veh_id = 63
-for param_name in [ 'aggressiveness', 'desired_v',
-                            'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
-    print(param_name, ' ', features[features[:, 2] == veh_id][0, indxs[param_name]])
-# %%
-history_future_usc[history_future_usc[:, :, 2]==47]
-history_sca[history_sca[:, :, 0]==302]
-history_sca[history_sca[:, :, 0]==302]
-history_sca[47731, 0, 0:3]
-
-history_future_usc[0, 0]
-history_future_usc[0, 0]
-import pickle
-#
-# %%
-
-data_id = '_024'
-file_name = 'env_scaler'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
-if not os.path.exists(file_address):
-    with open(file_address, 'wb') as handle:
-        pickle.dump(env_scaler, handle)
-else:
-    print('This data id exists')
-
-file_name = 'm_scaler'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
-if not os.path.exists(file_address):
-    with open(file_address, 'wb') as handle:
-        pickle.dump(m_scaler, handle)
-else:
-    print('This data id exists')
-
-file_name = 'dummy_value_set'+data_id+'.pickle'
-file_address = './models/experiments/'+file_name
-if not os.path.exists(file_address):
-    with open(file_address, 'wb') as handle:
-        pickle.dump(dummy_value_set, handle)
-else:
-    print('This data id exists')
-# %%
-future_m_veh_c.shape
-# plt.plot(history_future_usc[0, :, 6])
-plt.plot(history_future_usc[10450, :, 6])
-# %%
-
-col_names =[
-         'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id',
-         'm_veh_exists', 'e_veh_att',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-         'e_veh_action', 'f_veh_action', 'm_veh_action',
-         'aggressiveness',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-         'em_delta_y', 'delta_x_to_merge']
-# np.count_nonzero(history_future_usc[:, :, 6] == 0)
-_sample_indxs = np.random.randint(0, history_future_usc.shape[0], 5000)
-for i in range(history_future_usc.shape[-1]):
-    plt.figure(figsize=(5, 3))
-    to_plot = history_future_usc[_sample_indxs, :, i].flatten()
-    _ = plt.hist(to_plot, bins=150)
-    plt.title(col_names[i])
-    # plt.grid()
-# %%
-col_names = ['episode_id', 'time_step',
-        'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-        'el_delta_v', 'el_delta_x',
-        'em_delta_v', 'em_delta_x',
-        'delta_x_to_merge',
-        'em_delta_y', 'm_veh_exists']
-
-for i in range(future_sca.shape[-1]):
-    plt.figure(figsize=(3, 3))
-    to_plot = history_sca[:, :, i].flatten()
-    _ = plt.hist(to_plot, bins=150)
-    plt.title(col_names[i])
-    # plt.grid()
-# %%
-config = {
- "model_config": {
-     "learning_rate": 1e-3,
-    "batch_size": 512,
-    },
-    "exp_id": "NA",
-    "Note": ""
-}
-
-class Trainer():
-    def __init__(self, model_type, model_name, experiment_name):
-        self.model = None
-        self.model_type = model_type
-        self.model_name = model_name
-        self.experiment_name = experiment_name
-        print('This is experiment ' + self.experiment_name)
-
-        self.train_mseloss = []
-        self.train_klloss = []
-
-        self.test_mseloss = []
-        self.test_klloss = []
-        self.epoch_count = 0
-        self.initiate_model()
-
-    def initiate_model(self):
-        if self.model_name == 'driver_model':
-            from models.core import driver_model
-            reload(driver_model)
-            from models.core.driver_model import  NeurIDMModel
-            self.model = NeurIDMModel(config)
-
-        with open('./models/experiments/env_scaler_024.pickle', 'rb') as handle:
-            self.model.forward_sim.env_scaler = pickle.load(handle)
-
-        with open('./models/experiments/m_scaler_024.pickle', 'rb') as handle:
-            self.model.forward_sim.m_scaler = pickle.load(handle)
-
-        with open('./models/experiments/dummy_value_set_024.pickle', 'rb') as handle:
-            self.model.forward_sim.dummy_value_set = pickle.load(handle)
-
-    def prep_data(self, training_data):
-        all_epis = np.unique(training_data[0][:, 0, 0])
-        np.random.seed(2021)
-        np.random.shuffle(all_epis)
-        # train_epis = all_epis[:int(len(all_epis)*0.1)]
-        # val_epis = train_epis
-
-        train_epis = all_epis[:int(len(all_epis)*0.7)]
-        val_epis = np.setdiff1d(all_epis, train_epis)
-        train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
-        val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
 
-        _, history_sca, future_sca, future_idm_s,\
-                    future_m_veh_c, future_e_veh_a = training_data
-
-        if self.model_type == 'cvae':
-            train_input = [history_sca[train_indxs, :, 2:],
-                        future_sca[train_indxs, :, 2:],
-                        future_idm_s[train_indxs, :, 2:],
-                        future_m_veh_c[train_indxs, :, 2:],
-                        future_e_veh_a[train_indxs, :, 2:]]
-
-            val_input = [history_sca[val_indxs, :, 2:],
-                        future_sca[val_indxs, :, 2:],
-                        future_idm_s[val_indxs, :, 2:],
-                        future_m_veh_c[val_indxs, :, 2:],
-                        future_e_veh_a[val_indxs, :, 2:]]
-
-        return train_input, val_input
-
-    def train(self, train_input, val_input, epochs):
-        for epoch in range(epochs):
-            self.epoch_count += 1
-            self.model.train_loop(train_input)
-            self.model.test_loop(val_input, epoch)
-            if self.model_type == 'cvae':
-                self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
-                self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
-                self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
-                self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
-
-            print(self.epoch_count, 'epochs completed')
-            # print('vae_loss_weight', self.model.vae_loss_weight)
-            # self.model.vae_loss_weight += 0.03
-
-    def save_model(self, experiment_name, exp_id):
-        experiment_name += exp_id + '_epo_'+str(self.epoch_count)
-        exp_dir = './models/experiments/'+experiment_name+'/model'
-        self.experiment_name = experiment_name
-        print('This is experiment ' + self.experiment_name)
-
-        if not os.path.exists('./models/experiments/'+experiment_name):
-            self.model.save_weights(exp_dir)
-        else:
-            print('This model is already saved')
-
-tf.random.set_seed(2021)
-experiment_name = 'h_z_f_idm_act095_epo_25'
-model_trainer = Trainer(model_type='cvae',
-        model_name='driver_model', experiment_name=experiment_name)
-train_input, val_input = model_trainer.prep_data(data_arrays)
-exp_dir = './models/experiments/'+experiment_name+'/model'
-model_trainer.model.load_weights(exp_dir).expect_partial()
-# model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.test_mseloss
-# train_input = None
-# latent_samples(model_trainer, val_examples[0:10])
-
-# 1.5*(1-(25/15)**4 - 3)
-# Using 'auto'/'sum_over_batch_size' reduction type.
-# ax = latent_vis(3000)
-# class
-
-# %%
-        # tf.print(x[0, :])
-        # output = self.proj_layer_des_v(x)
-        # tf.print(tf.shape(output))
-        # tf.print(tf.math.count_nonzero(output[0, :]))
-        # tf.print(output[0, :])
-# fig = plt.figure(figsize=(15, 5))
-plt.style.use('default')
-#
-# mse_axis = fig.add_subplot(131)
-# kl_axis = fig.add_subplot(132)
-# idm_kl_axis = fig.add_subplot(133)
-# mse_axis.plot(model_trainer.test_mseloss)
-# mse_axis.plot(model_trainer.train_mseloss)
-# %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
 np.random.shuffle(all_epis)
@@ -377,7 +82,6 @@ print(model_trainer.test_mseloss[-1])
 #
 
 # %%
-model_trainer.save_model('h_z_f_idm_act', '095')
 
 # %%
 """
@@ -412,62 +116,6 @@ bad_examples = np.where(loss > 1)
 # %%
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-def latent_samples(model_trainer, sample_index):
-    h_seq = history_sca[sample_index, :, 2:]
-    merger_cs = future_m_veh_c[sample_index, :, 2:]
-    enc_h = model_trainer.model.h_seq_encoder(h_seq)
-    latent_dis_param = model_trainer.model.belief_net(enc_h, dis_type='prior')
-    sampled_z = model_trainer.model.belief_net.sample_z(latent_dis_param)
-    return sampled_z
-
-def latent_vis(n_z_samples):
-    fig = pyplot.figure(figsize=(4, 6))
-    examples_to_vis = np.random.choice(val_examples, n_z_samples, replace=False)
-    #===============
-    #  First subplot
-    #===============
-    # set up the axes for the first plot
-    ax = fig.add_subplot(1, 2, 1, projection='3d')
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    sampled_z = latent_samples(model_trainer, examples_to_vis)
-    aggressiveness = history_future_usc[examples_to_vis, 0, -7]
-    color_shade = aggressiveness
-    att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
-
-    ax.tick_params(pad=1)
-    ax.grid(False)
-    # ax.view_init(30, 50)
-    #===============
-    #  Second subplot
-    #===============
-    # set up the axes for the second plot
-    ax = fig.add_subplot(1, 2, 2, projection='3d')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
-
-    axins = inset_axes(ax,
-                        width="5%",
-                        height="90%",
-                        loc='right',
-                        borderpad=-2
-                       )
-
-    fig.colorbar(att_sc, cax=axins)
-    cbar = fig.colorbar(att_sc, cax=axins)
-    ax.tick_params(pad=1)
-    ax.grid(False)
-    ax.view_init(30, 50)
-    # ax.set_xlabel('$z_{1}$', labelpad=1)
-    # ax.set_ylabel('$z_{2}$', labelpad=1)
-    # ax.set_zlabel('$z_{3}$', labelpad=1)
-    plt.subplots_adjust(wspace=0.2, hspace=None)
 
 latent_vis(3000)
 # plt.savefig("latent.png", dpi=500)
@@ -553,34 +201,7 @@ for bad_indx in bad_504:
 # %%
 
 # %%
-"""Anticipation visualisation
-"""
-def vectorise(step_row, traces_n):
-    return np.repeat(step_row, traces_n, axis=0)
 
-def fetch_traj(data, sample_index, colum_index):
-    # data: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
-    return traj.flatten()
-
-def get_e_veh_att(e_veh_id, e_veh_decision, e_veh_att):
-    atten_on_ego = np.where(e_veh_att == e_veh_id)
-    e_veh_changing_lane = np.where(e_veh_decision != 0)
-    atten_on_e_veh_changing_lane = np.intersect1d(atten_on_ego, e_veh_changing_lane)
-    e_veh_att = np.ones(40)
-    e_veh_att[atten_on_e_veh_changing_lane] = 0
-    return e_veh_att
-
-def find_when_merger_appears(episode, e_veh_id):
-    veh_seq = features[(features[:, 0] == episode) & \
-                                    (features[:, 2] == e_veh_id)]
-    m_veh_exists = veh_seq[:, indxs['m_veh_exists']]
-    try:
-        start_indx = np.where(m_veh_exists[1:]-m_veh_exists[0:-1] == 1)[0][0]
-        start_time = veh_seq[start_indx, 1]
-        return start_time
-    except:
-        return
 
 hf_usc_indexs = {}
 col_names = [
@@ -677,7 +298,7 @@ while Example_pred < 10:
         true_params = []
         for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
             true_pram_val = features[(features[:, 0] == episode) & \
-                                    (features[:, 2] == e_veh_id)][0, indxs[param_name]]
+                                    (features[:, 2] == e_veh_id)][0, data_arr_indexes[param_name]]
 
             true_params.append(round(true_pram_val, 2))
         plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
@@ -765,7 +386,7 @@ while Example_pred < 10:
 # class
 
 (features[features[:, 0] == episode]) & \
-            (features[features[:, 2] == e_veh_id])][0, indxs[param_name]], 2))
+            (features[features[:, 2] == e_veh_id])][0, data_arr_indexes[param_name]], 2))
 # %%
 latent_dim = 3
 from scipy.stats import norm
@@ -890,7 +511,7 @@ plt.text(0.1, 0.5,
 true_params = []
 for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     true_pram_val = features[(features[:, 0] == episode) & \
-                            (features[:, 2] == e_veh_id)][0, indxs[param_name]]
+                            (features[:, 2] == e_veh_id)][0, data_arr_indexes[param_name]]
 
     true_params.append(round(true_pram_val, 2))
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
