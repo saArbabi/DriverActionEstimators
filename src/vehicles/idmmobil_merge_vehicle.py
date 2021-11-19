@@ -100,8 +100,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             neighbours['att'] = neighbours['m']
         else:
             neighbours['att'] = candidate_att
-        # if neighbours['m'] and self.id == 7:
-        #     print(self)
         return neighbours
 
     def is_it_merger(self, vehicle):
@@ -137,7 +135,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             return True
         elif self.TTM_m_veh < self.driver_params['politeness']*TTM_e_veh and \
                                 act_long > -self.driver_params['min_act']:
-            # print('hi')
             return True
         elif self.TTM_m_veh >= self.driver_params['politeness']*TTM_e_veh:
             return False
@@ -189,10 +186,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 self.lane_decision = 'move_left'
                 self.neighbours['att'] = self.neighbours['fl']
                 self.neighbours['f'] = self.neighbours['fl']
-                # self.set_driver_params()
                 self.target_lane -= 1
-                # if self.neighbours['rl']:
-                    # self.neighbours['rl'].neighbours['att'] = self
                 return [act_ego_lc_l, self.lateral_action()]
 
         return [act_long, self.lateral_action()]
