@@ -17,8 +17,8 @@ history_len = 20 # steps
 rollout_len = 20
 import data_generator
 reload(data_generator)
-from data_generator import DataGeneratorMerge
-data_gen = DataGeneratorMerge()
+from data_generator import DataGenMerge
+data_gen = DataGenMerge()
 with open('./models/experiments/sim_data_024.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)

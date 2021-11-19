@@ -1,3 +1,9 @@
+import sys
+sys.path.insert(0, './src')
+# import os
+os.getcwd()
+# os.chdir('../')
+from envs import merge
 from importlib import reload
 import numpy as np
 np.set_printoptions(suppress=True)
@@ -38,10 +44,10 @@ data_arr_indexes['desired_v']
 """
 Generate data
 """
-import data_generator
-reload(data_generator)
-from data_generator import DataGeneratorMerge
-data_gen = DataGeneratorMerge(env=env, episodes_n=300)
+from data import merge_data_gen
+reload(merge_data_gen)
+from data.merge_data_gen import DataGenMerge
+data_gen = DataGenMerge(env=env, episodes_n=300)
 data_arr = data_gen.prep_data()
 data_arr.shape
 # %%
@@ -86,10 +92,10 @@ Data prep
 """
 history_len = 20 # steps
 rollout_len = 20
-import data_generator
-reload(data_generator)
-from data_generator import DataGeneratorMerge
-data_gen = DataGeneratorMerge()
+import merge_data_gen
+reload(merge_data_gen)
+from merge_data_gen import DataGenMerge
+data_gen = DataGenMerge()
 with open('./models/experiments/sim_data_024.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_gen.fill_missing_values(features)
