@@ -15,62 +15,20 @@ import json
 
 sys.path.insert(0, './src')
 # %%
-def pickle_this(item, data_files_dir, item_name):
-    data_files_dir += item_name+'.pickle'
-    if not os.path.exists(data_files_dir):
-        with open(data_files_dir, 'wb') as handle:
-            pickle.dump(item, handle)
-    else:
-        print('This data id exists')
-# %%
-"""
-Data prep
-"""
-history_len = 20 # steps
-rollout_len = 20
-from data import data_prep
-reload(data_prep)
-from data.data_prep import DataPrep
-data_prep = DataPrep()
-dataset_name = sim_data_025
-with open('./src/models/experiments/data_files/'+dataset_name+'.pickle', 'rb') as handle:
-    features = pickle.load(handle)
-features, dummy_value_set = data_prep.fill_missing_values(features)
-features_scaled, env_scaler, m_scaler = data_prep.scale_data(features)
-history_future_seqs = data_prep.sequence(features, history_len, rollout_len)
-history_future_seqs_scaled = data_prep.sequence(features_scaled, history_len, rollout_len)
-data_arrays = data_prep.split_data(history_future_seqs, history_future_seqs_scaled)
 
-history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_c, future_e_veh_a = data_arrays
-future_e_veh_a[:, :, -1].std()
-future_e_veh_a[:, :, -1].mean()
-# %%
-# """
-# BALANCE DATA
-# """
-# history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_c, future_e_veh_a = data_arrays
-# balance_value = np.count_nonzero((history_future_usc[:, :, -14] == 1).all(axis=1))/\
-#                         history_future_usc.shape[0]
-# print(balance_value)
-# cond = (history_future_usc[:, :, -14] == 1).all(axis=1)
-# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
 # %%
 """
-Anywhere an array is fed to a model, the data is first scaled.
-Scalers are pickled here.
+Load data
 """
 data_id = '_025'
-item_name = 'env_scaler'+data_id
-data_files_dir = './src/models/experiments/data_files/'
-pickle_this(env_scaler, data_files_dir, item_name)
+file_name = 'sim_data'+data_id
+data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
+                                history_len=20, rollout_len=20)
 
-item_name = 'm_scaler'+data_id
-pickle_this(m_scaler, data_files_dir, item_name)
-
-item_name = 'dummy_value_set'+data_id
-pickle_this(dummy_value_set, data_files_dir, item_name)
-
+data_files_dir = './src/models/experiments/data_files/'+file_name+'/'
+with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+    data_arrays = pickle.load(handle)
+len(data_arrays)
 # %%
 config = {
  "model_config": {
@@ -185,6 +143,7 @@ model_trainer = Trainer(exp_id)
 
 # self.exp_dir = data_files_dir+''+model_name+'/model'
 # model_trainer.model.load_weights(self.exp_dir).expect_partial()
+
 
 
 # %%
