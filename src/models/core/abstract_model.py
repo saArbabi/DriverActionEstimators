@@ -8,7 +8,6 @@ class AbstractModel(tf.keras.Model):
         self.callback_def()
         if config:
             self.config = config['model_config']
-            self.exp_dir = './models/experiments/'+config['exp_id']
             self.optimizer = tf.optimizers.Adam(self.config['learning_rate'])
             self.batch_size = self.config['batch_size']
 

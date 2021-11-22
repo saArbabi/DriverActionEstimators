@@ -11,6 +11,8 @@ from importlib import reload
 import pickle
 import os
 import sys
+import json
+
 sys.path.insert(0, './src')
 # %%
 def pickle_this(item, data_files_dir, item_name):
@@ -73,9 +75,10 @@ config = {
  "model_config": {
      "learning_rate": 1e-3,
     "batch_size": 512,
+    "vae_loss_weight": 0.1,
+    "attention_temp": 5,
     },
-    "exp_id": "NA",
-    "Note": ""
+    "Note": "To check performance for different attention_temps"
 }
 
 class Trainer():
@@ -104,6 +107,13 @@ class Trainer():
 
         with open(data_files_dir+'dummy_value_set_025.pickle', 'rb') as handle:
             self.model.forward_sim.dummy_value_set = pickle.load(handle)
+
+    def update_config(self):
+        config['train_info'] = {}
+        config['train_info']['epoch_count'] = self.epoch_count
+        
+        with open(self.exp_dir+'/config.json', 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=4)
 
     def prep_data(self, training_data):
         all_epis = np.unique(training_data[0][:, 0, 0])
@@ -144,6 +154,7 @@ class Trainer():
             print(self.epoch_count, 'epochs completed')
 
     def save_model(self):
+        self.update_config()
         if not os.path.exists(self.exp_dir):
             os.makedirs(self.exp_dir)
         check_point_dir = self.exp_dir+'/model_epo{epoch}'.format(\
@@ -152,6 +163,7 @@ class Trainer():
             self.model.save_weights(check_point_dir)
         else:
             print('This checkpoint is already saved')
+
 
     def save_loss(self):
         losses = {'train_mseloss':self.train_mseloss,
@@ -164,9 +176,11 @@ class Trainer():
 
 # tf.random.set_seed(2021)
 # experiment_name = 'h_z_f_idm_act095_epo_25'
-exp_id = 'test_model'
+exp_id = '097'
 model_trainer = Trainer(exp_id)
 # train_input, val_input = model_trainer.prep_data(data_arrays)
+# model_trainer.train(train_input, val_input, epochs=1)
+
 # self.exp_dir = data_files_dir+''+experiment_name+'/model'
 # model_trainer.model.load_weights(self.exp_dir).expect_partial()
 
