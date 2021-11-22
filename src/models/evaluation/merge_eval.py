@@ -33,9 +33,9 @@ real_collection = {}
 collision_log = []
 time_start = time.time()
 # trace = 0
-for episode_id in [6, 8]:
+for episode_id in [6]:
 # for episode_id in [6,   8,  10,  12,  18]:
-    for trace in range(1):
+    for trace in range(3):
         env = EnvMergeMC(config)
         env.metric_collection_mode = True
         # env.neural_vehicle = MLPVehicle()
@@ -51,7 +51,7 @@ for episode_id in [6, 8]:
         # env.neural_vehicle = LSTMVehicle()
         # np.random.seed(0) # ensures environment remains the same
         tf.random.set_seed(trace) # each trace has a unique seed
-        # tf.random.set_seed(2021)
+        # tf.random.set_seed(0) # each trace has a unique seed
         for i in range(100):
             env.step()
             if env.collision_detected:
@@ -89,22 +89,16 @@ print((time_end-time_start)/60)
 """
 Save recordings
 """
-# model_name = 'h_lat_f_act'
-# model_name = 'h_lat_f_idm_act'
-model_name = 'h_z_f_idm_act095_epo_25'
+exp_dir = './src/models/experiments/'+model_name+'/eval'
+if not os.path.exists(exp_dir):
+    os.makedirs(exp_dir)
 
-directory = './publication_results/'+model_name
-if not os.path.exists(directory):
-    os.makedirs(directory)
-else:
-    print('Directory already exists!')
-
-if not os.path.exists('./publication_results/'+model_name+'/real_collection.pickle'):
-    with open('./publication_results/'+model_name+'/real_collection.pickle', 'wb') as handle:
+if not os.path.exists(exp_dir+'/real_collection.pickle'):
+    with open(exp_dir+'/real_collection.pickle', 'wb') as handle:
         pickle.dump(real_collection, handle)
 
-    with open('./publication_results/'+model_name+'/ima_collection.pickle', 'wb') as handle:
+    with open(exp_dir+'/ima_collection.pickle', 'wb') as handle:
         pickle.dump(ima_collection, handle)
     if collision_log:
-        with open('./publication_results/'+model_name+'/collision_log.pickle', 'wb') as handle:
+        with open(exp_dir+'/collision_log.pickle', 'wb') as handle:
             pickle.dump(collision_log, handle)

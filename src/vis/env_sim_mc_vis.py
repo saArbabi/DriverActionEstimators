@@ -22,17 +22,14 @@ def main():
     model_name = 'h_z_f_idm_act_097'
     epoch_count = '0'
     # env.neural_vehicle = MLPVehicle()
+    # env.neural_vehicle = NeurLatentVehicle()
     # env.neural_vehicle = LSTMVehicle()
     env.neural_vehicle = NeuralIDMVehicle()
     env.neural_vehicle.initialize_agent(model_name, epoch_count)
-    # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
-    # np.random.seed(0)
-    # np.random.seed(2021)
-    # tf.random.set_seed(10)
+    tf.random.set_seed(10)
     env.debugging_mode = True
     # env.debugging_mode = False
-    # tf.random.set_seed(0)
     while True:
         if env.time_step > 0:
             user_input = input()
@@ -52,13 +49,6 @@ def main():
             sys.exit()
 
             self.collision_detected = True
-        # print(env.ima_vehicles[0].vehicle_type)
-        # print(env.ima_vehicles[0].act_long)
-        # print(env.ima_vehicles[0].speed)
-        # print(env.ima_vehicles[0].id)
-        # print(env.time_step)
-
-# env.ima_vehicles[1].__dict__.items()
 
 if __name__=='__main__':
     main()

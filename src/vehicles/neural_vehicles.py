@@ -157,7 +157,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def act(self, obs):
         obs_t0, m_veh_exists, neighbours = obs
         if self.time_lapse_since_last_param_update % 20 == 0:
-            tf.random.set_seed(0)
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
