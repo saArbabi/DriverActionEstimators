@@ -32,7 +32,8 @@ from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
 data_prep = DataPrep()
-with open('./src/models/experiments/data_files/sim_data_025.pickle', 'rb') as handle:
+dataset_name = sim_data_025
+with open('./src/models/experiments/data_files/'+dataset_name+'.pickle', 'rb') as handle:
     features = pickle.load(handle)
 features, dummy_value_set = data_prep.fill_missing_values(features)
 features_scaled, env_scaler, m_scaler = data_prep.scale_data(features)
@@ -73,7 +74,8 @@ pickle_this(dummy_value_set, data_files_dir, item_name)
 # %%
 config = {
  "model_config": {
-     "learning_rate": 1e-3,
+    "dataset_name": dataset_name,
+    "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 0.1,
     "attention_temp": 5,
@@ -83,8 +85,8 @@ config = {
 
 class Trainer():
     def __init__(self, exp_id):
-        self.experiment_name = 'h_z_f_idm_act_'+exp_id
-        self.exp_dir = './src/models/experiments/'+self.experiment_name
+        self.model_name = 'h_z_f_idm_act_'+exp_id
+        self.exp_dir = './src/models/experiments/'+self.model_name
         self.train_mseloss = []
         self.train_klloss = []
 
@@ -111,7 +113,7 @@ class Trainer():
     def update_config(self):
         config['train_info'] = {}
         config['train_info']['epoch_count'] = self.epoch_count
-        
+
         with open(self.exp_dir+'/config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
 
@@ -175,13 +177,13 @@ class Trainer():
             pickle.dump(losses, handle)
 
 # tf.random.set_seed(2021)
-# experiment_name = 'h_z_f_idm_act095_epo_25'
+# model_name = 'h_z_f_idm_act095_epo_25'
 exp_id = '097'
 model_trainer = Trainer(exp_id)
 # train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
 
-# self.exp_dir = data_files_dir+''+experiment_name+'/model'
+# self.exp_dir = data_files_dir+''+model_name+'/model'
 # model_trainer.model.load_weights(self.exp_dir).expect_partial()
 
 

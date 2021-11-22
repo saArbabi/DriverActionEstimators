@@ -36,11 +36,12 @@ collision_log = []
 time_start = time.time()
 # trace = 0
 for episode_id in [6,   8,  10,  12,  18]:
-    for trace in range(5):
+    for trace in range(1):
         env = EnvMergeMC(config)
         env.metric_collection_mode = True
         # env.neural_vehicle = MLPVehicle()
         env.neural_vehicle = NeuralIDMVehicle()
+        env.neural_vehicle.initialize_agent(model_name='h_z_f_idm_act_097')
         # env.neural_vehicle = NeurLatentVehicle()
         # env.neural_vehicle = NeurLatentOneStepVehicle()
         # env.neural_vehicle = LSTMVehicle()

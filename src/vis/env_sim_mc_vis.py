@@ -3,11 +3,8 @@ Collisions
 Hard brakes
 RWSE
 """
-import os
-# os.chdir('../../')
-# print('directory: ' + os.getcwd())
-# directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
-
+import sys
+sys.path.insert(0, './src')
 from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
@@ -22,9 +19,12 @@ def main():
     env = EnvMergeMC(config)
     episode_id = 6
     env.initialize_env(episode_id)
-    # env.neural_vehicle = LSTMVehicle()
+    model_name = 'h_z_f_idm_act_097'
+    epoch_count = '0'
     # env.neural_vehicle = MLPVehicle()
+    # env.neural_vehicle = LSTMVehicle()
     env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle.initialize_agent(model_name, epoch_count)
     # env.neural_vehicle = NeurLatentVehicle()
     viewer = ViewerMC(config)
     # np.random.seed(0)

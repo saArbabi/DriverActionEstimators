@@ -8,29 +8,29 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
         self.time_lapse_since_last_param_update = 0
-        self.initialize_agent()
 
-    def load_model(self):
-        exp_dir = './models/experiments/'+'h_z_f_idm_act095_epo_25'+'/model'
+    def load_model(self, exp_dir):
         from models.core import driver_model
         reload(driver_model)
         from models.core.driver_model import  NeurIDMModel
         self.model = NeurIDMModel()
         self.model.load_weights(exp_dir).expect_partial()
 
-    def initialize_agent(self, config=None):
+    def initialize_agent(self, model_name, epoch_count):
+        exp_dir = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
         self.samples_n = 1
         history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
+        data_files_dir = './src/models/experiments/data_files/'
 
-        with open('./models/experiments/env_scaler_024.pickle', 'rb') as handle:
+        with open(data_files_dir+'env_scaler_025.pickle', 'rb') as handle:
             self.env_scaler = pickle.load(handle)
 
-        with open('./models/experiments/m_scaler_024.pickle', 'rb') as handle:
+        with open(data_files_dir+'m_scaler_025.pickle', 'rb') as handle:
             self.m_scaler = pickle.load(handle)
 
-        with open('./models/experiments/dummy_value_set_024.pickle', 'rb') as handle:
+        with open(data_files_dir+'dummy_value_set_025.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
         self.indxs = {}
@@ -43,7 +43,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             self.indxs[item_name] = index
             index += 1
         # self.model.forward_sim.attention_temp = 20
-        self.load_model()
+        self.load_model(exp_dir)
 
     def update_obs_history(self, o_t):
         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
@@ -112,12 +112,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         if self.time_lapse_since_last_param_update == 0:
             self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
 
-    # def prep_obs_seq(self, obs_history):
-    #     obs_history = np.float32(obs_history)
-    #     obs_history.shape = (self.samples_n*20, self.state_dim)
-    #     obs_history[:, :-3] = self.scaler.transform(obs_history[:, :-3])
-    #     obs_history.shape = (self.samples_n, 20, self.state_dim)
-    #     return obs_history
     def names_to_index(self, col_names):
         if type(col_names) == list:
             return [self.indxs[item] for item in col_names]
@@ -158,7 +152,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def get_neur_att(self, att_context):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 20
+        attention_temp = 5
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
         return att_score, lstm_output
 

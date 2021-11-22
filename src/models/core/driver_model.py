@@ -16,7 +16,7 @@ class NeurIDMModel(AbstractModel):
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
         self.belief_net = BeliefModel()
-        self.forward_sim = IDMForwardSim(config['model_config']['attention_temp'])
+        self.forward_sim = IDMForwardSim(config)
         self.loss_function = tf.keras.losses.Huber()
         if config:
             self.vae_loss_weight = config['model_config']['vae_loss_weight']
@@ -202,9 +202,10 @@ class FutureEncoder(tf.keras.Model):
         return enc_acts
 
 class IDMForwardSim(tf.keras.Model):
-    def __init__(self, attention_temp=None):
+    def __init__(self, config=None):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
-        self.attention_temp = attention_temp # the higher, the sharper the attention
+        if config:
+            self.attention_temp = config['model_config']['attention_temp']
         self.proj_dim = 50
         self.architecture_def()
 
