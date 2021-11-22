@@ -2,16 +2,14 @@
 Scripts for MC simulations. The episode and trace seeds are logged for reproducibility:
 Metrics are:
 Collision counts
-
 RWSE
 """
 import os
 import numpy as np
-
 import pickle
-# os.chdir('../../')
-# print('directory: ' + os.getcwd())
-# directory: C:\Users\sa00443\OneDrive - University of Surrey\190805 OneDrive Backup\Implementations\mcts_merge\sim
+import sys
+sys.path.insert(0, './src')
+os.getcwd()
 from importlib import reload
 import tensorflow as tf
 from vehicles import neural_vehicles
@@ -35,29 +33,32 @@ real_collection = {}
 collision_log = []
 time_start = time.time()
 # trace = 0
-for episode_id in [6,   8,  10,  12,  18]:
+for episode_id in [6, 8]:
+# for episode_id in [6,   8,  10,  12,  18]:
     for trace in range(1):
         env = EnvMergeMC(config)
         env.metric_collection_mode = True
         # env.neural_vehicle = MLPVehicle()
+        env.initialize_env(episode_id)
+        model_name = 'h_z_f_idm_act_097'
+        epoch_count = '0'
+        # env.neural_vehicle = MLPVehicle()
+        # env.neural_vehicle = LSTMVehicle()
         env.neural_vehicle = NeuralIDMVehicle()
-        env.neural_vehicle.initialize_agent(model_name='h_z_f_idm_act_097')
+        env.neural_vehicle.initialize_agent(model_name, epoch_count)
         # env.neural_vehicle = NeurLatentVehicle()
         # env.neural_vehicle = NeurLatentOneStepVehicle()
         # env.neural_vehicle = LSTMVehicle()
         # np.random.seed(0) # ensures environment remains the same
         tf.random.set_seed(trace) # each trace has a unique seed
         # tf.random.set_seed(2021)
-        env.initialize_env(episode_id)
         for i in range(100):
             env.step()
-
-        for veh_ima in env.ima_vehicles:
-            # print(env.time_step)
-            if veh_ima.collision_detected and veh_ima.time_lapse < 200:
-                print('Oh no, collision detected within 20s')
-                info = [veh_ima.id, veh_ima.time_lapse, trace]
+            if env.collision_detected:
+                print('collision_detected')
+                info = [episode_id, i, trace]
                 collision_log.append(info)
+                break
 
         for veh_id, data_log in env.ima_mc_log.items():
             for step_log in data_log:

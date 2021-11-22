@@ -47,6 +47,11 @@ def main():
             if env.debugging_mode:
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
+        if env.collision_detected:
+            print('collision_detected')
+            sys.exit()
+
+            self.collision_detected = True
         # print(env.ima_vehicles[0].vehicle_type)
         # print(env.ima_vehicles[0].act_long)
         # print(env.ima_vehicles[0].speed)

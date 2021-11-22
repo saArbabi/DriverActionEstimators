@@ -8,6 +8,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
         self.time_lapse_since_last_param_update = 0
+        self.collision_detected = False
 
     def load_model(self, exp_dir):
         from models.core import driver_model
@@ -50,8 +51,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.obs_history[:, -1, :] = o_t[0, 0, :]
 
     def neur_observe(self, e_veh, f_veh, m_veh):
-        if self.collision_detected:
-            return
         if not m_veh:
             m_veh_exists = 0
             m_veh_speed = self.dummy_value_set['m_veh_speed']
@@ -95,7 +94,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         neighbours = [f_veh, m_veh]
         if min([el_delta_x, em_delta_x]) <= 0:
             self.collision_detected = True
-            return
 
         return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]], neighbours]
 
