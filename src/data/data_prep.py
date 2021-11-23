@@ -103,6 +103,7 @@ class DataPrep():
                  'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                  'e_veh_action', 'f_veh_action', 'm_veh_action',
                  'aggressiveness',
+                 'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
                  'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
                  'em_delta_y', 'delta_x_to_merge']
 

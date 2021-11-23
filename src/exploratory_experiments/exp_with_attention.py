@@ -21,8 +21,8 @@ def set_follower(lane_id, model_type, model_name, driver_type):
 
     exp_dir = './models/experiments/'+model_name+'/model'
 
-    if  model_type == 'driver_model':
-        from models.core.driver_model import  NeurIDMModel
+    if  model_type == 'neural_idm':
+        from models.core.neural_idm import  NeurIDMModel
         model = NeurIDMModel(config, model_use='inference')
         model.load_weights(exp_dir).expect_partial()
         follower = NeurIDM(id='neural', lane_id=lane_id, x=50, v=20,
@@ -37,7 +37,7 @@ def set_follower(lane_id, model_type, model_name, driver_type):
 
 env = Env()
 
-model_type='driver_model'
+model_type='neural_idm'
 model_name='testing_car'
 leader = LeadVehicle(id='leader', lane_id=1, x=100, v=20)
 merger = SDVehicle(id='merger', lane_id=2, x=70, v=20)
@@ -53,7 +53,7 @@ config = {
             "exp_id": "NA",
             "Note": ""}
 
-from models.core.driver_model import  NeurIDMModel
+from models.core.neural_idm import  NeurIDMModel
 model = NeurIDMModel(config, model_use='inference')
 model.load_weights(exp_dir).expect_partial()
 merger.encoder = model.encoder

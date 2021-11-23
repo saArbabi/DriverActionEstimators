@@ -11,9 +11,9 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.collision_detected = False
 
     def load_model(self, exp_dir):
-        from models.core import driver_model
-        reload(driver_model)
-        from models.core.driver_model import  NeurIDMModel
+        from models.core import neural_idm
+        reload(neural_idm)
+        from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel()
         self.model.load_weights(exp_dir).expect_partial()
 

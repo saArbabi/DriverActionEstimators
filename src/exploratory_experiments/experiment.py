@@ -46,8 +46,8 @@ def set_follower(lane_id, model_type, model_name, driver_type):
         follower = LSTMIDMVehicle(id='neural', lane_id=lane_id, x=40, v=20,
                         driver_type=driver_type, model=model)
 
-    if  model_type == 'driver_model':
-        from models.core.driver_model import  Encoder
+    if  model_type == 'neural_idm':
+        from models.core.neural_idm import  Encoder
         model = Encoder(config, model_use='inference')
         model.load_weights(exp_dir).expect_partial()
         follower = NeurIDM(id='neural', lane_id=lane_id, x=40, v=20,
@@ -67,8 +67,8 @@ env = Env()
 # model_type='lstm_idm'
 model_name='lstm_seq2s_idm'
 model_type='lstm_seq_idm'
-model_type='driver_model'
-model_name='driver_model'
+model_type='neural_idm'
+model_name='neural_idm'
 
 leader1 = LeadVehicle(id='leader', lane_id=3, x=100, v=20)
 leader2 = LeadVehicle(id='leader', lane_id=2, x=100, v=20)

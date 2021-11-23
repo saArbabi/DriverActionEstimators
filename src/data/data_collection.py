@@ -42,7 +42,7 @@ data_arr_indexes['e_veh_att']
 data_arr_indexes['desired_v']
 
 def pickle_this(item, data_files_dir, item_name):
-    data_files_dir += item_name+'.pickle'
+    data_files_dir += '/'+item_name+'.pickle'
     if not os.path.exists(data_files_dir):
         with open(data_files_dir, 'wb') as handle:
             pickle.dump(item, handle)
@@ -66,15 +66,25 @@ Pickle generated data.
 """
 data_id = '_025'
 file_name = 'sim_data'+data_id
-file_address = './src/models/experiments/data_files/'+file_name
-if not os.path.exists(file_address):
-    os.makedirs(file_address)
+data_files_dir = './src/models/experiments/data_files/'+file_name
+if not os.path.exists(data_files_dir):
+    os.makedirs(data_files_dir)
 
-if not os.path.exists(file_address+'/sim_data.pickle'):
-    with open(file_address+'/sim_data.pickle', 'wb') as handle:
+if not os.path.exists(data_files_dir+'/sim_data.pickle'):
+    with open(data_files_dir+'/sim_data.pickle', 'wb') as handle:
         pickle.dump(data_arr, handle)
 else:
     print('This data id exists')
+
+# %%
+"""
+Load generated data.
+"""
+data_id = '_025'
+file_name = 'sim_data'+data_id
+data_files_dir = './src/models/experiments/data_files/'+file_name
+with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
+    sim_data = pickle.load(handle)
 
 # %%
 """
@@ -86,11 +96,6 @@ from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
 data_prep = DataPrep()
-data_id = '_025'
-file_name = 'sim_data'+data_id
-data_files_dir = './src/models/experiments/data_files/'+file_name 
-with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
-    sim_data = pickle.load(handle)
 sim_data, dummy_value_set = data_prep.fill_missing_values(sim_data)
 sim_data_scaled, env_scaler, m_scaler = data_prep.scale_data(sim_data)
 history_future_seqs = data_prep.sequence(sim_data, history_len, rollout_len)

@@ -54,18 +54,15 @@ class Trainer():
         self.initiate_model()
 
     def initiate_model(self):
-        from models.core import driver_model
-        reload(driver_model)
-        from models.core.driver_model import  NeurIDMModel
+        from models.core import neural_idm
+        reload(neural_idm)
+        from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
 
-        with open(data_files_dir+'env_scaler_025.pickle', 'rb') as handle:
+        with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
 
-        with open(data_files_dir+'m_scaler_025.pickle', 'rb') as handle:
-            self.model.forward_sim.m_scaler = pickle.load(handle)
-
-        with open(data_files_dir+'dummy_value_set_025.pickle', 'rb') as handle:
+        with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
             self.model.forward_sim.dummy_value_set = pickle.load(handle)
 
     def update_config(self):
@@ -82,16 +79,16 @@ class Trainer():
 
         train_epis = all_epis[:int(len(all_epis)*0.7)]
         val_epis = np.setdiff1d(all_epis, train_epis)
-        train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
+        train_examples = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
         _, history_sca, future_sca, future_idm_s,\
                     future_m_veh_c, future_e_veh_a = training_data
-        train_input = [history_sca[train_indxs, :, 2:],
-                    future_sca[train_indxs, :, 2:],
-                    future_idm_s[train_indxs, :, 2:],
-                    future_m_veh_c[train_indxs, :, 2:],
-                    future_e_veh_a[train_indxs, :, 2:]]
+        train_input = [history_sca[train_examples, :, 2:],
+                    future_sca[train_examples, :, 2:],
+                    future_idm_s[train_examples, :, 2:],
+                    future_m_veh_c[train_examples, :, 2:],
+                    future_e_veh_a[train_examples, :, 2:]]
 
         val_input = [history_sca[val_indxs, :, 2:],
                     future_sca[val_indxs, :, 2:],
@@ -144,7 +141,40 @@ model_trainer = Trainer(exp_id)
 # self.exp_dir = data_files_dir+''+model_name+'/model'
 # model_trainer.model.load_weights(self.exp_dir).expect_partial()
 
+################## Train ##################
+################## ##### ##################
+################## ##### ##################
+################## ##### ##################
+# model_trainer.train(epochs=10)
+model_trainer.train(train_input, val_input, epochs=5)
+################## ##### ##################
+################## ##### ##################
+################## ##### ##################
 
+################## MSE LOSS ###############
+fig = plt.figure(figsize=(15, 5))
+# plt.style.use('default')
+
+mse_axis = fig.add_subplot(121)
+kl_axis = fig.add_subplot(122)
+mse_axis.plot(model_trainer.test_mseloss)
+mse_axis.plot(model_trainer.train_mseloss)
+mse_axis.grid()
+mse_axis.set_xlabel('epochs')
+mse_axis.set_ylabel('loss (MSE)')
+mse_axis.set_title('MSE')
+mse_axis.legend(['test', 'train'])
+
+################## kl LOSS ##################
+kl_axis.plot(model_trainer.test_klloss)
+kl_axis.plot(model_trainer.train_klloss)
+
+kl_axis.grid()
+kl_axis.set_xlabel('epochs')
+kl_axis.set_ylabel('loss (kl)')
+kl_axis.set_title('kl')
+kl_axis.legend(['test', 'train'])
+print(model_trainer.test_mseloss[-1])
 
 # %%
 model_trainer.save_model()

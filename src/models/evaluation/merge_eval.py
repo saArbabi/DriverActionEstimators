@@ -9,7 +9,7 @@ import numpy as np
 import pickle
 import sys
 sys.path.insert(0, './src')
-os.getcwd()
+# os.getcwd()
 from importlib import reload
 import tensorflow as tf
 from vehicles import neural_vehicles

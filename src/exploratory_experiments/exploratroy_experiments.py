@@ -180,10 +180,10 @@ class Trainer():
             from models.core.vae import  VAEIDM
             self.model = VAEIDM(config, model_use='training')
 
-        elif self.model_type == 'driver_model':
-            from models.core import driver_model
-            reload(driver_model)
-            from models.core.driver_model import  NeurIDMModel
+        elif self.model_type == 'neural_idm':
+            from models.core import neural_idm
+            reload(neural_idm)
+            from models.core.neural_idm import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
     def train(self, training_data, epochs):
@@ -214,7 +214,7 @@ class Trainer():
             val_input = [xs_h[train_sample_index:, :, 1:], xs_f[train_sample_index:, :, 1:], \
                                             ys_f[train_sample_index:, :, 1:]]
 
-        elif self.model_type == 'driver_model':
+        elif self.model_type == 'neural_idm':
             xs_h, scaled_xs_f, unscaled_xs_f, merger_xas, ys_f = training_data
             balance_data = False
 
@@ -260,7 +260,7 @@ class Trainer():
         for epoch in range(epochs):
             self.model.train_loop(train_input)
             self.model.test_loop(val_input, epoch)
-            if self.model_type == 'vae_idm' or self.model_type == 'driver_model':
+            if self.model_type == 'vae_idm' or self.model_type == 'neural_idm':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
                 self.valid_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
@@ -280,7 +280,7 @@ class Trainer():
 # model_trainer = Trainer(model_type='lstm_idm')
 # model_trainer = Trainer(model_type='lstm_seq_idm')
 # model_trainer = Trainer(model_type='vae_idm')
-model_trainer = Trainer(model_type='driver_model')
+model_trainer = Trainer(model_type='neural_idm')
 # training_data[0][:,:,-1].min()
 
 # %%

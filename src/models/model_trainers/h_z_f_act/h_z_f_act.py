@@ -56,10 +56,10 @@ class Trainer():
         self.prep_data(training_data)
 #
     def initiate_model(self):
-        if self.model_name == 'driver_model':
-            from models.core import driver_model
-            reload(driver_model)
-            from models.core.driver_model import  NeurIDMModel
+        if self.model_name == 'neural_idm':
+            from models.core import neural_idm
+            reload(neural_idm)
+            from models.core.neural_idm import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
         elif self.model_name == 'h_z_f_act':
@@ -86,18 +86,18 @@ class Trainer():
         np.random.shuffle(all_epis)
         train_epis = all_epis[:int(len(all_epis)*0.7)]
         val_epis = np.setdiff1d(all_epis, train_epis)
-        train_indxs = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
+        train_examples = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
         val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
         _, history_sca, future_sca, future_idm_s,\
                     future_m_veh_c, future_e_veh_a = training_data
 
         if self.model_type == 'cvae':
-            self.train_input = [history_sca[train_indxs, :, 2:],
-                        future_sca[train_indxs, :, 2:],
-                        future_idm_s[train_indxs, :, 2:],
-                        future_m_veh_c[train_indxs, :, 2:],
-                        future_e_veh_a[train_indxs, :, 2:]]
+            self.train_input = [history_sca[train_examples, :, 2:],
+                        future_sca[train_examples, :, 2:],
+                        future_idm_s[train_examples, :, 2:],
+                        future_m_veh_c[train_examples, :, 2:],
+                        future_e_veh_a[train_examples, :, 2:]]
 
             self.val_input = [history_sca[val_indxs, :, 2:],
                         future_sca[val_indxs, :, 2:],
@@ -106,8 +106,8 @@ class Trainer():
                         future_e_veh_a[val_indxs, :, 2:]]
 
         elif self.model_type == 'lstm_model':
-            self.train_input = [history_sca[train_indxs, :, 2:],
-                                        future_e_veh_a[train_indxs, 0, -1]]
+            self.train_input = [history_sca[train_examples, :, 2:],
+                                        future_e_veh_a[train_examples, 0, -1]]
 
             self.val_input = [history_sca[val_indxs, :, 2:],
                                         future_e_veh_a[val_indxs, 0, -1]]
@@ -116,8 +116,8 @@ class Trainer():
             history_sca = np.squeeze(history_sca)
             future_e_veh_a = np.squeeze(future_e_veh_a)
 
-            self.train_input = [history_sca[train_indxs, 2:],
-                                        future_e_veh_a[train_indxs, -1]]
+            self.train_input = [history_sca[train_examples, 2:],
+                                        future_e_veh_a[train_examples, -1]]
 
             self.val_input = [history_sca[val_indxs, 2:],
                                         future_e_veh_a[val_indxs, -1]]
@@ -171,10 +171,10 @@ np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
 
-train_indxs = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
+train_examples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 history_sca.shape
-train_indxs.shape
+train_examples.shape
 val_examples.shape
 history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
@@ -368,7 +368,7 @@ sepcific_examples = []
 while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
-    # sample_index = [train_indxs[i]]
+    # sample_index = [train_examples[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])

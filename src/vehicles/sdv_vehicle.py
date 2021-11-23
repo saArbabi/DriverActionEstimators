@@ -58,7 +58,7 @@ class SDVehicle(Vehicle):
         with open('./models/experiments/scaler.pickle', 'rb') as handle:
             self.scaler = pickle.load(handle)
 
-        from models.core.driver_model import  NeurIDMModel
+        from models.core.neural_idm import  NeurIDMModel
         model = NeurIDMModel()
         model.load_weights(exp_dir).expect_partial()
         self.h_seq_encoder = model.h_seq_encoder

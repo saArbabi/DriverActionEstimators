@@ -235,20 +235,8 @@ class IDMForwardSim(tf.keras.Model):
         "This is needed to avoid infinities"
         return tf.clip_by_value(action, clip_value_min=-10., clip_value_max=10.)
 
-    def add_noise(self, idm_action, idm_veh_exists, batch_size):
-        """
-        To deal with nonexisting cars.
-        """
-        idm_action = idm_veh_exists*(idm_action) + \
-                (1-idm_veh_exists)*tf.random.normal((batch_size, 1, 1), 0, 0.5)
-        return idm_action
-
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
-        return env_state
-
-    def scale_merger_c(self, env_state):
-        env_state = (env_state-self.m_scaler.mean_)/self.m_scaler.var_**0.5
         return env_state
 
     def rollout(self, inputs):
