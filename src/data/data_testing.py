@@ -63,8 +63,8 @@ reload(data_prep)
 from data.data_prep import DataPrep
 data_prep = DataPrep()
 data_id = '_025'
-file_name = 'sim_data'+data_id
-data_files_dir = './src/models/experiments/data_files/'+file_name+'/'
+dataset_name = 'sim_data'+data_id
+data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
 sim_data, dummy_value_set = data_prep.fill_missing_values(sim_data)

@@ -21,11 +21,11 @@ sys.path.insert(0, './src')
 Load data
 """
 data_id = '_025'
-file_name = 'sim_data'+data_id
+dataset_name = 'sim_data'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=20, rollout_len=20)
 
-data_files_dir = './src/models/experiments/data_files/'+file_name+'/'
+data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     data_arrays = pickle.load(handle)
 len(data_arrays)
@@ -54,6 +54,8 @@ class Trainer():
         self.initiate_model()
 
     def initiate_model(self):
+        if not os.path.exists(self.exp_dir):
+            os.makedirs(self.exp_dir)
         from models.core import neural_idm
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
@@ -64,6 +66,19 @@ class Trainer():
 
         with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
             self.model.forward_sim.dummy_value_set = pickle.load(handle)
+
+    def load_pre_trained(self, epoch_count):
+        exp_dir = self.exp_dir+'/model_epo'+epoch_count
+        self.epoch_count = int(epoch_count)
+        self.model.load_weights(exp_dir).expect_partial()
+
+        with open(os.path.dirname(exp_dir)+'/'+'losses.pickle', 'rb') as handle:
+            losses = pickle.load(handle)
+
+        self.train_mseloss = losses['train_mseloss']
+        self.train_klloss = losses['train_klloss']
+        self.test_mseloss = losses['test_mseloss']
+        self.test_klloss = losses['test_klloss']
 
     def update_config(self):
         config['train_info'] = {}
@@ -112,8 +127,6 @@ class Trainer():
 
     def save_model(self):
         self.update_config()
-        if not os.path.exists(self.exp_dir):
-            os.makedirs(self.exp_dir)
         check_point_dir = self.exp_dir+'/model_epo{epoch}'.format(\
                                                     epoch=self.epoch_count)
         if not os.path.exists(check_point_dir+'.index'):
@@ -128,24 +141,21 @@ class Trainer():
                   'test_mseloss':self.test_mseloss,
                   'test_klloss':self.test_klloss}
 
-        with open(self.exp_dir+'/losses', 'wb') as handle:
+        with open(self.exp_dir+'/losses.pickle', 'wb') as handle:
             pickle.dump(losses, handle)
 
-# tf.random.set_seed(2021)
-# model_name = 'h_z_f_idm_act095_epo_25'
+tf.random.set_seed(2021)
 exp_id = '097'
 model_trainer = Trainer(exp_id)
-# train_input, val_input = model_trainer.prep_data(data_arrays)
+train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
-
-# self.exp_dir = data_files_dir+''+model_name+'/model'
-# model_trainer.model.load_weights(self.exp_dir).expect_partial()
+model_trainer.load_pre_trained(epoch_count='10')
+# %%
 
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-# model_trainer.train(epochs=10)
 model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
@@ -179,5 +189,3 @@ print(model_trainer.test_mseloss[-1])
 # %%
 model_trainer.save_model()
 model_trainer.save_loss()
-
-# %%

@@ -7,6 +7,21 @@ import pickle
 import sys
 sys.path.insert(0, './src')
 
+# %%
+hf_usc_indexs = {}
+col_names = [
+         'episode_id', 'time_step',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
+         'm_veh_exists', 'e_veh_att',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+         'e_veh_action', 'f_veh_action', 'm_veh_action',
+         'aggressiveness',
+         'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
+
+for i, item_name in enumerate(col_names):
+    hf_usc_indexs[item_name] = i
 
 # %%
 """
@@ -86,11 +101,11 @@ def fetch_traj(data, sample_index, colum_index):
 Load data
 """
 data_id = '_025'
-file_name = 'sim_data'+data_id
+dataset_name = 'sim_data'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=20, rollout_len=20)
 
-data_files_dir = './src/models/experiments/data_files/'+file_name+'/'
+data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     data_arrays = pickle.load(handle)
 history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -99,43 +114,6 @@ history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_c = np.float32(future_m_veh_c)
 history_future_usc.shape
-# %%
-"""
-Load model
-"""
-model_name = 'h_z_f_idm_act_097'
-epoch_count = '0'
-# from models.core import neural_idm
-# reload(neural_idm)
-exp_dir = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
-data_files_dir = './src/models/experiments/data_files/'+file_name+'/'
-from models.core.neural_idm import  NeurIDMModel
-model = NeurIDMModel()
-model.load_weights(exp_dir).expect_partial()
-
-with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
-    model.forward_sim.env_scaler = pickle.load(handle)
-
-with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
-    model.forward_sim.dummy_value_set = pickle.load(handle)
-model.forward_sim.attention_temp = 10
-
-# %%
-hf_usc_indexs = {}
-col_names = [
-         'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id',
-         'm_veh_exists', 'e_veh_att',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-         'e_veh_action', 'f_veh_action', 'm_veh_action',
-         'aggressiveness',
-         'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-         'em_delta_y', 'delta_x_to_merge']
-
-for i, item_name in enumerate(col_names):
-    hf_usc_indexs[item_name] = i
-
 # %%
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -146,6 +124,39 @@ val_epis = np.setdiff1d(all_epis, train_epis)
 train_examples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
+# %%
+"""
+Load model
+"""
+model_name = 'h_z_f_idm_act_097'
+epoch_count = '10'
+# from models.core import neural_idm
+# reload(neural_idm)
+exp_dir = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
+data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
+from models.core.neural_idm import  NeurIDMModel
+model = NeurIDMModel()
+model.load_weights(exp_dir).expect_partial()
+
+with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
+    model.forward_sim.env_scaler = pickle.load(handle)
+
+with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
+    model.forward_sim.dummy_value_set = pickle.load(handle)
+# model.forward_sim.attention_temp = 10
+# %%
+with open(os.path.dirname(exp_dir)+'/'+'losses.pickle', 'rb') as handle:
+    losses = pickle.load(handle)
+plt.figure()
+plt.plot(losses['train_mseloss'], label='train_mseloss')
+plt.plot(losses['test_mseloss'], label='test_mseloss')
+plt.grid()
+plt.legend()
+plt.figure()
+plt.plot(losses['train_klloss'], label='train_klloss')
+plt.plot(losses['test_klloss'], label='test_klloss')
+plt.legend()
+plt.grid()
 # %%
 """
 Find bad examples
@@ -178,7 +189,7 @@ bad_examples = np.where(loss > 1)
 """
 Latent visualisation - aggressiveness used for color coding the latent samples
 """
-latent_vis(zsamples_n=200)
+latent_vis(zsamples_n=3000)
 # plt.savefig("latent.png", dpi=500)
 # %%
 # import matplotlib.pyplot as plt
@@ -221,7 +232,7 @@ while Example_pred < 5:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[15:25].mean() > 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
