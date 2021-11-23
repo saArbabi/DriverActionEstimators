@@ -15,7 +15,7 @@ class NeurIDMModel(AbstractModel):
         super(NeurIDMModel, self).__init__(config)
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
-        self.belief_net = BeliefModel()
+        self.belief_net = BeliefModel(config)
         self.forward_sim = IDMForwardSim(config)
         self.loss_function = tf.keras.losses.Huber()
         if config:
@@ -109,10 +109,12 @@ class NeurIDMModel(AbstractModel):
         return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, config=None):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
         self.proj_dim = 50
+        if config:
+            self.latent_dim = config['model_config']['latent_dim']
+
         self.architecture_def()
 
     def architecture_def(self):

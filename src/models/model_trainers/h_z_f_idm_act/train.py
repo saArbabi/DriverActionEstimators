@@ -37,6 +37,7 @@ config = {
     "batch_size": 512,
     "vae_loss_weight": 0.1,
     "attention_temp": 5,
+    "latent_dim": 3,
     },
     "Note": "To check performance for different attention_temps"
 }
@@ -149,8 +150,9 @@ exp_id = '097'
 model_trainer = Trainer(exp_id)
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
-model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='20')
 # %%
+# model_trainer.model.forward_sim.attention_temp
 
 ################## Train ##################
 ################## ##### ##################

@@ -129,7 +129,8 @@ val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 Load model
 """
 model_name = 'h_z_f_idm_act_097'
-epoch_count = '10'
+epoch_count = '20'
+
 # from models.core import neural_idm
 # reload(neural_idm)
 exp_dir = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
@@ -148,13 +149,13 @@ with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
 with open(os.path.dirname(exp_dir)+'/'+'losses.pickle', 'rb') as handle:
     losses = pickle.load(handle)
 plt.figure()
-plt.plot(losses['train_mseloss'], label='train_mseloss')
 plt.plot(losses['test_mseloss'], label='test_mseloss')
+plt.plot(losses['train_mseloss'], label='train_mseloss')
 plt.grid()
 plt.legend()
 plt.figure()
-plt.plot(losses['train_klloss'], label='train_klloss')
 plt.plot(losses['test_klloss'], label='test_klloss')
+plt.plot(losses['train_klloss'], label='train_klloss')
 plt.legend()
 plt.grid()
 # %%
@@ -220,7 +221,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 5:
+while Example_pred < 10:
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
     # sample_index = [i]
@@ -230,9 +231,9 @@ while Example_pred < 5:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[15:25].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -258,7 +259,7 @@ while Example_pred < 5:
         time_steps = range(time_0, time_0+39)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.4,
-                        'experiment_name: '+ model_name +' '+'\n'
+                        'experiment_name: '+ model_name+'_'+epoch_count +' '+'\n'
                         'episode_id: '+ info[0] +
                         'time_0: '+ info[1] +
                         'e_veh_id: '+ info[2] +
