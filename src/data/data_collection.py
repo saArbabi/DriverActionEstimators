@@ -64,7 +64,7 @@ data_arr.shape
 """
 Pickle generated data.
 """
-data_id = '_025'
+data_id = '_026'
 dataset_name = 'sim_data'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -80,18 +80,18 @@ else:
 """
 Load generated data.
 """
-data_id = '_025'
+data_id = '_026'
 dataset_name = 'sim_data'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
-
+sim_data.shape
 # %%
 """
-Data prep
+Prepare data
 """
-history_len = 20 # steps
-rollout_len = 20
+history_len = 30 # steps
+rollout_len = 30
 from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
@@ -131,6 +131,6 @@ item_name = 'dummy_value_set'
 pickle_this(dummy_value_set, data_files_dir, item_name)
 
 item_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
-                                            history_len=20, rollout_len=20)
+                                history_len=history_len, rollout_len=rollout_len)
 
 pickle_this(data_arrays, data_files_dir, item_name)

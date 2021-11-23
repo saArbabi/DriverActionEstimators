@@ -20,10 +20,12 @@ sys.path.insert(0, './src')
 """
 Load data
 """
-data_id = '_025'
+history_len = 30 # steps
+rollout_len = 30
+data_id = '_026'
 dataset_name = 'sim_data'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
-                                history_len=20, rollout_len=20)
+                                history_len, rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
@@ -146,7 +148,7 @@ class Trainer():
             pickle.dump(losses, handle)
 
 tf.random.set_seed(2021)
-exp_id = '097'
+exp_id = '098'
 model_trainer = Trainer(exp_id)
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)

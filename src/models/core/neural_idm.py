@@ -247,7 +247,7 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, 100])
 
-        for step in range(20):
+        for step in range(30):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]

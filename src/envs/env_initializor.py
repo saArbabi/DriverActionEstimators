@@ -17,7 +17,7 @@ class EnvInitializor():
     def get_init_speed(self, aggressiveness):
         init_speed = self.min_desired_v + \
                     aggressiveness*(self.desired_v_range) + \
-                    np.random.uniform(0, 1)
+                    np.random.normal(0, 1)
         return init_speed
 
     def create_main_lane_vehicle(self, lead_vehicle, lane_id, glob_x):
@@ -27,21 +27,23 @@ class EnvInitializor():
                     self.next_vehicle_id, lane_id, glob_x,\
                                                 init_speed, aggressiveness)
         init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
-        if init_action >= -5:
+        if init_action >= -new_vehicle.driver_params['min_act']:
             self.next_vehicle_id += 1
             return new_vehicle
 
-    def create_ramp_merge_vehicle(self, lead_vehicle, lane_id):
+    def create_ramp_merge_vehicle(self, lane_id, glob_x):
         aggressiveness = np.random.uniform(0.01, 0.99)
         init_speed = self.get_init_speed(aggressiveness)
-        if not lead_vehicle:
-            lead_vehicle = self.dummy_stationary_car
+        lead_vehicle = self.dummy_stationary_car
 
         new_vehicle = IDMMOBILVehicleMerge(\
-                    self.next_vehicle_id, lane_id, 100,\
+                    self.next_vehicle_id, lane_id, glob_x,\
                                                 init_speed, aggressiveness)
-        self.next_vehicle_id += 1
-        return new_vehicle
+        init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
+        if init_action >= -new_vehicle.driver_params['min_act']:
+            self.next_vehicle_id += 1
+            return new_vehicle
+
 
     def init_env(self, episode_id):
         """Operations for creating a scenario
@@ -49,19 +51,17 @@ class EnvInitializor():
         (2) Create series of followers with similar speeds. The follower positions
             are set to comply with a random initial action value.
         """
-        print(episode_id)
-
         # time.sleep(1)
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1
         vehicles = []
         # traffic_density = 30
-        traffic_density = np.random.randint(3, 6)
+        traffic_density = np.random.randint(3, 6) # number of vehicles
         # print('traffic_density ', traffic_density)
 
         glob_x = 150
-        for n in range(traffic_density):
+        while True and len(vehicles) < traffic_density:
             if not vehicles:
                 lead_vehicle = None
             else:
@@ -77,7 +77,10 @@ class EnvInitializor():
 
         # ramp vehicles
         lane_id = 2
-        new_vehicle = self.create_ramp_merge_vehicle(lead_vehicle=None, lane_id=lane_id)
-        if new_vehicle:
-            vehicles.append(new_vehicle)
+        while True:
+            glob_x = np.random.uniform(50,  150)
+            new_vehicle = self.create_ramp_merge_vehicle(lane_id=lane_id, glob_x=glob_x)
+            if new_vehicle:
+                vehicles.append(new_vehicle)
+                break
         return vehicles
