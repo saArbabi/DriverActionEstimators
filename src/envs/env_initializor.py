@@ -53,8 +53,8 @@ class EnvInitializor():
         # main road vehicles
         lane_id = 1
         vehicles = []
-        traffic_density = 10
-        # traffic_density = np.random.randint(3, 6) # number of vehicles
+        # traffic_density = 10
+        traffic_density = np.random.randint(3, 6) # number of vehicles
         # print('traffic_density ', traffic_density)
 
         glob_x = 150
@@ -75,11 +75,12 @@ class EnvInitializor():
                 vehicle_count += 1
             if glob_x == 0:
                 break
-        vehicles[-1].glob_x = 0
+        # vehicles[-1].glob_x = 50
 
         # ramp vehicles
         lane_id = 2
         aggs = np.random.uniform(0.01, 0.99) # aggressiveness
+        # aggs = 0.2
         while True:
             glob_x = np.random.uniform(50,  150)
             new_vehicle = self.create_ramp_merge_vehicle(lane_id, \

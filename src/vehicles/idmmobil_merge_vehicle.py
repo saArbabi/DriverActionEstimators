@@ -134,10 +134,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         (2) Ego attends following the cooperative idm
         (2) Ego attends for safety
         """
-        if m_veh.glob_x < self.ramp_entrance_x or \
-            (m_veh.neighbours['rl'] and \
-             m_veh.neighbours['rl'].neighbours['att'] == m_veh):
-            print(self.id, '  hi')
+        if (f_veh and m_veh.glob_x > f_veh.glob_x) \
+                                    or m_veh.glob_x < self.ramp_entrance_x:
             return False
         if m_veh == self.neighbours['att']:
             return True
@@ -189,13 +187,11 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         if self.lane_decision != 'keep_lane':
             self.is_merge_complete()
 
-        elif self.lane_decision == 'keep_lane':
+        elif self.lane_decision == 'keep_lane' and self.lane_id == 2:
             lc_left_condition = 0
-            lc_right_condition = 0
             act_ego_lc_l = self.idm_action(self, self.neighbours['fl'])
             act_rl_lc = self.idm_action(self.neighbours['rl'], self)
-            # if self.id == 5:
-            #     print('act_rl_lc ', act_rl_lc)
+            print('act_rl_lc ', act_rl_lc)
             if self.is_merge_possible(act_rl_lc):
                 # consider moving left
                 act_r_lc = self.idm_action(self.neighbours['r'], self.neighbours['f'])
@@ -209,11 +205,10 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 lc_left_condition = self.mobil_condition([ego_gain, \
                                         new_follower_gain, old_follower_gain])
 
-                # if self.id == 5:
-                #     print('ego_gain ', ego_gain)
-                #     print('old_follower_gain ', old_follower_gain)
-                #     print('new_follower_gain ', new_follower_gain)
-                #     print('lc_left_condition ', lc_left_condition)
+                print('ego_gain ', ego_gain)
+                print('old_follower_gain ', old_follower_gain)
+                print('new_follower_gain ', new_follower_gain)
+                print('lc_left_condition ', lc_left_condition)
 
             if lc_left_condition > self.driver_params['act_threshold']:
                 target_lane = self.target_lane - 1
