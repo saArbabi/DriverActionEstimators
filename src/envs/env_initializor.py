@@ -37,7 +37,8 @@ class EnvInitializor():
 
     def create_ramp_merge_vehicle(self, lane_id, glob_x, agg):
         lead_vehicle = self.dummy_stationary_car
-        init_speed = self.get_init_speed(agg)
+        # init_speed = self.get_init_speed(agg)
+        init_speed = 15
         new_vehicle = IDMMOBILVehicleMerge(\
                     self.next_vehicle_id, lane_id, glob_x,\
                                                 init_speed, agg)
@@ -47,12 +48,14 @@ class EnvInitializor():
             return new_vehicle
 
     def init_env(self, episode_id):
+        print('episode_id: ', episode_id)
         np.random.seed(episode_id)
         # main road vehicles
         lane_id = 1
         vehicles = []
-        traffic_density = np.random.randint(3, 6) # number of vehicles
-        print('traffic_density ', traffic_density)
+        traffic_density = 10
+        # traffic_density = np.random.randint(3, 6) # number of vehicles
+        # print('traffic_density ', traffic_density)
 
         glob_x = 150
         avg_spacing = glob_x/traffic_density

@@ -94,7 +94,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             neighbours['m'] = None
 
 
-        if self.am_i_attending(neighbours['m'], candidate_f):
+        if neighbours['m'] and self.am_i_attending(neighbours['m'], candidate_f):
             neighbours['att'] = neighbours['m']
         else:
             neighbours['att'] = candidate_att
@@ -134,10 +134,15 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         (2) Ego attends following the cooperative idm
         (2) Ego attends for safety
         """
-        if not m_veh or (f_veh and m_veh.glob_x > f_veh.glob_x) \
-                                    or m_veh.glob_x < self.ramp_entrance_x:
+        if m_veh.glob_x < self.ramp_entrance_x or \
+            (m_veh.neighbours['rl'] and \
+             m_veh.neighbours['rl'].neighbours['att'] == m_veh):
+            print(self.id, '  hi')
             return False
-        if m_veh == self.neighbours['att'] or m_veh.lane_id == self.lane_id:
+        if m_veh == self.neighbours['att']:
+            return True
+        elif m_veh.lane_id == self.lane_id:
+            print(' lane based ########')
             return True
 
         act_long = self.idm_action(self, m_veh)
@@ -216,6 +221,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 self.neighbours['att'] = self.neighbours['fl']
                 self.neighbours['f'] = self.neighbours['fl']
                 self.target_lane -= 1
+                if not self.neighbours['rl']:
+                    print('this sucks ########')
                 return [act_ego_lc_l, self.lateral_action()]
 
         return [act_long, self.lateral_action()]

@@ -196,3 +196,9 @@ model_trainer.save_model()
 model_trainer.save_loss()
 3.75/0.075
 70
+100-31-15
+
+
+list(reversed([0, 1, 2, 3]))
+0.2*(5*19+75)/22.5
+50/15
