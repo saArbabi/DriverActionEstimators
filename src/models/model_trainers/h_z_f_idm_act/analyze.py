@@ -5,8 +5,8 @@ np.set_printoptions(suppress=True)
 import os
 import pickle
 import sys
+import json
 sys.path.insert(0, './src')
-
 # %%
 hf_usc_indexs = {}
 col_names = [
@@ -94,16 +94,18 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
     return traj.flatten()
 # %%
 """
 Load data
 """
-data_id = '_025'
+history_len = 30 # steps
+rollout_len = 30
+data_id = '_026'
 dataset_name = 'sim_data'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
-                                history_len=20, rollout_len=20)
+                                history_len=history_len, rollout_len=rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
@@ -126,18 +128,21 @@ val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
 # %%
 """
-Load model
+Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_097'
+model_name = 'h_z_f_idm_act_098'
 epoch_count = '20'
-
 # from models.core import neural_idm
 # reload(neural_idm)
-exp_dir = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
-data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
+exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
+exp_dir = os.path.dirname(exp_path)
+with open(exp_dir+'/'+'config.json', 'rb') as handle:
+    config = json.load(handle)
+    print(json.dumps(config, ensure_ascii=False, indent=4))
+
 from models.core.neural_idm import  NeurIDMModel
-model = NeurIDMModel()
-model.load_weights(exp_dir).expect_partial()
+model = NeurIDMModel(config)
+model.load_weights(exp_path).expect_partial()
 
 with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
     model.forward_sim.env_scaler = pickle.load(handle)
@@ -146,7 +151,7 @@ with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
     model.forward_sim.dummy_value_set = pickle.load(handle)
 # model.forward_sim.attention_temp = 10
 # %%
-with open(os.path.dirname(exp_dir)+'/'+'losses.pickle', 'rb') as handle:
+with open(exp_dir+'/'+'losses.pickle', 'rb') as handle:
     losses = pickle.load(handle)
 plt.figure()
 plt.plot(losses['test_mseloss'], label='test_mseloss')
@@ -191,6 +196,7 @@ bad_examples = np.where(loss > 1)
 Latent visualisation - aggressiveness used for color coding the latent samples
 """
 latent_vis(zsamples_n=3000)
+latent_vis(zsamples_n=3000)
 # plt.savefig("latent.png", dpi=500)
 # %%
 # import matplotlib.pyplot as plt
@@ -233,6 +239,8 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     if episode not in covered_episodes:
     # if 4 == 4:
+    # if episode not in covered_episodes and e_veh_att[0:3].mean() > 0 and e_veh_att[-5:].mean() == 0:
+    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
     # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -256,7 +264,7 @@ while Example_pred < 10:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+39)
+        time_steps = range(time_0, time_0+59)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.4,
                         'experiment_name: '+ model_name+'_'+epoch_count +' '+'\n'
@@ -284,9 +292,9 @@ while Example_pred < 10:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(time_steps[29:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
-           # plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(), color='grey')
+           # plt.plot(time_steps[29:], act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')
@@ -296,10 +304,10 @@ while Example_pred < 10:
         # plt.plot(e_veh_att[:40] , color='black')
         plt.plot(time_steps , e_veh_att, color='red')
 
-        plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
+        plt.plot([time_steps[29], time_steps[29]], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(time_steps[29:], att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         ##########
@@ -359,7 +367,7 @@ while Example_pred < 10:
 # model.arbiter.attention_temp = 5
 traces_n = 50
 model.forward_sim.attention_temp = 5
-sample_index = [3219]
+sample_index = [3229]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
@@ -383,7 +391,7 @@ idm_params = model.idm_layer(proj_belief)
 # min_act = idm_params.numpy()[:, -2]
 # plt.scatter(min_act, [0]*100)
 # plt.scatter(1.43, 0, color='red')
-# idm_params = tf.ones([100, 5])*[19.9, 1.01, 1.02, 3.83, 3.83]
+# idm_params = tf.ones([100, 5])*[29.9, 1.01, 1.02, 3.83, 3.83]
 
 # idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
 # idm_params = idm_params.numpy()
@@ -420,12 +428,12 @@ plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].numpy().mean(axis=0).round(2))
 # %%
 
 # plt.figure(figsize=(10, 10))
-time_axis = np.linspace(0., 4., 39)
+time_axis = np.linspace(0., 4., 59)
 # plt.figure(figsize=(5, 3))
 # plt.legend(['Leader', 'Follower', 'Merger'])
 
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[19:], act_seq[sample_trace_i, :, :].flatten(), \
+   plt.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
 plt.plot(time_axis, traj, color='red')
@@ -450,7 +458,7 @@ plt.legend(['Ego', 'Merger', 'Leader'])
 # plt.figure(figsize=(10, 10))
 plt.figure(figsize=(5, 4))
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[19:], att_scores[sample_trace_i, :].flatten(), \
+   plt.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
 plt.plot(time_axis, e_veh_att, color='red', linewidth=1, linestyle='-')
 

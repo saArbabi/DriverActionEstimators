@@ -25,12 +25,13 @@ rollout_len = 30
 data_id = '_026'
 dataset_name = 'sim_data'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
-                                history_len, rollout_len)
+                                history_len=history_len, rollout_len=rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     data_arrays = pickle.load(handle)
 len(data_arrays)
+data_arrays[0].shape
 # %%
 config = {
  "model_config": {
@@ -193,3 +194,5 @@ print(model_trainer.test_mseloss[-1])
 # %%
 model_trainer.save_model()
 model_trainer.save_loss()
+3.75/0.075
+70

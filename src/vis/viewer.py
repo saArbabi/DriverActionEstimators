@@ -26,7 +26,7 @@ class Viewer():
                                                     colors='k', linestyles='solid')
 
         # Create patch collection with specified colour/alpha
-        merge_box = [Rectangle((150, 0), 100, 3.75)]
+        merge_box = [Rectangle((100, 0), 100, 3.75)]
         pc = PatchCollection(merge_box, hatch='/', alpha=0.2)
         ax.add_collection(pc)
         if self.config['lanes_n'] > 1:

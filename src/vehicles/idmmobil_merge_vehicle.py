@@ -6,10 +6,8 @@ from vehicles.idmmobil_vehicle import IDMMOBILVehicle
 class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
-        if id:
-            self.STM_m_veh = self.steps_prior_lc + \
-                            (0.5*self.lane_width)/(0.1*self.lateral_actions['move_left']) # steps to merge
-            self.TTM_m_veh = self.STM_m_veh*0.1 # time to merge
+        self.ramp_entrance_x = 100
+        self.ramp_exit_x = 150
 
     def my_neighbours(self, vehicles):
         """
@@ -110,59 +108,90 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             return True
         return False
 
+    def get_ttm(self, m_veh):
+        delta_y = self.lane_width*1.5 - m_veh.glob_y# merger lateral distance to main road
+        ttm_m_veh = delta_y/self.lateral_actions['move_left'] # steps to merge
+        return ttm_m_veh
+
+    def is_cidm_att(self, act_long, m_veh, f_veh):
+        if f_veh and f_veh.speed <= m_veh.speed and m_veh.lane_decision =='keep_lane':
+            return False
+
+        ttm_m_veh = self.get_ttm(m_veh)
+        gap_to_merge = ttm_m_veh*m_veh.speed + m_veh.glob_x-self.glob_x
+        ttm_e_veh = gap_to_merge/self.speed
+        # print('ttm_e_veh + polit', self.driver_params['politeness']*ttm_e_veh)
+        # print('ttm_e_veh ', ttm_e_veh)
+        # print('ttm_m_veh ', ttm_m_veh)
+        # print('act_long ', act_long)
+        if ttm_m_veh < self.driver_params['politeness']*ttm_e_veh and \
+                                act_long > -self.driver_params['min_act']:
+            return True
+
     def am_i_attending(self, m_veh, f_veh):
         """Several scenarios are possible:
         (1) Ego attends because merger has entered its lane
-        (2) Ego attends following the IDM-C
+        (2) Ego attends following the cooperative idm
         (2) Ego attends for safety
         """
-        if not m_veh or (f_veh and m_veh.glob_x > f_veh.glob_x) or m_veh.glob_x < 150:
+        if not m_veh or (f_veh and m_veh.glob_x > f_veh.glob_x) \
+                                    or m_veh.glob_x < self.ramp_entrance_x:
             return False
-        if m_veh == self.neighbours['att'] == m_veh or \
-                                                    m_veh.lane_id == self.lane_id:
+        if m_veh == self.neighbours['att'] or m_veh.lane_id == self.lane_id:
             return True
 
-        gap_to_merge = self.TTM_m_veh*m_veh.speed + m_veh.glob_x-self.glob_x
-        TTM_e_veh = gap_to_merge/self.speed
         act_long = self.idm_action(self, m_veh)
-        # print('TTM_e_veh + polit', self.driver_params['politeness']*TTM_e_veh)
-        # print('TTM_m_veh ', self.TTM_m_veh)
-        # print('TTM_e_veh ', TTM_e_veh)
-        # print('act_long ', act_long)
         if m_veh.lane_decision !='keep_lane' and \
                                 act_long < self.driver_params['safe_braking']:
             # emergency situation
             return True
-        elif self.TTM_m_veh < self.driver_params['politeness']*TTM_e_veh and \
-                                act_long > -self.driver_params['min_act']:
+        elif self.is_cidm_att(act_long, m_veh, f_veh):
             return True
-        elif self.TTM_m_veh >= self.driver_params['politeness']*TTM_e_veh:
+        else:
             return False
 
     def act(self):
         act_long, act_lat = self.idm_mobil_act()
         return [act_long, act_lat]
 
-    def can_lc_be_considered(self, act_rl_lc):
+    def is_merge_complete(self):
+        if self.glob_y >= 1.5*self.lane_width:
+            if self.neighbours['rl']:
+                self.neighbours['rl'].neighbours['f'] = self
+                self.neighbours['rl'].neighbours['m'] = None
+            self.lane_decision = 'keep_lane'
+            self.glob_y = 1.5*self.lane_width
+
+    def lateral_action(self):
+        if self.lane_decision == 'keep_lane':
+            return 0
+
+        if self.glob_x >= self.ramp_exit_x:
+            return self.lateral_actions[self.lane_decision]
+        else:
+            return 0
+
+    def is_merge_possible(self, act_rl_lc):
         # return False
         # if self.id == 4:
         #     print(act_rl_lc)
-        if self.lane_id > 1 and self.glob_x > 150 and \
+        if self.lane_id > 1 and self.glob_x > self.ramp_entrance_x and \
                 self.driver_params['safe_braking'] <= act_rl_lc:
             return True
 
     def idm_mobil_act(self):
         act_long = self.idm_action(self, self.neighbours['att'])
         if self.lane_decision != 'keep_lane':
-            self.is_lc_complete()
+            self.is_merge_complete()
 
         elif self.lane_decision == 'keep_lane':
             lc_left_condition = 0
             lc_right_condition = 0
             act_ego_lc_l = self.idm_action(self, self.neighbours['fl'])
             act_rl_lc = self.idm_action(self.neighbours['rl'], self)
-
-            if self.can_lc_be_considered(act_rl_lc):
+            # if self.id == 5:
+            #     print('act_rl_lc ', act_rl_lc)
+            if self.is_merge_possible(act_rl_lc):
                 # consider moving left
                 act_r_lc = self.idm_action(self.neighbours['r'], self.neighbours['f'])
                 act_r_lk = self.idm_action(self.neighbours['r'], self)
@@ -175,7 +204,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 lc_left_condition = self.mobil_condition([ego_gain, \
                                         new_follower_gain, old_follower_gain])
 
-                # if self.id == 4:
+                # if self.id == 5:
                 #     print('ego_gain ', ego_gain)
                 #     print('old_follower_gain ', old_follower_gain)
                 #     print('new_follower_gain ', new_follower_gain)
