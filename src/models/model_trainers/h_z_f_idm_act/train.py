@@ -146,7 +146,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = 'test-reset2'
+exp_id = '097'
 model_name = 'h_z_f_idm_act_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
