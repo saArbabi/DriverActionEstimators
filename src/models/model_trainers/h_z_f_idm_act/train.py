@@ -44,9 +44,7 @@ config = {
 }
 
 class Trainer():
-    def __init__(self, exp_id):
-        self.model_name = 'h_z_f_idm_act_'+exp_id
-        self.exp_dir = './src/models/experiments/'+self.model_name
+    def __init__(self):
         self.train_mseloss = []
         self.train_klloss = []
 
@@ -56,8 +54,6 @@ class Trainer():
         self.initiate_model()
 
     def initiate_model(self):
-        if not os.path.exists(self.exp_dir):
-            os.makedirs(self.exp_dir)
         from models.core import neural_idm
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
@@ -128,6 +124,8 @@ class Trainer():
             print(self.epoch_count, 'epochs completed')
 
     def save_model(self):
+        if not os.path.exists(self.exp_dir):
+            os.makedirs(self.exp_dir)
         self.update_config()
         check_point_dir = self.exp_dir+'/model_epo{epoch}'.format(\
                                                     epoch=self.epoch_count)
@@ -147,8 +145,11 @@ class Trainer():
             pickle.dump(losses, handle)
 
 tf.random.set_seed(2021)
-exp_id = 'test'
-model_trainer = Trainer(exp_id)
+model_trainer = Trainer()
+exp_id = 'test-reset2'
+model_name = 'h_z_f_idm_act_'+exp_id
+model_trainer.exp_dir = './src/models/experiments/'+model_name
+
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='20')

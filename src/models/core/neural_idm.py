@@ -17,6 +17,8 @@ class NeurIDMModel(AbstractModel):
         self.h_seq_encoder = HistoryEncoder()
         self.belief_net = BeliefModel(config)
         self.forward_sim = IDMForwardSim(config)
+        self.idm_layer = IDMLayer()
+
         self.loss_function = tf.keras.losses.Huber()
         if config:
             self.vae_loss_weight = config['model_config']['vae_loss_weight']
@@ -30,12 +32,9 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        # act_true = (act_true[:,:1,:])/0.1
-        # act_pred = (act_pred[:,:1,:])/0.1
-        act_true = (act_true)/0.1
-        act_pred = (act_pred)/0.1
+        act_true = (act_true)
+        act_pred = (act_pred)
         loss = self.loss_function(act_true, act_pred)
-        # tf.print('loss: ', tf.reduce_min((act_true-act_pred)**2))
         tf.debugging.check_numerics(loss, message='Checking loss')
         return loss
 
@@ -55,7 +54,6 @@ class NeurIDMModel(AbstractModel):
             self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
 
     def test_loop(self, data_objs, epoch):
-        # tf.print('######## TEST #######:')
         train_ds = self.batch_data(data_objs)
         for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
             self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
@@ -68,9 +66,7 @@ class NeurIDMModel(AbstractModel):
             kl_loss = self.kl_loss(pri_params, pos_params)
             loss = self.vae_loss(mse_loss, kl_loss)
 
-        # tf.print('### loss ###', loss)
         gradients = tape.gradient(loss, self.trainable_variables)
-        # tf.print('gradients: ', tf.reduce_min(gradients[1]))
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         self.train_mseloss.reset_states()
         self.train_klloss.reset_states()
@@ -101,7 +97,10 @@ class NeurIDMModel(AbstractModel):
         sampled_z = self.belief_net.sample_z(pos_params)
 
         proj_belief = self.belief_net.belief_proj(sampled_z)
-        act_seq, _, _ = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
+        idm_params = self.idm_layer(proj_belief)
+
+        act_seq, _ = self.forward_sim.rollout([\
+                                idm_params, proj_belief, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
@@ -111,10 +110,9 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self, config=None):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 50
+        self.proj_dim = 64
         if config:
             self.latent_dim = config['model_config']['latent_dim']
-
         self.architecture_def()
 
     def architecture_def(self):
@@ -122,8 +120,8 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(self.proj_dim, activation='relu')
-        self.pos_projection = Dense(self.proj_dim, activation='relu')
+        self.pri_projection = Dense(self.proj_dim, activation=LeakyReLU())
+        self.pos_projection = Dense(self.proj_dim, activation=LeakyReLU())
         ####
         self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
@@ -135,13 +133,6 @@ class BeliefModel(tf.keras.Model):
                                  self.latent_dim), mean=0., stddev=1)
         z_sigma =  K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
-        # sampled_z = z_mean
-        # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
-        # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
-        # tf.print('z1_max: ', tf.reduce_max(z_sigma[:, :]))
-        # tf.print('z2_max: ', tf.reduce_max(z_sigma[:, 1]))
-        # tf.print('z3_max: ', tf.reduce_max(z_sigma[:, 2]))
-        # tf.print('z_max: ', tf.reduce_max(z_sigma))
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         return sampled_z
 
@@ -170,8 +161,6 @@ class BeliefModel(tf.keras.Model):
 
         elif dis_type == 'prior':
             pri_context = self.pri_projection(inputs)
-            # tf.print(pri_context[0, :])
-            # tf.print(tf.math.count_nonzero(pri_context[0, :]))
             pri_mean = self.pri_mean(pri_context)
             pri_logsigma = self.pri_logsigma(pri_context)
             pri_params = [pri_mean, pri_logsigma]
@@ -180,12 +169,11 @@ class BeliefModel(tf.keras.Model):
 class HistoryEncoder(tf.keras.Model):
     def __init__(self):
         super(HistoryEncoder, self).__init__(name="HistoryEncoder")
-        self.enc_units = 100
+        self.enc_units = 128
         self.architecture_def()
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units)
-        # self.masking = Masking()
     def call(self, inputs):
         enc_h = self.lstm_layer(inputs)
         return enc_h
@@ -193,7 +181,7 @@ class HistoryEncoder(tf.keras.Model):
 class FutureEncoder(tf.keras.Model):
     def __init__(self):
         super(FutureEncoder, self).__init__(name="FutureEncoder")
-        self.enc_units = 100
+        self.enc_units = 128
         self.architecture_def()
 
     def architecture_def(self):
@@ -208,11 +196,12 @@ class IDMForwardSim(tf.keras.Model):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         if config:
             self.attention_temp = config['model_config']['attention_temp']
-        self.proj_dim = 50
+        self.proj_dim = 64
+        self.dec_units = 128
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
+        self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
         self.action_neu = TimeDistributed(Dense(1))
         self.idm_layer = IDMLayer()
@@ -242,17 +231,17 @@ class IDMForwardSim(tf.keras.Model):
         return env_state
 
     def rollout(self, inputs):
-        proj_belief, idm_s, merger_cs = inputs
+        idm_params, proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
+        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
-        state_h = state_c = tf.zeros([batch_size, 100])
+        state_h = state_c = tf.zeros([batch_size, self.dec_units])
 
         for step in range(30):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
             m_veh_glob_x = idm_s[:, step:step+1, 5:6]
-
 
             em_dv_true = idm_s[:, step:step+1, 8:9]
             em_delta_x_true = idm_s[:, step:step+1, 9:10]
@@ -286,8 +275,6 @@ class IDMForwardSim(tf.keras.Model):
             att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = att_score*m_veh_exists
-            idm_params = self.idm_layer(lstm_output)
-            idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
@@ -296,19 +283,15 @@ class IDMForwardSim(tf.keras.Model):
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
-                idm_params_seq = idm_params
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
-                idm_params_seq = tf.concat([idm_params_seq, idm_params], axis=1)
-
         # tf.print('att_score: ', tf.reduce_mean(att_seq))
-        return act_seq, att_seq, idm_params_seq
+        return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
-        self.proj_dim = 50
         self.architecture_def()
 
     def architecture_def(self):
@@ -354,19 +337,5 @@ class IDMLayer(tf.keras.Model):
         min_jamx = self.get_min_jamx(x)
         max_act = self.get_max_act(x)
         min_act = self.get_min_act(x)
-        # tf.print('################### min ####################')
-        # tf.print('desired_v: ', tf.reduce_min(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_min(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_min(min_jamx))
-        # tf.print('max_act: ', tf.reduce_min(max_act))
-        # tf.print('min_act: ', tf.reduce_min(min_act))
-        # tf.print('################### max ####################')
-        # tf.print('desired_v: ', tf.reduce_max(desired_v))
-        # tf.print('desired_tgap: ', tf.reduce_max(desired_tgap))
-        # tf.print('min_jamx: ', tf.reduce_max(min_jamx))
-        # tf.print('max_act: ', tf.reduce_max(max_act))
-        # tf.print('min_act: ', tf.reduce_max(min_act))
-        # tf.print('#######################################')
-
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         return idm_param
