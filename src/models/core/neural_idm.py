@@ -200,7 +200,6 @@ class IDMForwardSim(tf.keras.Model):
     def architecture_def(self):
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
         self.attention_neu = TimeDistributed(Dense(1))
-        self.action_neu = TimeDistributed(Dense(1))
         self.idm_layer = IDMLayer()
 
     def idm_driver(self, vel, dv, dx, idm_params):

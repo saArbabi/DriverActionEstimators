@@ -10,14 +10,14 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 class NeurLatentModel(AbstractModel):
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(NeurLatentModel, self).__init__(config)
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
         self.act_encoder = FutureEncoder() # sdv's future action
-        self.belief_net = BeliefModel()
+        self.belief_net = BeliefModel(config)
         self.forward_sim = ForwardSim()
-        self.vae_loss_weight = 0.1 # default
+        self.vae_loss_weight = config['model_config']['vae_loss_weight']
         self.loss_function = tf.keras.losses.Huber()
         # self.loss_function = tf.keras.losses.MeanSquaredError()
 
@@ -90,14 +90,13 @@ class NeurLatentModel(AbstractModel):
         sampled_z = self.belief_net.sample_z(pos_params)
         proj_belief = self.belief_net.belief_proj(sampled_z)
         act_seq = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
-
         return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.latent_dim = 3
-        self.proj_dim = 50
+        self.proj_dim = 64
+        self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
     def architecture_def(self):
@@ -105,9 +104,8 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(self.proj_dim, activation='relu')
-        self.pos_projection = Dense(self.proj_dim, activation='relu')
-
+        self.pri_projection = Dense(self.proj_dim, activation=LeakyReLU())
+        self.pos_projection = Dense(self.proj_dim, activation=LeakyReLU())
         ####
         self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
@@ -119,15 +117,8 @@ class BeliefModel(tf.keras.Model):
                                  self.latent_dim), mean=0., stddev=1)
         z_sigma =  K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
-        # sampled_z = z_mean
-        # tf.print('z_mean: ', tf.reduce_mean(K.exp(z_logsigma)))
-        # tf.print('z_min: ', tf.reduce_min(K.exp(z_logsigma)))
-        # tf.print('z1_max: ', tf.reduce_max(z_sigma[:, 0]))
-        # tf.print('z2_max: ', tf.reduce_max(z_sigma[:, 1]))
-        # tf.print('z3_max: ', tf.reduce_max(z_sigma[:, 2]))
-
+        # tf.print('z_min: ', tf.reduce_min(z_sigma))
         return sampled_z
-        # return sampled_z, sampled_z for single latent
 
     def belief_proj(self, x):
         x = self.proj_layer_1(x)
@@ -162,12 +153,11 @@ class BeliefModel(tf.keras.Model):
 class HistoryEncoder(tf.keras.Model):
     def __init__(self):
         super(HistoryEncoder, self).__init__(name="HistoryEncoder")
-        self.enc_units = 100
+        self.enc_units = 128
         self.architecture_def()
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.enc_units)
-        # self.masking = Masking()
     def call(self, inputs):
         enc_h = self.lstm_layer(inputs)
         return enc_h
@@ -175,7 +165,7 @@ class HistoryEncoder(tf.keras.Model):
 class FutureEncoder(tf.keras.Model):
     def __init__(self):
         super(FutureEncoder, self).__init__(name="FutureEncoder")
-        self.enc_units = 100
+        self.enc_units = 128
         self.architecture_def()
 
     def architecture_def(self):
@@ -188,11 +178,12 @@ class FutureEncoder(tf.keras.Model):
 class ForwardSim(tf.keras.Model):
     def __init__(self):
         super(ForwardSim, self).__init__(name="ForwardSim")
-        self.proj_dim = 50
+        self.proj_dim = 64
+        self.dec_units = 128
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(100, return_sequences=True, return_state=True)
+        self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
         self.action_neu = TimeDistributed(Dense(1)) # a form
 
     def scale_env_s(self, env_state):
@@ -202,10 +193,10 @@ class ForwardSim(tf.keras.Model):
     def rollout(self, inputs):
         proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
-        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, 50])
-        state_h = state_c = tf.zeros([batch_size, 100])
+        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        state_h = state_c = tf.zeros([batch_size, self.dec_units])
 
-        for step in range(20):
+        for step in range(30):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -226,14 +217,12 @@ class ForwardSim(tf.keras.Model):
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
 
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)*f_veh_exists+\
-                                                (1-f_veh_exists)*ef_delta_x_true
+            ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
-                                                (1-m_veh_exists)*em_delta_x_true
-            ef_dv = (ego_v - f_veh_v)*f_veh_exists+\
-                                                (1-f_veh_exists)*ef_dv_true
+                            (1-m_veh_exists)*self.dummy_value_set['em_delta_x']
+            ef_dv = (ego_v - f_veh_v)
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
-                                                (1-m_veh_exists)*em_dv_true
+                            (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
 
             env_state = tf.concat([ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)

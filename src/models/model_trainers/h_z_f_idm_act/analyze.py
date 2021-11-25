@@ -221,7 +221,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 20
+model.forward_sim.attention_temp = 5
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_examples = []
@@ -231,7 +231,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 30:
+while Example_pred < 15:
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
     # sample_index = [i]
