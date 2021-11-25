@@ -7,7 +7,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
         self.ramp_entrance_x = 100
-        self.ramp_exit_x = 150
+        self.ramp_exit_x = 180
 
     def my_neighbours(self, vehicles):
         """
@@ -103,8 +103,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def is_it_merger(self, vehicle):
         if vehicle.id == 'dummy':
             return False
-        elif vehicle.target_lane == self.lane_id and \
-                                    vehicle.lane_decision != 'keep_lane':
+        elif vehicle.lane_decision != 'keep_lane':
             return True
         return False
 
@@ -114,7 +113,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         return ttm_m_veh
 
     def is_cidm_att(self, act_long, m_veh, f_veh):
-        if f_veh and f_veh.speed <= m_veh.speed and m_veh.lane_decision =='keep_lane':
+        if f_veh and f_veh.speed <= m_veh.speed and m_veh.lane_decision == 'keep_lane':
             return False
 
         ttm_m_veh = self.get_ttm(m_veh)
@@ -170,6 +169,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             return 0
 
         if self.glob_x >= self.ramp_exit_x:
+            if self.target_lane != 1:
+                self.target_lane = 1
             return self.lateral_actions[self.lane_decision]
         else:
             return 0
@@ -191,7 +192,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             lc_left_condition = 0
             act_ego_lc_l = self.idm_action(self, self.neighbours['fl'])
             act_rl_lc = self.idm_action(self.neighbours['rl'], self)
-            print('act_rl_lc ', act_rl_lc)
+            # print('act_rl_lc ', act_rl_lc)
             if self.is_merge_possible(act_rl_lc):
                 # consider moving left
                 act_r_lc = self.idm_action(self.neighbours['r'], self.neighbours['f'])
@@ -205,19 +206,12 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
                 lc_left_condition = self.mobil_condition([ego_gain, \
                                         new_follower_gain, old_follower_gain])
 
-                print('ego_gain ', ego_gain)
-                print('old_follower_gain ', old_follower_gain)
-                print('new_follower_gain ', new_follower_gain)
-                print('lc_left_condition ', lc_left_condition)
+                # print('ego_gain ', ego_gain)
+                # print('old_follower_gain ', old_follower_gain)
+                # print('new_follower_gain ', new_follower_gain)
+                # print('lc_left_condition ', lc_left_condition)
 
             if lc_left_condition > self.driver_params['act_threshold']:
-                target_lane = self.target_lane - 1
                 self.lane_decision = 'move_left'
-                self.neighbours['att'] = self.neighbours['fl']
-                self.neighbours['f'] = self.neighbours['fl']
-                self.target_lane -= 1
-                if not self.neighbours['rl']:
-                    print('this sucks ########')
-                return [act_ego_lc_l, self.lateral_action()]
 
         return [act_long, self.lateral_action()]

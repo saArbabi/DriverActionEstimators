@@ -235,7 +235,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-10., clip_value_max=10.)
+        return tf.clip_by_value(action, clip_value_min=-20., clip_value_max=20.)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5

@@ -6,6 +6,8 @@ import os
 import pickle
 import sys
 import json
+from importlib import reload
+
 sys.path.insert(0, './src')
 # %%
 hf_usc_indexs = {}
@@ -126,21 +128,22 @@ val_epis = np.setdiff1d(all_epis, train_epis)
 train_examples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
+train_examples.shape
 # %%
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_098'
-epoch_count = '20'
-# from models.core import neural_idm
-# reload(neural_idm)
+model_name = 'h_z_f_idm_act_test'
+epoch_count = '15'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
     config = json.load(handle)
     print(json.dumps(config, ensure_ascii=False, indent=4))
 
-from models.core.neural_idm import  NeurIDMModel
+from models.core import neural_idm
+reload(neural_idm)
+from models.core.neural_idm import NeurIDMModel
 model = NeurIDMModel(config)
 model.load_weights(exp_path).expect_partial()
 
@@ -219,7 +222,7 @@ i = 0
 covered_episodes = []
 model.forward_sim.attention_temp = 20
 traces_n = 50
-# np.where((history_future_usc[:, 0, 0] == 22) & (history_future_usc[:, 0, 2] == 6))
+# np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_examples = []
 distribution_name = 'prior'
 # distribution_name = 'posterior'
@@ -227,7 +230,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 10:
+while Example_pred < 30:
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
     # sample_index = [i]
@@ -237,7 +240,7 @@ while Example_pred < 10:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    if episode not in covered_episodes:
+    # if episode not in covered_episodes:
     # if 4 == 4:
     # if episode not in covered_episodes and e_veh_att[0:3].mean() > 0 and e_veh_att[-5:].mean() == 0:
     if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
@@ -366,8 +369,9 @@ while Example_pred < 10:
 """
 # model.arbiter.attention_temp = 5
 traces_n = 50
-model.forward_sim.attention_temp = 5
-sample_index = [3229]
+model.forward_sim.attention_temp = 20
+# sample_index = [12374]
+sample_index = [12754]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
@@ -385,8 +389,8 @@ enc_h = model.h_seq_encoder(h_seq)
 latent_dis_param = model.belief_net(enc_h, dis_type='prior')
 sampled_z = model.belief_net.sample_z(latent_dis_param)
 proj_belief = model.belief_net.belief_proj(sampled_z)
-idm_params = model.idm_layer(proj_belief)
-
+act_seq, att_scores, idm_params_seq = model.forward_sim.rollout([proj_belief, \
+                                             future_idm_ss, merger_cs])
 #
 # min_act = idm_params.numpy()[:, -2]
 # plt.scatter(min_act, [0]*100)
@@ -398,9 +402,8 @@ idm_params = model.idm_layer(proj_belief)
 # idm_params[:, -2] = 3.38
 # idm_params[:, -1] = 3.97
 # idm_params[:, 1] += 0.4
-act_seq, att_scores = model.forward_sim.rollout([proj_belief, \
-                                            idm_params, future_idm_ss, merger_cs])
-act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+act_seq, att_scores, idm_params_seq = \
+        act_seq.numpy(), att_scores.numpy(), idm_params_seq.numpy()
 att_ = att_scores.flatten()
 
 plt.figure(figsize=(5, 3))
@@ -416,15 +419,23 @@ plt.text(0.1, 0.5,
         'aggressiveness: '+ info[3]
             , fontsize=10)
 true_params = []
-for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
-    true_pram_val = features[(features[:, 0] == episode) & \
-                            (features[:, 2] == e_veh_id)][0, data_arr_indexes[param_name]]
-
+idm_names = ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
+for param_name in idm_names:
+    true_pram_val = history_future_usc[sample_index, 0, hf_usc_indexs[param_name]][0]
     true_params.append(round(true_pram_val, 2))
+
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
 # plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
-plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].numpy().mean(axis=0).round(2)))
+plt.text(0.1, 0.1, 'pred: '+ str(idm_params_seq[:, 0, :].mean(axis=0).round(2)))
+
 ##########
+for i, param_name in enumerate(idm_names):
+    plt.figure()
+    for n in range(5):
+        plt.plot(idm_params_seq[n, :, i])
+    plt.title(param_name)
+    plt.grid()
+
 # %%
 
 # plt.figure(figsize=(10, 10))

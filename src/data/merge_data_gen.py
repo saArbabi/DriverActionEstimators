@@ -15,7 +15,6 @@ class DataGenMerge():
         """Episode is considered complete if all
             cars exit the road.
         """
-        car_exists = True
         for vehicle in self.env.vehicles:
             if vehicle.glob_x < self.env.lane_length:
                 return False

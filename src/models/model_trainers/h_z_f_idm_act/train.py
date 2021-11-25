@@ -1,4 +1,3 @@
-from importlib import reload
 import pickle
 import sys
 import tensorflow as tf
@@ -15,7 +14,6 @@ import json
 
 sys.path.insert(0, './src')
 # %%
-
 # %%
 """
 Load data
@@ -149,7 +147,7 @@ class Trainer():
             pickle.dump(losses, handle)
 
 tf.random.set_seed(2021)
-exp_id = '098'
+exp_id = 'test'
 model_trainer = Trainer(exp_id)
 train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -194,11 +192,3 @@ print(model_trainer.test_mseloss[-1])
 # %%
 model_trainer.save_model()
 model_trainer.save_loss()
-3.75/0.075
-70
-100-31-15
-
-
-list(reversed([0, 1, 2, 3]))
-0.2*(5*19+75)/22.5
-50/15

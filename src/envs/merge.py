@@ -1,4 +1,7 @@
 from envs import highway
+from importlib import reload
+from envs import env_initializor
+reload(env_initializor)
 from envs.env_initializor import EnvInitializor
 from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 

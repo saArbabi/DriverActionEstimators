@@ -22,8 +22,8 @@ config = {'lanes_n':2,
         'lane_length':300 # m
         }
 env = EnvMerge(config)
-sim_data_indexes = {}
-feature_names = [
+sim_data_indexs = {}
+col_names = [
          'episode_id', 'time_step',
          'e_veh_id', 'f_veh_id', 'm_veh_id',
          'e_veh_decision', 'e_veh_lane',
@@ -36,50 +36,56 @@ feature_names = [
          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
          'em_delta_y', 'delta_x_to_merge']
 
-index = 0
-for item_name in feature_names:
-    sim_data_indexes[item_name] = index
-    index += 1
-sim_data_indexes['e_veh_att']
-sim_data_indexes['desired_v']
+for i, item_name in enumerate(col_names):
+    sim_data_indexs[item_name] = i
+
+hf_usc_indexs = {}
+col_names = [
+         'episode_id', 'time_step',
+         'e_veh_id', 'f_veh_id', 'm_veh_id',
+         'm_veh_exists', 'e_veh_att',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+         'e_veh_action', 'f_veh_action', 'm_veh_action',
+         'aggressiveness',
+         'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
+         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+         'em_delta_y', 'delta_x_to_merge']
+
+for i, item_name in enumerate(col_names):
+    hf_usc_indexs[item_name] = i
 # %%
 """
-Generate data
+Load generated data (not yet prepped).
 """
-from data import merge_data_gen
-reload(merge_data_gen)
-from data.merge_data_gen import DataGenMerge
-data_gen = DataGenMerge(env=env, episodes_n=300)
-sim_data = data_gen.prep_data()
+data_id = '_026'
+dataset_name = 'sim_data'+data_id
+data_files_dir = './src/models/experiments/data_files/'+dataset_name
+with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
+    sim_data = pickle.load(handle)
 sim_data.shape
 # %%
 """
-Data prep
+Load generated data (already prepped).
 """
-history_len = 20 # steps
-rollout_len = 20
-from data import data_prep
-reload(data_prep)
-from data.data_prep import DataPrep
-data_prep = DataPrep()
-data_id = '_025'
+history_len = 30 # steps
+rollout_len = 30
+data_id = '_026'
 dataset_name = 'sim_data'+data_id
+data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
+                                history_len=history_len, rollout_len=rollout_len)
+
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
-with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
-    sim_data = pickle.load(handle)
-sim_data, dummy_value_set = data_prep.fill_missing_values(sim_data)
-sim_data_scaled, env_scaler, m_scaler = data_prep.scale_data(sim_data)
-history_future_seqs = data_prep.sequence(sim_data, history_len, rollout_len)
-history_future_seqs_scaled = data_prep.sequence(sim_data_scaled, history_len, rollout_len)
-data_arrays = data_prep.split_data(history_future_seqs, history_future_seqs_scaled)
+with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+    data_arrays = pickle.load(handle)
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
+history_sca.shape
 # %%
-# features[(features[:, sim_data_indexes['e_veh_att']] == 1) & (features[:, sim_data_indexes['aggressiveness']] > 0.8)][:, 0]
-# _ = plt.hist(features[(features[:, sim_data_indexes['e_veh_att']] == 1)][:, sim_data_indexes['aggressiveness']], bins=150)
+# sim_data[(sim_data[:, sim_data_indexs['e_veh_att']] == 1) & (sim_data[:, sim_data_indexs['aggressiveness']] > 0.8)][:, 0]
+# _ = plt.hist(sim_data[(sim_data[:, sim_data_indexs['e_veh_att']] == 1)][:, sim_data_indexs['aggressiveness']], bins=150)
 # %%
 # %%
 """
@@ -88,16 +94,16 @@ retrieve scenarios
 episode = 6
 time_step = 111
 vehicle_id = 4
-array = sim_data[(sim_data[:, sim_data_indexes['episode_id']] == episode) &
-                        (sim_data[:, sim_data_indexes['time_step']] == time_step) &
-                        (sim_data[:, sim_data_indexes['e_veh_id']] == vehicle_id)]
+array = sim_data[(sim_data[:, sim_data_indexs['episode_id']] == episode) &
+                        (sim_data[:, sim_data_indexs['time_step']] == time_step) &
+                        (sim_data[:, sim_data_indexs['e_veh_id']] == vehicle_id)]
 
 pd.DataFrame(array, columns=feature_names).iloc[0]
 # %%
-sim_data[sim_data[:, sim_data_indexes['time_step']] > 500]
-sim_data[sim_data[:, sim_data_indexes['m_veh_action']] < -3]
-sim_data[sim_data[:, sim_data_indexes['e_veh_action']] < -4]
-# sim_data[sim_data[:, sim_data_indexes['m_veh_id']] > 8]
+sim_data[sim_data[:, sim_data_indexs['time_step']] > 500]
+sim_data[sim_data[:, sim_data_indexs['m_veh_action']] < -3]
+sim_data[sim_data[:, sim_data_indexs['e_veh_action']] < -4]
+# sim_data[sim_data[:, sim_data_indexs['m_veh_id']] > 8]
 
 # %%
 """
@@ -116,17 +122,18 @@ To check if actions and states match up. Note that given a traffic state, and dr
 actions are determinstic.
 """
 np.random.seed(0)
-for i in np.random.randint(0, future_idm_s.shape[0], 500):
-    aggressiveness = history_future_usc[i, 0, -1]
+# for i in np.random.randint(0, future_idm_s.shape[0], 5000):
+for i in [3665]:
+    aggressiveness = history_future_usc[i, 0, hf_usc_indexs['aggressiveness']]
     veh_id = history_future_usc[i, 0, 2]
     episode_id = history_future_usc[i, 0, 0]
-    veh_arr = features[(features[:, 0] == episode_id) & \
-                            (features[:, 2] == veh_id)]
-    desired_v = veh_arr[0, sim_data_indexes['desired_v']]
-    desired_tgap = veh_arr[0, sim_data_indexes['desired_tgap']]
-    min_jamx = veh_arr[0, sim_data_indexes['min_jamx']]
-    max_act = veh_arr[0, sim_data_indexes['max_act']]
-    min_act = veh_arr[0, sim_data_indexes['min_act']]
+    veh_arr = sim_data[(sim_data[:, 0] == episode_id) & \
+                            (sim_data[:, 2] == veh_id)]
+    desired_v = veh_arr[0, sim_data_indexs['desired_v']]
+    desired_tgap = veh_arr[0, sim_data_indexs['desired_tgap']]
+    min_jamx = veh_arr[0, sim_data_indexs['min_jamx']]
+    max_act = veh_arr[0, sim_data_indexs['max_act']]
+    min_act = veh_arr[0, sim_data_indexs['min_act']]
 
     vel = future_idm_s[i, :, 2]
     f_veh_v = future_idm_s[i, :, 3]
@@ -153,9 +160,9 @@ for i in np.random.randint(0, future_idm_s.shape[0], 500):
     em_act = max_act*(1-(vel/desired_v)**4-(desired_gap/dx)**2)
     att_scores = future_idm_s[i, :, -3]
     act = (1-att_scores)*ef_act + att_scores*em_act
-    # features = features[features[:, 6]==0] # merger exists
+    # sim_data = sim_data[sim_data[:, 6]==0] # merger exists
     loss = abs(act-future_e_veh_a[i, :, -1])
-    if not loss.max() < 0.00001:
+    if not loss.max() < 0.001:
         print('sample-i: :  ', i)
         print(loss.max())
         plt.figure()
@@ -164,7 +171,12 @@ for i in np.random.randint(0, future_idm_s.shape[0], 500):
         plt.legend(['here_act', 'sim_gen_act'])
         break
 
-# plt.plot(act)
+plt.plot(act[15:])
+m_act = history_future_usc[i, :, hf_usc_indexs['m_veh_action']]
+m_speed = history_future_usc[i, :, hf_usc_indexs['m_veh_speed']]
+plt.plot(m_act)
+plt.plot(m_speed)
+
 # plt.plot(future_e_veh_a[3567, :, -1])
 # plt.plot(att_scores)
 # plt.plot(m_veh_exists)
@@ -179,7 +191,7 @@ for i in np.random.randint(0, future_idm_s.shape[0], 50):
     plt.figure()
     random_indx = np.random.randint(0, set_size)
     plt.plot(future_e_veh_a[random_indx, :, -1])
-    plt.ylim([-3, 3])
+    # plt.ylim([-3, 3])
     title = 'epis: '+str(history_future_usc[random_indx, 0, 0])+'   ' + \
                 'time: ' + str(history_future_usc[random_indx, 0, 1])+'   ' + \
                 'veh_id: ' + str(history_future_usc[random_indx, 0, 2])+'   ' + \
@@ -192,29 +204,28 @@ for i in np.random.randint(0, future_idm_s.shape[0], 50):
 EPISODE EVALUATION
 Used this to plot vehicle states - for debugging
 """
-# %%
-np.unique(features[features[:, 2] == 19][:, 0])
-# features[features[:, 2] == 34]
+np.unique(sim_data[sim_data[:, 2] == 19][:, 0])
+# sim_data[sim_data[:, 2] == 34]
 veh_arr[:, -1]
-veh_arr[:, sim_data_indexes['time_step']]
-plt.scatter(veh_arr[:, sim_data_indexes['time_step']], veh_arr[:, sim_data_indexes['time_step']])
-np.where(veh_arr[:, sim_data_indexes['e_veh_att']] == 1)
-veh_arr[:, sim_data_indexes['f_veh_id']]
-veh_arr[:, sim_data_indexes['em_delta_y']][13]
-veh_arr[:, sim_data_indexes['em_delta_y']][85+39]
+veh_arr[:, sim_data_indexs['time_step']]
+plt.scatter(veh_arr[:, sim_data_indexs['time_step']], veh_arr[:, sim_data_indexs['time_step']])
+np.where(veh_arr[:, sim_data_indexs['e_veh_att']] == 1)
+veh_arr[:, sim_data_indexs['f_veh_id']]
+veh_arr[:, sim_data_indexs['em_delta_y']][13]
+veh_arr[:, sim_data_indexs['em_delta_y']][85+39]
 future_m_veh_c[37964, :, -1]
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_list
 history_future_usc[37964, :, -6]
 
-veh_arr[:, sim_data_indexes['e_veh_decision']]
-veh_arr[:, sim_data_indexes['m_veh_id']]
-veh_arr[:, sim_data_indexes['f_veh_id']]
-veh_arr[:, sim_data_indexes['e_veh_id']]
-veh_arr[:, sim_data_indexes['m_veh_action']]
-# veh_arr[:, sim_data_indexes['e_veh_att']][25]
+veh_arr[:, sim_data_indexs['e_veh_decision']]
+veh_arr[:, sim_data_indexs['m_veh_id']]
+veh_arr[:, sim_data_indexs['f_veh_id']]
+veh_arr[:, sim_data_indexs['e_veh_id']]
+veh_arr[:, sim_data_indexs['m_veh_action']]
+# veh_arr[:, sim_data_indexs['e_veh_att']][25]
 # %%
-veh_arr = features[features[:, 0] == 164]
+veh_arr = sim_data[sim_data[:, 0] == 164]
 time_snap_start = veh_arr[0, 1]
 time_snap_1 = 1840
 time_snap_2 = time_snap_1+60
@@ -228,13 +239,14 @@ for i in range(veh_arr.shape[-1]):
     plt.grid()
 
 # %%
-col_names =[
+col_names = [
          'episode_id', 'time_step',
          'e_veh_id', 'f_veh_id', 'm_veh_id',
          'm_veh_exists', 'e_veh_att',
          'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'e_veh_action', 'f_veh_action', 'm_veh_action',
          'aggressiveness',
+         'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
          'em_delta_y', 'delta_x_to_merge']
 # np.count_nonzero(history_future_usc[:, :, 6] == 0)

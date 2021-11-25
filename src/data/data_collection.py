@@ -20,27 +20,6 @@ config = {'lanes_n':2,
         'lane_length':300 # m
         }
 env = EnvMerge(config)
-data_arr_indexes = {}
-feature_names = [
-         'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id',
-         'e_veh_decision', 'e_veh_lane',
-         'f_veh_exists', 'm_veh_exists', 'e_veh_att',
-         'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-         'e_veh_action', 'f_veh_action', 'm_veh_action',
-         'aggressiveness', 'desired_v',
-         'desired_tgap', 'min_jamx', 'max_act', 'min_act',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-         'em_delta_y', 'delta_x_to_merge']
-
-index = 0
-for item_name in feature_names:
-    data_arr_indexes[item_name] = index
-    index += 1
-data_arr_indexes['e_veh_att']
-data_arr_indexes['desired_v']
-
 def pickle_this(item, data_files_dir, item_name):
     data_files_dir += '/'+item_name+'.pickle'
     if not os.path.exists(data_files_dir):
@@ -56,9 +35,9 @@ Generate data
 from data import merge_data_gen
 reload(merge_data_gen)
 from data.merge_data_gen import DataGenMerge
-data_gen = DataGenMerge(env=env, episodes_n=100)
-data_arr = data_gen.prep_data()
-data_arr.shape
+data_gen = DataGenMerge(env=env, episodes_n=300)
+sim_data = data_gen.prep_data()
+sim_data.shape
 
 # %%
 """
@@ -72,7 +51,7 @@ if not os.path.exists(data_files_dir):
 
 if not os.path.exists(data_files_dir+'/sim_data.pickle'):
     with open(data_files_dir+'/sim_data.pickle', 'wb') as handle:
-        pickle.dump(data_arr, handle)
+        pickle.dump(sim_data, handle)
 else:
     print('This data id exists')
 
@@ -115,7 +94,7 @@ future_e_veh_a[:, :, -1].mean()
 #                         history_future_usc.shape[0]
 # print(balance_value)
 # cond = (history_future_usc[:, :, -14] == 1).all(axis=1)
-# data_arrays = [np.append(data_array, data_array[cond], axis=0) for data_array in data_arrays]
+# data_arrays = [np.append(sim_dataay, sim_dataay[cond], axis=0) for sim_dataay in data_arrays]
 # %%
 """
 Anywhere an array is fed to a model, the data is first scaled.
