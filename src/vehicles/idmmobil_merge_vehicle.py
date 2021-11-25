@@ -83,7 +83,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['fr'] = candidate_fr
         neighbours['r'] = candidate_r
         if not candidate_m and candidate_fr and candidate_fr.lane_decision == 'keep_lane' \
-                                                and candidate_fr.glob_x-self.glob_x > 10 \
                                                         and candidate_fr.id != 'dummy':
 
             neighbours['m'] = candidate_fr

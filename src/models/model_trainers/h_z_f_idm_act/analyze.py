@@ -133,8 +133,8 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_test3'
-epoch_count = '10'
+model_name = 'h_z_f_idm_act_097'
+epoch_count = '25'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:

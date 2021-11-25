@@ -11,7 +11,7 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 class NeurIDMModel(AbstractModel):
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(NeurIDMModel, self).__init__(config)
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
@@ -20,8 +20,7 @@ class NeurIDMModel(AbstractModel):
         self.idm_layer = IDMLayer()
 
         self.loss_function = tf.keras.losses.Huber()
-        if config:
-            self.vae_loss_weight = config['model_config']['vae_loss_weight']
+        self.vae_loss_weight = config['model_config']['vae_loss_weight']
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
         # self.loss_function = tf.keras.losses.MeanSquaredError()
 
@@ -32,8 +31,8 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true)
-        act_pred = (act_pred)
+        act_true = (act_true)/0.1
+        act_pred = (act_pred)/0.1
         loss = self.loss_function(act_true, act_pred)
         tf.debugging.check_numerics(loss, message='Checking loss')
         return loss
@@ -108,11 +107,10 @@ class NeurIDMModel(AbstractModel):
         return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
         self.proj_dim = 64
-        if config:
-            self.latent_dim = config['model_config']['latent_dim']
+        self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
     def architecture_def(self):
@@ -192,10 +190,9 @@ class FutureEncoder(tf.keras.Model):
         return enc_acts
 
 class IDMForwardSim(tf.keras.Model):
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
-        if config:
-            self.attention_temp = config['model_config']['attention_temp']
+        self.attention_temp = config['model_config']['attention_temp']
         self.proj_dim = 64
         self.dec_units = 128
         self.architecture_def()
@@ -220,7 +217,7 @@ class IDMForwardSim(tf.keras.Model):
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        return self.action_clip(act)
+        return act
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
@@ -272,7 +269,8 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
-            att_x = self.attention_neu(lstm_output)
+            att_x = tf.clip_by_value(self.attention_neu(lstm_output), \
+                                clip_value_min=-5., clip_value_max=5.)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = att_score*m_veh_exists
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)

@@ -40,7 +40,7 @@ config = {
     "attention_temp": 5,
     "latent_dim": 3,
     },
-    "Note": "To check performance for different attention_temps"
+    "Note": ""
 }
 
 class Trainer():
