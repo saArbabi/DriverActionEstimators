@@ -83,7 +83,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['fr'] = candidate_fr
         neighbours['r'] = candidate_r
         if not candidate_m and candidate_fr and candidate_fr.lane_decision == 'keep_lane' \
-                                                and candidate_fr.glob_x-self.glob_x > 10 \
                                                         and candidate_fr.id != 'dummy':
 
             neighbours['m'] = candidate_fr
@@ -125,6 +124,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # print('act_long ', act_long)
         if ttm_m_veh < self.driver_params['politeness']*ttm_e_veh and \
                                 act_long > -self.driver_params['min_act']:
+            # print('ttm based ########')
+
             return True
 
     def am_i_attending(self, m_veh, f_veh):
@@ -139,13 +140,14 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         if m_veh == self.neighbours['att']:
             return True
         elif m_veh.lane_id == self.lane_id:
-            print(' lane based ########')
+            # print('lane based ########')
             return True
 
         act_long = self.idm_action(self, m_veh)
         if m_veh.lane_decision !='keep_lane' and \
                                 act_long < self.driver_params['safe_braking']:
             # emergency situation
+            # print('collision avoidance based ########')
             return True
         elif self.is_cidm_att(act_long, m_veh, f_veh):
             return True

@@ -118,7 +118,7 @@ history_sca = np.float32(history_sca)
 future_idm_s = np.float32(future_idm_s)
 future_m_veh_c = np.float32(future_m_veh_c)
 history_future_usc.shape
-# %%
+
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
 np.random.shuffle(all_epis)
@@ -133,8 +133,8 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_test'
-epoch_count = '15'
+model_name = 'h_z_f_idm_act_097'
+epoch_count = '25'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -181,13 +181,14 @@ def get_avg_loss_across_sim(examples_to_vis):
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
     sampled_z = model.belief_net.sample_z(latent_dis_param)
     proj_belief = model.belief_net.belief_proj(sampled_z)
-    act_seq, att_scores, _ = model.forward_sim.rollout([proj_belief, \
+    idm_params = model.idm_layer(proj_belief)
+    act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_belief, \
                                             future_idm_ss, merger_cs])
     true_actions = future_e_veh_a[examples_to_vis, :, 2:]
-    loss = (tf.square(tf.subtract(act_seq, true_actions)))
+    loss = (tf.square(tf.subtract(act_seq, true_actions)))**0.5
     return tf.reduce_mean(loss, axis=1).numpy()
 # loss = get_avg_loss_across_sim(train_examples[0:15])
-loss = get_avg_loss_across_sim(val_examples[0:15])
+loss = get_avg_loss_across_sim(val_examples[0:5000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
 bad_examples = np.where(loss > 1)
@@ -259,7 +260,8 @@ while Example_pred < 30:
         sampled_z = model.belief_net.sample_z(latent_dis_param)
         # print(sampled_z)
         proj_belief = model.belief_net.belief_proj(sampled_z)
-        act_seq, att_scores, idm_params_seq = model.forward_sim.rollout([proj_belief, \
+        idm_params = model.idm_layer(proj_belief)
+        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_belief, \
                                                      future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -284,7 +286,7 @@ while Example_pred < 30:
             true_params.append(round(true_pram_val, 2))
 
         plt.text(0.1, 0.3, 'true: '+ str(true_params))
-        plt.text(0.1, 0.1, 'pred: '+ str(idm_params_seq.numpy()[:, 0, :].mean(axis=0).round(2)))
+        plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
         plt.figure(figsize=(5, 3))
         traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
         plt.plot(time_steps, traj, color='purple')
