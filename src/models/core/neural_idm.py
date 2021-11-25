@@ -204,8 +204,8 @@ class IDMForwardSim(tf.keras.Model):
         self.idm_layer = IDMLayer()
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=0.2, clip_value_max=1000.)
-        # tf.Assert(tf.greater(tf.reduce_min(dx), 0.),[dx])
+        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=100.)
+
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -217,11 +217,11 @@ class IDMForwardSim(tf.keras.Model):
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        return act
+        return self.action_clip(act)
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-20., clip_value_max=20.)
+        return tf.clip_by_value(action, clip_value_min=-10., clip_value_max=10.)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
@@ -269,10 +269,10 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
-            att_x = tf.clip_by_value(self.attention_neu(lstm_output), \
-                                clip_value_min=-5., clip_value_max=5.)
+            att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            att_score = att_score*m_veh_exists
+            att_score = att_score*m_veh_exists*tf.cast(\
+                                   tf.math.greater(em_delta_x, 10), tf.float32)
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 

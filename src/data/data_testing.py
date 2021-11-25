@@ -171,11 +171,11 @@ for i in [3665]:
         plt.legend(['here_act', 'sim_gen_act'])
         break
 
-plt.plot(act[15:])
-m_act = history_future_usc[i, :, hf_usc_indexs['m_veh_action']]
-m_speed = history_future_usc[i, :, hf_usc_indexs['m_veh_speed']]
-plt.plot(m_act)
-plt.plot(m_speed)
+# plt.plot(act[15:])
+# m_act = history_future_usc[i, :, hf_usc_indexs['m_veh_action']]
+# m_speed = history_future_usc[i, :, hf_usc_indexs['m_veh_speed']]
+# plt.plot(m_act)
+# plt.plot(m_speed)
 
 # plt.plot(future_e_veh_a[3567, :, -1])
 # plt.plot(att_scores)

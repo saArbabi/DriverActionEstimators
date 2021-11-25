@@ -7,7 +7,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
         self.ramp_entrance_x = 100
-        self.ramp_exit_x = 180
+        self.ramp_exit_x = 190
 
     def my_neighbours(self, vehicles):
         """
@@ -25,8 +25,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         """
         neighbours = {}
         delta_xs_f, delta_xs_fl, delta_xs_rl, delta_xs_r, \
-        delta_xs_fr, delta_xs_m, delta_xs_att = \
-                                            ([self.perception_range] for i in range(7))
+        delta_xs_fr, delta_xs_att = ([self.perception_range] for i in range(6))
         candidate_f, candidate_fl, candidate_rl, candidate_r, \
         candidate_fr, candidate_m, candidate_att = (None for i in range(7))
 
@@ -37,13 +36,11 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             if vehicle.id != self.id:
                 delta_x = abs(vehicle.glob_x-self.glob_x)
                 if delta_x < self.perception_range:
+                    if self.is_it_merger(vehicle):
+                        candidate_m = vehicle
+
                     if vehicle.glob_x > self.glob_x:
                         # front neibouring cars
-                        if self.is_it_merger(vehicle):
-                            if min(delta_xs_f) > delta_x < min(delta_xs_m):
-                                delta_xs_m.append(delta_x)
-                                candidate_m = vehicle
-
                         if vehicle.target_lane == self.target_lane and \
                                 vehicle.lane_decision == 'keep_lane':
                                 if delta_x < min(delta_xs_f):
@@ -82,16 +79,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['rl'] = candidate_rl
         neighbours['fr'] = candidate_fr
         neighbours['r'] = candidate_r
-        if not candidate_m and candidate_fr and candidate_fr.lane_decision == 'keep_lane' \
-                                                        and candidate_fr.id != 'dummy':
-
-            neighbours['m'] = candidate_fr
-        elif (candidate_m and not candidate_f) or \
-                (candidate_m and candidate_f and candidate_m.glob_x < candidate_f.glob_x):
-            neighbours['m'] = candidate_m
-        else:
-            neighbours['m'] = None
-
+        neighbours['m'] = candidate_m
 
         if neighbours['m'] and self.am_i_attending(neighbours['m'], candidate_f):
             neighbours['att'] = neighbours['m']
@@ -102,7 +90,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def is_it_merger(self, vehicle):
         if vehicle.id == 'dummy':
             return False
-        elif vehicle.lane_decision != 'keep_lane':
+        elif vehicle.lane_decision != 'keep_lane' or vehicle.lane_id == 2:
             return True
         return False
 
@@ -112,9 +100,6 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         return ttm_m_veh
 
     def is_cidm_att(self, act_long, m_veh, f_veh):
-        if f_veh and f_veh.speed <= m_veh.speed and m_veh.lane_decision == 'keep_lane':
-            return False
-
         ttm_m_veh = self.get_ttm(m_veh)
         gap_to_merge = ttm_m_veh*m_veh.speed + m_veh.glob_x-self.glob_x
         ttm_e_veh = gap_to_merge/self.speed
@@ -134,10 +119,12 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         (2) Ego attends following the cooperative idm
         (2) Ego attends for safety
         """
-        if (f_veh and m_veh.glob_x > f_veh.glob_x) \
-                                    or m_veh.glob_x < self.ramp_entrance_x:
+        if (self.glob_x > m_veh.glob_x) or (f_veh.glob_x < m_veh.glob_x) \
+                            or (m_veh.glob_x < self.ramp_entrance_x) \
+                            or (f_veh.speed < m_veh.speed  \
+                            and m_veh.lane_decision == 'keep_lane'):
             return False
-        if m_veh == self.neighbours['att']:
+        elif m_veh == self.neighbours['att']:
             return True
         elif m_veh.lane_id == self.lane_id:
             # print('lane based ########')
