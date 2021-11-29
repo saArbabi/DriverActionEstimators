@@ -36,9 +36,9 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.1,
+    "vae_loss_weight": 1.,
     "attention_temp": 5,
-    "latent_dim": 3,
+    "latent_dim": 6,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -151,7 +151,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '098'
+exp_id = '099'
 model_name = 'h_z_f_idm_act_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 

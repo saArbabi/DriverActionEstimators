@@ -36,57 +36,60 @@ def latent_samples(model, sample_index):
     merger_cs = future_m_veh_c[sample_index, :, 2:]
     enc_h = model.h_seq_encoder(h_seq)
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-    sampled_z = model.belief_net.sample_z(latent_dis_param)
-    return sampled_z
+    z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+    return [z_idm, z_att]
 
 def latent_vis(zsamples_n):
-    fig = pyplot.figure(figsize=(4, 6))
     examples_to_vis = np.random.choice(val_examples, zsamples_n, replace=False)
-    #===============
-    #  First subplot
-    #===============
-    # set up the axes for the first plot
-    ax = fig.add_subplot(1, 2, 1, projection='3d')
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    sampled_z = latent_samples(model, examples_to_vis)
     aggressiveness = history_future_usc[examples_to_vis, 0, -7]
     color_shade = aggressiveness
-    att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+    z_s = latent_samples(model, examples_to_vis)
 
-    ax.tick_params(pad=1)
-    ax.grid(False)
-    # ax.view_init(30, 50)
-    #===============
-    #  Second subplot
-    #===============
-    # set up the axes for the second plot
-    ax = fig.add_subplot(1, 2, 2, projection='3d')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    att_sc = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+    for z_ in z_s:
+        fig = pyplot.figure(figsize=(4, 6))
+        #===============
+        #  First subplot
+        #===============
+        # set up the axes for the first plot
+        ax = fig.add_subplot(1, 2, 1, projection='3d')
 
-    axins = inset_axes(ax,
-                        width="5%",
-                        height="90%",
-                        loc='right',
-                        borderpad=-2
-                       )
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
 
-    fig.colorbar(att_sc, cax=axins)
-    cbar = fig.colorbar(att_sc, cax=axins)
-    ax.tick_params(pad=1)
-    ax.grid(False)
-    ax.view_init(30, 50)
-    # ax.set_xlabel('$z_{1}$', labelpad=1)
-    # ax.set_ylabel('$z_{2}$', labelpad=1)
-    # ax.set_zlabel('$z_{3}$', labelpad=1)
-    plt.subplots_adjust(wspace=0.2, hspace=None)
+        att_sc = ax.scatter(z_[:, 0], z_[:, 1], z_[:, 2],
+                      s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+
+        ax.tick_params(pad=1)
+        ax.grid(False)
+        # ax.view_init(30, 50)
+        #===============
+        #  Second subplot
+        #===============
+        # set up the axes for the second plot
+        ax = fig.add_subplot(1, 2, 2, projection='3d')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+        att_sc = ax.scatter(z_[:, 0], z_[:, 1], z_[:, 2],
+                      s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+
+        axins = inset_axes(ax,
+                            width="5%",
+                            height="90%",
+                            loc='right',
+                            borderpad=-2
+                           )
+
+        fig.colorbar(att_sc, cax=axins)
+        cbar = fig.colorbar(att_sc, cax=axins)
+        ax.tick_params(pad=1)
+        ax.grid(False)
+        ax.view_init(30, 50)
+        # ax.set_xlabel('$z_{1}$', labelpad=1)
+        # ax.set_ylabel('$z_{2}$', labelpad=1)
+        # ax.set_zlabel('$z_{3}$', labelpad=1)
+        plt.subplots_adjust(wspace=0.2, hspace=None)
 
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
@@ -133,7 +136,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_097'
+model_name = 'h_z_f_idm_act_099'
 epoch_count = '30'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -257,11 +260,11 @@ while Example_pred < 15:
             _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
         elif distribution_name == 'prior':
             latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-        sampled_z = model.belief_net.sample_z(latent_dis_param)
-        # print(sampled_z)
-        proj_belief = model.belief_net.belief_proj(sampled_z)
-        idm_params = model.idm_layer(proj_belief)
-        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_belief, \
+        z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+        proj_idm = model.belief_net.z_proj_idm(z_idm)
+        proj_att = model.belief_net.z_proj_att(z_att)
+        idm_params = model.idm_layer(proj_idm)
+        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                      future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
