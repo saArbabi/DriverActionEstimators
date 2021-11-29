@@ -283,8 +283,7 @@ class IDMForwardSim(tf.keras.Model):
 
             att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            att_score = att_score*m_veh_exists**tf.cast(\
-                                   tf.math.greater(em_delta_x, 10), tf.float32)
+            # att_score = att_score*m_veh_exists
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
