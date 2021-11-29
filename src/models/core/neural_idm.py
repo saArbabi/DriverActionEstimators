@@ -93,13 +93,14 @@ class NeurIDMModel(AbstractModel):
 
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
-        sampled_z = self.belief_net.sample_z(pos_params)
 
-        proj_belief = self.belief_net.belief_proj(sampled_z)
-        idm_params = self.idm_layer(proj_belief)
+        z_idm, z_att = self.belief_net.sample_z(pos_params)
+        proj_idm = self.belief_net.z_proj_idm(z_idm)
+        proj_att = self.belief_net.z_proj_att(z_att)
+        idm_params = self.idm_layer(proj_idm)
 
         act_seq, _ = self.forward_sim.rollout([\
-                                idm_params, proj_belief, inputs[2], inputs[-1]])
+                                idm_params, proj_att, inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
@@ -121,9 +122,13 @@ class BeliefModel(tf.keras.Model):
         self.pri_projection = Dense(self.proj_dim, activation=LeakyReLU())
         self.pos_projection = Dense(self.proj_dim, activation=LeakyReLU())
         ####
-        self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_3 = Dense(self.proj_dim)
+        self.proj_idm_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_idm_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_idm_3 = Dense(self.proj_dim)
+
+        self.proj_att_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_att_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_att_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -132,12 +137,18 @@ class BeliefModel(tf.keras.Model):
         z_sigma =  K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
-        return sampled_z
+        return sampled_z[:, :3], sampled_z[:, 3:]
 
-    def belief_proj(self, x):
-        x = self.proj_layer_1(x)
-        x = self.proj_layer_2(x)
-        x = self.proj_layer_3(x)
+    def z_proj_idm(self, x):
+        x = self.proj_idm_1(x)
+        x = self.proj_idm_2(x)
+        x = self.proj_idm_3(x)
+        return x
+
+    def z_proj_att(self, x):
+        x = self.proj_att_1(x)
+        x = self.proj_att_2(x)
+        x = self.proj_att_3(x)
         return x
 
     def call(self, inputs, dis_type):
@@ -216,8 +227,9 @@ class IDMForwardSim(tf.keras.Model):
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        return act
-        # return self.action_clip(act)
+
+        # return act
+        return self.action_clip(act)
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
@@ -269,8 +281,7 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
-            att_x = tf.clip_by_value(self.attention_neu(lstm_output),
-                             clip_value_min=-5., clip_value_max=5.)
+            att_x = self.attention_neu(lstm_output)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             att_score = att_score*m_veh_exists**tf.cast(\
                                    tf.math.greater(em_delta_x, 10), tf.float32)
