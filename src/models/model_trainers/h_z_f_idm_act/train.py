@@ -40,8 +40,13 @@ config = {
     "attention_temp": 5,
     "latent_dim": 3,
     },
+     "data": {
+     "dataset_name": dataset_name,
+     "history_len": history_len,
+     "rollout_len": rollout_len,
+     },
     "Note": ""
-}
+    }
 
 class Trainer():
     def __init__(self):
