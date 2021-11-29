@@ -133,7 +133,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_act_026'
+model_name = 'h_z_f_act_027'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -242,7 +242,7 @@ while Example_pred < 15:
     # if 4 == 4:
     if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
         covered_episodes.append(episode)
-        sdv_actions = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
+        merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model.h_seq_encoder(h_seq)
@@ -250,7 +250,7 @@ while Example_pred < 15:
         sampled_z = model.belief_net.sample_z(prior_param)
         proj_belief = model.belief_net.belief_proj(sampled_z)
         act_seq = model.forward_sim.rollout([proj_belief, \
-                                                    future_idm_ss, sdv_actions])
+                                                    future_idm_ss, merger_cs])
         act_seq = act_seq.numpy()
 
         plt.figure(figsize=(5, 3))
