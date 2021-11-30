@@ -37,9 +37,9 @@ env = EnvMergeMC(config)
 env.metric_collection_mode = True
 # model_name = 'h_z_f_act_028'
 model_name = 'h_z_f_idm_act_105'
-epoch_count = '20'
+epoch_count = '30'
 data_id = '027'
-epusodes_n =
+episodes_n = 100
 # env.neural_vehicle = MLPVehicle()
 # env.neural_vehicle = LSTMVehicle()
 # env.neural_vehicle = NeurLatentVehicle()
@@ -47,7 +47,7 @@ env.neural_vehicle = NeuralIDMVehicle()
 env.neural_vehicle.initialize_agent(
                 model_name, epoch_count, data_id)
 
-for episode_id in range(501, 505):
+for episode_id in range(501, 501+episodes_n):
 # for episode_id in [6]:
     for trace in range(3):
         env.initialize_env(episode_id)

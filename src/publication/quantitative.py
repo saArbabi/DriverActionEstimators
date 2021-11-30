@@ -66,7 +66,7 @@ Vis speeds true vs pred
 """
 state_index = indxs['act_long']
 model_name = 'h_z_f_idm_act_105'
-# model_name = 'h_z_f_act_028'
+model_name = 'h_z_f_act_028'
 
 error_squared = []
 for i in range(12):

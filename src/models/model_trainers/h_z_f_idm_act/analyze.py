@@ -136,7 +136,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_106'
+model_name = 'h_z_f_idm_act_105'
 epoch_count = '30'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
