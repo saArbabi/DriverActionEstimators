@@ -104,7 +104,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '026'
+data_id = '027'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -133,7 +133,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_act_027'
+model_name = 'h_z_f_act_028'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)

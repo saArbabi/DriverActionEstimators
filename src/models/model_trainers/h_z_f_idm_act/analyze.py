@@ -107,7 +107,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '026'
+data_id = '027'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -136,7 +136,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_104'
+model_name = 'h_z_f_idm_act_106'
 epoch_count = '30'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -178,7 +178,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['h_z_f_idm_act_102', 'h_z_f_idm_act_103', 'h_z_f_idm_act_104']:
+for name in ['h_z_f_idm_act_105', 'h_z_f_idm_act_106']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -261,7 +261,7 @@ distribution_name = 'prior'
 # distribution_name = 'posterior'
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
-# for i in bad_zs:
+# for i in [2815]:
 # for i in bad_examples[0]:
 while Example_pred < 15:
     sample_index = [val_examples[i]]

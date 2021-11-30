@@ -20,8 +20,8 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '_026'
-dataset_name = 'sim_data'+data_id
+data_id = '027'
+dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
@@ -144,7 +144,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '027'
+exp_id = '028'
 model_name = 'h_z_f_act_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 

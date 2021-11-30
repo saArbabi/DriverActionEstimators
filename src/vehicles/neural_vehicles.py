@@ -163,7 +163,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         obs_t0, m_veh_exists = obs
         if self.time_lapse_since_last_param_update % self.history_len == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
-            print('update ', obs_history)
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
@@ -200,7 +199,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             em_act = 0
 
         act_long = (1-att_score)*ef_act + att_score*em_act
-        return act_long
+        return max([-5, act_long])
 
 
 class LSTMVehicle(NeuralIDMVehicle):

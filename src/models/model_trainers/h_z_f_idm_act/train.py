@@ -20,8 +20,8 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '_026'
-dataset_name = 'sim_data'+data_id
+data_id = '027'
+dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
@@ -151,7 +151,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '101'
+exp_id = '106'
 model_name = 'h_z_f_idm_act_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
@@ -198,3 +198,4 @@ print(model_trainer.test_mseloss[-1])
 # %%
 model_trainer.save_model()
 model_trainer.save_loss()
+# %%

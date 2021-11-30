@@ -43,7 +43,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '026'
+data_id = '027'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -59,7 +59,7 @@ else:
 """
 Load generated data.
 """
-data_id = '026'
+data_id = '027'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:

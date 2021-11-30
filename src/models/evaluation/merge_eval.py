@@ -16,8 +16,8 @@ from vehicles import neural_vehicles
 reload(neural_vehicles)
 from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
 
-import envs.merge_mc
-reload(envs.merge_mc)
+from envs import merge_mc
+reload(merge_mc)
 from envs.merge_mc import EnvMergeMC
 import matplotlib.pyplot as plt
 import copy
@@ -32,34 +32,35 @@ real_collection = {}
 collision_log = []
 time_start = time.time()
 # trace = 0
-for episode_id in [6]:
-# for episode_id in [6,   8,  10,  12,  18]:
+# for episode_id in [6]:
+env = EnvMergeMC(config)
+env.metric_collection_mode = True
+# model_name = 'h_z_f_act_028'
+model_name = 'h_z_f_idm_act_105'
+epoch_count = '20'
+data_id = '027'
+epusodes_n =
+# env.neural_vehicle = MLPVehicle()
+# env.neural_vehicle = LSTMVehicle()
+# env.neural_vehicle = NeurLatentVehicle()
+env.neural_vehicle = NeuralIDMVehicle()
+env.neural_vehicle.initialize_agent(
+                model_name, epoch_count, data_id)
+
+for episode_id in range(501, 505):
+# for episode_id in [6]:
     for trace in range(3):
-        env = EnvMergeMC(config)
-        env.metric_collection_mode = True
-        # env.neural_vehicle = MLPVehicle()
         env.initialize_env(episode_id)
-        model_name = 'h_z_f_idm_act_101'
-        epoch_count = '20'
-        data_id = '026'
-        # env.neural_vehicle = MLPVehicle()
-        # env.neural_vehicle = LSTMVehicle()
-        env.neural_vehicle = NeuralIDMVehicle()
-        env.neural_vehicle.initialize_agent(
-                        model_name, epoch_count, data_id)
-        # env.neural_vehicle = NeurLatentVehicle()
         # env.neural_vehicle = NeurLatentOneStepVehicle()
         # env.neural_vehicle = LSTMVehicle()
-        # np.random.seed(0) # ensures environment remains the same
         tf.random.set_seed(trace) # each trace has a unique seed
-        # tf.random.set_seed(0) # each trace has a unique seed
         for i in range(100):
             env.step()
             if env.collision_detected:
-                print('collision_detected')
-                info = [episode_id, i, trace]
-                collision_log.append(info)
-                break
+                collision_id = f'{episode_id}_{trace}'
+                if collision_id not in collision_log:
+                    collision_log.append(collision_id)
+                    print('collision_detected')
 
         for veh_id, data_log in env.ima_mc_log.items():
             for step_log in data_log:

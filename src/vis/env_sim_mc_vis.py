@@ -17,16 +17,16 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    episode_id = 20
+    episode_id = 501
     env.initialize_env(episode_id)
-    model_name = 'h_z_f_act_027'
-    # model_name = 'h_z_f_idm_act_101'
+    # model_name = 'h_z_f_act_028'
+    model_name = 'h_z_f_idm_act_105'
     epoch_count = '20'
-    data_id = '026'
+    data_id = '027'
     # env.neural_vehicle = MLPVehicle()
-    env.neural_vehicle = NeurLatentVehicle()
+    # env.neural_vehicle = NeurLatentVehicle()
     # env.neural_vehicle = LSTMVehicle()
-    # env.neural_vehicle = NeuralIDMVehicle()
+    env.neural_vehicle = NeuralIDMVehicle()
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
     viewer = ViewerMC(config)

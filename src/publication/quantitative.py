@@ -20,7 +20,7 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
-model_names = ['h_z_f_idm_act_097']
+model_names = ['h_z_f_idm_act_105', 'h_z_f_act_028']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -44,7 +44,6 @@ for model_name in model_names:
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
-            _true.shape
             flatten_ima = []
             for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
                 flatten_ima.append(\
@@ -58,20 +57,21 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-snips_pred['h_z_f_idm_act_097'].shape
-snips_true['h_z_f_idm_act_097'].shape
+snips_pred['h_z_f_idm_act_105'].shape
+snips_true['h_z_f_idm_act_105'].shape
 
 # %%
 """
 Vis speeds true vs pred
 """
-state_index = indxs['speed']
-model_name = 'h_z_f_idm_act_097'
+state_index = indxs['act_long']
+model_name = 'h_z_f_idm_act_105'
+# model_name = 'h_z_f_act_028'
 
 error_squared = []
-for i in range(4):
+for i in range(12):
     plt.figure()
-    for trace in range(1):
+    for trace in range(3):
         epis_id = snips_true[model_name][i,0,0,1]
         veh_id = snips_true[model_name][i,0,0,2]
         state_true = snips_true[model_name][i,0,:,state_index]
@@ -179,7 +179,7 @@ for i in range(0, 100, 30):
 """
 rwse x position
 """
-time_vals = np.linspace(0, 6, steps_n)
+time_vals = np.linspace(0, 5, steps_n)
 
 fig = plt.figure(figsize=(6, 4))
 position_axis = fig.add_subplot(211)
@@ -207,7 +207,6 @@ rwse speed
 for model_name, label in zip(model_names, model_names):
     error_total = get_rwse(indxs['speed'], model_name)
     speed_axis.plot(time_vals, error_total, label=label)
-
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()

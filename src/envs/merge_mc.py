@@ -4,6 +4,12 @@ import copy
 class EnvMergeMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
+        self.metric_collection_mode = False
+
+    def initialize_env(self, episode_id):
+        """Initates the environment, but with a real and imagined (to be predicted)
+            copy of traffic state.
+        """
         self.real_vehicles = []
         self.ima_vehicles = []
         self.real_mc_log = {}
@@ -11,12 +17,7 @@ class EnvMergeMC(EnvMerge):
 
         self.collision_detected = False
         self.debugging_mode = False
-        self.metric_collection_mode = False
 
-    def initialize_env(self, episode_id):
-        """Initates the environment, but with a real and imagined (to be predicted)
-            copy of traffic state.
-        """
         self.time_step = 0
         self.env_initializor.next_vehicle_id = 1
         self.env_initializor.dummy_stationary_car = self.dummy_stationary_car
@@ -54,10 +55,8 @@ class EnvMergeMC(EnvMerge):
         if  e_veh.neighbours['m'] and \
                     e_veh.neighbours['m'] == e_veh.neighbours['att'] and \
                             e_veh.glob_x >= e_veh.neighbours['m'].glob_x:
-            print('Collision between ego and merger')
             return True
         elif e_veh.glob_x >= e_veh.neighbours['f'].glob_x:
-            print('Collision between ego and leader')
             return True
         else:
             return False
@@ -145,8 +144,6 @@ class EnvMergeMC(EnvMerge):
         if self.time_step == 0:
             self.neuralize_vehicle_type()
         acts_real, acts_ima = self.get_joint_action()
-        if self.collision_detected:
-            return
         for veh_real, veh_ima, act_real, act_ima in zip(
                                                     self.real_vehicles,
                                                     self.ima_vehicles,
