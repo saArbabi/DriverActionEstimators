@@ -90,9 +90,9 @@ class EnvMergeMC(EnvMerge):
 
                 if veh_ima.control_type == 'neural':
                     # _act_long = veh_ima.act(obs)
-                    # act_long = veh_ima.act(obs)
-                    if veh_ima.id == 'neur_4':
-                        act_long = 5
+                    act_long = veh_ima.act(obs)
+                    # if veh_ima.id == 'neur_4':
+                        # act_long = 5
                     veh_ima.act_long = act_long
                     if self.metric_collection_mode:
                         self.mc_log_info(veh_real, veh_ima)

@@ -26,7 +26,6 @@ config = {'lanes_n':2,
         'lane_width':3.75, # m
         'lane_length':300 # m
         }
-
 trace_n = 1
 ima_collection = {}
 real_collection = {}
@@ -40,12 +39,14 @@ for episode_id in [6]:
         env.metric_collection_mode = True
         # env.neural_vehicle = MLPVehicle()
         env.initialize_env(episode_id)
-        model_name = 'h_z_f_idm_act_097'
-        epoch_count = '0'
+        model_name = 'h_z_f_idm_act_101'
+        epoch_count = '20'
+        data_id = '026'
         # env.neural_vehicle = MLPVehicle()
         # env.neural_vehicle = LSTMVehicle()
         env.neural_vehicle = NeuralIDMVehicle()
-        env.neural_vehicle.initialize_agent(model_name, epoch_count)
+        env.neural_vehicle.initialize_agent(
+                        model_name, epoch_count, data_id)
         # env.neural_vehicle = NeurLatentVehicle()
         # env.neural_vehicle = NeurLatentOneStepVehicle()
         # env.neural_vehicle = LSTMVehicle()

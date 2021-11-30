@@ -49,6 +49,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         with open(exp_dir+'/'+'config.json', 'rb') as handle:
             config = json.load(handle)
         self.load_model(config, exp_path)
+        print(json.dumps(config, ensure_ascii=False, indent=4))
 
     def update_obs_history(self, o_t):
         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
@@ -162,13 +163,14 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         obs_t0, m_veh_exists = obs
         if self.time_lapse_since_last_param_update % self.history_len == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
+            print('update ', obs_history)
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
             proj_att = self.model.belief_net.z_proj_att(z_att)
-            proj_idm = self.model.belief_net.z_proj_att(z_idm)
+            proj_idm = self.model.belief_net.z_proj_idm(z_idm)
             self.belief_update(proj_att)
-            idm_params = self.model.forward_sim.idm_layer(proj_idm)
+            idm_params = self.model.idm_layer(proj_idm)
             self.driver_params_update(idm_params)
             # if self.id == 'neur_3':
                 # print(sampled_z)
