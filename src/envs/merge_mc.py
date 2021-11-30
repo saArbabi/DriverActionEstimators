@@ -52,7 +52,7 @@ class EnvMergeMC(EnvMerge):
 
     def check_collision(self, e_veh):
         if  e_veh.neighbours['m'] and \
-                    e_veh.lane_id == e_veh.neighbours['m'].lane_id and \
+                    e_veh.neighbours['m'] == e_veh.neighbours['att'] and \
                             e_veh.glob_x >= e_veh.neighbours['m'].glob_x:
             print('Collision between ego and merger')
             return True
