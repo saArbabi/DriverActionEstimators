@@ -57,8 +57,8 @@ for i, item_name in enumerate(col_names):
 """
 Load generated data (not yet prepped).
 """
-data_id = '_026'
-dataset_name = 'sim_data'+data_id
+data_id = '026'
+dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
@@ -69,8 +69,8 @@ Load generated data (already prepped).
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '_026'
-dataset_name = 'sim_data'+data_id
+data_id = '026'
+dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
