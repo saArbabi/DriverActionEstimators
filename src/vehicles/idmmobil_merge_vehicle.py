@@ -90,7 +90,9 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def is_it_merger(self, vehicle):
         if vehicle.id == 'dummy':
             return False
-        elif vehicle.lane_decision != 'keep_lane' or vehicle.lane_id == 2:
+        elif (vehicle.lane_decision != 'keep_lane' and vehicle.glob_x > self.glob_x) \
+            or (vehicle.lane_decision == 'keep_lane' and vehicle.lane_id == 2) \
+                        or ():
             return True
         return False
 
