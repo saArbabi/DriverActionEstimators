@@ -54,8 +54,10 @@ class EnvMergeMC(EnvMerge):
         if  e_veh.neighbours['m'] and \
                     e_veh.lane_id == e_veh.neighbours['m'].lane_id and \
                             e_veh.glob_x >= e_veh.neighbours['m'].glob_x:
+            print('Collision between ego and merger')
             return True
         elif e_veh.glob_x >= e_veh.neighbours['f'].glob_x:
+            print('Collision between ego and leader')
             return True
         else:
             return False

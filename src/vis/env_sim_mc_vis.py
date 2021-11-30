@@ -19,13 +19,14 @@ def main():
     env = EnvMergeMC(config)
     episode_id = 20
     env.initialize_env(episode_id)
-    model_name = 'h_z_f_idm_act_101'
+    model_name = 'h_z_f_act_027'
+    # model_name = 'h_z_f_idm_act_101'
     epoch_count = '20'
     data_id = '026'
     # env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeurLatentVehicle()
+    env.neural_vehicle = NeurLatentVehicle()
     # env.neural_vehicle = LSTMVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
+    # env.neural_vehicle = NeuralIDMVehicle()
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
     viewer = ViewerMC(config)
@@ -47,7 +48,6 @@ def main():
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
         if env.collision_detected:
-            print('collision_detected')
             sys.exit()
 
 if __name__=='__main__':

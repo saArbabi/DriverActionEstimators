@@ -237,15 +237,14 @@ class NeurLatentVehicle(NeuralIDMVehicle):
     def __init__(self):
         super().__init__()
 
-    def load_model(self):
-        exp_dir = './models/experiments/'+'h_z_f_act017_epo_25'+'/model'
+    def load_model(self, config, exp_path):
         from models.core.h_z_f_act import NeurLatentModel
-        self.model = NeurLatentModel()
-        self.model.load_weights(exp_dir).expect_partial()
+        self.model = NeurLatentModel(config)
+        self.model.load_weights(exp_path).expect_partial()
 
     def act(self, obs):
-        obs_t0, m_veh_exists, _ = obs
-        if self.time_lapse_since_last_param_update % 20 == 0:
+        obs_t0, m_veh_exists = obs
+        if self.time_lapse_since_last_param_update % self.history_len == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
@@ -253,6 +252,7 @@ class NeurLatentVehicle(NeuralIDMVehicle):
             proj_belief = self.model.belief_net.belief_proj(sampled_z)
             self.belief_update(proj_belief)
             self.time_lapse_since_last_param_update = 0
+        self.time_lapse_since_last_param_update += 1
 
         env_state = self.scale_state(obs_t0, 'env_state')
         merger_c = self.scale_state(obs_t0, 'merger_c')
@@ -262,7 +262,6 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     _context, initial_state=[self.state_h, self.state_c])
         act_long = self.model.forward_sim.action_neu(lstm_output).numpy()
-        self.time_lapse_since_last_param_update += 1
         return act_long[0][0][0]
 
 class NeurLatentOneStepVehicle(NeurLatentVehicle):
