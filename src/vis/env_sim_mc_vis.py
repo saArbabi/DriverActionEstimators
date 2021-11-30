@@ -17,15 +17,17 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    episode_id = 6
+    episode_id = 20
     env.initialize_env(episode_id)
-    model_name = 'h_z_f_idm_act_097'
-    epoch_count = '0'
+    model_name = 'h_z_f_idm_act_101'
+    epoch_count = '20'
+    data_id = '026'
     # env.neural_vehicle = MLPVehicle()
     # env.neural_vehicle = NeurLatentVehicle()
     # env.neural_vehicle = LSTMVehicle()
     env.neural_vehicle = NeuralIDMVehicle()
-    env.neural_vehicle.initialize_agent(model_name, epoch_count)
+    env.neural_vehicle.initialize_agent(
+                        model_name, epoch_count, data_id)
     viewer = ViewerMC(config)
     tf.random.set_seed(10)
     env.debugging_mode = True
@@ -47,8 +49,6 @@ def main():
         if env.collision_detected:
             print('collision_detected')
             sys.exit()
-
-            self.collision_detected = True
 
 if __name__=='__main__':
     main()

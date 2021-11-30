@@ -304,7 +304,7 @@ class ViewerMC(Viewer):
         self.att_ax.set_title('attention')
         self.desvel_ax.set_title('desvel')
 
-        major_tick = list(range(19, tace_len, 20))+[tace_len-1]
+        major_tick = list(range(29, tace_len, 30))+[tace_len-1]
         for axis in [self.act_ax, self.speed_ax, self.att_ax, self.desvel_ax, self.desparam_ax]:
             axis.set_xticks(major_tick)
             axis.grid(axis='x')

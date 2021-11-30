@@ -50,6 +50,16 @@ class EnvMergeMC(EnvMerge):
             else:
                 veh_ima.neighbours[key] = None
 
+    def check_collision(self, e_veh):
+        if  e_veh.neighbours['m'] and \
+                    e_veh.lane_id == e_veh.neighbours['m'].lane_id and \
+                            e_veh.glob_x >= e_veh.neighbours['m'].glob_x:
+            return True
+        elif e_veh.glob_x >= e_veh.neighbours['f'].glob_x:
+            return True
+        else:
+            return False
+
     def get_joint_action(self):
         """
         Returns the joint action of all vehicles on the road
@@ -66,9 +76,8 @@ class EnvMergeMC(EnvMerge):
             # imagined vehicles
             self.set_ima_veh_neighbours(veh_real, veh_ima)
             if veh_ima.vehicle_type == 'neural':
-                obs = veh_ima.neur_observe(veh_ima, veh_ima.neighbours['f'], \
-                                                        veh_ima.neighbours['m'])
-                if veh_ima.collision_detected:
+                obs = veh_ima.neur_observe()
+                if self.check_collision(veh_ima):
                     self.collision_detected = True
                 # if veh_real.id == 3:
                 #     print(veh_ima.obs_history)
@@ -81,9 +90,9 @@ class EnvMergeMC(EnvMerge):
 
                 if veh_ima.control_type == 'neural':
                     # _act_long = veh_ima.act(obs)
-                    act_long = veh_ima.act(obs)
-                    # if veh_ima.id == 'neur_3':
-                        # act_long = 5
+                    # act_long = veh_ima.act(obs)
+                    if veh_ima.id == 'neur_4':
+                        act_long = 5
                     veh_ima.act_long = act_long
                     if self.metric_collection_mode:
                         self.mc_log_info(veh_real, veh_ima)
@@ -146,8 +155,6 @@ class EnvMergeMC(EnvMerge):
             veh_ima.step(act_ima)
             veh_real.time_lapse += 1
             veh_ima.time_lapse += 1
-
-
         self.time_step += 1
 
     def vis_log_info(self, veh_real, veh_ima):

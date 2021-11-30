@@ -3,35 +3,37 @@ import numpy as np
 import pickle
 from importlib import reload
 import tensorflow as tf
+import json
 
 class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
         self.time_lapse_since_last_param_update = 0
-        self.collision_detected = False
 
-    def load_model(self, exp_dir):
+    def load_model(self, config, exp_path):
         from models.core import neural_idm
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
-        self.model = NeurIDMModel()
-        self.model.load_weights(exp_dir).expect_partial()
+        self.model = NeurIDMModel(config)
+        self.model.load_weights(exp_path).expect_partial()
 
-    def initialize_agent(self, model_name, epoch_count):
-        exp_dir = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
+    def initialize_agent(self, model_name, epoch_count, data_id):
+        exp_dir = './src/models/experiments/'+model_name
+        exp_path = exp_dir+'/model_epo'+epoch_count
         self.samples_n = 1
-        history_len = 20 # steps
+        self.history_len = 30 # steps
         self.state_dim = 10
-        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
-        data_files_dir = './src/models/experiments/data_files/'
+        self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
+        dataset_name = 'sim_data_'+data_id
+        data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 
-        with open(data_files_dir+'env_scaler_025.pickle', 'rb') as handle:
+        with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.env_scaler = pickle.load(handle)
 
-        with open(data_files_dir+'m_scaler_025.pickle', 'rb') as handle:
+        with open(data_files_dir+'m_scaler.pickle', 'rb') as handle:
             self.m_scaler = pickle.load(handle)
 
-        with open(data_files_dir+'dummy_value_set_025.pickle', 'rb') as handle:
+        with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
         self.indxs = {}
@@ -44,13 +46,17 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             self.indxs[item_name] = index
             index += 1
         # self.model.forward_sim.attention_temp = 20
-        self.load_model(exp_dir)
+        with open(exp_dir+'/'+'config.json', 'rb') as handle:
+            config = json.load(handle)
+        self.load_model(config, exp_path)
 
     def update_obs_history(self, o_t):
         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
         self.obs_history[:, -1, :] = o_t[0, 0, :]
 
-    def neur_observe(self, e_veh, f_veh, m_veh):
+    def neur_observe(self):
+        m_veh = self.neighbours['m']
+        f_veh = self.neighbours['f']
         if not m_veh:
             m_veh_exists = 0
             m_veh_speed = self.dummy_value_set['m_veh_speed']
@@ -64,9 +70,9 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             m_veh_exists = 1
             m_veh_speed = m_veh.speed
             m_veh_action = m_veh.act_long
-            em_delta_x = m_veh.glob_x-e_veh.glob_x
-            em_delta_y = abs(m_veh.glob_y-e_veh.glob_y)
-            em_delta_v = e_veh.speed-m_veh_speed
+            em_delta_x = m_veh.glob_x-self.glob_x
+            em_delta_y = abs(m_veh.glob_y-self.glob_y)
+            em_delta_v = self.speed-m_veh_speed
             delta_x_to_merge = 200-m_veh.glob_x
 
         if not f_veh:
@@ -77,13 +83,14 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         else:
             f_veh_exists = 1
             f_veh_speed = f_veh.speed
-            el_delta_x = f_veh.glob_x-e_veh.glob_x
-            el_delta_v = e_veh.speed-f_veh_speed
+            el_delta_x = f_veh.glob_x-self.glob_x
+            el_delta_v = self.speed-f_veh_speed
 
-        obs_t0 = [e_veh.speed, f_veh_speed, m_veh_speed]
+        obs_t0 = [self.speed, f_veh_speed, m_veh_speed]
 
         obs_t0.extend([el_delta_v,
                              el_delta_x])
+
         obs_t0.extend([em_delta_v,
                              em_delta_x,
                              em_delta_y,
@@ -91,14 +98,11 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
         obs_t0.append(m_veh_exists)
         self.m_veh_exists = m_veh_exists
-        neighbours = [f_veh, m_veh]
-        if min([el_delta_x, em_delta_x]) <= 0:
-            self.collision_detected = True
 
-        return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]], neighbours]
+        return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]]]
 
     def driver_params_update(self, idm_params):
-        idm_params = idm_params.numpy()[0][0]
+        idm_params = idm_params.numpy()[0]
         self.driver_params['desired_v'] = idm_params[0]
         self.driver_params['desired_tgap'] = idm_params[1]
         self.driver_params['min_jamx'] = idm_params[2]
@@ -106,9 +110,9 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.driver_params['min_act'] = idm_params[4]
 
     def belief_update(self, proj_belief):
-        self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 50])
+        self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 64])
         if self.time_lapse_since_last_param_update == 0:
-            self.state_h = self.state_c = tf.zeros([self.samples_n, 100])
+            self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
 
     def names_to_index(self, col_names):
         if type(col_names) == list:
@@ -152,15 +156,20 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                                     att_context, initial_state=[self.state_h, self.state_c])
         attention_temp = 5
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
-        return att_score, lstm_output
+        return att_score
 
     def act(self, obs):
-        obs_t0, m_veh_exists, neighbours = obs
-        if self.time_lapse_since_last_param_update % 20 == 0:
+        obs_t0, m_veh_exists = obs
+        if self.time_lapse_since_last_param_update % self.history_len == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
-            sampled_z = self.model.belief_net.sample_z(latent_dis_param)
+            z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
+            proj_att = self.model.belief_net.z_proj_att(z_att)
+            proj_idm = self.model.belief_net.z_proj_att(z_idm)
+            self.belief_update(proj_att)
+            idm_params = self.model.forward_sim.idm_layer(proj_idm)
+            self.driver_params_update(idm_params)
             # if self.id == 'neur_3':
                 # print(sampled_z)
                 # print(obs_history)
@@ -169,29 +178,28 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             #     # print(np.array2string(obs_history, separator=','))
             #
             #     print(obs_t0)
-            proj_belief = self.model.belief_net.belief_proj(sampled_z)
-            self.belief_update(proj_belief)
             self.time_lapse_since_last_param_update = 0
+        self.time_lapse_since_last_param_update += 1
 
         env_state = self.scale_state(obs_t0, 'env_state')
         merger_c = self.scale_state(obs_t0, 'merger_c')
         att_context = tf.concat([self.proj_latent, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
-        att_score, lstm_output = self.get_neur_att(att_context)
-        idm_params = self.model.forward_sim.idm_layer(lstm_output)
-        self.driver_params_update(idm_params)
+        att_score = self.get_neur_att(att_context)
         # att_score = 0
         # print(att_score)
-        att_score = att_score[0][0][0]*self.m_veh_exists
+        att_score = att_score[0][0][0]
+        # att_score = att_score[0][0][0]*self.m_veh_exists
         self.att = att_score
-
-        f_veh, m_veh = neighbours
-        ef_act = self.idm_action(self, f_veh)
-        em_act = self.idm_action(self, m_veh)
+        ef_act = self.idm_action(self, self.neighbours['f'])
+        if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
+            em_act = self.idm_action(self, self.neighbours['m'])
+        else:
+            em_act = 0
 
         act_long = (1-att_score)*ef_act + att_score*em_act
-        self.time_lapse_since_last_param_update += 1
         return act_long
+
 
 class LSTMVehicle(NeuralIDMVehicle):
     def __init__(self):
@@ -199,9 +207,9 @@ class LSTMVehicle(NeuralIDMVehicle):
 
     def initialize_agent(self, config=None):
         self.samples_n = 1
-        history_len = 30 # steps
+        self.history_len = 30 # steps
         self.state_dim = 10
-        self.obs_history = np.zeros([self.samples_n, history_len, self.state_dim])
+        self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
         # self.action_history = [[0., 0.]]*20
 
         model_name = 'lstm_model'
