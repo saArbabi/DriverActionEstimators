@@ -107,8 +107,8 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '_026'
-dataset_name = 'sim_data'+data_id
+data_id = '026'
+dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
@@ -136,7 +136,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_101'
+model_name = 'h_z_f_idm_act_104'
 epoch_count = '30'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -157,6 +157,9 @@ with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
     model.forward_sim.dummy_value_set = pickle.load(handle)
 # model.forward_sim.attention_temp = 10
 # %%
+"""
+Plot loss
+"""
 with open(exp_dir+'/'+'losses.pickle', 'rb') as handle:
     losses = pickle.load(handle)
 plt.figure()
@@ -169,6 +172,32 @@ plt.plot(losses['test_klloss'], label='test_klloss')
 plt.plot(losses['train_klloss'], label='train_klloss')
 plt.legend()
 plt.grid()
+
+# %%
+"""
+Compare losses
+"""
+losses = {}
+for name in ['h_z_f_idm_act_102', 'h_z_f_idm_act_103', 'h_z_f_idm_act_104']:
+    with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
+        losses[name] = pickle.load(handle)
+
+plt.figure()
+for name, loss in losses.items():
+    plt.plot(loss['test_mseloss'], label=name)
+    # plt.plot(loss['train_mseloss'], label='train_mseloss')
+    plt.grid()
+    plt.legend()
+
+plt.figure()
+for name, loss in losses.items():
+    plt.plot(loss['test_klloss'], label=name)
+    # plt.plot(loss['train_mseloss'], label='train_mseloss')
+    plt.grid()
+    plt.legend()
+
+
+
 # %%
 """
 Find bad examples

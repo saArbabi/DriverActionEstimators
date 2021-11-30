@@ -281,7 +281,9 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
-            att_x = self.attention_neu(lstm_output)
+            # att_x = self.attention_neu(lstm_output)
+            att_x = tf.clip_by_value(self.attention_neu(lstm_output),
+                 clip_value_min=-1., clip_value_max=1.)
             att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
             # att_score = att_score*m_veh_exists
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
