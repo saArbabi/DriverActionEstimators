@@ -20,16 +20,21 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '027'
+data_id = '028'
 dataset_name = 'sim_data_'+data_id
-data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
+data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
-    data_arrays = pickle.load(handle)
-len(data_arrays)
-data_arrays[0].shape
+    train_input = pickle.load(handle)
+
+data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
+                                history_len=history_len, rollout_len=rollout_len)
+
+data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
+with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+    val_input = pickle.load(handle)
 # %%
 config = {
  "model_config": {
@@ -83,32 +88,6 @@ class Trainer():
         with open(self.exp_dir+'/config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
 
-    def prep_data(self, training_data):
-        all_epis = np.unique(training_data[0][:, 0, 0])
-        np.random.seed(2021)
-        np.random.shuffle(all_epis)
-
-        train_epis = all_epis[:int(len(all_epis)*0.7)]
-        val_epis = np.setdiff1d(all_epis, train_epis)
-        train_examples = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
-        val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
-
-        _, history_sca, future_sca, future_idm_s,\
-                    future_m_veh_c, future_e_veh_a = training_data
-        train_input = [history_sca[train_examples, :, 2:],
-                    future_sca[train_examples, :, 2:],
-                    future_idm_s[train_examples, :, 2:],
-                    future_m_veh_c[train_examples, :, 2:],
-                    future_e_veh_a[train_examples, :, 2:]]
-
-        val_input = [history_sca[val_indxs, :, 2:],
-                    future_sca[val_indxs, :, 2:],
-                    future_idm_s[val_indxs, :, 2:],
-                    future_m_veh_c[val_indxs, :, 2:],
-                    future_e_veh_a[val_indxs, :, 2:]]
-
-        return train_input, val_input
-
     def train(self, train_input, val_input, epochs):
         for epoch in range(epochs):
             self.epoch_count += 1
@@ -144,11 +123,10 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '028'
+exp_id = '029'
 model_name = 'h_z_f_act_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
-train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='20')
 # %%
