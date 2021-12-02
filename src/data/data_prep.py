@@ -33,11 +33,8 @@ class DataPrep():
         """
         Remove unwanted samples
         """
-        cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
-                (history_seqs[:,:, self.names_to_index('e_veh_glob_x')] < 250)).all(axis=1)
-
-        cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1) &\
-                (future_seqs[:,:, self.names_to_index('e_veh_glob_x')] < 250)).all(axis=1)
+        cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1)).all(axis=1)
+        cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1)).all(axis=1)
 
         cond = np.all([cond_hist, cond_fut], axis=0)
         return history_seqs[cond], future_seqs[cond]
