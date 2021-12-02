@@ -56,10 +56,10 @@ env.neural_vehicle.initialize_agent(
 
 for episode_id in range(501, 501+episodes_n):
 # for episode_id in [6]:
+    np.random.seed(episode_id)
+    env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
     for trace in range(1):
         env.initialize_env(episode_id)
-        np.random.seed(trace)
-        env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
         tf.random.set_seed(trace) # each trace has a unique seed
         for i in range(0, history_len+env.transition_time+rollout_len):
             env.step()
