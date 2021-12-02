@@ -20,7 +20,8 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
-model_names = ['h_z_f_idm_act_105', 'h_z_f_act_028']
+model_names = ['h_z_f_idm_act_107', 'h_z_f_act_029']
+# model_names = ['h_z_f_idm_act_105', 'h_z_f_act_028']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -41,8 +42,8 @@ for model_name in model_names:
     snips_pred[model_name] = [] # shape: (car_count, 1, steps_n, 9)
 for model_name in model_names:
     for epis_id, epis_dic in real_collections[model_name].items():
-        if epis_id in [508, 516]:
-            continue
+        # if epis_id in [508, 516]:
+            # continue
         # if epis_id != 503:
             # continue
 
@@ -62,12 +63,11 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-snips_pred['h_z_f_idm_act_105'].shape
-snips_true['h_z_f_idm_act_105'].shape
+# snips_pred['h_z_f_idm_act_107'].shape
 
 # %%
 """
-Vis true vs pred state for mmodels. 
+Vis true vs pred state for mmodels.
 """
 # state_index = indxs['act_long']
 state_index = indxs['speed']
@@ -84,9 +84,14 @@ for i in range(30):
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
     for model_name in model_names:
-        for trace in range(1):
+        if model_name == 'h_z_f_idm_act_107':
+            color = 'blue'
+        else:
+            color = 'orange'
+
+        for trace in range(2):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            plt.plot(state_pred, label=model_name)
+            plt.plot(state_pred, label=model_name, color=color)
     plt.legend()
 
 # %%

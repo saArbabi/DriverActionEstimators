@@ -17,17 +17,18 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    env.transition_time = 10
+    episode_id = 510
+    np.random.seed(episode_id)
+    env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
 
-    episode_id = 519
     env.initialize_env(episode_id)
     # model_name = 'h_z_f_act_028'
-    model_name = 'h_z_f_idm_act_105'
+    model_name = 'h_z_f_idm_act_107'
     epoch_count = '20'
-    data_id = '027'
+    data_id = '028'
 
-    model_objs = {'h_z_f_idm_act_105': 'NeuralIDMVehicle',
-            'h_z_f_act_028': 'NeurLatentVehicle'
+    model_objs = {'h_z_f_idm_act_107': 'NeuralIDMVehicle',
+            'h_z_f_act_029': 'NeurLatentVehicle'
                                             }
     if model_objs[model_name] == 'NeurLatentVehicle':
         env.neural_vehicle = NeurLatentVehicle()

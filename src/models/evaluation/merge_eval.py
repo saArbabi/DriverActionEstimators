@@ -36,15 +36,15 @@ time_start = time.time()
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
 history_len = 30
-# model_name = 'h_z_f_act_028'
-model_name = 'h_z_f_idm_act_107'
+model_name = 'h_z_f_act_029'
+# model_name = 'h_z_f_idm_act_107'
 epoch_count = '20'
-data_id = '027'
-episodes_n = 30
+data_id = '028'
+episodes_n = 13
 rollout_len = 50
 
-model_objs = {'h_z_f_idm_act_105': 'NeuralIDMVehicle',
-        'h_z_f_act_028': 'NeurLatentVehicle'
+model_objs = {'h_z_f_idm_act_107': 'NeuralIDMVehicle',
+        'h_z_f_act_029': 'NeurLatentVehicle'
                                         }
 if model_objs[model_name] == 'NeurLatentVehicle':
     env.neural_vehicle = NeurLatentVehicle()
@@ -58,7 +58,7 @@ for episode_id in range(501, 501+episodes_n):
 # for episode_id in [6]:
     np.random.seed(episode_id)
     env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
-    for trace in range(1):
+    for trace in range(2):
         env.initialize_env(episode_id)
         tf.random.set_seed(trace) # each trace has a unique seed
         for i in range(0, history_len+env.transition_time+rollout_len):
