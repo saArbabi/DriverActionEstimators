@@ -17,6 +17,8 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
+    env.transition_time = 10
+
     episode_id = 519
     env.initialize_env(episode_id)
     # model_name = 'h_z_f_act_028'

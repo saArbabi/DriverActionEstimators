@@ -141,7 +141,7 @@ class EnvMergeMC(EnvMerge):
         """ steps the environment forward in time.
         """
         # self.remove_vehicles_outside_bound()
-        if self.time_step == 0:
+        if self.time_step == self.transition_time:
             self.neuralize_vehicle_type()
         acts_real, acts_ima = self.get_joint_action()
         for veh_real, veh_ima, act_real, act_ima in zip(
