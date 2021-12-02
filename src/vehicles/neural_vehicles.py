@@ -112,8 +112,9 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
     def belief_update(self, proj_belief):
         self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 64])
-        if self.time_lapse_since_last_param_update == 0:
-            self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
+        # if self.time_lapse_since_last_param_update == 0:
+            # self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
+        self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
 
     def names_to_index(self, col_names):
         if type(col_names) == list:

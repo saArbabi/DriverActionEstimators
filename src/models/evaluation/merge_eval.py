@@ -39,17 +39,22 @@ env.metric_collection_mode = True
 model_name = 'h_z_f_idm_act_105'
 epoch_count = '30'
 data_id = '027'
-episodes_n = 100
-# env.neural_vehicle = MLPVehicle()
-# env.neural_vehicle = LSTMVehicle()
-# env.neural_vehicle = NeurLatentVehicle()
-env.neural_vehicle = NeuralIDMVehicle()
+episodes_n = 30
+
+model_objs = {'h_z_f_idm_act_105': 'NeuralIDMVehicle',
+        'h_z_f_act_028': 'NeurLatentVehicle'
+                                        }
+if model_objs[model_name] == 'NeurLatentVehicle':
+    env.neural_vehicle = NeurLatentVehicle()
+elif model_objs[model_name] == 'NeuralIDMVehicle':
+    env.neural_vehicle = NeuralIDMVehicle()
+
 env.neural_vehicle.initialize_agent(
                 model_name, epoch_count, data_id)
 
 for episode_id in range(501, 501+episodes_n):
 # for episode_id in [6]:
-    for trace in range(3):
+    for trace in range(1):
         env.initialize_env(episode_id)
         # env.neural_vehicle = NeurLatentOneStepVehicle()
         # env.neural_vehicle = LSTMVehicle()
@@ -104,3 +109,5 @@ if not os.path.exists(exp_dir+'/real_collection.pickle'):
     if collision_log:
         with open(exp_dir+'/collision_log.pickle', 'wb') as handle:
             pickle.dump(collision_log, handle)
+else:
+    print('Eval folder already exists')

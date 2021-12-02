@@ -17,20 +17,25 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    episode_id = 501
+    episode_id = 519
     env.initialize_env(episode_id)
     # model_name = 'h_z_f_act_028'
     model_name = 'h_z_f_idm_act_105'
     epoch_count = '20'
     data_id = '027'
-    # env.neural_vehicle = MLPVehicle()
-    # env.neural_vehicle = NeurLatentVehicle()
-    # env.neural_vehicle = LSTMVehicle()
-    env.neural_vehicle = NeuralIDMVehicle()
+
+    model_objs = {'h_z_f_idm_act_105': 'NeuralIDMVehicle',
+            'h_z_f_act_028': 'NeurLatentVehicle'
+                                            }
+    if model_objs[model_name] == 'NeurLatentVehicle':
+        env.neural_vehicle = NeurLatentVehicle()
+    elif model_objs[model_name] == 'NeuralIDMVehicle':
+        env.neural_vehicle = NeuralIDMVehicle()
+
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
     viewer = ViewerMC(config)
-    tf.random.set_seed(10)
+    tf.random.set_seed(0)
     env.debugging_mode = True
     # env.debugging_mode = False
     while True:

@@ -137,7 +137,7 @@ train_examples.shape
 Load model (with config file)
 """
 model_name = 'h_z_f_idm_act_105'
-epoch_count = '30'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -263,7 +263,7 @@ distribution_name = 'prior'
 # for i in sepcific_examples:
 # for i in [2815]:
 # for i in bad_examples[0]:
-while Example_pred < 15:
+while Example_pred < 10:
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
     # sample_index = [i]

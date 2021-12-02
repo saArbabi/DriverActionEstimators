@@ -41,6 +41,11 @@ for model_name in model_names:
     snips_pred[model_name] = [] # shape: (car_count, 1, steps_n, 9)
 for model_name in model_names:
     for epis_id, epis_dic in real_collections[model_name].items():
+        if epis_id in [508, 516]:
+            continue
+        # if epis_id != 503:
+            # continue
+
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
@@ -62,31 +67,34 @@ snips_true['h_z_f_idm_act_105'].shape
 
 # %%
 """
-Vis speeds true vs pred
+Vis true vs pred state for mmodels. 
 """
-state_index = indxs['act_long']
-model_name = 'h_z_f_idm_act_105'
-model_name = 'h_z_f_act_028'
-
+# state_index = indxs['act_long']
+state_index = indxs['speed']
+# model_name = 'h_z_f_idm_act_105'
+# model_name = 'h_z_f_act_028'
 error_squared = []
-for i in range(12):
+
+for i in range(30):
     plt.figure()
-    for trace in range(3):
-        epis_id = snips_true[model_name][i,0,0,1]
-        veh_id = snips_true[model_name][i,0,0,2]
-        state_true = snips_true[model_name][i,0,:,state_index]
-        state_pred = snips_pred[model_name][i,trace,:,state_index]
-        error_squared.append((state_true-state_pred)**2)
-        plt.plot(state_true, color='red')
-        plt.plot(state_pred, color='grey')
-        plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
-                                                    '   Veh_id:'+str(veh_id))
+    epis_id = snips_true[model_names[0]][i,0,0,1]
+    veh_id = snips_true[model_names[0]][i,0,0,2]
+    state_true = snips_true[model_names[0]][i,0,:,state_index]
+    plt.plot(state_true, color='red')
+    plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
+                                                '   Veh_id:'+str(veh_id))
+    for model_name in model_names:
+        for trace in range(1):
+            state_pred = snips_pred[model_name][i,trace,:,state_index]
+            plt.plot(state_pred, label=model_name)
+    plt.legend()
+
 # %%
 """
 Vis speeds true vs pred for specific vehicle trace
 """
-state_true = snips_true['test2'][10,0,:,state_index]
-state_pred = snips_pred['test2'][10,0,:,state_index]
+state_true = snips_true[model_name][2,0,:,state_index]
+state_pred = snips_pred[model_name][2,0,:,state_index]
 plt.plot(state_true, color='red')
 plt.plot(state_pred, color='grey')
 plt.scatter(range(steps_n), state_true, color='red')
@@ -111,28 +119,31 @@ plt.legend()
 rwse methods
 """
 # plt.plot(xposition_error)
-def per_veh_rwse(pred_traces, true_trace):
+def trace_err(pred_traces, true_trace):
     """
     Input shpae [trace_n, steps_n]
     Return shape [1, steps_n]
     """
     # mean across traces (axis=0)
-    return np.mean((pred_traces - true_trace)**2, axis=0)**0.5
+    return np.mean((pred_traces - true_trace)**2, axis=0)
 
-def get_rwse(index, model_name):
+def veh_err(index, model_name):
+    """
+    Input shpae [veh_n, trace_n, steps_n, state_index]
+    Return shape [veh_n, steps_n]
+    """
     posx_true = snips_true[model_name][:,:,:,index]
     posx_pred = snips_pred[model_name][:,:,:,index]
 
-    rwse_collection = []
+    vehs_err_arr = [] # vehicles error array
     veh_n = snips_true[model_name].shape[0]
     for i in range(veh_n):
-        rwse_collection.append(per_veh_rwse(posx_pred[i, :, :], posx_true[i, :, :]))
-    rwse_collection = np.array(rwse_collection)
-    # mean across snippets (axis=0)
+        vehs_err_arr.append(trace_err(posx_pred[i, :, :], posx_true[i, :, :]))
+    return np.array(vehs_err_arr)
 
-    error_total = np.mean(rwse_collection, axis=0)
-    return error_total
-
+def get_rwse(vehs_err_arr):
+    # mean across all snippets (axis=0)
+    return np.mean(vehs_err_arr, axis=0)**0.5
 # %%
 """visualise traj for debugging
 """
@@ -186,9 +197,10 @@ position_axis = fig.add_subplot(211)
 speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.05)
 # for model_name in model_names:
-for model_name, label in zip(model_names, model_names):
-    error_total = get_rwse(indxs['glob_x'], model_name)
-    position_axis.plot(time_vals, error_total, label=label)
+for model_name in model_names:
+    vehs_err_arr = veh_err(indxs['glob_x'], model_name)
+    error_total = get_rwse(vehs_err_arr)
+    position_axis.plot(time_vals, error_total, label=model_name)
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 
 # legends = ['NIDM', 'Latent-Seq', 'Latent-Single', 'Latent-Single-o']
@@ -198,15 +210,17 @@ position_axis.legend(model_names)
 position_axis.minorticks_off()
 # position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
-# 9%%
+# 0%%
 """
 rwse speed
 """
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 
-for model_name, label in zip(model_names, model_names):
-    error_total = get_rwse(indxs['speed'], model_name)
-    speed_axis.plot(time_vals, error_total, label=label)
+for model_name in model_names:
+    vehs_err_arr = veh_err(indxs['speed'], model_name)
+    error_total = get_rwse(vehs_err_arr)
+    speed_axis.plot(time_vals, error_total, label=model_name)
+
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
@@ -215,9 +229,11 @@ speed_axis.minorticks_off()
 # speed_axis.legend(legends)
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
 # plt.savefig("rwse.png", dpi=500)
-
-
-
+# %%
+# vehs_err_arr = veh_err(indxs['speed'], model_names[1])
+# error_total = get_rwse(vehs_err_arr)
+# vehs_err_arr.mean()
+# vehs_err_arr.mean()
 # %%
 """
 gap dist
