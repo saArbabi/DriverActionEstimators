@@ -220,7 +220,6 @@ position_axis.set_xticklabels([])
 rwse speed
 """
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
-
 for model_name in model_names:
     vehs_err_arr = veh_err(indxs['speed'], model_name)
     error_total = get_rwse(vehs_err_arr)
