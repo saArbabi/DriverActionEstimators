@@ -18,9 +18,8 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_028'
-    # model_name = 'neural_idm_107'
-    model_name = 'latent_mlp_01'
-    epoch_count = '15'
+    model_name = 'neural_idm_107'
+    # model_name = 'latent_mlp_01'
     data_id = '028'
 
     model_vehicle_map = {'neural_idm_107': 'NeuralIDMVehicle',
@@ -28,12 +27,15 @@ def main():
             'latent_mlp_01': 'LatentMLPVehicle'
                                             }
     if model_vehicle_map[model_name] == 'NeuralVehicle':
+        epoch_count = '20'
         from vehicles.neural.neural_vehicle import NeuralVehicle
         env.neural_vehicle = NeuralVehicle()
     elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
+        epoch_count = '20'
         from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
     elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
+        epoch_count = '15'
         from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
         env.neural_vehicle = LatentMLPVehicle()
 

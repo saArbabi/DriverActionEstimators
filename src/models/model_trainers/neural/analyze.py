@@ -133,7 +133,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_028'
+model_name = 'neural_029'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -141,7 +141,7 @@ with open(exp_dir+'/'+'config.json', 'rb') as handle:
     config = json.load(handle)
     print(json.dumps(config, ensure_ascii=False, indent=4))
 
-from models.core import neural 
+from models.core import neural
 reload(neural )
 from models.core.neural  import  NeurLatentModel
 model = NeurLatentModel(config)

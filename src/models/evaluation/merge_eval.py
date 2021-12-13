@@ -31,8 +31,8 @@ time_start = time.time()
 # for episode_id in [6]:
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
-# model_name = 'neural_029'
-model_name = 'neural_idm_107'
+model_name = 'neural_029'
+# model_name = 'neural_idm_107'
 # model_name = 'latent_mlp_01'
 data_id = '028'
 episodes_n = 13

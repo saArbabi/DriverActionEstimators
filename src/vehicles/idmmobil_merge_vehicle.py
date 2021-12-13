@@ -119,7 +119,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         """Several scenarios are possible:
         (1) Ego attends because merger has entered its lane
         (2) Ego attends following the cooperative idm
-        (2) Ego attends for safety
+        (3) Ego attends for safety
         """
         if (self.glob_x > m_veh.glob_x) or (f_veh.glob_x < m_veh.glob_x) \
                             or (m_veh.glob_x < self.ramp_entrance_x) \

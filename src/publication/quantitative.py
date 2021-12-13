@@ -71,13 +71,13 @@ Vis true vs pred state for models.
 Note:
 Models being compared qualitatively must have the same history_len.
 """
-# state_index = indxs['act_long']
-state_index = indxs['speed']
+state_index = indxs['act_long']
+# state_index = indxs['speed']
 # model_name = 'neural_idm_105'
 # model_name = 'neural_028'
 error_squared = []
 
-for i in range(30):
+for i in range(40):
     plt.figure()
     epis_id = snips_true[model_names[0]][i,0,0,1]
     veh_id = snips_true[model_names[0]][i,0,0,2]
@@ -224,7 +224,7 @@ rwse speed
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['speed'], model_name)
-    error_total = g et_rwse(vehs_err_arr)
+    error_total = get_rwse(vehs_err_arr)
     speed_axis.plot(time_vals, error_total, label=model_name)
 
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
