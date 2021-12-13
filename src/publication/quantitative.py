@@ -20,8 +20,8 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
-model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
-# model_names = ['neural_idm_105', 'neural_028']
+# model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
+model_names = ['neural_idm_107', 'neural_029']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -86,7 +86,7 @@ for i in range(30):
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
     for model_name in model_names:
-        if model_name == 'latent_mlp_01':
+        if model_name == 'neural_idm_107':
             color = 'blue'
         else:
             color = 'orange'
@@ -126,7 +126,7 @@ plt.legend()
 rwse methods
 """
 # plt.plot(xposition_error)
-def trace_err(pred_traces, true_trace):
+def get_trace_err(pred_traces, true_trace):
     """
     Input shpae [trace_n, steps_n]
     Return shape [1, steps_n]
@@ -134,7 +134,7 @@ def trace_err(pred_traces, true_trace):
     # mean across traces (axis=0)
     return np.mean((pred_traces - true_trace)**2, axis=0)
 
-def veh_err(index, model_name):
+def get_veh_err(index, model_name):
     """
     Input shpae [veh_n, trace_n, steps_n, state_index]
     Return shape [veh_n, steps_n]
@@ -145,7 +145,7 @@ def veh_err(index, model_name):
     vehs_err_arr = [] # vehicles error array
     veh_n = snips_true[model_name].shape[0]
     for i in range(veh_n):
-        vehs_err_arr.append(trace_err(posx_pred[i, :, :], posx_true[i, :, :]))
+        vehs_err_arr.append(get_trace_err(posx_pred[i, :, :], posx_true[i, :, :]))
     return np.array(vehs_err_arr)
 
 def get_rwse(vehs_err_arr):
@@ -205,7 +205,7 @@ speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.05)
 # for model_name in model_names:
 for model_name in model_names:
-    vehs_err_arr = veh_err(indxs['glob_x'], model_name)
+    vehs_err_arr = get_veh_err(indxs['glob_x'], model_name)
     error_total = get_rwse(vehs_err_arr)
     position_axis.plot(time_vals, error_total, label=model_name)
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
@@ -223,8 +223,8 @@ rwse speed
 """
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 for model_name in model_names:
-    vehs_err_arr = veh_err(indxs['speed'], model_name)
-    error_total = get_rwse(vehs_err_arr)
+    vehs_err_arr = get_veh_err(indxs['speed'], model_name)
+    error_total = g et_rwse(vehs_err_arr)
     speed_axis.plot(time_vals, error_total, label=model_name)
 
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
@@ -236,7 +236,7 @@ speed_axis.minorticks_off()
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
 # plt.savefig("rwse.png", dpi=500)
 # %%
-# vehs_err_arr = veh_err(indxs['speed'], model_names[1])
+# vehs_err_arr = get_veh_err(indxs['speed'], model_names[1])
 # error_total = get_rwse(vehs_err_arr)
 # vehs_err_arr.mean()
 # vehs_err_arr.mean()

@@ -156,13 +156,13 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def get_neur_att(self, att_context):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 5
+        attention_temp = 20
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
         return att_score
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs
-        if self.time_lapse_since_last_param_update % self.history_len == 0:
+        if self.time_lapse_since_last_param_update == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
@@ -180,7 +180,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             #     # print(np.array2string(obs_history, separator=','))
             #
             #     print(obs_t0)
-            self.time_lapse_since_last_param_update = 0
+            # self.time_lapse_since_last_param_update = 0
         self.time_lapse_since_last_param_update += 1
 
         env_state = self.scale_state(obs_t0, 'env_state')
@@ -188,10 +188,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         att_context = tf.concat([self.proj_latent, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
         att_score = self.get_neur_att(att_context)
-        # att_score = 0
-        # print(att_score)
         att_score = att_score[0][0][0]
-        # att_score = att_score[0][0][0]*self.m_veh_exists
         self.att = att_score
         ef_act = self.idm_action(self, self.neighbours['f'])
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
