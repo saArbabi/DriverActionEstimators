@@ -62,16 +62,16 @@ class Trainer():
             from models.core.neural_idm import  NeurIDMModel
             self.model = NeurIDMModel(config)
 
-        elif self.model_name == 'h_z_f_act':
-            from models.core import h_z_f_act
-            reload(h_z_f_act)
-            from models.core.h_z_f_act import  NeurLatentModel
+        elif self.model_name == 'neural ':
+            from models.core import neural 
+            reload(neural )
+            from models.core.neural  import  NeurLatentModel
             self.model = NeurLatentModel(config)
 
         elif self.model_name == 'h_lat_act':
-            from models.core import h_z_f_act
-            reload(h_z_f_act)
-            from models.core.h_z_f_act import NeurLatentModelOneStep
+            from models.core import neural 
+            reload(neural )
+            from models.core.neural  import NeurLatentModelOneStep
             self.model = NeurLatentModelOneStep(config)
 
         with open('./models/experiments/env_scaler_024.pickle', 'rb') as handle:
@@ -147,8 +147,8 @@ class Trainer():
             print('This model is already saved')
 
 
-model_trainer = Trainer(data_arrays, model_type='cvae', model_name='h_z_f_act')
-# exp_dir = './models/experiments/'+'h_z_f_act009_epo_15'+'/model'
+model_trainer = Trainer(data_arrays, model_type='cvae', model_name='neural ')
+# exp_dir = './models/experiments/'+'neural 009_epo_15'+'/model'
 # model_trainer.model.load_weights(exp_dir).expect_partial()
 # model_trainer.train(epochs=1)
 # model_trainer.test_mseloss
@@ -219,7 +219,7 @@ print(model_trainer.test_mseloss[-1])
 
 #
 # %%
-model_trainer.save_model('h_z_f_act', '017')
+model_trainer.save_model('neural ', '017')
 
 # %%
 """

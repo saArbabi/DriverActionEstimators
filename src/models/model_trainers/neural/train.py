@@ -42,16 +42,10 @@ config = {
     "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 1.,
-    "attention_temp": 5,
     "latent_dim": 6,
     },
-     "data": {
-     "dataset_name": dataset_name,
-     "history_len": history_len,
-     "rollout_len": rollout_len,
-     },
     "Note": ""
-    }
+}
 
 class Trainer():
     def __init__(self):
@@ -64,11 +58,10 @@ class Trainer():
         self.initiate_model()
 
     def initiate_model(self):
-        from models.core import neural_idm
-        reload(neural_idm)
-        from models.core.neural_idm import  NeurIDMModel
-        self.model = NeurIDMModel(config)
-
+        from models.core import neural
+        reload(neural )
+        from models.core.neural  import  NeurLatentModel
+        self.model = NeurLatentModel(config)
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
 
@@ -130,11 +123,10 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '107'
-model_name = 'h_z_f_idm_act_'+exp_id
+exp_id = '029'
+model_name = 'neural _'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
-train_input, val_input = model_trainer.prep_data(data_arrays)
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='20')
 # %%
@@ -177,4 +169,3 @@ print(model_trainer.test_mseloss[-1])
 # %%
 model_trainer.save_model()
 model_trainer.save_loss()
-# %%

@@ -36,15 +36,15 @@ time_start = time.time()
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
 history_len = 30
-model_name = 'h_z_f_act_029'
-# model_name = 'h_z_f_idm_act_107'
+model_name = 'neural _029'
+# model_name = 'neural_idm_107'
 epoch_count = '20'
 data_id = '028'
 episodes_n = 13
 rollout_len = 50
 
-model_objs = {'h_z_f_idm_act_107': 'NeuralIDMVehicle',
-        'h_z_f_act_029': 'NeurLatentVehicle'
+model_objs = {'neural_idm_107': 'NeuralIDMVehicle',
+        'neural _029': 'NeurLatentVehicle'
                                         }
 if model_objs[model_name] == 'NeurLatentVehicle':
     env.neural_vehicle = NeurLatentVehicle()

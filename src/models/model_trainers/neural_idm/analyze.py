@@ -136,7 +136,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'h_z_f_idm_act_107'
+model_name = 'neural_idm_107'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -178,8 +178,8 @@ plt.grid()
 Compare losses
 """
 losses = {}
-# for name in ['h_z_f_idm_act_105', 'h_z_f_idm_act_106']:
-for name in ['h_z_f_idm_act_107']:
+# for name in ['neural_idm_105', 'neural_idm_106']:
+for name in ['neural_idm_107']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 

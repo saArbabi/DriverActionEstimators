@@ -238,7 +238,7 @@ class NeurLatentVehicle(NeuralIDMVehicle):
         super().__init__()
 
     def load_model(self, config, exp_path):
-        from models.core.h_z_f_act import NeurLatentModel
+        from models.core.neural  import NeurLatentModel
         self.model = NeurLatentModel(config)
         self.model.load_weights(exp_path).expect_partial()
 
@@ -281,7 +281,7 @@ class NeurLatentOneStepVehicle(NeurLatentVehicle):
         with open('./models/experiments/dummy_value_set.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
-        from models.core.h_z_f_act import NeurLatentModel
+        from models.core.neural  import NeurLatentModel
         self.model = NeurLatentModel()
         exp_dir = './models/experiments/'+'h_lat_act_epo_10'+'/model'
         self.model.load_weights(exp_dir).expect_partial()

@@ -1,0 +1,14 @@
+[1] mlp_vehicle
+
+[2] lstm_vehicle
+
+[3] latent_mlp_vehicle
+This is a vehicle using a VAE-based model
+Architecture from paper "Simultaneous Policy Learning and Latent State Inference
+for Imitating Driver Behavior". Note training data is not the same. 
+
+[4] neural_vehicle
+
+[5] neural_idm_vehicle
+Same as [4] but without the idm.
+

@@ -22,13 +22,13 @@ def main():
     env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
 
     env.initialize_env(episode_id)
-    # model_name = 'h_z_f_act_028'
-    model_name = 'h_z_f_idm_act_107'
+    # model_name = 'neural _028'
+    model_name = 'neural_idm_107'
     epoch_count = '20'
     data_id = '028'
 
-    model_objs = {'h_z_f_idm_act_107': 'NeuralIDMVehicle',
-            'h_z_f_act_029': 'NeurLatentVehicle'
+    model_objs = {'neural_idm_107': 'NeuralIDMVehicle',
+            'neural _029': 'NeurLatentVehicle'
                                             }
     if model_objs[model_name] == 'NeurLatentVehicle':
         env.neural_vehicle = NeurLatentVehicle()

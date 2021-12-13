@@ -20,8 +20,8 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
-model_names = ['h_z_f_idm_act_107', 'h_z_f_act_029']
-# model_names = ['h_z_f_idm_act_105', 'h_z_f_act_028']
+model_names = ['neural_idm_107', 'neural _029']
+# model_names = ['neural_idm_105', 'neural _028']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -63,7 +63,7 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-# snips_pred['h_z_f_idm_act_107'].shape
+# snips_pred['neural_idm_107'].shape
 
 # %%
 """
@@ -71,8 +71,8 @@ Vis true vs pred state for mmodels.
 """
 # state_index = indxs['act_long']
 state_index = indxs['speed']
-# model_name = 'h_z_f_idm_act_105'
-# model_name = 'h_z_f_act_028'
+# model_name = 'neural_idm_105'
+# model_name = 'neural _028'
 error_squared = []
 
 for i in range(30):
@@ -84,7 +84,7 @@ for i in range(30):
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
     for model_name in model_names:
-        if model_name == 'h_z_f_idm_act_107':
+        if model_name == 'neural_idm_107':
             color = 'blue'
         else:
             color = 'orange'
