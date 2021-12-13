@@ -66,5 +66,4 @@ class LatentMLPVehicle(NeuralIDMVehicle):
 
         _mean, _var = self.model.forward_sim.get_dis(_context)
         act_long = tfd.Normal(_mean, _var, name='Normal').sample().numpy()
-        print(act_long)
         return act_long[0][0][0]
