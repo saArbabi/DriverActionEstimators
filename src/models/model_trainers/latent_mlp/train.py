@@ -41,7 +41,7 @@ config = {
     "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 0.05,
-    "latent_dim": 6,
+    "latent_dim": 3,
     },
     "Note": ""
 }
@@ -136,7 +136,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=2)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
