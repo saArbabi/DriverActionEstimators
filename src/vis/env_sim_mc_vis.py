@@ -8,7 +8,6 @@ sys.path.insert(0, './src')
 from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
-from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
 import tensorflow as tf
 
 def main():
@@ -22,21 +21,28 @@ def main():
     env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
 
     env.initialize_env(episode_id)
-    # model_name = 'neural _028'
-    model_name = 'neural_idm_107'
-    epoch_count = '20'
+    # vehicle_name = 'neural_028'
+    # vehicle_name = 'neural_idm_107'
+    vehicle_name = 'latent_mlp_01'
+    epoch_count = '15'
     data_id = '028'
 
-    model_objs = {'neural_idm_107': 'NeuralIDMVehicle',
-            'neural _029': 'NeurLatentVehicle'
+    model_vehicle_map = {'neural_idm_107': 'NeuralIDMVehicle',
+            'neural_029': 'NeuralVehicle',
+            'latent_mlp_01': 'LatentMLPVehicle'
                                             }
-    if model_objs[model_name] == 'NeurLatentVehicle':
-        env.neural_vehicle = NeurLatentVehicle()
-    elif model_objs[model_name] == 'NeuralIDMVehicle':
+    if model_vehicle_map[vehicle_name] == 'NeuralVehicle':
+        from vehicles.neural.neural_vehicle import NeuralVehicle
+        env.neural_vehicle = NeuralVehicle()
+    elif model_vehicle_map[vehicle_name] == 'NeuralIDMVehicle':
+        from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
+    elif model_vehicle_map[vehicle_name] == 'LatentMLPVehicle':
+        from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
+        env.neural_vehicle = LatentMLPVehicle()
 
     env.neural_vehicle.initialize_agent(
-                        model_name, epoch_count, data_id)
+                        vehicle_name, epoch_count, data_id)
     viewer = ViewerMC(config)
     tf.random.set_seed(0)
     env.debugging_mode = True

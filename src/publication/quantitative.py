@@ -20,8 +20,8 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
-model_names = ['neural_idm_107', 'neural _029']
-# model_names = ['neural_idm_105', 'neural _028']
+model_names = ['neural_idm_107', 'neural_029']
+# model_names = ['neural_idm_105', 'neural_028']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -72,7 +72,7 @@ Vis true vs pred state for mmodels.
 # state_index = indxs['act_long']
 state_index = indxs['speed']
 # model_name = 'neural_idm_105'
-# model_name = 'neural _028'
+# model_name = 'neural_028'
 error_squared = []
 
 for i in range(30):

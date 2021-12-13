@@ -63,7 +63,7 @@ class Trainer():
     def initiate_model(self):
         from models.core import latent_mlp
         reload(latent_mlp)
-        from models.core.latent_mlp import  LatentMLP
+        from models.core.latent_mlp import LatentMLP
         self.model = LatentMLP(config)
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)

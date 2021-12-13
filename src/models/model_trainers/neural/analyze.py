@@ -133,7 +133,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural _028'
+model_name = 'neural_028'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)

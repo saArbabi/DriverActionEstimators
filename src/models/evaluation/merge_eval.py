@@ -14,7 +14,7 @@ from importlib import reload
 import tensorflow as tf
 from vehicles import neural_vehicles
 reload(neural_vehicles)
-from vehicles.neural_vehicles import NeuralIDMVehicle, NeurLatentVehicle
+from vehicles.neural.neural_vehicles import NeuralIDMVehicle, NeuralVehicle
 
 from envs import merge_mc
 reload(merge_mc)
@@ -36,7 +36,7 @@ time_start = time.time()
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
 history_len = 30
-model_name = 'neural _029'
+model_name = 'neural_029'
 # model_name = 'neural_idm_107'
 epoch_count = '20'
 data_id = '028'
@@ -44,10 +44,10 @@ episodes_n = 13
 rollout_len = 50
 
 model_objs = {'neural_idm_107': 'NeuralIDMVehicle',
-        'neural _029': 'NeurLatentVehicle'
+        'neural_029': 'NeuralVehicle'
                                         }
-if model_objs[model_name] == 'NeurLatentVehicle':
-    env.neural_vehicle = NeurLatentVehicle()
+if model_objs[model_name] == 'NeuralVehicle':
+    env.neural_vehicle = NeuralVehicle()
 elif model_objs[model_name] == 'NeuralIDMVehicle':
     env.neural_vehicle = NeuralIDMVehicle()
 
