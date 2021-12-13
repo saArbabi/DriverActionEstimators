@@ -12,9 +12,7 @@ tfd = tfp.distributions
 class LatentMLP(AbstractModel):
     def __init__(self, config):
         super(LatentMLP, self).__init__(config)
-        self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
-        self.act_encoder = FutureEncoder() # sdv's future action
         self.belief_net = BeliefModel(config)
         self.forward_sim = ForwardSim()
         self.vae_loss_weight = config['model_config']['vae_loss_weight']
@@ -29,32 +27,31 @@ class LatentMLP(AbstractModel):
         likelihood = pred_dis.log_prob(act_true)
         return -tf.reduce_mean(likelihood)
 
-    def kl_loss(self, pri_params, pos_params):
-        pri_mean, pri_logsigma = pri_params
+    def kl_loss(self, pos_params):
         pos_mean, pos_logsigma = pos_params
 
-        prior = tfd.Normal(loc=pri_mean, scale=tf.exp(pri_logsigma))
+        prior = tfd.Normal(loc=tf.zeros(self.belief_net.latent_dim), scale=1)
         posterior = tfd.Normal(loc=pos_mean, scale=tf.exp(pos_logsigma))
-        return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
+        return tf.reduce_mean(tfd.kl_divergence(posterior, prior))
 
     def train_loop(self, data_objs):
         # tf.print('######## TRAIN #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
-            self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
+        for history_sca, _, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
+            self.train_step([history_sca, future_idm_s, future_m_veh_c], future_ego_a)
 
     def test_loop(self, data_objs, epoch):
         # tf.print('######## TEST #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
-            self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
+        for history_sca, _, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
+            self.test_step([history_sca, future_idm_s, future_m_veh_c], future_ego_a)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            act_dis, pri_params, pos_params = self(states)
+            act_dis, pos_params = self(states)
             ll_loss = self.log_loss(targets, act_dis)
-            kl_loss = self.kl_loss(pri_params, pos_params)
+            kl_loss = self.kl_loss(pos_params)
             loss = self.vae_loss(ll_loss, kl_loss)
 
         gradients = tape.gradient(loss, self.trainable_variables)
@@ -66,9 +63,9 @@ class LatentMLP(AbstractModel):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        act_dis, pri_params, pos_params = self(states)
+        act_dis, pos_params = self(states)
         ll_loss = self.log_loss(targets, act_dis)
-        kl_loss = self.kl_loss(pri_params, pos_params)
+        kl_loss = self.kl_loss(pos_params)
         loss = self.vae_loss(ll_loss, kl_loss)
         self.test_llloss.reset_states()
         self.test_klloss.reset_states()
@@ -79,16 +76,15 @@ class LatentMLP(AbstractModel):
         return  self.vae_loss_weight*kl_loss + ll_loss
 
     def call(self, inputs):
+        # inputs: [history_sca, future_idm_s, future_m_veh_c]
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
-        enc_f = self.f_seq_encoder(inputs[1])
-
-        pri_params, pos_params = self.belief_net(\
-                                [enc_h, enc_f], dis_type='both')
+        pos_params = self.belief_net(enc_h)
         sampled_z = self.belief_net.sample_z(pos_params)
-        proj_belief = self.belief_net.belief_proj(sampled_z)
-        mean_seq, var_seq = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
-        act_dis = tfp.distributions.Normal(mean_seq, var_seq, name='Normal')
-        return act_dis, pri_params, pos_params
+        batch_size = tf.shape(inputs[0])[0]
+        sampled_z = tf.reshape(sampled_z, [batch_size, 1, self.belief_net.latent_dim])
+        mean_seq, var_seq = self.forward_sim.rollout([sampled_z, inputs[1], inputs[-1]])
+        act_dis = tfd.Normal(mean_seq, var_seq, name='Normal')
+        return act_dis, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
@@ -124,29 +120,12 @@ class BeliefModel(tf.keras.Model):
         x = self.proj_layer_3(x)
         return x
 
-    def call(self, inputs, dis_type):
-        if dis_type == 'both':
-            enc_h, enc_f = inputs
-            # prior
-            pri_context = self.pri_projection(enc_h)
-            pri_mean = self.pri_mean(pri_context)
-            pri_logsigma = self.pri_logsigma(pri_context)
-
-            # posterior
-            pos_context = self.pos_projection(tf.concat([enc_h, enc_f], axis=-1))
-            pos_mean = self.pos_mean(pos_context)
-            pos_logsigma = self.pos_logsigma(pos_context)
-
-            pri_params = [pri_mean, pri_logsigma]
-            pos_params = [pos_mean, pos_logsigma]
-            return pri_params, pos_params
-
-        elif dis_type == 'prior':
-            pri_context = self.pri_projection(inputs)
-            pri_mean = self.pri_mean(pri_context)
-            pri_logsigma = self.pri_logsigma(pri_context)
-            pri_params = [pri_mean, pri_logsigma]
-            return pri_params
+    def call(self, inputs):
+        # posterior
+        pos_mean = self.pos_mean(inputs)
+        pos_logsigma = self.pos_logsigma(inputs)
+        pos_params = [pos_mean, pos_logsigma]
+        return pos_params
 
 class HistoryEncoder(tf.keras.Model):
     def __init__(self):
@@ -159,19 +138,6 @@ class HistoryEncoder(tf.keras.Model):
     def call(self, inputs):
         enc_h = self.lstm_layer(inputs)
         return enc_h
-
-class FutureEncoder(tf.keras.Model):
-    def __init__(self):
-        super(FutureEncoder, self).__init__(name="FutureEncoder")
-        self.enc_units = 128
-        self.architecture_def()
-
-    def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
-
-    def call(self, inputs):
-        enc_acts = self.lstm_layer(inputs)
-        return enc_acts
 
 class ForwardSim(tf.keras.Model):
     def __init__(self):
@@ -197,9 +163,7 @@ class ForwardSim(tf.keras.Model):
         return env_state
 
     def rollout(self, inputs):
-        proj_belief, idm_s, merger_cs = inputs
-        batch_size = tf.shape(idm_s)[0]
-        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        sampled_z, idm_s, merger_cs = inputs
 
         for step in range(30):
             f_veh_v = idm_s[:, step:step+1, 1:2]
@@ -235,8 +199,8 @@ class ForwardSim(tf.keras.Model):
             merger_c = tf.concat([merger_cs[:, step:step+1, :], m_veh_exists], axis=-1)
 
             _mean, _var = self.get_dis(tf.concat([\
-                                    proj_latent, env_state, merger_c], axis=-1))
-            _act = tfp.distributions.Normal(_mean, _var, name='Normal').sample()
+                                    sampled_z, env_state, merger_c], axis=-1))
+            _act = tfd.Normal(_mean, _var, name='Normal').sample()
             if step == 0:
                 mean_seq = _mean
                 var_seq = _var
