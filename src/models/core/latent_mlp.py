@@ -150,7 +150,7 @@ class ForwardSim(tf.keras.Model):
     def rollout(self, inputs):
         sampled_z, idm_s, merger_cs = inputs
 
-        for step in range(30):
+        for step in range(50):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]

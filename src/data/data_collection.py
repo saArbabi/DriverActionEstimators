@@ -94,8 +94,8 @@ sim_data.shape
 """
 Prepare data
 """
-history_len = 30 # steps
-rollout_len = 30
+history_len = 50 # steps
+rollout_len = 50
 from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
