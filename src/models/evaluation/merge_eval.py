@@ -32,26 +32,27 @@ time_start = time.time()
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
 # model_name = 'neural_029'
-# model_name = 'neural_idm_107'
-model_name = 'latent_mlp_01'
-epoch_count = '15'
+model_name = 'neural_idm_107'
+# model_name = 'latent_mlp_01'
 data_id = '028'
-
 episodes_n = 13
-history_len = 50
+history_len = 50 # choose this based on the model with longest history
 rollout_len = 50
 
 model_vehicle_map = {'neural_idm_107': 'NeuralIDMVehicle',
-    'neural_029': 'NeuralVehicle',
-    'latent_mlp_01': 'LatentMLPVehicle'
-                                    }
+                    'neural_029': 'NeuralVehicle',
+                    'latent_mlp_01': 'LatentMLPVehicle'
+                                                    }
 if model_vehicle_map[model_name] == 'NeuralVehicle':
+    epoch_count = '20'
     from vehicles.neural.neural_vehicle import NeuralVehicle
     env.neural_vehicle = NeuralVehicle()
 elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
+    epoch_count = '20'
     from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
     env.neural_vehicle = NeuralIDMVehicle()
 elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
+    epoch_count = '15'
     from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
     env.neural_vehicle = LatentMLPVehicle()
 
@@ -61,11 +62,12 @@ env.neural_vehicle.initialize_agent(
 for episode_id in range(501, 501+episodes_n):
 # for episode_id in [6]:
     np.random.seed(episode_id)
-    env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
+    env.transition_time = np.random.randint(\
+            history_len, history_len+50) # controller ==> 'neural'
     for trace in range(2):
         env.initialize_env(episode_id)
         tf.random.set_seed(trace) # each trace has a unique seed
-        for i in range(0, history_len+env.transition_time+rollout_len):
+        for i in range(0, env.transition_time+rollout_len):
             env.step()
             if env.collision_detected:
                 collision_id = f'{episode_id}_{trace}'

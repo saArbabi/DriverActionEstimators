@@ -28,6 +28,7 @@ class EnvMergeMC(EnvMerge):
                 imagined_vehicle.vehicle_type = 'idmmobil_merge'
             self.ima_vehicles.append(imagined_vehicle)
             self.real_vehicles.append(vehicle)
+        self.neuralize_vehicle_type()
 
     def idm_to_neural_vehicle(self, vehicle):
         neural_vehicle = copy.deepcopy(self.neural_vehicle)
@@ -84,10 +85,12 @@ class EnvMergeMC(EnvMerge):
                 #     print(veh_ima.obs_history)
                 veh_ima.update_obs_history(obs[0])
 
-                if not (veh_ima.obs_history[0,0,:] == 0).all() and \
-                                                    veh_ima.control_type != 'neural':
-                    # controller change
-                    veh_ima.control_type = 'neural'
+                if veh_ima.control_type != 'neural':
+                    if not (veh_ima.obs_history[0,0,:] == 0).all() and \
+                                        self.time_step >= self.transition_time:
+
+                        # controller change
+                        veh_ima.control_type = 'neural'
 
                 if veh_ima.control_type == 'neural':
                     # _act_long = veh_ima.act(obs)
@@ -97,11 +100,6 @@ class EnvMergeMC(EnvMerge):
                     veh_ima.act_long = act_long
                     if self.metric_collection_mode:
                         self.mc_log_info(veh_real, veh_ima)
-                else:
-                    act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
-
-            elif veh_ima.vehicle_type == 'idmmobil':
-                act_long = veh_ima.idm_action(veh_ima, veh_ima.neighbours['att'])
 
             acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
 
@@ -120,7 +118,7 @@ class EnvMergeMC(EnvMerge):
         return acts_real, acts_ima
 
     def neuralize_vehicle_type(self):
-        """Given some conditionals, it neuralizes the vehicle type.
+        """
         Note: the controller only changes when sufficient histroy is collected.
         """
         ima_vehicles = []
@@ -141,8 +139,6 @@ class EnvMergeMC(EnvMerge):
         """ steps the environment forward in time.
         """
         # self.remove_vehicles_outside_bound()
-        if self.time_step == self.transition_time:
-            self.neuralize_vehicle_type()
         acts_real, acts_ima = self.get_joint_action()
         for veh_real, veh_ima, act_real, act_ima in zip(
                                                     self.real_vehicles,

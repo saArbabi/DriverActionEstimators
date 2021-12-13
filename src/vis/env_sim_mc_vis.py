@@ -16,11 +16,7 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMergeMC(config)
-    episode_id = 510
-    np.random.seed(episode_id)
-    env.transition_time = np.random.randint(0, 50) # vehicle_type = 'neural'
 
-    env.initialize_env(episode_id)
     # model_name = 'neural_028'
     # model_name = 'neural_idm_107'
     model_name = 'latent_mlp_01'
@@ -41,8 +37,12 @@ def main():
         from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
         env.neural_vehicle = LatentMLPVehicle()
 
+    episode_id = 510
+    np.random.seed(episode_id)
+    env.transition_time = np.random.randint(50, 100) # vehicle_type = 'neural'
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
+    env.initialize_env(episode_id)
     viewer = ViewerMC(config)
     tf.random.set_seed(0)
     env.debugging_mode = True
