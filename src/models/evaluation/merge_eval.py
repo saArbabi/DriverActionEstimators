@@ -12,10 +12,6 @@ sys.path.insert(0, './src')
 # os.getcwd()
 from importlib import reload
 import tensorflow as tf
-from vehicles import neural_vehicles
-reload(neural_vehicles)
-from vehicles.neural.neural_vehicles import NeuralIDMVehicle, NeuralVehicle
-
 from envs import merge_mc
 reload(merge_mc)
 from envs.merge_mc import EnvMergeMC
@@ -35,21 +31,29 @@ time_start = time.time()
 # for episode_id in [6]:
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
-history_len = 30
-model_name = 'neural_029'
+# model_name = 'neural_029'
 # model_name = 'neural_idm_107'
-epoch_count = '20'
+model_name = 'latent_mlp_01'
+epoch_count = '15'
 data_id = '028'
+
 episodes_n = 13
+history_len = 50
 rollout_len = 50
 
-model_objs = {'neural_idm_107': 'NeuralIDMVehicle',
-        'neural_029': 'NeuralVehicle'
-                                        }
-if model_objs[model_name] == 'NeuralVehicle':
+model_vehicle_map = {'neural_idm_107': 'NeuralIDMVehicle',
+    'neural_029': 'NeuralVehicle',
+    'latent_mlp_01': 'LatentMLPVehicle'
+                                    }
+if model_vehicle_map[model_name] == 'NeuralVehicle':
+    from vehicles.neural.neural_vehicle import NeuralVehicle
     env.neural_vehicle = NeuralVehicle()
-elif model_objs[model_name] == 'NeuralIDMVehicle':
+elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
+    from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
     env.neural_vehicle = NeuralIDMVehicle()
+elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
+    from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
+    env.neural_vehicle = LatentMLPVehicle()
 
 env.neural_vehicle.initialize_agent(
                 model_name, epoch_count, data_id)

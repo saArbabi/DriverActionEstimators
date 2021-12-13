@@ -20,7 +20,7 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
-model_names = ['neural_idm_107', 'neural_029']
+model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['neural_idm_105', 'neural_028']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
@@ -67,7 +67,9 @@ for model_name in model_names:
 
 # %%
 """
-Vis true vs pred state for mmodels.
+Vis true vs pred state for models.
+Note:
+Models being compared qualitatively must have the same history_len.
 """
 # state_index = indxs['act_long']
 state_index = indxs['speed']
@@ -84,7 +86,7 @@ for i in range(30):
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
     for model_name in model_names:
-        if model_name == 'neural_idm_107':
+        if model_name == 'latent_mlp_01':
             color = 'blue'
         else:
             color = 'orange'
