@@ -1,3 +1,10 @@
+from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
+import numpy as np
+import pickle
+from importlib import reload
+import tensorflow as tf
+import json
+
 class NeuralVehicle(NeuralIDMVehicle):
     def __init__(self):
         super().__init__()
@@ -9,14 +16,13 @@ class NeuralVehicle(NeuralIDMVehicle):
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs
-        if self.time_lapse_since_last_param_update % self.history_len == 0:
+        if self.time_lapse_since_last_param_update == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             sampled_z = self.model.belief_net.sample_z(latent_dis_param)
             proj_belief = self.model.belief_net.belief_proj(sampled_z)
             self.belief_update(proj_belief)
-            self.time_lapse_since_last_param_update = 0
         self.time_lapse_since_last_param_update += 1
 
         env_state = self.scale_state(obs_t0, 'env_state')

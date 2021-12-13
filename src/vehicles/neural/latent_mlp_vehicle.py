@@ -52,12 +52,13 @@ class LatentMLPVehicle(NeuralIDMVehicle):
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs
-        if self.time_lapse_since_last_param_update % self.history_len == 0:
+        if self.time_lapse_since_last_param_update == 0:
             prior = tfd.Normal(loc=tf.zeros([1, self.model.belief_net.latent_dim]), scale=1)
             sampled_z = prior.sample()
             sampled_z = tf.reshape(\
                             sampled_z, [1, 1, self.model.belief_net.latent_dim])
             self._latent = sampled_z
+        self.time_lapse_since_last_param_update += 1
 
         env_state = self.scale_state(obs_t0, 'env_state')
         merger_c = self.scale_state(obs_t0, 'merger_c')
