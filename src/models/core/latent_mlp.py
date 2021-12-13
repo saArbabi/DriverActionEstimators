@@ -29,7 +29,6 @@ class LatentMLP(AbstractModel):
 
     def kl_loss(self, pos_params):
         pos_mean, pos_logsigma = pos_params
-
         prior = tfd.Normal(loc=tf.zeros(self.belief_net.latent_dim), scale=1)
         posterior = tfd.Normal(loc=pos_mean, scale=tf.exp(pos_logsigma))
         return tf.reduce_mean(tfd.kl_divergence(posterior, prior))
@@ -82,14 +81,13 @@ class LatentMLP(AbstractModel):
         sampled_z = self.belief_net.sample_z(pos_params)
         batch_size = tf.shape(inputs[0])[0]
         sampled_z = tf.reshape(sampled_z, [batch_size, 1, self.belief_net.latent_dim])
-        mean_seq, var_seq = self.forward_sim.rollout([sampled_z, inputs[1], inputs[-1]])
+        mean_seq, var_seq, _ = self.forward_sim.rollout([sampled_z, inputs[1], inputs[-1]])
         act_dis = tfd.Normal(mean_seq, var_seq, name='Normal')
         return act_dis, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 64
         self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
@@ -98,12 +96,6 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(self.proj_dim, activation=LeakyReLU())
-        self.pos_projection = Dense(self.proj_dim, activation=LeakyReLU())
-        ####
-        self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -113,12 +105,6 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         return sampled_z
-
-    def belief_proj(self, x):
-        x = self.proj_layer_1(x)
-        x = self.proj_layer_2(x)
-        x = self.proj_layer_3(x)
-        return x
 
     def call(self, inputs):
         # posterior
@@ -142,7 +128,6 @@ class HistoryEncoder(tf.keras.Model):
 class ForwardSim(tf.keras.Model):
     def __init__(self):
         super(ForwardSim, self).__init__(name="ForwardSim")
-        self.proj_dim = 64
         self.architecture_def()
 
     def architecture_def(self):
@@ -204,8 +189,10 @@ class ForwardSim(tf.keras.Model):
             if step == 0:
                 mean_seq = _mean
                 var_seq = _var
+                act_seq = _act
             else:
                 mean_seq = tf.concat([mean_seq, _mean], axis=1)
                 var_seq = tf.concat([var_seq, _var], axis=1)
+                act_seq = tf.concat([act_seq, _act], axis=1)
 
-        return mean_seq, var_seq
+        return mean_seq, var_seq, act_seq

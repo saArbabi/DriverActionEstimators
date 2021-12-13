@@ -125,20 +125,10 @@ model_trainer = Trainer()
 exp_id = '01'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
-model_trainer.train(train_input, val_input, epochs=1)
-
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='20')
-# %%
-import tensorflow_probability as tfp
+# model_trainer.train(train_input, val_input, epochs=1)
 
-tfd = tfp.distributions
-
-prior = tfd.Normal(loc=tf.zeros(3), scale=1)
-prior.sample()
-posterior = tfd.Normal(loc=[tf.zeros(3), tf.zeros(3)], scale=[tf.ones(3), tf.ones(3)])
-posterior.sample()
-tfd.kl_divergence(posterior, prior)
 # %%
 # model_trainer.model.forward_sim.attention_temp
 
