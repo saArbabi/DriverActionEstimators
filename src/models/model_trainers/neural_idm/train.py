@@ -28,7 +28,6 @@ data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
-
 data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
@@ -41,7 +40,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 1.,
+    "vae_loss_weight": 0.1,
     "attention_temp": 5,
     "latent_dim": 6,
     },
@@ -130,12 +129,12 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '108'
+exp_id = '111'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
-model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.load_pre_trained(epoch_count='20')
+# model_trainer.train(train_input, val_input, epochs=1)
+# model_trainer.load_pre_trained(epoch_count='10')
 # %%
 # model_trainer.model.forward_sim.attention_temp
 
