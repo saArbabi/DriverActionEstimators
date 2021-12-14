@@ -20,7 +20,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '028'
+data_id = '029'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -30,7 +30,7 @@ with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
-
+train_input[0].shape
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
@@ -129,7 +129,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '112'
+exp_id = '113'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
@@ -145,7 +145,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
-################## ##### ##################
+################## ##### ####### ###########
 
 ################## MSE LOSS ###############
 fig = plt.figure(figsize=(15, 5))

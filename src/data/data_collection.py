@@ -60,7 +60,7 @@ Generate data
 from data import merge_data_gen
 reload(merge_data_gen)
 from data.merge_data_gen import DataGenMerge
-data_gen = DataGenMerge(env=env, episodes_n=100)
+data_gen = DataGenMerge(env=env, episodes_n=300)
 sim_data = data_gen.prep_data()
 sim_data.shape
 
@@ -68,7 +68,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '028'
+data_id = '029'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -84,7 +84,7 @@ else:
 """
 Load generated data.
 """
-data_id = '028'
+data_id = '029'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
@@ -94,8 +94,8 @@ sim_data.shape
 """
 Prepare data
 """
-history_len = 50 # steps
-rollout_len = 50
+history_len = 30 # steps
+rollout_len = 30
 from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep

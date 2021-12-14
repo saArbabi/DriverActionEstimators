@@ -52,10 +52,10 @@ class EnvInitializor():
         lane_id = 1
         vehicles = []
         # traffic_density = 6
-        traffic_density = np.random.randint(3, 5) # number of vehicles
+        traffic_density = np.random.randint(3, 6) # number of vehicles
         # print('traffic_density ', traffic_density)
 
-        glob_x = 150
+        glob_x = 200
         avg_spacing = glob_x/traffic_density
         aggs = np.random.uniform(0.01, 0.99, traffic_density) # aggressiveness
         vehicle_count = 0

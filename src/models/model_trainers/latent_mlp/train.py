@@ -23,7 +23,7 @@ for setting history/rollout length
 """
 history_len = 50 # steps
 rollout_len = 50
-data_id = '028'
+data_id = '029'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -126,7 +126,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '01'
+exp_id = '02'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)

@@ -104,7 +104,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '027'
+data_id = '029'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -133,7 +133,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_029'
+model_name = 'neural_030'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -227,7 +227,7 @@ sepcific_examples = []
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 15:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]

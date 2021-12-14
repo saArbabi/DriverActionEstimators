@@ -127,17 +127,17 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         elif m_veh == self.neighbours['att']:
             return True
         elif m_veh.lane_id == self.lane_id:
-            print('lane-based ########')
+            # print('lane-based ########')
             return True
 
         act_long = self.idm_action(self, m_veh)
         if m_veh.lane_decision !='keep_lane':
             if act_long < self.driver_params['safe_braking']:
                 # emergency situation
-                print('collisio- avoidance based ########')
+                # print('collisio- avoidance based ########')
                 return True
             elif self.is_cidm_att(act_long, m_veh, f_veh):
-                print('cidm-based ########')
+                # print('cidm-based ########')
                 return True
         else:
             return False
