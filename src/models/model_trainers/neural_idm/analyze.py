@@ -136,7 +136,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_107'
+model_name = 'neural_idm_112'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -254,7 +254,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 20
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_examples = []
@@ -263,8 +263,8 @@ distribution_name = 'prior'
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in [2815]:
-# for i in bad_examples[0]:
-while Example_pred < 20:
+# for i in bad_examples[00]:
+while Example_pred < 10:
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
     # sample_index = [i]
