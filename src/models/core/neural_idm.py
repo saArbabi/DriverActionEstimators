@@ -290,7 +290,7 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
             # att_score = idm_s[:, step:step+1, -3:-2]
-            _act = (1-att_score)*ef_act + att_score*em_act + self.res_act_neu(lstm_output)
+            _act = (1-att_score)*ef_act + att_score*em_act 
             if step == 0:
                 act_seq = _act
                 att_seq = att_score

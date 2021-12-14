@@ -136,8 +136,8 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_108'
-epoch_count = '30'
+model_name = 'neural_idm_112'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -254,7 +254,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 20
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_examples = []
