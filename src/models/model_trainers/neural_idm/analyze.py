@@ -136,8 +136,8 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_107'
-epoch_count = '20'
+model_name = 'neural_idm_108'
+epoch_count = '30'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -263,8 +263,8 @@ distribution_name = 'prior'
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in [2815]:
-# for i in bad_examples[0]:
-while Example_pred < 20:
+# for i in bad_examples[00]:
+while Example_pred < 10:
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
     # sample_index = [i]

@@ -210,7 +210,8 @@ class IDMForwardSim(tf.keras.Model):
 
     def architecture_def(self):
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
-        self.attention_neu = TimeDistributed(Dense(1))
+        self.att_neu_f = TimeDistributed(Dense(1))
+        self.att_neu_m = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
         dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=100.)
@@ -237,6 +238,14 @@ class IDMForwardSim(tf.keras.Model):
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
+
+    def get_att(self, lstm_output, vehicle_name):
+        if vehicle_name == 'm_veh':
+            att_x = self.att_neu_m(lstm_output)
+        elif vehicle_name == 'f_veh':
+            att_x = self.att_neu_f(lstm_output)
+
+        return 1/(1+tf.exp(-self.attention_temp*att_x))
 
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
@@ -280,21 +289,19 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
-            # att_x = self.attention_neu(lstm_output)
-            att_x = self.attention_neu(lstm_output)
-            att_score = 1/(1+tf.exp(-self.attention_temp*att_x))
-            # att_score = att_score*m_veh_exists
+            att_score_m = self.get_att(lstm_output, vehicle_name='m_veh')
+            att_score_f = self.get_att(lstm_output, vehicle_name='f_veh')
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
             # att_score = idm_s[:, step:step+1, -3:-2]
-            _act = (1-att_score)*ef_act + att_score*em_act
+            _act = att_score_f*ef_act + att_score_m*em_act
             if step == 0:
                 act_seq = _act
-                att_seq = att_score
+                att_seq = att_score_m
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
-                att_seq = tf.concat([att_seq, att_score], axis=1)
+                att_seq = tf.concat([att_seq, att_score_m], axis=1)
         # tf.print('att_score: ', tf.reduce_mean(att_seq))
         return act_seq, att_seq
 
