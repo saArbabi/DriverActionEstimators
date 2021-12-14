@@ -131,14 +131,14 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             return True
 
         act_long = self.idm_action(self, m_veh)
-        if m_veh.lane_decision !='keep_lane' and \
-                                act_long < self.driver_params['safe_braking']:
-            # emergency situation
-            print('collisio- avoidance based ########')
-            return True
-        elif self.is_cidm_att(act_long, m_veh, f_veh):
-            print('cidm-based ########')
-            return True
+        if m_veh.lane_decision !='keep_lane':
+            if act_long < self.driver_params['safe_braking']:
+                # emergency situation
+                print('collisio- avoidance based ########')
+                return True
+            elif self.is_cidm_att(act_long, m_veh, f_veh):
+                print('cidm-based ########')
+                return True
         else:
             return False
 

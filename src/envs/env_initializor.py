@@ -10,7 +10,7 @@ class EnvInitializor():
         self.lanes_n = config['lanes_n']
         self.lane_length = config['lane_length']
         self.lane_width = config['lane_width']
-        self.min_desired_v = 15
+        self.min_desired_v = 10
         self.max_desired_v = 25
         self.desired_v_range = self.max_desired_v-self.min_desired_v
 
