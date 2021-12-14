@@ -60,7 +60,7 @@ Generate data
 from data import merge_data_gen
 reload(merge_data_gen)
 from data.merge_data_gen import DataGenMerge
-data_gen = DataGenMerge(env=env, episodes_n=500)
+data_gen = DataGenMerge(env=env, episodes_n=100)
 sim_data = data_gen.prep_data()
 sim_data.shape
 
