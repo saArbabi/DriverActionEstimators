@@ -279,7 +279,7 @@ class IDMForwardSim(tf.keras.Model):
             env_state = tf.concat([ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
-            merger_c = tf.concat([merger_cs[:, step:step+1, :], m_veh_exists], axis=-1)
+            merger_c = merger_cs[:, step:step+1, :]
 
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
                                     proj_latent, env_state, merger_c], axis=-1), \
