@@ -79,7 +79,11 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         neighbours['rl'] = candidate_rl
         neighbours['fr'] = candidate_fr
         neighbours['r'] = candidate_r
-        neighbours['m'] = candidate_m
+
+        if candidate_m and candidate_f and candidate_m.glob_x > candidate_f.glob_x:
+            neighbours['m'] = None
+        else:
+            neighbours['m'] = candidate_m
 
         if neighbours['m'] and self.am_i_attending(neighbours['m'], candidate_f):
             neighbours['att'] = neighbours['m']
