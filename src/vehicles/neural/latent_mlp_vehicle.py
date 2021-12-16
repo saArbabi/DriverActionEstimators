@@ -53,8 +53,10 @@ class LatentMLPVehicle(NeuralIDMVehicle):
     def act(self, obs):
         obs_t0, m_veh_exists = obs
         if self.time_lapse_since_last_param_update == 0:
-            prior = tfd.Normal(loc=tf.zeros([1, self.model.belief_net.latent_dim]), scale=1)
-            sampled_z = prior.sample()
+            obs_history = self.scale_state(self.obs_history.copy(), 'full')
+            enc_h = self.model.h_seq_encoder(obs_history)
+            pos_params = self.model.belief_net(enc_h)
+            sampled_z = self.model.belief_net.sample_z(pos_params)
             sampled_z = tf.reshape(\
                             sampled_z, [1, 1, self.model.belief_net.latent_dim])
             self._latent = sampled_z

@@ -18,13 +18,15 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_028'
-    model_name = 'neural_idm_107'
-    # model_name = 'latent_mlp_01'
-    data_id = '028'
+    model_name = 'neural_idm_113'
+    # model_name = 'latent_mlp_02'
+    data_id = '029'
+    history_len = 50 # choose this based on the model with longest history
+    rollout_len = 50
 
-    model_vehicle_map = {'neural_idm_107': 'NeuralIDMVehicle',
+    model_vehicle_map = {'neural_idm_113': 'NeuralIDMVehicle',
             'neural_029': 'NeuralVehicle',
-            'latent_mlp_01': 'LatentMLPVehicle'
+            'latent_mlp_02': 'LatentMLPVehicle'
                                             }
     if model_vehicle_map[model_name] == 'NeuralVehicle':
         epoch_count = '20'
@@ -35,13 +37,14 @@ def main():
         from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
     elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
-        epoch_count = '15'
+        epoch_count = '20'
         from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
         env.neural_vehicle = LatentMLPVehicle()
 
-    episode_id = 510
+    episode_id = 505
     np.random.seed(episode_id)
-    env.transition_time = np.random.randint(50, 100) # vehicle_type = 'neural'
+    env.transition_time = np.random.randint(\
+                history_len, history_len+50) # controller ==> 'neural'
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
     env.initialize_env(episode_id)

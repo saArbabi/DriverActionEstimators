@@ -157,8 +157,11 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
         attention_temp = 5
-        att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.attention_neu(lstm_output))).numpy()
+        att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.att_neu(lstm_output))).numpy()
         return att_score
+
+    def action_clip(self, act_long):
+        return max([-5.5, act_long])
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs
@@ -190,11 +193,11 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         att_score = self.get_neur_att(att_context)
         att_score = att_score[0][0][0]
         self.att = att_score
-        ef_act = self.idm_action(self, self.neighbours['f'])
+        ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
-            em_act = self.idm_action(self, self.neighbours['m'])
+            em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
         else:
             em_act = 0
 
         act_long = (1-att_score)*ef_act + att_score*em_act
-        return max([-5, act_long])
+        return act_long

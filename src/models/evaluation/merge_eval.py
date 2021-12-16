@@ -31,17 +31,17 @@ time_start = time.time()
 # for episode_id in [6]:
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
-model_name = 'neural_029'
-# model_name = 'neural_idm_107'
-# model_name = 'latent_mlp_01'
-data_id = '028'
+# model_name = 'neural_029'
+model_name = 'neural_idm_113'
+# model_name = 'latent_mlp_02'
+data_id = '029'
 episodes_n = 13
 history_len = 50 # choose this based on the model with longest history
 rollout_len = 50
 
-model_vehicle_map = {'neural_idm_107': 'NeuralIDMVehicle',
+model_vehicle_map = {'neural_idm_113': 'NeuralIDMVehicle',
                     'neural_029': 'NeuralVehicle',
-                    'latent_mlp_01': 'LatentMLPVehicle'
+                    'latent_mlp_02': 'LatentMLPVehicle'
                                                     }
 if model_vehicle_map[model_name] == 'NeuralVehicle':
     ##############################################
@@ -59,7 +59,7 @@ elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
     env.neural_vehicle = NeuralIDMVehicle()
 elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
     ##############################################
-    epoch_count = '15'
+    epoch_count = '20'
     from vehicles.neural import latent_mlp_vehicle
     reload(latent_mlp_vehicle)
     from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle

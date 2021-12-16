@@ -100,7 +100,7 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 49, axis=1)
     return traj.flatten()
 # %%
 """
@@ -184,7 +184,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-traces_n = 50
+traces_n = 2
 sepcific_examples = []
 
 """
@@ -192,13 +192,13 @@ Posterior is used, as encoder here is an inference network
 that estimates the latent vehicle state.
 """
 distribution_name = 'posterior'
-# distribution_name = 'prior'
+distribution_name = 'prior'
 
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
 # for i in bad_zs:
 # for i in bad_examples[0]:
-while Example_pred < 10:
+while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_examples[i]]
     # sample_index = [train_examples[i]]
@@ -211,7 +211,7 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and e_veh_att[55:65].mean() > 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
