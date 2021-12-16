@@ -33,7 +33,7 @@ env = EnvMergeMC(config)
 env.metric_collection_mode = True
 # model_name = 'neural_029'
 # model_name = 'neural_idm_113'
-model_name = 'latent_mlp_03'
+model_name = 'latent_mlp_06'
 data_id = '029'
 episodes_n = 13
 history_len = 50 # choose this based on the model with longest history
@@ -41,7 +41,7 @@ rollout_len = 50
 
 model_vehicle_map = {'neural_idm_113': 'NeuralIDMVehicle',
                     'neural_029': 'NeuralVehicle',
-                    'latent_mlp_03': 'LatentMLPVehicle'
+                    'latent_mlp_06': 'LatentMLPVehicle'
                                                     }
 if model_vehicle_map[model_name] == 'NeuralVehicle':
     ##############################################

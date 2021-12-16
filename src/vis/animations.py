@@ -24,8 +24,8 @@ def get_animation():
     def animation_frame(i):
         model.vae_loss_weight = 0.1
         model.train(data_arrays, epochs=1)
-        sampled_z, sampled_idm_z = latent_samples(model, val_examples)
-        aggressiveness = history_future_usc[val_examples, 0, -1]
+        sampled_z, sampled_idm_z = latent_samples(model, val_samples)
+        aggressiveness = history_future_usc[val_samples, 0, -1]
         color_shade = aggressiveness
         ax.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, alpha=0.3, \
                                                     c=color_shade, cmap='rainbow')

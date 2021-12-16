@@ -342,7 +342,7 @@ with open('./models/experiments/scaler.pickle', 'wb') as handle:
 np.random.seed(2020)
 s_h_scaled, s_f_scaled, s_hf_unscaled, merger_act, y_hf = training_data
 train_sample_index = int(len(s_h_scaled)*0.8)
-val_examples = range(train_sample_index, len(s_h_scaled))
+val_samples = range(train_sample_index, len(s_h_scaled))
 
 
 s_h_scaled = np.float32(s_h_scaled)
@@ -353,7 +353,7 @@ timid_drivers = []
 normal_drivers = []
 aggressive_drivers = []
 
-for sample_index in val_examples:
+for sample_index in val_samples:
     epis = s_h_scaled[sample_index, 0, 0]
     if info[epis] == 'timid':
        timid_drivers.append(sample_index)

@@ -129,12 +129,12 @@ def train_step(model, x, optimizer):
 epochs = 10
 # set the dimensionality of the latent space to a plane for visualization later
 latent_dim = 2
-num_examples_to_generate = 16
+num_samples_to_generate = 16
 
 # keeping the random vector constant for generation (prediction) so
 # it will be easier to see the improvement.
 random_vector_for_generation = tf.random.normal(
-    shape=[num_examples_to_generate, latent_dim])
+    shape=[num_samples_to_generate, latent_dim])
 model = CVAE(latent_dim)
 
 
@@ -154,9 +154,9 @@ def generate_and_save_images(model, epoch, test_sample):
         plt.show()
 
 # Pick a sample of the test set for generating output images
-assert batch_size >= num_examples_to_generate
+assert batch_size >= num_samples_to_generate
 for test_batch in test_dataset.take(1):
-  test_sample = test_batch[0:num_examples_to_generate, :, :, :]
+  test_sample = test_batch[0:num_samples_to_generate, :, :, :]
 
 generate_and_save_images(model, 0, test_sample)
 
