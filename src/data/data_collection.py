@@ -3,18 +3,15 @@ sys.path.insert(0, './src')
 # import os
 # os.getcwd()
 # os.chdir('../')
-from envs import merge
 from importlib import reload
 import numpy as np
 np.set_printoptions(suppress=True)
-import matplotlib.pyplot as plt
 import pickle
 from envs import merge
 reload(merge)
 from envs.merge import EnvMerge
 import os
 import time
-import pandas as pd
 config = {'lanes_n':2,
         'lane_width':3.75, # m
         'lane_length':300 # m

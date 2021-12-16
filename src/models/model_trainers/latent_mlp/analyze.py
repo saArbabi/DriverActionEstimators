@@ -137,7 +137,7 @@ train_examples.shape
 """
 Load model (with config file)
 """
-model_name = 'latent_mlp_02'
+model_name = 'latent_mlp_03'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -192,7 +192,7 @@ Posterior is used, as encoder here is an inference network
 that estimates the latent vehicle state.
 """
 distribution_name = 'posterior'
-distribution_name = 'prior'
+# distribution_name = 'prior'
 
 # for i in bad_examples[0]:
 # for i in sepcific_examples:
@@ -228,7 +228,7 @@ while Example_pred < 30:
         sampled_z = tf.reshape(\
                         sampled_z, [traces_n, 1, model.belief_net.latent_dim])
         _, _, act_seq = model.forward_sim.rollout([sampled_z, \
-                                                    future_idm_ss, merger_cs])
+                                        future_idm_ss, merger_cs], training=False)
         act_seq = act_seq.numpy()
         plt.figure(figsize=(5, 3))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
