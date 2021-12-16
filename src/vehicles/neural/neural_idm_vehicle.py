@@ -36,6 +36,19 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
             self.dummy_value_set = pickle.load(handle)
 
+        with open(exp_dir+'/'+'config.json', 'rb') as handle:
+            config = json.load(handle)
+        self.load_model(config, exp_path)
+        print(json.dumps(config, ensure_ascii=False, indent=4))
+        self.create_state_indxs()
+
+    def create_state_indxs(self):
+        def names_to_index(self, col_names):
+            if type(col_names) == list:
+                return [self.indxs[item] for item in col_names]
+            else:
+                return self.indxs[col_names]
+
         self.indxs = {}
         feature_names = ['e_veh_speed', 'f_veh_speed','m_veh_speed',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -45,11 +58,12 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         for item_name in feature_names:
             self.indxs[item_name] = index
             index += 1
-        # self.model.forward_sim.attention_temp = 20
-        with open(exp_dir+'/'+'config.json', 'rb') as handle:
-            config = json.load(handle)
-        self.load_model(config, exp_path)
-        print(json.dumps(config, ensure_ascii=False, indent=4))
+        col_names = ['e_veh_speed', 'f_veh_speed',
+                        'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
+        self.env_s_indxs = self.names_to_index(col_names)
+
+        col_names = ['m_veh_speed', 'em_delta_y', 'delta_x_to_merge']
+        self.merger_indxs = self.names_to_index(col_names)
 
     def update_obs_history(self, o_t):
         self.obs_history[:, :-1, :] = self.obs_history[:, 1:, :]
@@ -116,40 +130,22 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             # self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
         self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
 
-    def names_to_index(self, col_names):
-        if type(col_names) == list:
-            return [self.indxs[item] for item in col_names]
-        else:
-            return self.indxs[col_names]
-
     def scale_state(self, state, state_type):
         if state_type == 'full':
-            col_names = ['e_veh_speed', 'f_veh_speed',
-                            'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
-
-            scalar_indexs = self.names_to_index(col_names)
-            state[:, :, scalar_indexs] = \
-                (state[:, :, scalar_indexs]-self.env_scaler.mean_)/self.env_scaler.var_**0.5
+            state[:, :, self.env_s_indxs] = \
+                (state[:, :, self.env_s_indxs]-self.env_scaler.mean_)/self.env_scaler.var_**0.5
 
             # merger context
-            col_names = ['m_veh_speed', 'em_delta_y', 'delta_x_to_merge']
-            scalar_indexs = self.names_to_index(col_names)
-            state[:, :, scalar_indexs] = \
-                (state[:, :, scalar_indexs]-self.m_scaler.mean_)/self.m_scaler.var_**0.5
+            state[:, :, self.merger_indxs] = \
+                (state[:, :, self.merger_indxs]-self.m_scaler.mean_)/self.m_scaler.var_**0.5
             state[:,:,]
         elif state_type == 'env_state':
-            col_names = ['e_veh_speed', 'f_veh_speed',
-                            'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
-
-            scalar_indexs = self.names_to_index(col_names)
             state = \
-                (state[:, :, scalar_indexs]-self.env_scaler.mean_)/self.env_scaler.var_**0.5
+                (state[:, :, self.env_s_indxs]-self.env_scaler.mean_)/self.env_scaler.var_**0.5
 
         elif state_type == 'merger_c':
-            col_names = ['m_veh_speed','em_delta_y', 'delta_x_to_merge']
-            scalar_indexs = self.names_to_index(col_names)
             state = \
-                (state[:, :, scalar_indexs]-self.m_scaler.mean_)/self.m_scaler.var_**0.5
+                (state[:, :, self.merger_indxs]-self.m_scaler.mean_)/self.m_scaler.var_**0.5
 
         return np.float32(state)
 
