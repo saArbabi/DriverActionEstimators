@@ -45,7 +45,7 @@ def latent_samples(model, sample_index):
 
 def latent_vis(zsamples_n):
     fig = pyplot.figure(figsize=(4, 6))
-    examples_to_vis = np.random.choice(val_examples, zsamples_n, replace=False)
+    examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
     #===============
     #  First subplot
     #===============
@@ -114,14 +114,13 @@ data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
-with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     data_arrays = pickle.load(handle)
-history_future_usc, history_sca, future_sca, future_idm_s, \
-                future_m_veh_c, future_e_veh_a = data_arrays
+history_future_usc, history_sca, \
+                future_idm_s, future_m_veh_c, history_e_veh_a = data_arrays
 history_sca = np.float32(history_sca)
-future_idm_s = np.float32(future_idm_s)
 future_m_veh_c = np.float32(future_m_veh_c)
-history_future_usc.shape
+future_idm_s = np.float32(future_idm_s)
 
 all_epis = np.unique(history_sca[:, 0, 0])
 np.random.seed(2021)
@@ -129,16 +128,16 @@ np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
 # np.where(train_epis == 64)
-train_examples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
-val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
+train_samples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
+val_samples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
-train_examples.shape
+train_samples.shape
 # %%
 """
 Load model (with config file)
 """
-model_name = 'latent_mlp_02'
-epoch_count = '20'
+model_name = 'latent_mlp_06'
+epoch_count = '15'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -185,23 +184,23 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 traces_n = 2
-sepcific_examples = []
+sepcific_samples = []
 
 """
 Posterior is used, as encoder here is an inference network
 that estimates the latent vehicle state.
 """
 distribution_name = 'posterior'
-distribution_name = 'prior'
+# distribution_name = 'prior'
 
-# for i in bad_examples[0]:
-# for i in sepcific_examples:
+# for i in bad_samples[0]:
+# for i in sepcific_samples:
 # for i in bad_zs:
-# for i in bad_examples[0]:
-while Example_pred < 30:
+# for i in bad_samples[0]:
+while Example_pred < 20:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    sample_index = [val_examples[i]]
-    # sample_index = [train_examples[i]]
+    sample_index = [val_samples[i]]
+    # sample_index = [train_samples[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
@@ -213,8 +212,8 @@ while Example_pred < 30:
     # if 4 == 4:
     if episode not in covered_episodes and e_veh_att[55:65].mean() > 0:
         covered_episodes.append(episode)
-        merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
+        merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         if distribution_name == 'posterior':
             h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
             enc_h = model.h_seq_encoder(h_seq)
@@ -228,7 +227,8 @@ while Example_pred < 30:
         sampled_z = tf.reshape(\
                         sampled_z, [traces_n, 1, model.belief_net.latent_dim])
         _, _, act_seq = model.forward_sim.rollout([sampled_z, \
-                                                    future_idm_ss, merger_cs])
+                                future_idm_ss, merger_cs], training=False)
+        future_idm_ss.shape
         act_seq = act_seq.numpy()
         plt.figure(figsize=(5, 3))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]

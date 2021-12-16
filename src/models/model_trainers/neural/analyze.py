@@ -41,7 +41,7 @@ def latent_samples(model, sample_index):
 
 def latent_vis(zsamples_n):
     fig = pyplot.figure(figsize=(4, 6))
-    examples_to_vis = np.random.choice(val_examples, zsamples_n, replace=False)
+    examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
     #===============
     #  First subplot
     #===============
@@ -125,10 +125,10 @@ np.random.shuffle(all_epis)
 train_epis = all_epis[:int(len(all_epis)*0.7)]
 val_epis = np.setdiff1d(all_epis, train_epis)
 # np.where(train_epis == 64)
-train_examples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
-val_examples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
+train_samples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
+val_samples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
-train_examples.shape
+train_samples.shape
 # %%
 """
 Load model (with config file)
@@ -171,8 +171,8 @@ plt.grid()
 Find bad examples
 """
 import tensorflow as tf
-# examples_to_vis = val_examples
-# val_examples.shape
+# examples_to_vis = val_samples
+# val_samples.shape
 def get_avg_loss_across_sim(examples_to_vis):
     merger_cs = future_m_veh_c[examples_to_vis, :, 2:]
     h_seq = history_sca[examples_to_vis, :, 2:]
@@ -187,11 +187,11 @@ def get_avg_loss_across_sim(examples_to_vis):
     true_actions = future_e_veh_a[examples_to_vis, :, 2:]
     loss = (tf.square(tf.subtract(act_seq, true_actions)))**0.5
     return tf.reduce_mean(loss, axis=1).numpy()
-# loss = get_avg_loss_across_sim(train_examples[0:15])
-loss = get_avg_loss_across_sim(val_examples[0:5000])
+# loss = get_avg_loss_across_sim(train_samples[0:15])
+loss = get_avg_loss_across_sim(val_samples[0:5000])
 _ = plt.hist(loss, bins=150)
 # _ = plt.hist(loss[loss<0.1], bins=150)
-bad_examples = np.where(loss > 1)
+bad_samples = np.where(loss > 1)
 
 # %%
 
@@ -222,15 +222,15 @@ Example_pred = 0
 i = 0
 covered_episodes = []
 traces_n = 50
-sepcific_examples = []
-# for i in bad_examples[0]:
-# for i in sepcific_examples:
+sepcific_samples = []
+# for i in bad_samples[0]:
+# for i in sepcific_samples:
 # for i in bad_zs:
-# for i in bad_examples[0]:
+# for i in bad_samples[0]:
 while Example_pred < 30:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
-    sample_index = [val_examples[i]]
-    # sample_index = [train_examples[i]]
+    sample_index = [val_samples[i]]
+    # sample_index = [train_samples[i]]
     # sample_index = [i]
     i += 1
     e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])

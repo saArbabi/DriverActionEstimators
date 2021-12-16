@@ -29,14 +29,13 @@ data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
-with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 
 data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
-data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
-with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 # %%
 config = {
@@ -126,10 +125,10 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '02'
+exp_id = '06'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
-# model_trainer.train(train_input, val_input, epochs=1)
+model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='20')
 # model_trainer.train(train_input, val_input, epochs=1)
 
@@ -145,19 +144,19 @@ model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 
-################## MSE LOSS ###############
+################## ll LOSS ###############
 fig = plt.figure(figsize=(15, 5))
 # plt.style.use('default')
 
-mse_axis = fig.add_subplot(121)
+ll_axis = fig.add_subplot(121)
 kl_axis = fig.add_subplot(122)
-mse_axis.plot(model_trainer.test_llloss)
-mse_axis.plot(model_trainer.train_llloss)
-mse_axis.grid()
-mse_axis.set_xlabel('epochs')
-mse_axis.set_ylabel('loss (MSE)')
-mse_axis.set_title('MSE')
-mse_axis.legend(['test', 'train'])
+ll_axis.plot(model_trainer.test_llloss)
+ll_axis.plot(model_trainer.train_llloss)
+ll_axis.grid()
+ll_axis.set_xlabel('epochs')
+ll_axis.set_ylabel('loss (ll)')
+ll_axis.set_title('ll')
+ll_axis.legend(['test', 'train'])
 
 ################## kl LOSS ##################
 kl_axis.plot(model_trainer.test_klloss)

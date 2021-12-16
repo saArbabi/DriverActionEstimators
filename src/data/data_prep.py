@@ -85,10 +85,11 @@ class DataPrep():
         history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
         col_names = ['episode_id', 'time_step',
-                'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-                'el_delta_v', 'el_delta_x',
-                'em_delta_v', 'em_delta_x',
-                'em_delta_y', 'delta_x_to_merge', 'm_veh_exists']
+                    'e_veh_speed', 'f_veh_speed',
+                    'el_delta_v', 'el_delta_x',
+                    'em_delta_v', 'em_delta_x',
+                    'm_veh_speed','em_delta_y',
+                    'delta_x_to_merge','m_veh_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
@@ -118,7 +119,9 @@ class DataPrep():
 
         # future context of m_veh - fed to LSTMs
         # this holds all the context needed to infer merger type
-        col_names = ['episode_id', 'time_step', 'm_veh_speed', 'em_delta_y', 'delta_x_to_merge']
+        # m_veh_exists is a boolean (not scaled) and is appended later
+        col_names = ['episode_id', 'time_step',
+            'm_veh_speed', 'em_delta_y', 'delta_x_to_merge', 'm_veh_exists']
         future_m_veh_c = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         # future action of e_veh - used as target
