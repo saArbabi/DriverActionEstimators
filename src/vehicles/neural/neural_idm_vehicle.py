@@ -9,6 +9,10 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def __init__(self):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
         self.time_lapse_since_last_param_update = 0
+        self.samples_n = 1
+        self.history_len = 30 # steps
+        self.state_dim = 10
+        self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
 
     def load_model(self, config, exp_path):
         from models.core import neural_idm
@@ -20,10 +24,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def initialize_agent(self, model_name, epoch_count, data_id):
         exp_dir = './src/models/experiments/'+model_name
         exp_path = exp_dir+'/model_epo'+epoch_count
-        self.samples_n = 1
-        self.history_len = 30 # steps
-        self.state_dim = 10
-        self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
         dataset_name = 'sim_data_'+data_id
         data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 
@@ -42,17 +42,19 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         print(json.dumps(config, ensure_ascii=False, indent=4))
         self.create_state_indxs()
 
-    def create_state_indxs(self):
-        def names_to_index(self, col_names):
-            if type(col_names) == list:
-                return [self.indxs[item] for item in col_names]
-            else:
-                return self.indxs[col_names]
+    def names_to_index(self, col_names):
+        if type(col_names) == list:
+            return [self.indxs[item] for item in col_names]
+        else:
+            return self.indxs[col_names]
 
+    def create_state_indxs(self):
         self.indxs = {}
-        feature_names = ['e_veh_speed', 'f_veh_speed','m_veh_speed',
-                        'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-                        'em_delta_y', 'delta_x_to_merge', 'm_veh_exists']
+        feature_names = ['e_veh_speed', 'f_veh_speed',
+                        'el_delta_v', 'el_delta_x',
+                        'em_delta_v', 'em_delta_x',
+                        'm_veh_speed','em_delta_y',
+                        'delta_x_to_merge','m_veh_exists']
 
         index = 0
         for item_name in feature_names:
@@ -101,13 +103,14 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             el_delta_x = f_veh.glob_x-self.glob_x
             el_delta_v = self.speed-f_veh_speed
 
-        obs_t0 = [self.speed, f_veh_speed, m_veh_speed]
+        obs_t0 = [self.speed, f_veh_speed]
 
         obs_t0.extend([el_delta_v,
                              el_delta_x])
 
         obs_t0.extend([em_delta_v,
                              em_delta_x,
+                             m_veh_speed,
                              em_delta_y,
                              delta_x_to_merge])
 
