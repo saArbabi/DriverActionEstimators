@@ -36,14 +36,14 @@ class LatentMLP(AbstractModel):
     def train_loop(self, data_objs):
         # tf.print('######## TRAIN #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, _, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
-            self.train_step([history_sca, future_idm_s, future_m_veh_c], future_ego_a)
+        for history_sca, history_e_veh_a in train_ds:
+            self.train_step(history_sca, history_e_veh_a)
 
     def test_loop(self, data_objs, epoch):
         # tf.print('######## TEST #######:')
         train_ds = self.batch_data(data_objs)
-        for history_sca, _, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
-            self.test_step([history_sca, future_idm_s, future_m_veh_c], future_ego_a)
+        for history_sca, history_e_veh_a in train_ds:
+            self.test_step(history_sca, history_e_veh_a)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -75,13 +75,13 @@ class LatentMLP(AbstractModel):
         return  self.vae_loss_weight*kl_loss + ll_loss
 
     def call(self, inputs):
-        # inputs: [history_sca, future_idm_s, future_m_veh_c]
-        enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
+        # inputs: history_sca
+        enc_h = self.h_seq_encoder(inputs) # history lstm state
         pos_params = self.belief_net(enc_h)
         sampled_z = self.belief_net.sample_z(pos_params)
-        batch_size = tf.shape(inputs[0])[0]
+        batch_size = tf.shape(inputs)[0]
         sampled_z = tf.reshape(sampled_z, [batch_size, 1, self.belief_net.latent_dim])
-        mean_seq, var_seq, _ = self.forward_sim.rollout([sampled_z, inputs[1], inputs[-1]], training=True)
+        mean_seq, var_seq, _ = self.forward_sim.rollout([sampled_z, inputs], training=True)
         act_dis = tfd.Normal(mean_seq, var_seq, name='Normal')
         return act_dis, pos_params
 
@@ -148,40 +148,15 @@ class ForwardSim(tf.keras.Model):
         return env_state
 
     def rollout(self, inputs, training):
-        sampled_z, idm_s, merger_cs = inputs
-
         if training:
+            sampled_z, history_sca = inputs
             sampled_z = tf.repeat(sampled_z, 50, axis=1)
-            f_veh_v = idm_s[:, :, 1:2]
-            m_veh_v = idm_s[:, :, 2:3]
-            f_veh_glob_x = idm_s[:, :, 4:5]
-            m_veh_glob_x = idm_s[:, :, 5:6]
-
-            ef_dv_true = idm_s[:, :, 6:7]
-            ef_delta_x_true = idm_s[:, :, 7:8]
-            em_dv_true = idm_s[:, :, 8:9]
-            em_delta_x_true = idm_s[:, :, 9:10]
-
-            ego_v = idm_s[:, :, 0:1]
-            ego_glob_x = idm_s[:, :, 3:4]
-
-            m_veh_exists = idm_s[:, :, -1:]
-            ef_delta_x = (f_veh_glob_x - ego_glob_x)
-            em_delta_x = (m_veh_glob_x - ego_glob_x)
-            ef_dv = (ego_v - f_veh_v)
-            em_dv = (ego_v - m_veh_v)
-            env_state = tf.concat([ego_v, f_veh_v, \
-                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            env_state = self.scale_env_s(env_state)
-            merger_c = tf.concat([merger_cs[:, :, :], m_veh_exists], axis=-1)
-
             mean_seq, var_seq = self.get_dis(tf.concat([\
-                                    sampled_z, env_state, merger_c], axis=-1))
+                                    sampled_z, history_sca], axis=-1))
             act_seq = tfd.Normal(mean_seq, var_seq, name='Normal').sample()
             return mean_seq, var_seq, act_seq
-
-
         else:
+            sampled_z, idm_s, merger_cs = inputs
             for step in range(50):
                 f_veh_v = idm_s[:, step:step+1, 1:2]
                 m_veh_v = idm_s[:, step:step+1, 2:3]
@@ -212,7 +187,7 @@ class ForwardSim(tf.keras.Model):
                 env_state = tf.concat([ego_v, f_veh_v, \
                                         ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
                 env_state = self.scale_env_s(env_state)
-                merger_c = tf.concat([merger_cs[:, step:step+1, :], m_veh_exists], axis=-1)
+                merger_c = merger_cs[:, step:step+1, :]
 
                 _mean, _var = self.get_dis(tf.concat([\
                                         sampled_z, env_state, merger_c], axis=-1))

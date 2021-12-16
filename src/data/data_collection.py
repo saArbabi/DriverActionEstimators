@@ -32,22 +32,22 @@ def prep_data(training_data):
 
     train_epis = all_epis[:int(len(all_epis)*0.7)]
     val_epis = np.setdiff1d(all_epis, train_epis)
-    train_examples = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
-    val_indxs = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
+    train_samples = np.where(training_data[0][:, 0:1, 0] == train_epis)[0]
+    val_samples = np.where(training_data[0][:, 0:1, 0] == val_epis)[0]
 
     _, history_sca, future_sca, future_idm_s,\
                 future_m_veh_c, future_e_veh_a = training_data
-    train_input = [history_sca[train_examples, :, 2:],
-                future_sca[train_examples, :, 2:],
-                future_idm_s[train_examples, :, 2:],
-                future_m_veh_c[train_examples, :, 2:],
-                future_e_veh_a[train_examples, :, 2:]]
+    train_input = [history_sca[train_samples, :, 2:],
+                future_sca[train_samples, :, 2:],
+                future_idm_s[train_samples, :, 2:],
+                future_m_veh_c[train_samples, :, 2:],
+                future_e_veh_a[train_samples, :, 2:]]
 
-    val_input = [history_sca[val_indxs, :, 2:],
-                future_sca[val_indxs, :, 2:],
-                future_idm_s[val_indxs, :, 2:],
-                future_m_veh_c[val_indxs, :, 2:],
-                future_e_veh_a[val_indxs, :, 2:]]
+    val_input = [history_sca[val_samples, :, 2:],
+                future_sca[val_samples, :, 2:],
+                future_idm_s[val_samples, :, 2:],
+                future_m_veh_c[val_samples, :, 2:],
+                future_e_veh_a[val_samples, :, 2:]]
 
     return train_input, val_input
 # %%

@@ -29,14 +29,13 @@ data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
-with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 
 data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
-data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
-with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
+with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 # %%
 config = {
@@ -126,7 +125,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '03'
+exp_id = '06'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 model_trainer.train(train_input, val_input, epochs=1)
