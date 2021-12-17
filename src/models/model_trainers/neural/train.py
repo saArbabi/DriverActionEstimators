@@ -20,7 +20,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '029'
+data_id = '031'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -123,7 +123,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '030'
+exp_id = '032'
 model_name = 'neural_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 

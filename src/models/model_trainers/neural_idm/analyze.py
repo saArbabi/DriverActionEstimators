@@ -107,7 +107,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '029'
+data_id = '031'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -136,7 +136,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_113'
+model_name = 'neural_idm_117'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -179,7 +179,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_107']:
+for name in ['neural_idm_114', 'neural_idm_115', 'neural_idm_116']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -254,7 +254,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 20
+model.forward_sim.attention_temp = 5
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []

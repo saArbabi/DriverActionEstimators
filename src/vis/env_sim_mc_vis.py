@@ -18,13 +18,13 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_028'
-    model_name = 'neural_idm_113'
+    model_name = 'neural_idm_115'
     # model_name = 'latent_mlp_02'
-    data_id = '029'
-    history_len = 50 # choose this based on the model with longest history
+    data_id = '030'
+    history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 
-    model_vehicle_map = {'neural_idm_113': 'NeuralIDMVehicle',
+    model_vehicle_map = {'neural_idm_115': 'NeuralIDMVehicle',
             'neural_029': 'NeuralVehicle',
             'latent_mlp_02': 'LatentMLPVehicle'
                                             }

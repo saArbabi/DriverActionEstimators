@@ -20,7 +20,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '029'
+data_id = '031'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -41,7 +41,7 @@ config = {
     "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 0.1,
-    "attention_temp": 5,
+    "attention_temp": 1,
     "latent_dim": 6,
     },
      "data": {
@@ -129,12 +129,12 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '113'
+exp_id = '117'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
 # model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='20')
 # %%
 # model_trainer.model.forward_sim.attention_temp
 

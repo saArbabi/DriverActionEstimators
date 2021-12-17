@@ -31,17 +31,17 @@ time_start = time.time()
 # for episode_id in [6]:
 env = EnvMergeMC(config)
 env.metric_collection_mode = True
-# model_name = 'neural_029'
-# model_name = 'neural_idm_113'
-model_name = 'latent_mlp_06'
-data_id = '029'
+# model_name = 'neural_032'
+# model_name = 'neural_idm_117'
+model_name = 'latent_mlp_07'
+data_id = '031'
 episodes_n = 13
 history_len = 50 # choose this based on the model with longest history
 rollout_len = 50
 
-model_vehicle_map = {'neural_idm_113': 'NeuralIDMVehicle',
-                    'neural_029': 'NeuralVehicle',
-                    'latent_mlp_06': 'LatentMLPVehicle'
+model_vehicle_map = {'neural_idm_117': 'NeuralIDMVehicle',
+                    'neural_032': 'NeuralVehicle',
+                    'latent_mlp_07': 'LatentMLPVehicle'
                                                     }
 if model_vehicle_map[model_name] == 'NeuralVehicle':
     ##############################################

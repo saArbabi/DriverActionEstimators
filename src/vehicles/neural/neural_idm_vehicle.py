@@ -160,7 +160,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return att_score
 
     def action_clip(self, act_long):
-        return max([-5.5, act_long])
+        return max([-6, act_long])
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs

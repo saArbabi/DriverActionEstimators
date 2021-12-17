@@ -22,7 +22,7 @@ real_collections = {}
 ima_collections = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-model_names = ['latent_mlp_02', 'latent_mlp_03', 'latent_mlp_06']
+model_names = ['neural_032','neural_idm_117', 'latent_mlp_07']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -87,7 +87,7 @@ for i in range(40):
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
     for model_name in model_names:
-        if model_name == 'neural_idm_113':
+        if model_name == 'neural_idm_116':
             color = 'blue'
         else:
             color = 'orange'

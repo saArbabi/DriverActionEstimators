@@ -11,7 +11,7 @@ def main():
             'lane_length':300 # m
             }
     env = EnvMerge(config)
-    episode_id = 510
+    episode_id = 60
     env.initialize_env(episode_id)
 
     viewer = Viewer(config)
