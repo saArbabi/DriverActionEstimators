@@ -92,7 +92,7 @@ class Trainer():
         for epoch in range(epochs):
             self.epoch_count += 1
             self.model.train_loop(train_input)
-            self.model.test_loop(val_input, epoch)
+            self.model.test_loop(val_input)
             self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
             self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
             self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))

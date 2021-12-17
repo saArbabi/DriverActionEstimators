@@ -52,7 +52,7 @@ class NeurIDMModel(AbstractModel):
         for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
             self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
 
-    def test_loop(self, data_objs, epoch):
+    def test_loop(self, data_objs):
         train_ds = self.batch_data(data_objs)
         for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
             self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)

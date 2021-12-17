@@ -26,7 +26,7 @@ class AbstractModel(tf.keras.Model):
         for xs_h, xs_f, ys_f in train_ds:
             self.train_step([xs_h, xs_f], ys_f)
 
-    def test_loop(self, data_objs, epoch):
+    def test_loop(self, data_objs):
         train_ds = self.batch_data(data_objs)
         for xs_h, xs_f, ys_f in train_ds:
             self.test_step([xs_h, xs_f], ys_f)

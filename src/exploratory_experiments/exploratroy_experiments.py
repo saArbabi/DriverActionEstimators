@@ -259,7 +259,7 @@ class Trainer():
 
         for epoch in range(epochs):
             self.model.train_loop(train_input)
-            self.model.test_loop(val_input, epoch)
+            self.model.test_loop(val_input)
             if self.model_type == 'vae_idm' or self.model_type == 'neural_idm':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
