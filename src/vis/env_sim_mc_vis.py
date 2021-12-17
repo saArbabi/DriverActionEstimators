@@ -18,16 +18,19 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_028'
-    model_name = 'neural_idm_115'
+    # model_name = 'neural_idm_115'
     # model_name = 'latent_mlp_02'
+    model_name = 'mlp_01'
+    model_name = 'lstm_01'
     data_id = '030'
     history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 
     model_vehicle_map = {'neural_idm_115': 'NeuralIDMVehicle',
             'neural_029': 'NeuralVehicle',
-            'latent_mlp_02': 'LatentMLPVehicle'
-                                            }
+            'latent_mlp_02': 'LatentMLPVehicle',
+            'mlp_01': 'MLPVehicle',
+            'lstm_01': 'LSTMVehicle'}
     if model_vehicle_map[model_name] == 'NeuralVehicle':
         epoch_count = '20'
         from vehicles.neural.neural_vehicle import NeuralVehicle
@@ -40,6 +43,14 @@ def main():
         epoch_count = '20'
         from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
         env.neural_vehicle = LatentMLPVehicle()
+    elif model_vehicle_map[model_name] == 'MLPVehicle':
+        epoch_count = '20'
+        from vehicles.neural.mlp_vehicle import MLPVehicle
+        env.neural_vehicle = MLPVehicle()
+    elif model_vehicle_map[model_name] == 'LSTMVehicle':
+        epoch_count = '10'
+        from vehicles.neural.lstm_vehicle import LSTMVehicle
+        env.neural_vehicle = LSTMVehicle()
 
     episode_id = 505
     np.random.seed(episode_id)

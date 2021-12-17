@@ -1,11 +1,6 @@
 from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
 import numpy as np
-import pickle
-from importlib import reload
 import tensorflow as tf
-import tensorflow_probability as tfp
-tfd = tfp.distributions
-import json
 
 class LatentMLPVehicle(NeuralIDMVehicle):
     def __init__(self):

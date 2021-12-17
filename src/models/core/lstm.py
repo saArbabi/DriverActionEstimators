@@ -8,11 +8,15 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-class Encoder(AbstractModel):
+class LSTMEncoder(AbstractModel):
     def __init__(self, config=None):
-        super(Encoder, self).__init__(config)
-        self.enc_units = 50
+        super(LSTMEncoder, self).__init__(config)
+        self.enc_units = 128
         self.architecture_def()
+
+    def callback_def(self):
+        self.train_llloss = tf.keras.metrics.Mean() # log likelihood loss
+        self.test_llloss = tf.keras.metrics.Mean()
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
@@ -22,15 +26,15 @@ class Encoder(AbstractModel):
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        self.train_loss.reset_states()
-        self.train_loss(loss)
+        self.train_llloss.reset_states()
+        self.train_llloss(loss)
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
         pred_dis = self(states)
         loss = self.log_loss(targets, pred_dis)
-        self.test_loss.reset_states()
-        self.test_loss(loss)
+        self.test_llloss.reset_states()
+        self.test_llloss(loss)
 
     def log_loss(self, act_true, pred_dis):
         likelihood = pred_dis.log_prob(act_true)
@@ -46,7 +50,7 @@ class Encoder(AbstractModel):
         for s, t in train_ds:
             self.train_step(s, t)
 
-    def test_loop(self, data_objs, epoch):
+    def test_loop(self, data_objs):
         train_ds = self.batch_data(data_objs)
         for s, t in train_ds:
             self.test_step(s, t)
@@ -56,5 +60,4 @@ class Encoder(AbstractModel):
         neu_mean = self.neu_mean(h_t)
         neu_var = self.neu_var(h_t)
         pred_dis = tfp.distributions.Normal(neu_mean, neu_var, name='Normal')
-
         return pred_dis

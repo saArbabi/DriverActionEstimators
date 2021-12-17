@@ -33,37 +33,40 @@ env = EnvMergeMC(config)
 env.metric_collection_mode = True
 # model_name = 'neural_032'
 # model_name = 'neural_idm_117'
-model_name = 'latent_mlp_07'
+# model_name = 'latent_mlp_07'
+# model_name = 'lstm_01'
+model_name = 'mlp_01'
 data_id = '031'
 episodes_n = 13
 history_len = 50 # choose this based on the model with longest history
 rollout_len = 50
 
-model_vehicle_map = {'neural_idm_117': 'NeuralIDMVehicle',
-                    'neural_032': 'NeuralVehicle',
-                    'latent_mlp_07': 'LatentMLPVehicle'
-                                                    }
+model_vehicle_map = {'neural_idm_115': 'NeuralIDMVehicle',
+        'neural_029': 'NeuralVehicle',
+        'latent_mlp_02': 'LatentMLPVehicle',
+        'mlp_01': 'MLPVehicle',
+        'lstm_01': 'LSTMVehicle'}
+
 if model_vehicle_map[model_name] == 'NeuralVehicle':
-    ##############################################
     epoch_count = '20'
-    from vehicles.neural import neural_vehicle
-    reload(neural_vehicle)
     from vehicles.neural.neural_vehicle import NeuralVehicle
     env.neural_vehicle = NeuralVehicle()
 elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-    ##############################################
     epoch_count = '20'
-    from vehicles.neural import neural_idm_vehicle
-    reload(neural_idm_vehicle)
     from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
     env.neural_vehicle = NeuralIDMVehicle()
 elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
-    ##############################################
     epoch_count = '20'
-    from vehicles.neural import latent_mlp_vehicle
-    reload(latent_mlp_vehicle)
     from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
     env.neural_vehicle = LatentMLPVehicle()
+elif model_vehicle_map[model_name] == 'MLPVehicle':
+    epoch_count = '20'
+    from vehicles.neural.mlp_vehicle import MLPVehicle
+    env.neural_vehicle = MLPVehicle()
+elif model_vehicle_map[model_name] == 'LSTMVehicle':
+    epoch_count = '10'
+    from vehicles.neural.lstm_vehicle import LSTMVehicle
+    env.neural_vehicle = LSTMVehicle()
 
 env.neural_vehicle.initialize_agent(
                 model_name, epoch_count, data_id)
