@@ -87,7 +87,7 @@ class EnvMergeMC(EnvMerge):
 
                 if veh_ima.control_type != 'neural':
                     if not (veh_ima.obs_history[0,0,:] == 0).all() and \
-                                        self.time_step >= self.transition_time:
+                                        self.time_step >= self.trans_time:
 
                         # controller change
                         veh_ima.control_type = 'neural'
