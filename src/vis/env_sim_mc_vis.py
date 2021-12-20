@@ -23,7 +23,7 @@ def main():
     model_name = 'mlp_01'
     model_name = 'lstm_01'
     data_id = '030'
-    history_len = 30 # choose this based on the model with longest history
+    history_len = 50 # choose this based on the model with longest history
     rollout_len = 50
 
     model_vehicle_map = {'neural_idm_115': 'NeuralIDMVehicle',
@@ -52,7 +52,7 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 505
+    episode_id = 506
     np.random.seed(episode_id)
     env.transition_time = np.random.randint(\
                 history_len, history_len+50) # controller ==> 'neural'
