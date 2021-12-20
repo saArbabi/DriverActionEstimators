@@ -20,6 +20,7 @@ for item_name in feature_names:
 
 real_collections = {}
 ima_collections = {}
+collision_logs = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
 model_names = ['neural_032','neural_idm_117', 'latent_mlp_07', 'mlp_01', 'lstm_01']
@@ -31,6 +32,13 @@ for model_name in model_names:
 
     with open(exp_dir+'/ima_collection.pickle', 'rb') as handle:
         ima_collections[model_name] = pickle.load(handle)
+
+    try:
+        with open(exp_dir+'/collision_log.pickle', 'rb') as handle:
+            collision_logs[model_name] = pickle.load(handle)
+    except:
+        collision_logs[model_name] = []
+
 # %%
 """
 Each trajectory snippet is steps_n time steps long.
@@ -43,11 +51,6 @@ for model_name in model_names:
     snips_pred[model_name] = [] # shape: (car_count, 1, steps_n, 9)
 for model_name in model_names:
     for epis_id, epis_dic in real_collections[model_name].items():
-        # if epis_id in [508, 516]:
-            # continue
-        # if epis_id != 503:
-            # continue
-
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
@@ -282,10 +285,16 @@ for model_name in model_names:
     trajs = [true_min_gaps, pred_min_gaps]
     kl_divergences[model_name] = get_state_kl(trajs, BINS)
 kl_divergences
- 
+
 # %%
 
 plt.figure(figsize=(10, 3))
 plt.bar(kl_divergences.keys(), kl_divergences.values())
 
 # %%
+""""Collision counts"""
+collision_counts = {}
+
+for model_name in model_names:
+    collision_counts[model_name] = len(collision_logs[model_name])
+collision_counts
