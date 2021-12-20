@@ -86,13 +86,13 @@ for i in range(40):
     plt.plot(state_true, color='red')
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
-    for model_name in model_names:
-        if model_name == 'neural_idm_116':
+    for model_name in ['neural_idm_117', 'latent_mlp_07']:
+        if model_name == 'neural_idm_117':
             color = 'blue'
         else:
             color = 'orange'
 
-        for trace in range(2):
+        for trace in range(1):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
             plt.plot(state_pred, label=model_name, color=color)
     plt.legend()
@@ -124,7 +124,7 @@ plt.legend()
 
 # %%
 """
-rwse methods
+used methods
 """
 # plt.plot(xposition_error)
 def get_trace_err(pred_traces, true_trace):
@@ -152,6 +152,30 @@ def get_veh_err(index, model_name):
 def get_rwse(vehs_err_arr):
     # mean across all snippets (axis=0)
     return np.mean(vehs_err_arr, axis=0)**0.5
+
+def kl(p, q):
+    p = np.asarray(p, dtype=np.float)
+    q = np.asarray(q, dtype=np.float)
+    return np.sum(p*np.log(p/q))
+
+def get_state_kl(trajs, bins):
+    """
+    Returns kl divergence for two historgrams formed of
+    piecewise uniform rectacngles with n bins of equal width.
+    """
+    EPSILON = 1e-7# to avoid zeros
+
+    true_traj, pred_traj = trajs
+    pred_hist, bin_edges = np.histogram(pred_traj, bins)
+    true_hist, _ = np.histogram(true_traj, bin_edges)
+    pred_hist = pred_hist + EPSILON
+    true_hist = true_hist + EPSILON
+    bin_width = 1/pred_hist.sum()
+    pred_prob = pred_hist*bin_width
+    bin_width = 1/true_hist.sum()
+    true_prob = true_hist*bin_width
+    kl_val = kl(true_prob, pred_prob)
+    return kl_val
 # %%
 """visualise traj for debugging
 """
@@ -242,41 +266,26 @@ speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
 # vehs_err_arr.mean()
 # vehs_err_arr.mean()
 # %%
-"""
-gap dist
-"""
+""""KL DIV # min_delta_x"""
+BINS = 100
+state_index = indxs['min_delta_x']
+state_index = indxs['speed']
+state_index = indxs['act_long']
+# _ = plt.hist(pred_min_gaps, bins=bins_count, color='green', alpha=0.8, range=(0, 220))
+# _ = plt.hist(true_min_gaps, bins=bins_count, facecolor="None", edgecolor='black', linewidth=1.5, range=(0, 220))
+kl_divergences = {}
+snips_true[model_name].shape
+for model_name in model_names:
+    true_min_gaps = snips_true[model_name][:, :, :, state_index]
+    true_min_gaps = np.repeat(true_min_gaps, 2, axis=1).flatten()
+    pred_min_gaps = snips_pred[model_name][:, :, :, state_index].flatten()
+    trajs = [true_min_gaps, pred_min_gaps]
+    kl_divergences[model_name] = get_state_kl(trajs, BINS)
+kl_divergences
+ 
+# %%
 
-plt.figure()
-bins_count = 50
-# time_lapse = 199
-model_name = 'h_lat_f_act1000'
-true_min_gaps = snips_true[model_name][:, :, -1].flatten()
-
-pred_min_gaps = np.mean(snips_pred[model_name][:, :, :, -1], axis=1).flatten()
-_ = plt.hist(pred_min_gaps, bins=bins_count, color='blue', range=(0, 220))
-_ = plt.hist(true_min_gaps, bins=bins_count, facecolor="None", edgecolor='black', linewidth=1.5, range=(0, 220))
-
-#
-plt.figure()
-
-model_name = 'h_lat_f_idm_act1000'
-pred_min_gaps = np.mean(snips_pred[model_name][:, :, :, -1], axis=1).flatten()
-_ = plt.hist(pred_min_gaps, bins=bins_count, color='green', alpha=0.8, range=(0, 220))
-_ = plt.hist(true_min_gaps, bins=bins_count, facecolor="None", edgecolor='black', linewidth=1.5, range=(0, 220))
-
-
+plt.figure(figsize=(10, 3))
+plt.bar(kl_divergences.keys(), kl_divergences.values())
 
 # %%
-import numpy as np
-
-def KL(a, b):
-    a = np.asarray(a, dtype=np.float)
-    b = np.asarray(b, dtype=np.float)
-
-    return np.sum(np.where(a != 0, a * np.log(a / b), 0))
-
-
-values1 = [1.346112,1.337432,1.246655]
-values2 = [1.033836,1.082015,1.117323]
-
-KL(values1, values2)
