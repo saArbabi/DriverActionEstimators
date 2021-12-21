@@ -1,20 +1,20 @@
 {
-    "status": "IN PROGRESS ...",
+    "status": "COMPLETE",
     "model_vehicle_map": {
         "neural_idm_117": "NeuralIDMVehicle"
     },
     "mc_config": {
         "data_id": "031",
-        "episodes_n": 1,
+        "episodes_n": 4,
         "trace_n": 1,
         "history_len": 50,
         "rollout_len": 50
     },
     "progress_logging": {
-        "model_name": "neural_idm_117",
-        "model_in_prog": "1/1",
-        "episode_in_prog": "1/1",
-        "trace_in_prog": "1/1",
-        "last_update": "20/12/2021 17:25:45"
+        "neural_idm_117": {
+            "episode": 504,
+            "episode_in_prog": "4/4",
+            "last_update": "21/12/2021 10:00:40"
+        }
     }
 }

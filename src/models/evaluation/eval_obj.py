@@ -17,12 +17,8 @@ class MCEVAL():
 
         self.config = self.read_eval_config()
         self.env.metric_collection_mode = True
-        self.model_in_prog = 0
-        self.episode_in_prog = 0
-        self.trace_in_prog = 0
         self.rollout_len = self.config['mc_config']['rollout_len']
         self.history_len = self.config['mc_config']['history_len']
-        self.create_empty()
 
     def create_empty(self):
         """
@@ -31,32 +27,28 @@ class MCEVAL():
         self.ima_collection = {}
         self.real_collection = {}
         self.collision_log = []
-        self.avg_compute_time = [] # compute time per trace
+        self.runtime = [] # compute time per trace
 
-    def update_eval_config(self):
+    def update_eval_config(self, model_name):
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        progress_logging = self.config['progress_logging']
         mc_config = self.config['mc_config']
+        progress_logging = self.config['progress_logging'][model_name]
         progress_logging['last_update'] = dt_string
-        progress_logging['model_in_prog'] = \
-            f'{self.model_in_prog}/{len(self.model_vehicle_map)}'
         progress_logging['episode_in_prog'] = \
                                     f'{self.episode_in_prog}/{mc_config["episodes_n"]}'
-        progress_logging['trace_in_prog'] = \
-                                    f'{self.trace_in_prog}/{mc_config["trace_n"]}'
-        self.config['progress_logging'] = progress_logging
 
-        if self.config['status'] == 'NOT STARTED':
+        progress_logging['episode'] = self.episode_id
+
+        if self.episode_in_prog == mc_config['episodes_n']:
+            self.config['status'] = 'COMPLETE'
+        else:
             self.config['status'] = 'IN PROGRESS ...'
 
-        if self.episode_in_prog == mc_config['episodes_n'] and \
-                    self.trace_in_prog == mc_config['trace_n']:
-            self.config['status'] = 'COMPLETE'
 
+        self.config['progress_logging'][model_name] = progress_logging
         with open(self.eval_config_dir, 'w', encoding='utf-8') as f:
             json.dump(self.config, f, ensure_ascii=False, indent=4)
-
 
     def read_eval_config(self):
         with open(self.eval_config_dir, 'rb') as handle:
@@ -101,66 +93,126 @@ class MCEVAL():
         with open(exp_dir+'/ima_collection.pickle', 'wb') as handle:
             pickle.dump(self.ima_collection, handle)
 
+        with open(exp_dir+'/runtime.pickle', 'wb') as handle:
+            pickle.dump(self.runtime, handle)
+
         if self.collision_log:
             with open(exp_dir+'/collision_log.pickle', 'wb') as handle:
                 pickle.dump(self.collision_log, handle)
 
-    def run_trace(self, trace, episode_id):
-        self.trace_in_prog += 1
-        self.env.initialize_env(episode_id)
+    def run_trace(self, trace):
+        self.env.initialize_env(self.episode_id)
         tf.random.set_seed(trace) # each trace has a unique tf seed
 
         time_start = time.time()
         for i in range(0, self.env.trans_time+self.rollout_len):
             self.env.step()
             if self.env.collision_detected:
-                collision_id = f'{episode_id}_{trace}'
+                collision_id = f'{self.episode_id}_{trace}'
                 if collision_id not in self.collision_log:
                     self.collision_log.append(collision_id)
                     print('collision_detected')
 
         time_end = time.time()
-        runtime = time_end - time_start
+        runtime = (time_end - time_start)/len(self.env.real_vehicles)
 
         for veh_id, data_log in self.env.ima_mc_log.items():
             for step_log in data_log:
-                step_log[1:1] = [episode_id, veh_id, trace, runtime]
-            if not episode_id in self.ima_collection:
-                self.ima_collection[episode_id] = {}
-            if not veh_id in self.ima_collection[episode_id]:
-                self.ima_collection[episode_id][veh_id] = [data_log]
+                step_log[1:1] = [self.episode_id, veh_id, trace]
+            if not self.episode_id in self.ima_collection:
+                self.ima_collection[self.episode_id] = {}
+            if not veh_id in self.ima_collection[self.episode_id]:
+                self.ima_collection[self.episode_id][veh_id] = [data_log]
             else:
                 # append additional traces
-                self.ima_collection[episode_id][veh_id].append(data_log)
+                self.ima_collection[self.episode_id][veh_id].append(data_log)
+        self.runtime.append([self.episode_id, trace, runtime])
 
-        self.update_eval_config()
-
-    def run_episode(self, episode_id):
+    def run_episode(self):
+        self.episode_id += 1
         self.episode_in_prog += 1
-        np.random.seed(episode_id)
+        np.random.seed(self.episode_id)
         self.env.trans_time = np.random.randint(\
                             self.history_len, self.history_len+50) # controller ==> 'neural'
 
         for trace in range(self.config['mc_config']['trace_n']):
-            self.run_trace(trace, episode_id)
+            self.run_trace(trace)
         for veh_id, data_log in self.env.real_mc_log.items():
             for step_log in data_log:
-                step_log[1:1] = [episode_id, veh_id, trace]
-            if not episode_id in self.real_collection:
-                self.real_collection[episode_id] = {}
-            if not veh_id in self.real_collection[episode_id]:
-                self.real_collection[episode_id][veh_id] = [data_log]
+                step_log[1:1] = [self.episode_id, veh_id, trace]
+            if not self.episode_id in self.real_collection:
+                self.real_collection[self.episode_id] = {}
+            if not veh_id in self.real_collection[self.episode_id]:
+                self.real_collection[self.episode_id][veh_id] = [data_log]
             else:
                 # in case there are multiple traces per episode
-                self.real_collection[episode_id][veh_id].append(data_log)
+                self.real_collection[self.episode_id][veh_id].append(data_log)
+
+    def initiate_eval(self, model_name):
+        self.episode_in_prog = 0
+        self.create_empty()
+        progress_logging = {}
+        self.episode_id = 500
+        self.target_episode = self.config['mc_config']['episodes_n'] + \
+                                                            self.episode_id
+
+        progress_logging['episode'] = self.episode_id
+        progress_logging['episode_in_prog'] = 'NA'
+        progress_logging['last_update'] = 'NA'
+        self.config['progress_logging'][model_name] = progress_logging
+
+    def load_collections(self, model_name):
+        exp_dir = './src/models/experiments/'+model_name+'/eval'
+        with open(exp_dir+'/real_collection.pickle', 'rb') as handle:
+            self.real_collection = pickle.load(handle)
+
+        with open(exp_dir+'/ima_collection.pickle', 'rb') as handle:
+            self.ima_collection = pickle.load(handle)
+
+        with open(exp_dir+'/runtime.pickle', 'rb') as handle:
+            self.runtime = pickle.load(handle)
+
+        try:
+            with open(exp_dir+'/collision_log.pickle', 'rb') as handle:
+                self.collision_log = pickle.load(handle)
+        except:
+            self.collision_log = []
+
+    def is_eval_complete(self, model_name):
+        """Check if this model has been fully evaluated.
+        """
+        if not model_name in self.config['progress_logging']:
+            self.initiate_eval(model_name)
+            return False
+
+        progress_logging = self.config['progress_logging'][model_name]
+        mc_config = self.config['mc_config']
+        epis_n_left = 0 # remaining episodes ot compelte
+
+        episode_in_prog = progress_logging['episode_in_prog']
+        episode_in_prog = episode_in_prog.split('/')
+        self.episode_in_prog = int(episode_in_prog[0])
+        epis_n_left = mc_config['episodes_n'] - self.episode_in_prog
+        if epis_n_left == 0:
+            return True
+        else:
+            self.load_collections(model_name)
+            self.episode_id = progress_logging['episode']
+            progress_logging['episode_in_prog'] = \
+                        f'{self.episode_in_prog}/{mc_config["episodes_n"]}'
+            self.target_episode =  self.episode_id + epis_n_left
+            self.update_eval_config(model_name)
+            return False
 
     def run(self):
         self.model_vehicle_map = self.config['model_vehicle_map']
         model_names = self.model_vehicle_map.keys()
+
         for model_name in model_names:
-            self.model_in_prog += 1
-            self.config['progress_logging']['model_name'] = model_name
+            if self.is_eval_complete(model_name):
+                continue
             self.assign_neural_vehicle(model_name)
-            for episode_id in range(501, 501+self.config['mc_config']['episodes_n']):
-                self.run_episode(episode_id)
+            while self.episode_id < self.target_episode:
+                self.run_episode()
                 self.dump_mc_logs(model_name)
+                self.update_eval_config(model_name)

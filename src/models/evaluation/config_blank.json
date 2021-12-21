@@ -10,11 +10,5 @@
         "history_len": 50,
         "rollout_len": 50
     },
-    "progress_logging": {
-        "model_name": "neural_idm_117",
-        "model_in_prog": "NA",
-        "episode_in_prog": "NA",
-        "trace_in_prog": "NA",
-        "last_update": "20/12/2021 17:15:39"
-    }
+    "progress_logging": {}
 }

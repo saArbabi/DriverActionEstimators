@@ -21,9 +21,11 @@ for item_name in feature_names:
 real_collections = {}
 ima_collections = {}
 collision_logs = {}
+runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-model_names = ['neural_032','neural_idm_117', 'latent_mlp_07', 'mlp_01', 'lstm_01']
+# model_names = ['neural_032','neural_idm_117', 'latent_mlp_07', 'mlp_01', 'lstm_01']
+model_names = ['neural_idm_117']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -32,6 +34,9 @@ for model_name in model_names:
 
     with open(exp_dir+'/ima_collection.pickle', 'rb') as handle:
         ima_collections[model_name] = pickle.load(handle)
+
+    with open(exp_dir+'/runtime.pickle', 'rb') as handle:
+        runtimes[model_name] = pickle.load(handle)
 
     try:
         with open(exp_dir+'/collision_log.pickle', 'rb') as handle:
@@ -67,8 +72,9 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-# snips_pred['neural_idm_107'].shape
-
+snips_pred['neural_idm_117'].shape
+snips_pred['neural_idm_117'].shape
+# snips_pred['neural_idm_117'][0, 0, :, 7]
 # %%
 """
 Vis true vs pred state for models.
@@ -89,7 +95,7 @@ for i in range(40):
     plt.plot(state_true, color='red')
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
-    for model_name in ['neural_idm_117', 'latent_mlp_07']:
+    for model_name in ['neural_idm_117']:
         if model_name == 'neural_idm_117':
             color = 'blue'
         else:
