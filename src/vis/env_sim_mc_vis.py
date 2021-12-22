@@ -26,9 +26,10 @@ def main():
     history_len = 50 # choose this based on the model with longest history
     rollout_len = 50
 
-    model_vehicle_map = {'neural_idm_115': 'NeuralIDMVehicle',
-            'neural_029': 'NeuralVehicle',
-            'latent_mlp_02': 'LatentMLPVehicle',
+    model_vehicle_map = {
+            'neural_idm_117': 'NeuralIDMVehicle',
+            'neural_032': 'NeuralVehicle',
+            'latent_mlp_07': 'LatentMLPVehicle',
             'mlp_01': 'MLPVehicle',
             'lstm_01': 'LSTMVehicle'}
     if model_vehicle_map[model_name] == 'NeuralVehicle':

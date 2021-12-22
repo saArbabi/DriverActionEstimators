@@ -24,8 +24,7 @@ collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-# model_names = ['neural_032','neural_idm_117', 'latent_mlp_07', 'mlp_01', 'lstm_01']
-model_names = ['neural_idm_117']
+model_names = ['mlp_01', 'lstm_01','latent_mlp_07', 'neural_032','neural_idm_117']
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/eval'
 
@@ -43,6 +42,16 @@ for model_name in model_names:
             collision_logs[model_name] = pickle.load(handle)
     except:
         collision_logs[model_name] = []
+
+paper_names = {} # model names used for paper
+paper_indxs_names = {}
+names = ['MLP', 'LSTM', 'Latent-MLP', 'CVAE', 'NIDM']
+for i, model_name in enumerate(model_names):
+    paper_names[model_name] = names[i]
+
+names = ['Headway', 'Speed', 'Long. Acceleration']
+for i, _name in enumerate(['min_delta_x', 'speed', 'act_long']):
+    paper_indxs_names[_name] = names[i]
 
 # %%
 """
@@ -75,6 +84,7 @@ for model_name in model_names:
 snips_pred['neural_idm_117'].shape
 snips_pred['neural_idm_117'].shape
 # snips_pred['neural_idm_117'][0, 0, :, 7]
+runtimes['neural_idm_117']
 # %%
 """
 Vis true vs pred state for models.
@@ -95,15 +105,16 @@ for i in range(40):
     plt.plot(state_true, color='red')
     plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                 '   Veh_id:'+str(veh_id))
-    for model_name in ['neural_idm_117']:
+    # for model_name in ['neural_idm_117', 'neural_032']:
+    for model_name in ['latent_mlp_07']:
         if model_name == 'neural_idm_117':
             color = 'blue'
         else:
             color = 'orange'
 
-        for trace in range(1):
+        for trace in range(3):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            plt.plot(state_pred, label=model_name, color=color)
+            plt.plot(state_pred, label=paper_names[model_name], color=color)
     plt.legend()
 
 # %%
@@ -215,19 +226,21 @@ minval = snips_pred[model_name][car_index,0,:,state_index].min()
 maxval = snips_pred[model_name][car_index,0,:,state_index].max()
 for i in range(0, 100, 30):
     plt.plot([i, i], [minval, maxval], alpha=0.7, color='grey')
+
 # %%
+""" Set scientific plot format
+"""
+plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+#Options
+params = {
+          'font.size' : 20,
+          'font.family' : 'EB Garamond',
+          }
+plt.rcParams.update(params)
+plt.style.use(['science','ieee'])
 
 # %%
 
-# %%
-
-# params = {
-#           'font.size' : 20,
-#           'font.family' : 'EB Garamond',
-#           }
-# plt.rcParams.update(params)
-# plt.style.use(['science', 'ieee'])
-# %%
 """
 rwse x position
 """
@@ -236,18 +249,21 @@ time_vals = np.linspace(0, 5, steps_n)
 fig = plt.figure(figsize=(6, 4))
 position_axis = fig.add_subplot(211)
 speed_axis = fig.add_subplot(212)
-fig.subplots_adjust(hspace=0.05)
+fig.subplots_adjust(hspace=0.1)
 # for model_name in model_names:
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['glob_x'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    position_axis.plot(time_vals, error_total, label=model_name)
+    if model_name == 'neural_idm_117':
+        position_axis.plot(time_vals, error_total, \
+                           label=paper_names[model_name], linestyle='--')
+    else:
+        position_axis.plot(time_vals, error_total, label=paper_names[model_name])
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 
 # legends = ['NIDM', 'Latent-Seq', 'Latent-Single', 'Latent-Single-o']
 position_axis.set_ylabel('RWSE position (m)')
 # position_axis.set_xlabel('Time horizon (s)')
-position_axis.legend(model_names)
 position_axis.minorticks_off()
 # position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
@@ -255,19 +271,26 @@ position_axis.set_xticklabels([])
 """
 rwse speed
 """
+
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['speed'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    speed_axis.plot(time_vals, error_total, label=model_name)
-
+    if model_name == 'neural_idm_117':
+        speed_axis.plot(time_vals, error_total, \
+                           label=paper_names[model_name], linestyle='--')
+    else:
+        speed_axis.plot(time_vals, error_total, label=paper_names[model_name])
 speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
 # speed_axis.set_ylim(0, 2)
-# speed_axis.set_yticks([0, 0.2, 0.4])
-# speed_axis.legend(legends)
-speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
+speed_axis.set_yticks([0, 1, 2, 3])
+speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
+plt.savefig("rwse.png", dpi=500)
+
+# %%
+
 # plt.savefig("rwse.png", dpi=500)
 # %%
 # vehs_err_arr = get_veh_err(indxs['speed'], model_names[1])
@@ -279,23 +302,50 @@ speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=3)
 BINS = 100
 state_index = indxs['min_delta_x']
 state_index = indxs['speed']
-state_index = indxs['act_long']
+# state_index = indxs['act_long']
 # _ = plt.hist(pred_min_gaps, bins=bins_count, color='green', alpha=0.8, range=(0, 220))
 # _ = plt.hist(true_min_gaps, bins=bins_count, facecolor="None", edgecolor='black', linewidth=1.5, range=(0, 220))
 kl_divergences = {}
-snips_true[model_name].shape
 for model_name in model_names:
-    true_min_gaps = snips_true[model_name][:, :, :, state_index]
-    true_min_gaps = np.repeat(true_min_gaps, 2, axis=1).flatten()
-    pred_min_gaps = snips_pred[model_name][:, :, :, state_index].flatten()
-    trajs = [true_min_gaps, pred_min_gaps]
-    kl_divergences[model_name] = get_state_kl(trajs, BINS)
+    kl_collection = {}
+    for index in ['min_delta_x', 'speed', 'act_long']:
+        state_index = indxs[index]
+        true_min_gaps = snips_true[model_name][:, :, :, state_index]
+        true_min_gaps = np.repeat(true_min_gaps, 2, axis=1).flatten()
+        pred_min_gaps = snips_pred[model_name][:, :, :, state_index].flatten()
+        trajs = [true_min_gaps, pred_min_gaps]
+        kl_collection[index] = get_state_kl(trajs, BINS)
+    kl_divergences[model_name] = kl_collection
 kl_divergences
 
 # %%
+fig, ax = plt.subplots()
+width = 0.5  # the width of the bars
+loc = 1
+bar_colors = ['darkgray','gray','lightgrey']
+xlabel_loc = []
+for model_name in model_names:
+    for i, index in enumerate(['min_delta_x', 'speed', 'act_long']):
+        if i == 1:
+            xlabel_loc.append(loc)
+        ax.bar(loc, kl_divergences[model_name][index], width, \
+              color=bar_colors[i], edgecolor='black', \
+              linewidth=0.3, label=paper_names[model_name] )
+        loc += width+0.1
 
-plt.figure(figsize=(10, 3))
-plt.bar(kl_divergences.keys(), kl_divergences.values())
+    loc += 1
+ax.grid(axis='y', alpha=0.3)
+ax.axes.xaxis.set_ticks([], minor=True)
+ax.axes.yaxis.set_ticks([], minor=True)
+ax.set_xticks(xlabel_loc)
+ax.set_xticklabels(paper_names.values())
+# ax.set_xlabel(xlabel_loc, model_names)
+plt.tick_params(top=False)
+ax.legend(paper_indxs_names.values(), loc='upper center', bbox_to_anchor=(0.5, -0.1),
+          fancybox=False, shadow=False, edgecolor=None, ncol=5)
+fig.tight_layout()
+plt.savefig("kl_bar_chart.png", dpi=500)
+
 
 # %%
 """"Collision counts"""
