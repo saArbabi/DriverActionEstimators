@@ -155,7 +155,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def get_neur_att(self, att_context):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 5
+        attention_temp = 1
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.att_neu(lstm_output))).numpy()
         return att_score
 
