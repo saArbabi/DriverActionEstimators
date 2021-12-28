@@ -287,7 +287,7 @@ speed_axis.minorticks_off()
 # speed_axis.set_ylim(0, 2)
 speed_axis.set_yticks([0, 1, 2, 3])
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
-plt.savefig("rwse.png", dpi=500)
+# plt.savefig("rwse.png", dpi=500)
 
 # %%
 
@@ -344,7 +344,7 @@ plt.tick_params(top=False)
 ax.legend(paper_indxs_names.values(), loc='upper center', bbox_to_anchor=(0.5, -0.1),
           fancybox=False, shadow=False, edgecolor=None, ncol=5)
 fig.tight_layout()
-plt.savefig("kl_bar_chart.png", dpi=500)
+# plt.savefig("kl_bar_chart.png", dpi=500)
 
 
 # %%
