@@ -7,7 +7,7 @@ import pickle
 import sys
 import json
 from importlib import reload
-
+reload(pyplot)
 sys.path.insert(0, './src')
 # %%
 hf_usc_indexs = {}
@@ -254,7 +254,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 1
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -399,14 +399,28 @@ while Example_pred < 30:
         plt.grid()
         """
         Example_pred += 1
+
+# %%
+""" Set scientific plot format
+"""
+plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
+#Options
+params = {
+          'font.size' : 20,
+          'font.family' : 'EB Garamond',
+          }
+plt.rcParams.update(params)
+plt.style.use(['science','ieee'])
+
+# %%
 # %%
 """Prediction for an specific sample from the dataset
 """
 # model.arbiter.attention_temp = 5
 traces_n = 50
-model.forward_sim.attention_temp = 20
+model.forward_sim.attention_temp = 1.5
 # sample_index = [12374]
-sample_index = [12754]
+sample_index = [12931]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
@@ -422,25 +436,15 @@ h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model.h_seq_encoder(h_seq)
 latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-sampled_z = model.belief_net.sample_z(latent_dis_param)
-proj_belief = model.belief_net.belief_proj(sampled_z)
-act_seq, att_scores, idm_params_seq = model.forward_sim.rollout([proj_belief, \
-                                             future_idm_ss, merger_cs])
-#
-# min_act = idm_params.numpy()[:, -2]
-# plt.scatter(min_act, [0]*100)
-# plt.scatter(1.43, 0, color='red')
-# idm_params = tf.ones([100, 5])*[29.9, 1.01, 1.02, 3.83, 3.83]
+z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+proj_idm = model.belief_net.z_proj_idm(z_idm)
+proj_att = model.belief_net.z_proj_att(z_att)
+idm_params = model.idm_layer(proj_idm).numpy()
+act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
+                                                        future_idm_ss, merger_cs])
+act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
-# idm_params = tf.ones([100, 5])*[18., 1.11, 4, 1., 1]
-# idm_params = idm_params.numpy()
-# idm_params[:, -2] = 3.38
-# idm_params[:, -1] = 3.97
-# idm_params[:, 1] += 0.4
-act_seq, att_scores, idm_params_seq = \
-        act_seq.numpy(), att_scores.numpy(), idm_params_seq.numpy()
 att_ = att_scores.flatten()
-
 plt.figure(figsize=(5, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
@@ -461,65 +465,59 @@ for param_name in idm_names:
 
 plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
 # plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
-plt.text(0.1, 0.1, 'pred: '+ str(idm_params_seq[:, 0, :].mean(axis=0).round(2)))
+plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
 
-##########
-for i, param_name in enumerate(idm_names):
-    plt.figure()
-    for n in range(5):
-        plt.plot(idm_params_seq[n, :, i])
-    plt.title(param_name)
-    plt.grid()
 
 # %%
-
-# plt.figure(figsize=(10, 10))
-time_axis = np.linspace(0., 4., 59)
-# plt.figure(figsize=(5, 3))
-# plt.legend(['Leader', 'Follower', 'Merger'])
-
+fig, ax = plt.subplots(figsize=(4, 3))
+time_axis = np.linspace(0., 6., 59)
 for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
-                    color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
+    label = '_nolegend_'
+    if sample_trace_i == 0:
+        label = 'Network'
+    ax.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
+                    color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
+
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
-plt.plot(time_axis, traj, color='red')
+ax.plot(time_axis, traj, color='red')
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
-plt.plot(time_axis, traj, linestyle='--', color='black')
+ax.plot(time_axis, traj, linestyle='--', color='black')
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
-plt.plot(time_axis, traj, color='purple',linestyle='-')
-# plt.plot([3,3],[-2,1])
-# plt.title('Vehicle actions')
-# plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
-plt.xlabel('Time (s)')
-plt.ylabel('Acceleration ($ms^{-2}$)')
-# plt.ylim(-0.1, 0.1)
-# plt.yticks([1, 0., -1, -2])
-# plt.xticks([0., 2, 4, 6])
-
-plt.grid()
-# plt.grid(alpha=0.1)
-plt.legend(['Ego', 'Merger', 'Leader'])
-# plt.savefig("example_actions.png", dpi=500)
+ax.plot(time_axis, traj, color='purple',linestyle='-')
+ax.fill_between([0,3],[-9,-9], [5,5], color='lightgrey')
+ax.set_yticks([-6, -4, -2, 0, 2])
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('Long. Acceleration ($ms^{-2}$)')
+ax.set_ylim(-6.5, 2.1)
+ax.set_xlim(0, 6.1)
+ax.grid(alpha=0.2)
+ax.minorticks_off()
+# ax.legend(['Network', 'Rear car', 'Merge car', 'Front car'], \
+#            bbox_to_anchor=(0.25, 0.3))
+ax.legend(['Network', 'Rear car', 'Merge car', 'Front car'], \
+          loc='lower left', framealpha=1, frameon=True)
+ax.tick_params(top=False)
+plt.savefig("example_actions.png", dpi=500)
 # %%
-# plt.figure(figsize=(10, 10))
-plt.figure(figsize=(5, 4))
-for sample_trace_i in range(traces_n):
-   plt.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
-            color='grey', alpha=0.5, linewidth=0.5, label='_nolegend_', linestyle='-')
-plt.plot(time_axis, e_veh_att, color='red', linewidth=1, linestyle='-')
+fig, ax = plt.subplots(figsize=(4, 3))
 
-plt.ylim(-0.05, 1.05)
-plt.fill_between([0,2],[-3,-3], [3,3], color='lightgrey')
-plt.xlabel('Time (s)')
-plt.ylabel('$w$')
-# plt.title('Driver attentiveness')
-plt.legend(['True attnetion'])
-plt.xticks([0., 2, 4, 6])
-plt.yticks([0., 0.5, 1])
-# plt.xlim(0, 1)
-plt.minorticks_off()
-plt.grid(alpha=0.1)
-# plt.savefig("example_attention.png", dpi=500)
+for sample_trace_i in range(traces_n):
+    label = '_nolegend_'
+    if sample_trace_i == 0:
+        label = 'Network'
+    ax.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
+            color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
+ax.plot(time_axis, e_veh_att, color='red', linewidth=1.5, linestyle='-')
+ax.fill_between([0,3],[-3,-3], [3,3], color='lightgrey')
+ax.set_ylim(-0.05, 1.05)
+ax.set_xlim(0, 6.1)
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('$w$')
+ax.set_yticks([0., 0.5, 1])
+ax.minorticks_off()
+ax.grid(alpha=0.2)
+ax.legend(['Network', 'True attnetion'], framealpha=1, frameon=True)
+plt.savefig("example_attention.png", dpi=500)
 
 
 # %%
@@ -532,6 +530,94 @@ idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 
 ax.set_ylabel('$z_1$')
 ax.set_xlabel('$z_2$')
+# %%
+"""
+Visualisation of latent distribution for a given example in the dataset
+"""
+latent_dim = 3
+from scipy.stats import norm
+for dim in range(latent_dim):
+    plt.figure(figsize=(3, 2))
+    datos = sampled_z.numpy()[:, dim]
+    (mu, sigma) = norm.fit(datos)
+    datos.std()
+    x = np.linspace(-1, 2, 300)
+    p = norm.pdf(x, mu, sigma)
+    plt.plot(x, p, linewidth=2)
+    plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
+
+# %%
+"""
+Visualisation of IDM param distribution for a given example in the dataset
+"""
+param_names = ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
+for i in range(5):
+    true_val = true_params[i]
+    param_name = param_names[i]
+
+    datos = idm_params.numpy()[:, i]
+    mean_val = datos.mean()
+    (mu, sigma) = norm.fit(datos)
+    x = np.linspace(mean_val-1, mean_val+1, 300)
+    p = norm.pdf(x, mu, sigma)
+    plt.figure(figsize=(3, 2))
+    plt.plot(x, p, linewidth=2)
+    plt.title(param_name + ' sigma: '+str(round(sigma, 2)) + ' mean: '+str(round(mu, 2)))
+    # plt.axis('off')
+
+    plt.plot([true_val, true_val], [0, p.max()], linewidth=2, color='red')
+    # plt.plot([mean_bound, mean_bound], [0, p.max()], linewidth=2, color='black')
+
+# %%
+"""
+Visualisation of IDM param distribution for a given example in the dataset
+
+### quality figure ###
+"""
+param_names = ['desired_v', 'desired_tgap']
+
+fig = plt.figure(figsize=(4, 4))
+desired_v_axis = fig.add_subplot(211)
+desired_tgap_axis = fig.add_subplot(212)
+fig.subplots_adjust(hspace=0.3)
+
+"""Desired speed"""
+true_val = true_params[0]
+param_samples = idm_params[:, 0]
+(mu, sigma) = norm.fit(param_samples)
+x = np.linspace(22, 26, 50)
+p = norm.pdf(x, mu, sigma)
+
+param_likelihoods = norm.pdf(idm_params[:, 0], mu, sigma)
+desired_v_axis.plot(x, p, linewidth=1, color='red')
+desired_v_axis.plot([true_val, true_val], [-0.1, 1.5],
+            linewidth=1.5, color='black', linestyle='--')
+desired_v_axis.scatter(param_samples, param_likelihoods, s=20, color='blue')
+desired_v_axis.set_xticks([22, 23, 24, 25, 26])
+desired_v_axis.set_ylim(-0.1, 1.5)
+desired_v_axis.set_xlabel('$v_{des}$')
+desired_v_axis.set_ylabel('Probability Density')
+desired_v_axis.minorticks_off()
+"""Desired Time Gap"""
+true_val = true_params[1]
+param_samples = idm_params[:, 1]
+(mu, sigma) = norm.fit(param_samples)
+x = np.linspace(0.25, 0.95, 50)
+p = norm.pdf(x, mu, sigma)
+
+param_likelihoods = norm.pdf(idm_params[:, 1], mu, sigma)
+desired_tgap_axis.plot(x, p, linewidth=1, color='red')
+desired_tgap_axis.plot([true_val, true_val], [-0.5, 12],
+            linewidth=1.5, color='black', linestyle='--')
+desired_tgap_axis.scatter(param_samples, param_likelihoods, s=20, color='blue')
+desired_tgap_axis.set_xticks([0.3, 0.6, 0.9])
+desired_tgap_axis.set_ylim(-0.5, 12)
+desired_tgap_axis.set_xlabel('$T_{des}$')
+desired_tgap_axis.set_ylabel('Probability Density')
+desired_tgap_axis.minorticks_off()
+plt.savefig("example_params.png", dpi=500)
+
+
 
 # %%
 ##########
@@ -565,62 +651,3 @@ ax.set_xlabel('$z_2$')
 #
 # plt.legend(['True parameter', 'Predicted parameters'])
 # plt.savefig("example_params.png", dpi=500)
-
-# %%
-# %%
-"""
-Visualisation of latent distribution for a given example in the dataset
-"""
-latent_dim = 3
-from scipy.stats import norm
-for dim in range(latent_dim):
-    plt.figure(figsize=(3, 2))
-    datos = sampled_z.numpy()[:, dim]
-    (mu, sigma) = norm.fit(datos)
-    datos.std()
-    x = np.linspace(-1, 2, 300)
-    p = norm.pdf(x, mu, sigma)
-    plt.plot(x, p, linewidth=2)
-    plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
-
-# %%
-"""
-Visualisation of IDM param distribution for a given example in the dataset
-"""
-parameter_range = {'most_aggressive': {
-                                'desired_v':25, # m/s
-                                'desired_tgap': 0.5, # s
-                                'min_jamx':1, # m
-                                'max_act':4, # m/s^2
-                                'min_act':4, # m/s^2
-                                'politeness':0.,
-                                'safe_braking':-5,
-                                'act_threshold':0
-                                },
-                 'least_aggressvie': {
-                                'desired_v':15, # m/s
-                                'desired_tgap':2, # s
-                                'min_jamx':5, # m
-                                'max_act':2, # m/s^2
-                                'min_act':2, # m/s^2
-                                'politeness':1,
-                                'safe_braking':-3,
-                                'act_threshold':0.2
-                                 }}
-param_names = ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
-for i in range(5):
-    true_val = true_params[i]
-    param_name = param_names[i]
-
-    datos = idm_params.numpy()[:, i]
-    mean_val = datos.mean()
-    (mu, sigma) = norm.fit(datos)
-    x = np.linspace(mean_val-1, mean_val+1, 300)
-    p = norm.pdf(x, mu, sigma)
-    plt.figure(figsize=(3, 2))
-    plt.plot(x, p, linewidth=2)
-    plt.title(param_name + ' sigma: '+str(round(sigma, 2)) + ' mean: '+str(round(mu, 2)))
-    # plt.axis('off')
-
-    plt.plot([true_val, true_val], [0, p.max()], linewidth=2, color='red')
-    # plt.plot([mean_bound, mean_bound], [0, p.max()], linewidth=2, color='black')
