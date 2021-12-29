@@ -40,56 +40,75 @@ def latent_samples(model, sample_index):
     return [z_idm, z_att]
 
 def latent_vis(zsamples_n):
+    fig = pyplot.figure(figsize=(4, 4))
     examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
-    aggressiveness = history_future_usc[examples_to_vis, 0, -7]
+    sampled_z = latent_samples(model, examples_to_vis)[0].numpy()
+    #===============
+    #  First subplot
+    #===============
+    # set up the axes for the first plot
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    ax.xaxis.set_tick_params(pad=1, which='both')
+    ax.yaxis.set_tick_params(pad=1, which='both')
+    ax.zaxis.set_tick_params(pad=1, which='both')
+
+    # x ticks
+    ax.set_xticks([-2, 0, 2], minor=False)
+    ax.set_xlim(-2.5, 2.5)
+
+    # y ticks
+    ax.set_yticks([-4, -2, 0, 2], minor=False)
+    ax.set_ylim(-4.5, 2.5)
+
+    # z ticks
+    ax.set_zticks([-6, -3, 0, 3], minor=False)
+    ax.set_zlim(-6.5, 3.5)
+    ax.minorticks_off()
+
+
+    aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiveness']]
     color_shade = aggressiveness
-    z_s = latent_samples(model, examples_to_vis)
+    latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
+                  s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
 
-    for z_ in z_s:
-        fig = pyplot.figure(figsize=(4, 6))
-        #===============
-        #  First subplot
-        #===============
-        # set up the axes for the first plot
-        ax = fig.add_subplot(1, 2, 1, projection='3d')
+    # axins = inset_axes(ax,
+    #                     width="5%",
+    #                     height="90%",
+    #                     loc='right',
+    #                     borderpad=-2
+    #                    )
+    #
+    # fig.colorbar(latent_plot, cax=axins, ticks=np.arange(0, 1.1, 0.2))
 
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_zticks([])
-
-        att_sc = ax.scatter(z_[:, 0], z_[:, 1], z_[:, 2],
-                      s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
-
-        ax.tick_params(pad=1)
-        ax.grid(False)
-        # ax.view_init(30, 50)
-        #===============
-        #  Second subplot
-        #===============
-        # set up the axes for the second plot
-        ax = fig.add_subplot(1, 2, 2, projection='3d')
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_zticks([])
-        att_sc = ax.scatter(z_[:, 0], z_[:, 1], z_[:, 2],
-                      s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
-
-        axins = inset_axes(ax,
-                            width="5%",
-                            height="90%",
-                            loc='right',
-                            borderpad=-2
-                           )
-
-        fig.colorbar(att_sc, cax=axins)
-        cbar = fig.colorbar(att_sc, cax=axins)
-        ax.tick_params(pad=1)
-        ax.grid(False)
-        ax.view_init(30, 50)
-        # ax.set_xlabel('$z_{1}$', labelpad=1)
-        # ax.set_ylabel('$z_{2}$', labelpad=1)
-        # ax.set_zlabel('$z_{3}$', labelpad=1)
-        plt.subplots_adjust(wspace=0.2, hspace=None)
+    ax.grid(False)
+    ax.view_init(30, 50)
+    #===============
+    #  Second subplot
+    #===============
+    # set up the axes for the second plot
+    # ax = fig.add_subplot(1, 2, 2, projection='3d')
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    # ax.set_zticks([])
+    # latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
+    #               s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+    #
+    # axins = inset_axes(ax,
+    #                     width="5%",
+    #                     height="90%",
+    #                     loc='right',
+    #                     borderpad=-2
+    #                    )
+    #
+    # fig.colorbar(latent_plot, cax=axins)
+    # cbar = fig.colorbar(latent_plot, cax=axins)
+    # ax.tick_params(pad=1)
+    # ax.grid(False)
+    # ax.view_init(30, 50)
+    # # ax.set_xlabel('$z_{1}$', labelpad=1)
+    # # ax.set_ylabel('$z_{2}$', labelpad=1)
+    # # ax.set_zlabel('$z_{3}$', labelpad=1)
+    # plt.subplots_adjust(wspace=0.2, hspace=None)
 
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
@@ -232,19 +251,16 @@ bad_samples = np.where(loss > 1)
 """
 Latent visualisation - aggressiveness used for color coding the latent samples
 """
-latent_vis(zsamples_n=3000)
-latent_vis(zsamples_n=3000)
+latent_vis(zsamples_n=5000)
+plt.savefig("nidm_latent.png", dpi=500)
+
 # plt.savefig("latent.png", dpi=500)
 # %%
-# import matplotlib.pyplot as plt
-# plt.rcParams['text.latex.preamble']=[r"\usepackage{lmodern}"]
-# params = {
-#           'font.size' : 20,
-#           'font.family' : 'EB Garamond',
-#           }
-# plt.rcParams.update(params)
-# plt.style.use(['science','ieee'])
-
+params = {
+          'font.size' : 12,
+          'font.family' : 'Palatino Linotype',
+          }
+plt.rcParams.update(params)
 # %%
 
 # %%
