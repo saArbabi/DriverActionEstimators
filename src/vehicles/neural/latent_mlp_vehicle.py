@@ -8,7 +8,7 @@ class LatentMLPVehicle(NeuralIDMVehicle):
     def __init__(self):
         super().__init__()
         self.samples_n = 1
-        self.history_len = 50 # steps
+        self.history_len = 30 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
 

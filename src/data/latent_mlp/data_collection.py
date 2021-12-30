@@ -52,8 +52,8 @@ sim_data.shape
 """
 Prepare data
 """
-history_len = 50 # steps
-rollout_len = 50
+history_len = 30 # steps
+rollout_len = 30
 from data.latent_mlp import data_prep
 reload(data_prep)
 from data.latent_mlp.data_prep import DataPrepLatentMLP

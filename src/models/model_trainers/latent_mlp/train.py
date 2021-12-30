@@ -21,8 +21,8 @@ Following protocol from paper
 for Imitating Driver Behavior"
 for setting history/rollout length
 """
-history_len = 50 # steps
-rollout_len = 50
+history_len = 30 # steps
+rollout_len = 30
 data_id = '031'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -125,7 +125,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '07'
+exp_id = '08'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -139,7 +139,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=15)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################

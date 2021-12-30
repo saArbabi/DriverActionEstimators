@@ -150,14 +150,14 @@ class ForwardSim(tf.keras.Model):
     def rollout(self, inputs, training):
         if training:
             sampled_z, history_sca = inputs
-            sampled_z = tf.repeat(sampled_z, 50, axis=1)
+            sampled_z = tf.repeat(sampled_z, 30, axis=1)
             mean_seq, var_seq = self.get_dis(tf.concat([\
                                     sampled_z, history_sca], axis=-1))
             act_seq = tfd.Normal(mean_seq, var_seq, name='Normal').sample()
             return mean_seq, var_seq, act_seq
         else:
             sampled_z, idm_s, merger_cs = inputs
-            for step in range(50):
+            for step in range(30):
                 f_veh_v = idm_s[:, step:step+1, 1:2]
                 m_veh_v = idm_s[:, step:step+1, 2:3]
                 f_veh_glob_x = idm_s[:, step:step+1, 4:5]
