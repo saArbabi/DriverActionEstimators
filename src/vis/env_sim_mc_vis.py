@@ -18,18 +18,18 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_028'
-    # model_name = 'neural_idm_115'
+    model_name = 'neural_idm_117'
     # model_name = 'latent_mlp_02'
-    model_name = 'mlp_01'
-    model_name = 'lstm_01'
-    data_id = '030'
-    history_len = 50 # choose this based on the model with longest history
+    # model_name = 'mlp_01'
+    # model_name = 'lstm_01'
+    data_id = '031'
+    history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 
     model_vehicle_map = {
             'neural_idm_117': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
-            'latent_mlp_07': 'LatentMLPVehicle',
+            'latent_mlp_08': 'LatentMLPVehicle',
             'mlp_01': 'MLPVehicle',
             'lstm_01': 'LSTMVehicle'}
     if model_vehicle_map[model_name] == 'NeuralVehicle':
@@ -53,15 +53,16 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 506
+    episode_id = 521
+    trace = 0
     np.random.seed(episode_id)
-    env.transition_time = np.random.randint(\
-                history_len, history_len+50) # controller ==> 'neural'
+    env.trans_time = np.random.randint(\
+                history_len, history_len+200) # controller ==> 'neural'
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
     env.initialize_env(episode_id)
     viewer = ViewerMC(config)
-    tf.random.set_seed(0)
+    tf.random.set_seed(trace)
     env.debugging_mode = True
     # env.debugging_mode = False
     while True:
