@@ -283,6 +283,7 @@ class ViewerMC(Viewer):
         self.speed_ax.set_ylim(speed_lim_min, speed_lim_max)
 
         self.att_ax.plot(x_range, ima_mc_log[veh_id]['att'], linestyle='--')
+        self.att_ax.set_ylim(-0.1, 1.1)
         # self.att_ax.plot(x_range, ima_mc_log[veh_id]['m_veh_exists'], color='purple')
 
         color_i = 0

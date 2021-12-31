@@ -9,9 +9,9 @@
     },
     "mc_config": {
         "data_id": "031",
-        "episodes_n": 1,
-        "trace_n": 20,
-        "history_len": 50,
+        "episodes_n": 10,
+        "trace_n": 1,
+        "history_len": 30,
         "rollout_len": 50
     },
     "progress_logging": {}

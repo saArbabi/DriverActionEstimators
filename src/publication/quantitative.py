@@ -24,9 +24,9 @@ collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-model_names = ['mlp_01', 'lstm_01','latent_mlp_08', 'neural_032','neural_idm_117']
+model_names = ['mlp_01', 'lstm_01','latent_mlp_08', 'neural_032','neural_idm_119']
 val_run_name = 'val_step'
-val_run_name = 'val_temp1_1'
+val_run_name = 'val_proj'
 
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/' + val_run_name
@@ -86,9 +86,9 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-snips_pred['neural_idm_117'].shape
-snips_pred['neural_idm_117'].shape
-# snips_pred['neural_idm_117'][0, 0, :, 7]
+snips_pred['neural_idm_119'].shape
+snips_pred['neural_idm_119'].shape
+# snips_pred['neural_idm_119'][0, 0, :, 7]
 # for key, val in snips_pred.items():
 #     snips_pred[key] = val[0:1, :, :, :]
 #
@@ -111,14 +111,14 @@ for i in range(73):
     epis_id = snips_true[model_names[0]][i,0,0,1]
     veh_id = snips_true[model_names[0]][i,0,0,2]
     state_true = snips_true[model_names[0]][i,0,:,state_index]
-    # for model_name in ['neural_idm_117', 'neural_032']:
+    # for model_name in ['neural_idm_119', 'neural_032']:
     # for model_name in ['latent_mlp_07']:
     for model_name in model_names:
         plt.figure()
         plt.plot(state_true, color='red', linestyle='--', label=paper_names[model_name])
         plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                     '   Veh_id:'+str(veh_id))
-        # if model_name == 'neural_idm_117':
+        # if model_name == 'neural_idm_119':
         #     color = 'blue'
         # else:
         #     color = 'orange'
@@ -265,7 +265,7 @@ fig.subplots_adjust(hspace=0.1)
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['glob_x'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    if model_name == 'neural_idm_117':
+    if model_name == 'neural_idm_119':
         position_axis.plot(time_vals, error_total, \
                            label=paper_names[model_name], linestyle='--')
     else:
@@ -287,7 +287,7 @@ rwse speed
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['speed'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    if model_name == 'neural_idm_117':
+    if model_name == 'neural_idm_119':
         speed_axis.plot(time_vals, error_total, \
                            label=paper_names[model_name], linestyle='--')
     else:

@@ -37,7 +37,6 @@ def prep_data(training_data):
 
     return train_input, val_input
 # %%
-
 """
 Load generated data.
 """
@@ -47,7 +46,24 @@ data_files_dir = './src/models/experiments/data_files/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
 sim_data.shape
+# %%
 
+# size = []
+# for i in range(1, 100):
+#     epis_arr = sim_data[sim_data[:, 0] == i]
+#     att_1 = epis_arr[epis_arr[:, 9] == 1]
+#     if att_1.size != 0:
+#         size.append([i, att_1[:, 1].min()])
+#     else:
+#         print(i)
+#
+# size
+# %%
+
+plt.hist(size)
+np.array(size)[:, 1].mean()
+np.array(size)[:, 1].max()
+np.array(size).max()
 # %%
 """
 Prepare data

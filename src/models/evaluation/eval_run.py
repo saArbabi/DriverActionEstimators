@@ -1,9 +1,9 @@
 import sys
 sys.path.insert(0, './src')
 from models.evaluation.eval_obj import MCEVAL
-
+val_run_name = 'val_proj'
 def main():
-    data_obj = MCEVAL()
+    data_obj = MCEVAL(val_run_name)
     data_obj.run()
 
 if __name__=='__main__':
