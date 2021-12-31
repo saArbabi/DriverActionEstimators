@@ -24,9 +24,12 @@ collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-model_names = ['mlp_01', 'lstm_01','latent_mlp_07', 'neural_032','neural_idm_117']
+model_names = ['mlp_01', 'lstm_01','latent_mlp_08', 'neural_032','neural_idm_117']
+val_run_name = 'val_step'
+val_run_name = 'val_temp1_1'
+
 for model_name in model_names:
-    exp_dir = './src/models/experiments/'+model_name+'/eval'
+    exp_dir = './src/models/experiments/'+model_name+'/' + val_run_name
 
     with open(exp_dir+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -68,6 +71,8 @@ for model_name in model_names:
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
+            # if _true[:, :, -1].mean() == 0:
+            #     continue
             flatten_ima = []
             for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
                 flatten_ima.append(\
@@ -84,7 +89,12 @@ for model_name in model_names:
 snips_pred['neural_idm_117'].shape
 snips_pred['neural_idm_117'].shape
 # snips_pred['neural_idm_117'][0, 0, :, 7]
-runtimes['neural_idm_117']
+# for key, val in snips_pred.items():
+#     snips_pred[key] = val[0:1, :, :, :]
+#
+# for key, val in snips_true.items():
+#     snips_true[key] = val[0:1, :, :, :]
+snips_true[model_name][-1, 0, 1, :]
 # %%
 """
 Vis true vs pred state for models.
@@ -97,25 +107,26 @@ state_index = indxs['act_long']
 # model_name = 'neural_028'
 error_squared = []
 
-for i in range(40):
-    plt.figure()
+for i in range(73):
     epis_id = snips_true[model_names[0]][i,0,0,1]
     veh_id = snips_true[model_names[0]][i,0,0,2]
     state_true = snips_true[model_names[0]][i,0,:,state_index]
-    plt.plot(state_true, color='red')
-    plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
-                                                '   Veh_id:'+str(veh_id))
     # for model_name in ['neural_idm_117', 'neural_032']:
-    for model_name in ['latent_mlp_07']:
-        if model_name == 'neural_idm_117':
-            color = 'blue'
-        else:
-            color = 'orange'
+    # for model_name in ['latent_mlp_07']:
+    for model_name in model_names:
+        plt.figure()
+        plt.plot(state_true, color='red', linestyle='--', label=paper_names[model_name])
+        plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
+                                                    '   Veh_id:'+str(veh_id))
+        # if model_name == 'neural_idm_117':
+        #     color = 'blue'
+        # else:
+        #     color = 'orange'
 
-        for trace in range(3):
+        for trace in range(1):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            plt.plot(state_pred, label=paper_names[model_name], color=color)
-    plt.legend()
+            plt.plot(state_pred, color='grey')
+        plt.legend()
 
 # %%
 """

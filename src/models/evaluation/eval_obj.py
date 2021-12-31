@@ -9,12 +9,12 @@ import json
 
 class MCEVAL():
     eval_config_dir = './src/models/evaluation/config.json'
-    def __init__(self):
+    def __init__(self, val_run_name):
         self.env = EnvMergeMC(
                 {'lanes_n':2,
                 'lane_width':3.75,
                 'lane_length':300})
-
+        self.val_run_name = val_run_name # folder name in which val logs are dumped
         self.config = self.read_eval_config()
         self.env.metric_collection_mode = True
         self.rollout_len = self.config['mc_config']['rollout_len']
@@ -83,7 +83,7 @@ class MCEVAL():
                         self.config['mc_config']['data_id'])
 
     def dump_mc_logs(self, model_name):
-        exp_dir = './src/models/experiments/'+model_name+'/eval'
+        exp_dir = './src/models/experiments/'+model_name+'/'+self.val_run_name
         if not os.path.exists(exp_dir):
             os.makedirs(exp_dir)
 
@@ -133,7 +133,7 @@ class MCEVAL():
         self.episode_in_prog += 1
         np.random.seed(self.episode_id)
         self.env.trans_time = np.random.randint(\
-                            self.history_len, self.history_len+50) # controller ==> 'neural'
+                            self.history_len, self.history_len*2) # controller ==> 'neural'
 
         for trace in range(self.config['mc_config']['trace_n']):
             self.run_trace(trace)
@@ -162,7 +162,7 @@ class MCEVAL():
         self.config['progress_logging'][model_name] = progress_logging
 
     def load_collections(self, model_name):
-        exp_dir = './src/models/experiments/'+model_name+'/eval'
+        exp_dir = './src/models/experiments/'+model_name+'/'+self.val_run_name
         with open(exp_dir+'/real_collection.pickle', 'rb') as handle:
             self.real_collection = pickle.load(handle)
 
