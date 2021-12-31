@@ -9,7 +9,7 @@ import json
 from importlib import reload
 reload(pyplot)
 sys.path.insert(0, './src')
-# %%
+
 hf_usc_indexs = {}
 col_names = [
          'episode_id', 'time_step',
@@ -155,7 +155,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_117'
+model_name = 'neural_idm_121'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -198,7 +198,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_114', 'neural_idm_115', 'neural_idm_116']:
+for name in ['neural_idm_119', 'neural_idm_117']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -270,7 +270,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 1
+model.forward_sim.attention_temp = 5
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -307,8 +307,9 @@ while Example_pred < 30:
         elif distribution_name == 'prior':
             latent_dis_param = model.belief_net(enc_h, dis_type='prior')
         z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
-        proj_idm = model.belief_net.z_proj_idm(z_idm)
-        proj_att = model.belief_net.z_proj_att(z_att)
+
+        proj_idm = model.belief_net.z_proj_idm(np.concatenate([z_idm, h_seq[:, -1, :]], axis=-1))
+        proj_att = model.belief_net.z_proj_att(np.concatenate([z_att, h_seq[:, -1, :]], axis=-1))
         idm_params = model.idm_layer(proj_idm)
         act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                      future_idm_ss, merger_cs])

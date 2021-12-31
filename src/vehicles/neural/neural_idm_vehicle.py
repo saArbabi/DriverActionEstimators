@@ -169,8 +169,11 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             enc_h = self.model.h_seq_encoder(obs_history)
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
-            proj_att = self.model.belief_net.z_proj_att(z_att)
-            proj_idm = self.model.belief_net.z_proj_idm(z_idm)
+
+            proj_att = self.model.belief_net.z_proj_att(
+                            np.concatenate([z_att, obs_history[:, -1, :]], axis=-1))
+            proj_idm = self.model.belief_net.z_proj_idm(
+                            np.concatenate([z_idm, obs_history[:, -1, :]], axis=-1))
             self.belief_update(proj_att)
             idm_params = self.model.idm_layer(proj_idm)
             self.driver_params_update(idm_params)

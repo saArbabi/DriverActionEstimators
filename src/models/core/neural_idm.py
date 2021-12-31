@@ -87,7 +87,7 @@ class NeurIDMModel(AbstractModel):
         return  self.vae_loss_weight*kl_loss + mse_loss
 
     def call(self, inputs):
-        enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
+        enc_h = self.h_seq_encoder(inputs[0]) # history
         enc_f = self.f_seq_encoder(inputs[1])
         current_s = inputs[0][:, -1, :]
 
@@ -95,10 +95,10 @@ class NeurIDMModel(AbstractModel):
                                 [enc_h, enc_f], dis_type='both')
 
         z_idm, z_att = self.belief_net.sample_z(pos_params)
-        proj_idm = self.belief_net.z_proj_idm(z_idm)
-        proj_att = self.belief_net.z_proj_att(z_att)
+        env_state = inputs[0][:, -1, :]
+        proj_idm = self.belief_net.z_proj_idm(tf.concat([z_idm, env_state], axis=-1))
+        proj_att = self.belief_net.z_proj_att(tf.concat([z_att, env_state], axis=-1))
         idm_params = self.idm_layer(proj_idm)
-
         act_seq, _ = self.forward_sim.rollout([\
                                 idm_params, proj_att, inputs[2], inputs[-1]])
         # tf.print('###############:')
