@@ -212,7 +212,7 @@ class IDMForwardSim(tf.keras.Model):
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=3, clip_value_max=100.)
+        dx = tf.abs(dx)
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -285,7 +285,6 @@ class IDMForwardSim(tf.keras.Model):
             att_score = self.get_att(lstm_output)
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            em_act = em_act*m_veh_exists
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
