@@ -18,7 +18,7 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_028'
-    model_name = 'neural_idm_119'
+    model_name = 'neural_idm_128'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_01'
     # model_name = 'lstm_01'
@@ -27,7 +27,7 @@ def main():
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_119': 'NeuralIDMVehicle',
+            'neural_idm_128': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
             'latent_mlp_08': 'LatentMLPVehicle',
             'mlp_01': 'MLPVehicle',
@@ -53,7 +53,8 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 504
+    episode_id = 503
+    # episode_id = 505
     trace = 0
     np.random.seed(episode_id)
     env.trans_time = np.random.randint(\

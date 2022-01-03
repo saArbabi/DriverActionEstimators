@@ -155,7 +155,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def get_neur_att(self, att_context):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 1
+        attention_temp = 5
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.att_neu(lstm_output))).numpy()
         return att_score
 
@@ -194,6 +194,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                                                         m_veh_exists], axis=-1)
         att_score = self.get_neur_att(att_context)
         att_score = att_score[0][0][0]
+        # if self.id == 'neur_3':
+        #     att_score = 0
         self.att = att_score
         ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:

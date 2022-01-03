@@ -1,7 +1,7 @@
 {
     "status": "COMPLETE",
     "model_vehicle_map": {
-        "neural_idm_119": "NeuralIDMVehicle"
+        "neural_idm_128": "NeuralIDMVehicle"
     },
     "mc_config": {
         "data_id": "031",
@@ -11,10 +11,10 @@
         "rollout_len": 50
     },
     "progress_logging": {
-        "neural_idm_119": {
+        "neural_idm_128": {
             "episode": 510,
             "episode_in_prog": "10/10",
-            "last_update": "31/12/2021 15:09:52"
+            "last_update": "03/01/2022 13:14:12"
         }
     }
 }

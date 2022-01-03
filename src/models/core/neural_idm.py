@@ -89,8 +89,6 @@ class NeurIDMModel(AbstractModel):
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history
         enc_f = self.f_seq_encoder(inputs[1])
-        current_s = inputs[0][:, -1, :]
-
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
 
@@ -214,6 +212,7 @@ class IDMForwardSim(tf.keras.Model):
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
+        dx = tf.clip_by_value(dx, clip_value_min=3, clip_value_max=100.)
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -227,7 +226,7 @@ class IDMForwardSim(tf.keras.Model):
                                             (desired_gap/dx)**2)
 
 
-        return self.action_clip(act)*tf.cast(tf.greater_equal(dx, 3), tf.float32)
+        return self.action_clip(act)
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
@@ -286,7 +285,7 @@ class IDMForwardSim(tf.keras.Model):
             att_score = self.get_att(lstm_output)
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-
+            em_act = em_act*m_veh_exists
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:

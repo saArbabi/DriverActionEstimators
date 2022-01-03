@@ -131,12 +131,12 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '128'
+exp_id = '133'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
 # model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.load_pre_trained(epoch_count='20')
+# model_trainer.load_pre_trained(epoch_count='15')
 # %%
 # model_trainer.model.forward_sim.attention_temp
 
