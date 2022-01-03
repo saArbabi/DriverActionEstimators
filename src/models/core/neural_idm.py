@@ -214,6 +214,8 @@ class IDMForwardSim(tf.keras.Model):
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
+        # dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=100.)
+
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -229,6 +231,10 @@ class IDMForwardSim(tf.keras.Model):
 
         # return act
         return self.action_clip(act)*tf.cast(tf.greater_equal(dx, 3), tf.float32)
+
+        # dummy_mul = tf.cast(tf.greater_equal(dx, 3), tf.float32)
+        # random_act = tf.random.normal(shape=(tf.shape(dx)[0], 1, 1), mean=0., stddev=1)
+        # return self.action_clip(act)*dummy_mul + (1-dummy_mul)*random_act
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
