@@ -228,7 +228,7 @@ class IDMForwardSim(tf.keras.Model):
 
 
         # return act
-        return self.action_clip(act)*tf.cast(tf.greater_equal(dx, 3), tf.float32)
+        return self.action_clip(act)
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
@@ -284,7 +284,8 @@ class IDMForwardSim(tf.keras.Model):
                                     proj_latent, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
-            att_score = self.get_att(lstm_output)
+            att_score = self.get_att(lstm_output)*\
+                            tf.cast(tf.greater_equal(em_delta_x, 3), tf.float32)
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
