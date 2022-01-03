@@ -155,7 +155,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_126'
+model_name = 'neural_idm_128'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -198,7 +198,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_122', 'neural_idm_124']:
+for name in ['neural_idm_124', 'neural_idm_128']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
