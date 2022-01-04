@@ -25,7 +25,6 @@ runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
 model_names = ['mlp_01', 'lstm_01','latent_mlp_08', 'neural_032','neural_idm_138']
-val_run_name = 'val_step'
 val_run_name = 'val_proj'
 
 for model_name in model_names:
@@ -123,7 +122,7 @@ for i in range(73):
         # else:
         #     color = 'orange'
 
-        for trace in range(1):
+        for trace in range(5):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
             plt.plot(state_pred, color='grey')
         plt.legend()

@@ -212,6 +212,7 @@ class MCEVAL():
             if self.is_eval_complete(model_name):
                 continue
             self.assign_neural_vehicle(model_name)
+            print('Model being evaluated: ', model_name)
             while self.episode_id < self.target_episode:
                 self.run_episode()
                 self.dump_mc_logs(model_name)
