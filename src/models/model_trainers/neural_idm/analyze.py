@@ -109,6 +109,7 @@ def latent_vis(zsamples_n):
     # # ax.set_ylabel('$z_{2}$', labelpad=1)
     # # ax.set_zlabel('$z_{3}$', labelpad=1)
     # plt.subplots_adjust(wspace=0.2, hspace=None)
+    return ax
 
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
@@ -155,7 +156,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_134'
+model_name = 'neural_idm_139'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -198,7 +199,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_124', 'neural_idm_128']:
+for name in ['neural_idm_139', 'neural_idm_138']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -271,7 +272,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 1
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -281,7 +282,7 @@ distribution_name = 'prior'
 # for i in sepcific_samples:
 # for i in [2815]:
 # for i in bad_samples[00]:
-while Example_pred < 30:
+while Example_pred < 10:
     sample_index = [val_samples[i]]
     # sample_index = [train_samples[i]]
     # sample_index = [i]
@@ -293,9 +294,8 @@ while Example_pred < 30:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
-    # if episode not in covered_episodes and e_veh_att[0:3].mean() > 0 and e_veh_att[-5:].mean() == 0:
     if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
-    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    # if episode not in covered_episodes and  e_veh_att.mean() == 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -389,9 +389,8 @@ while Example_pred < 30:
         plt.grid()
         ############
         ##########
-        # lATENT
         # ax = latent_vis(2000)
-        # ax.scatter(sampled_z[:, 0], sampled_z[:, 1], s=15, color='black')
+        # ax.scatter(z_idm[:, 0], z_idm[:, 1], z_idm[:, 2], s=15, color='black')
         ##########
 
         """
@@ -436,9 +435,9 @@ plt.style.use(['science','ieee'])
 """
 # model.arbiter.attention_temp = 5
 traces_n = 50
-model.forward_sim.attention_temp = 1.5
+model.forward_sim.attention_temp = 5
 # sample_index = [12374]
-sample_index = [12931]
+sample_index = [3958]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
@@ -455,8 +454,8 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model.h_seq_encoder(h_seq)
 latent_dis_param = model.belief_net(enc_h, dis_type='prior')
 z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
-proj_idm = model.belief_net.z_proj_idm(z_idm)
-proj_att = model.belief_net.z_proj_att(z_att)
+proj_idm = model.belief_net.z_proj_idm(np.concatenate([z_idm, h_seq[:, -1, :]], axis=-1))
+proj_att = model.belief_net.z_proj_att(np.concatenate([z_att, h_seq[:, -1, :]], axis=-1))
 idm_params = model.idm_layer(proj_idm).numpy()
 act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                         future_idm_ss, merger_cs])
@@ -487,7 +486,8 @@ plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
 
 
 # %%
-fig, ax = plt.subplots(figsize=(4, 3))
+# fig, ax = plt.subplots(figsize=(4, 3))
+fig, ax = plt.subplots(figsize=(5, 5))
 time_axis = np.linspace(0., 6., 59)
 for sample_trace_i in range(traces_n):
     label = '_nolegend_'
@@ -502,11 +502,11 @@ traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'
 ax.plot(time_axis, traj, linestyle='--', color='black')
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
 ax.plot(time_axis, traj, color='purple',linestyle='-')
-ax.fill_between([0,3],[-9,-9], [5,5], color='lightgrey')
-ax.set_yticks([-6, -4, -2, 0, 2])
+# ax.fill_between([0,3],[-9,-9], [5,5], color='lightgrey')
+# ax.set_yticks([-6, -4, -2, 0, 2])
 ax.set_xlabel('Time (s)')
 ax.set_ylabel('Long. Acceleration ($ms^{-2}$)')
-ax.set_ylim(-6.5, 2.1)
+# ax.set_ylim(-6.5, 2.1)
 ax.set_xlim(0, 6.1)
 ax.grid(alpha=0.2)
 ax.minorticks_off()
@@ -515,7 +515,7 @@ ax.minorticks_off()
 ax.legend(['Network', 'Rear car', 'Merge car', 'Front car'], \
           loc='lower left', framealpha=1, frameon=True)
 ax.tick_params(top=False)
-plt.savefig("example_actions.png", dpi=500)
+# plt.savefig("example_actions.png", dpi=500)
 # %%
 fig, ax = plt.subplots(figsize=(4, 3))
 
@@ -535,7 +535,7 @@ ax.set_yticks([0., 0.5, 1])
 ax.minorticks_off()
 ax.grid(alpha=0.2)
 ax.legend(['Network', 'True attnetion'], framealpha=1, frameon=True)
-plt.savefig("example_attention.png", dpi=500)
+# plt.savefig("example_attention.png", dpi=500)
 
 
 # %%

@@ -1,20 +1,18 @@
 {
-    "status": "COMPLETE",
+    "status": "NOT STARTED",
     "model_vehicle_map": {
-        "neural_idm_128": "NeuralIDMVehicle"
+        "neural_idm_138": "NeuralIDMVehicle",
+        "neural_032": "NeuralVehicle",
+        "latent_mlp_08": "LatentMLPVehicle",
+        "mlp_01": "MLPVehicle",
+        "lstm_01": "LSTMVehicle"
     },
     "mc_config": {
         "data_id": "031",
-        "episodes_n": 10,
-        "trace_n": 1,
+        "episodes_n": 5,
+        "trace_n": 10,
         "history_len": 30,
         "rollout_len": 50
     },
-    "progress_logging": {
-        "neural_idm_128": {
-            "episode": 510,
-            "episode_in_prog": "10/10",
-            "last_update": "03/01/2022 13:14:12"
-        }
-    }
+    "progress_logging": {}
 }

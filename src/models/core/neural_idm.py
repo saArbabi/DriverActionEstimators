@@ -212,7 +212,8 @@ class IDMForwardSim(tf.keras.Model):
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.abs(dx)
+        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=100.)
+
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
         min_jamx = idm_params[:,:,2:3]
@@ -226,6 +227,7 @@ class IDMForwardSim(tf.keras.Model):
                                             (desired_gap/dx)**2)
 
 
+        # return self.action_clip(act)
         return self.action_clip(act)
 
     def action_clip(self, action):
@@ -239,6 +241,15 @@ class IDMForwardSim(tf.keras.Model):
     def get_att(self, lstm_output):
         att_x = self.att_neu(lstm_output)
         return 1/(1+tf.exp(-self.attention_temp*att_x))
+
+    def handle_merger(self, em_act, dx, m_veh_exists):
+        """??
+        """
+        dummy_mul = tf.cast(tf.greater(dx*m_veh_exists, 0), tf.float32)
+        random_act = tf.random.normal(shape=(tf.shape(dx)[0], 1, 1), \
+                                                mean=0., stddev=0.1)
+        return em_act*dummy_mul + (1-dummy_mul)*random_act
+
 
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
@@ -285,6 +296,8 @@ class IDMForwardSim(tf.keras.Model):
             att_score = self.get_att(lstm_output)
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
+            em_act = self.handle_merger(em_act, em_delta_x, m_veh_exists)
+
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
