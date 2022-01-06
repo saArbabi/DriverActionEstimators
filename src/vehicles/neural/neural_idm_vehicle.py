@@ -155,7 +155,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def get_neur_att(self, att_context):
         lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
                                     att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 5
+        attention_temp = 10
         att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.att_neu(lstm_output))).numpy()
         return att_score
 
@@ -168,13 +168,12 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         if self.time_lapse_since_last_param_update == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
+            self.enc_h = tf.reshape(enc_h, [self.samples_n, 1, 128])
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
 
-            proj_att = self.model.belief_net.z_proj_att(
-                            np.concatenate([z_att, obs_history[:, -1, :]], axis=-1))
-            proj_idm = self.model.belief_net.z_proj_idm(
-                            np.concatenate([z_idm, obs_history[:, -1, :]], axis=-1))
+            proj_att = self.model.belief_net.z_proj_att(z_att)
+            proj_idm = self.model.belief_net.z_proj_idm(z_idm)
             self.belief_update(proj_att)
             idm_params = self.model.idm_layer(proj_idm)
             self.driver_params_update(idm_params)
@@ -186,7 +185,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
             env_state = self.scale_state(obs_t0, 'env_state')
             merger_c = self.scale_state(obs_t0, 'merger_c')
-            att_context = tf.concat([self.proj_latent, env_state, merger_c, \
+            att_context = tf.concat([self.proj_latent, self.enc_h, env_state, merger_c, \
                                                             m_veh_exists], axis=-1)
             att_score = self.get_neur_att(att_context)
             att_score = att_score[0][0][0]

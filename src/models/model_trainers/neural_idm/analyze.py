@@ -25,7 +25,7 @@ col_names = [
 for i, item_name in enumerate(col_names):
     hf_usc_indexs[item_name] = i
 
-# %%
+# x%%
 """
 Needed methods
 """
@@ -156,7 +156,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_139'
+model_name = 'neural_idm_144'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -199,7 +199,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_139', 'neural_idm_138']:
+for name in ['neural_idm_139', 'neural_idm_140', 'neural_idm_141']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -272,7 +272,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 1
+model.forward_sim.attention_temp = 10
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -309,10 +309,10 @@ while Example_pred < 10:
             latent_dis_param = model.belief_net(enc_h, dis_type='prior')
         z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 
-        proj_idm = model.belief_net.z_proj_idm(np.concatenate([z_idm, h_seq[:, -1, :]], axis=-1))
-        proj_att = model.belief_net.z_proj_att(np.concatenate([z_att, h_seq[:, -1, :]], axis=-1))
+        proj_idm = model.belief_net.z_proj_idm(z_idm)
+        proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
-        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
+        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
                                                      future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 
@@ -417,6 +417,8 @@ while Example_pred < 10:
         """
         Example_pred += 1
 
+
+
 # %%
 """ Set scientific plot format
 """
@@ -454,8 +456,8 @@ future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model.h_seq_encoder(h_seq)
 latent_dis_param = model.belief_net(enc_h, dis_type='prior')
 z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
-proj_idm = model.belief_net.z_proj_idm(np.concatenate([z_idm, h_seq[:, -1, :]], axis=-1))
-proj_att = model.belief_net.z_proj_att(np.concatenate([z_att, h_seq[:, -1, :]], axis=-1))
+proj_idm = model.belief_net.z_proj_idm(z_idm)
+proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm).numpy()
 act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                         future_idm_ss, merger_cs])

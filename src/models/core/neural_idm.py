@@ -94,11 +94,12 @@ class NeurIDMModel(AbstractModel):
 
         z_idm, z_att = self.belief_net.sample_z(pos_params)
         env_state = inputs[0][:, -1, :]
-        proj_idm = self.belief_net.z_proj_idm(tf.concat([z_idm, env_state], axis=-1))
-        proj_att = self.belief_net.z_proj_att(tf.concat([z_att, env_state], axis=-1))
+        proj_idm = self.belief_net.z_proj_idm(z_idm)
+        proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
         act_seq, _ = self.forward_sim.rollout([\
-                                idm_params, proj_att, inputs[2], inputs[-1]])
+                                idm_params, proj_att, enc_h,
+                                inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
@@ -252,10 +253,11 @@ class IDMForwardSim(tf.keras.Model):
 
 
     def rollout(self, inputs):
-        idm_params, proj_belief, idm_s, merger_cs = inputs
+        idm_params, proj_belief, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        enc_h  = tf.reshape(enc_h, [batch_size, 1, 128])
         state_h = state_c = tf.zeros([batch_size, self.dec_units])
 
         for step in range(30):
@@ -290,7 +292,7 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step:step+1, :]
 
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, env_state, merger_c], axis=-1), \
+                                proj_belief, enc_h, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
             att_score = self.get_att(lstm_output)
