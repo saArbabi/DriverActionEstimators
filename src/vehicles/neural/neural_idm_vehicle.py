@@ -128,10 +128,10 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.driver_params['min_act'] = idm_params[4]
 
     def belief_update(self, proj_belief):
-        self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 64])
+        self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 128])
         # if self.time_lapse_since_last_param_update == 0:
             # self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
-        self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
+        self.state_h = self.state_c = proj_belief
 
     def scale_state(self, state, state_type):
         if state_type == 'full':

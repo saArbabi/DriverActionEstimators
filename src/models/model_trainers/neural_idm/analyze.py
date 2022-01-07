@@ -127,7 +127,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '031'
+data_id = '032'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -156,7 +156,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_144'
+model_name = 'neural_idm_150'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -264,7 +264,8 @@ params = {
           }
 plt.rcParams.update(params)
 # %%
-
+plt.plot(dis_x_seq[0, :, 0])
+plt.plot(future_idm_ss[0, :, 3], color='red')
 # %%
 """
 Visualisation of model predictions. Use this for debugging.
@@ -272,8 +273,8 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 10
-traces_n = 50
+model.forward_sim.attention_temp = 5
+traces_n = 1
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
@@ -282,7 +283,7 @@ distribution_name = 'prior'
 # for i in sepcific_samples:
 # for i in [2815]:
 # for i in bad_samples[00]:
-while Example_pred < 10:
+while Example_pred < 1:
     sample_index = [val_samples[i]]
     # sample_index = [train_samples[i]]
     # sample_index = [i]
@@ -308,11 +309,10 @@ while Example_pred < 10:
         elif distribution_name == 'prior':
             latent_dis_param = model.belief_net(enc_h, dis_type='prior')
         z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
-
         proj_idm = model.belief_net.z_proj_idm(z_idm)
         proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
-        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
+        dis_x_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
                                                      future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 

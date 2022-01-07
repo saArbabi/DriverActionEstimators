@@ -125,7 +125,8 @@ class DataPrep():
         future_m_veh_c = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         # future action of e_veh - used as target
-        col_names = ['episode_id', 'time_step', 'e_veh_action']
+        # col_names = ['episode_id', 'time_step', 'e_veh_action']
+        col_names = ['episode_id', 'time_step', 'e_veh_glob_x']
         future_e_veh_a = future_seqs[:, :, self.names_to_index(col_names)]
 
         data_arrays = [history_future_usc, history_sca, future_sca, future_idm_s, \
