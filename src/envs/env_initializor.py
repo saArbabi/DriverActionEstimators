@@ -52,12 +52,14 @@ class EnvInitializor():
         lane_id = 1
         vehicles = []
         # traffic_density = 6
-        traffic_density = np.random.randint(3, 6) # number of vehicles
+        traffic_density = 5 # number of vehicles
+        # traffic_density = np.random.randint(4, 6) # number of vehicles
         # print('traffic_density ', traffic_density)
 
         glob_x = 200
         avg_spacing = glob_x/traffic_density
-        aggs = np.random.uniform(0.01, 0.99, traffic_density) # aggressiveness
+        aggs = np.random.uniform(0.01, 0.7, traffic_density) # aggressiveness
+        # aggs = np.random.uniform(0.01, 0.99, traffic_density) # aggressiveness
         vehicle_count = 0
         while len(vehicles) < traffic_density:
             if not vehicles:
@@ -73,11 +75,11 @@ class EnvInitializor():
                 vehicle_count += 1
             if glob_x == 0:
                 break
-        vehicles[-1].glob_x = 0
+        # vehicles[-1].glob_x = 0
 
         # ramp vehicles
         lane_id = 2
-        aggs = np.random.uniform(0.2, 0.99) # aggressiveness
+        aggs = np.random.uniform(0.7, 0.99) # aggressiveness
         # aggs = 0.8
         while True:
             glob_x = np.random.uniform(50,  150)

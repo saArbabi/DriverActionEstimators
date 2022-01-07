@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 np.set_printoptions(suppress=True)
 
-# %%
+# -%%
 """
 Load recordings
 """
