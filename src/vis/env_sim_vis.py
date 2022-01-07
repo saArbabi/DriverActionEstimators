@@ -12,6 +12,7 @@ def main():
             }
     env = EnvMerge(config)
     episode_id = 504
+    episode_id = 506
     env.initialize_env(episode_id)
 
     viewer = Viewer(config)

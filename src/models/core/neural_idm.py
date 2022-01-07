@@ -136,7 +136,7 @@ class BeliefModel(tf.keras.Model):
         z_sigma =  K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
-        return sampled_z[:, :3], sampled_z 
+        return sampled_z[:, :3], sampled_z[:, 3:]
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
@@ -213,7 +213,7 @@ class IDMForwardSim(tf.keras.Model):
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=100.)
+        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
 
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
@@ -246,7 +246,7 @@ class IDMForwardSim(tf.keras.Model):
     def handle_merger(self, em_act, dx, m_veh_exists):
         """??
         """
-        dummy_mul = tf.cast(tf.greater(dx*m_veh_exists, 0), tf.float32)
+        dummy_mul = tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
         random_act = tf.random.normal(shape=(tf.shape(dx)[0], 1, 1), \
                                                 mean=0., stddev=0.1)
         return em_act*dummy_mul + (1-dummy_mul)*random_act

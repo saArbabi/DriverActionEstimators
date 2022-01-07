@@ -18,7 +18,7 @@ def main():
     env = EnvMergeMC(config)
 
     model_name = 'neural_032'
-    model_name = 'neural_idm_154'
+    model_name = 'neural_idm_156'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_01'
     # model_name = 'lstm_01'
@@ -27,11 +27,12 @@ def main():
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_154': 'NeuralIDMVehicle',
+            'neural_idm_156': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
             'latent_mlp_08': 'LatentMLPVehicle',
             'mlp_01': 'MLPVehicle',
             'lstm_01': 'LSTMVehicle'}
+
     if model_vehicle_map[model_name] == 'NeuralVehicle':
         epoch_count = '20'
         from vehicles.neural.neural_vehicle import NeuralVehicle
@@ -53,9 +54,9 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 504
+    episode_id = 504 # wrong switch to 1
     # episode_id = 505
-    episode_id = 506
+    episode_id = 506 # late switch
     trace = 0
     np.random.seed(episode_id)
     env.trans_time = np.random.randint(\
@@ -81,8 +82,8 @@ def main():
             if env.debugging_mode:
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
-        if env.collision_detected:
-            sys.exit()
+        # if env.collision_detected:
+        #     sys.exit()
 
 if __name__=='__main__':
     main()
