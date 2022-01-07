@@ -30,10 +30,10 @@ class NeurIDMModel(AbstractModel):
         self.train_klloss = tf.keras.metrics.Mean()
         self.test_klloss = tf.keras.metrics.Mean()
 
-    def mse(self, targets, pred):
-        targets = (targets[:, :, :] - targets[:, 0:1, :])/0.1
-        pred = (pred[:, :, :] - pred[:, 0:1, :])/0.1
-        loss = self.loss_function(targets, pred)
+    def mse(self, act_true, act_pred):
+        act_true = (act_true)/0.1
+        act_pred = (act_pred)/0.1
+        loss = self.loss_function(act_true, act_pred)
         tf.debugging.check_numerics(loss, message='Checking loss')
         return loss
 
@@ -60,8 +60,8 @@ class NeurIDMModel(AbstractModel):
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            dis_x_seq, pri_params, pos_params = self(states)
-            mse_loss = self.mse(targets, dis_x_seq)
+            act_pred, pri_params, pos_params = self(states)
+            mse_loss = self.mse(targets, act_pred)
             kl_loss = self.kl_loss(pri_params, pos_params)
             loss = self.vae_loss(mse_loss, kl_loss)
 
@@ -74,8 +74,8 @@ class NeurIDMModel(AbstractModel):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        dis_x_seq, pri_params, pos_params = self(states)
-        mse_loss = self.mse(targets, dis_x_seq)
+        act_pred, pri_params, pos_params = self(states)
+        mse_loss = self.mse(targets, act_pred)
         kl_loss = self.kl_loss(pri_params, pos_params)
         loss = self.vae_loss(mse_loss, kl_loss)
         self.test_mseloss.reset_states()
@@ -97,14 +97,14 @@ class NeurIDMModel(AbstractModel):
         proj_idm = self.belief_net.z_proj_idm(z_idm)
         proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
-        dis_x_seq, _, _ = self.forward_sim.rollout([\
+        act_seq, _ = self.forward_sim.rollout([\
                                 idm_params, proj_att, enc_h,
                                 inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
         # tf.print('att_scoreean: ', tf.reduce_mean(att_scores))
-        return dis_x_seq, pri_params, pos_params
+        return act_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
@@ -127,7 +127,7 @@ class BeliefModel(tf.keras.Model):
 
         self.proj_att_1 = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_att_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_att_3 = Dense(self.proj_dim*2)
+        self.proj_att_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -136,7 +136,7 @@ class BeliefModel(tf.keras.Model):
         z_sigma =  K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
-        return sampled_z[:, :3], sampled_z
+        return sampled_z[:, :3], sampled_z[:, 3:]
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
@@ -233,7 +233,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-6, clip_value_max=6)
+        return tf.clip_by_value(action, clip_value_min=-10, clip_value_max=10)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
@@ -256,9 +256,9 @@ class IDMForwardSim(tf.keras.Model):
         idm_params, proj_belief, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        state_h = state_c = proj_belief
-        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim*2])
+        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
         enc_h  = tf.reshape(enc_h, [batch_size, 1, 128])
+        state_h = state_c = tf.zeros([batch_size, self.dec_units])
 
         for step in range(30):
             f_veh_v = idm_s[:, step:step+1, 1:2]
@@ -303,15 +303,13 @@ class IDMForwardSim(tf.keras.Model):
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
-                dis_x_seq = ego_glob_x
                 act_seq = _act
                 att_seq = att_score
             else:
-                dis_x_seq = tf.concat([dis_x_seq, ego_glob_x], axis=1)
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
         # tf.print('att_score: ', tf.reduce_mean(att_seq))
-        return dis_x_seq, act_seq, att_seq
+        return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):

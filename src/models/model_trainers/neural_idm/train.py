@@ -21,7 +21,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 30
-data_id = '032'
+data_id = '031'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -31,15 +31,12 @@ with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
+train_input[0].shape
 data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 
-dis = train_input[-1]
-(dis[:, :, :] - dis[:, 0:1, :]).mean()
-(dis[:, :, :] - dis[:, 0:1, :]).std()
-(dis[:, :, 0] - dis[:, 0:1, 0]).
-plt.hist((dis[:, :, 0] - dis[:, 0:1, 0]).flatten(), bins=50)
+train_input[-1][1110, 0, -1]
 # %%
 config = {
  "model_config": {
@@ -47,7 +44,7 @@ config = {
     "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 0.1,
-    "attention_temp": 5,
+    "attention_temp": 1,
     "latent_dim": 6,
     },
      "data": {
@@ -135,12 +132,13 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '150'
+exp_id = '151'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
-# model_trainer.train(train_input, val_input, epochs=1)
+model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='15')
+model_trainer.test_mseloss
 # %%
 # model_trainer.model.forward_sim.attention_temp
 
