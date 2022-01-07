@@ -228,12 +228,12 @@ class IDMForwardSim(tf.keras.Model):
                                             (desired_gap/dx)**2)
 
 
-        # return self.action_clip(act)
-        return self.action_clip(act)
+        return self.action_clip(act, 20)
+        # return act
 
-    def action_clip(self, action):
+    def action_clip(self, action, clip_bound):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-10, clip_value_max=10)
+        return tf.clip_by_value(action, clip_value_min=-clip_bound, clip_value_max=clip_bound)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
@@ -246,6 +246,7 @@ class IDMForwardSim(tf.keras.Model):
     def handle_merger(self, em_act, dx, m_veh_exists):
         """??
         """
+
         dummy_mul = tf.cast(tf.greater(dx*m_veh_exists, 0), tf.float32)
         random_act = tf.random.normal(shape=(tf.shape(dx)[0], 1, 1), \
                                                 mean=0., stddev=0.1)
@@ -309,7 +310,7 @@ class IDMForwardSim(tf.keras.Model):
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
         # tf.print('att_score: ', tf.reduce_mean(att_seq))
-        return act_seq, att_seq
+        return self.action_clip(act_seq, 6), att_seq
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):

@@ -156,7 +156,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_151'
+model_name = 'neural_idm_152'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -272,7 +272,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 10
+model.forward_sim.attention_temp = 1
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
