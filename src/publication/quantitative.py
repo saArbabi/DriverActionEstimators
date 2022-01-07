@@ -24,8 +24,9 @@ collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-model_names = ['mlp_01', 'lstm_01','latent_mlp_08', 'neural_032','neural_idm_138']
+model_names = ['mlp_01', 'lstm_01','latent_mlp_08', 'neural_032','neural_idm_142']
 val_run_name = 'val_proj'
+val_run_name = 'test_dense'
 
 for model_name in model_names:
     exp_dir = './src/models/experiments/'+model_name+'/' + val_run_name
@@ -55,7 +56,7 @@ names = ['Headway', 'Speed', 'Long. Acceleration']
 for i, _name in enumerate(['min_delta_x', 'speed', 'act_long']):
     paper_indxs_names[_name] = names[i]
 
-# %%
+# 4%%
 """
 Each trajectory snippet is steps_n time steps long.
 """
@@ -70,7 +71,7 @@ for model_name in model_names:
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
-            # if _true[:, :, -1].mean() == 0:
+            # if _true[:, :, -1].mean() == 0 or _true[:, :, -1].mean() == 1:
             #     continue
             flatten_ima = []
             for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
@@ -85,9 +86,14 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-snips_pred['neural_idm_138'].shape
-snips_pred['neural_idm_138'].shape
-# snips_pred['neural_idm_138'][0, 0, :, 7]
+snips_pred['neural_idm_142'].shape
+snips_pred['neural_idm_142'].shape
+# (88, 10, 50, 8) *2
+# (101, 10, 50, 8) *3
+# (114, 10, 50, 8) no z update for latent-mlp, just like the paper
+# (194, 10, 50, 8) just some more - makes little difference to rwse
+# (222, 10, 50, 8) I increase traffic density after here
+# snips_pred['neural_idm_142'][0, 0, :, 7]
 # for key, val in snips_pred.items():
 #     snips_pred[key] = val[0:1, :, :, :]
 #
@@ -106,23 +112,23 @@ state_index = indxs['act_long']
 # model_name = 'neural_028'
 error_squared = []
 
-for i in range(73):
+for i in range(0, 40):
     epis_id = snips_true[model_names[0]][i,0,0,1]
     veh_id = snips_true[model_names[0]][i,0,0,2]
     state_true = snips_true[model_names[0]][i,0,:,state_index]
-    # for model_name in ['neural_idm_138', 'neural_032']:
+    # for model_name in ['neural_idm_142', 'neural_032']:
     # for model_name in ['latent_mlp_07']:
     for model_name in model_names:
         plt.figure()
         plt.plot(state_true, color='red', linestyle='--', label=paper_names[model_name])
         plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                     '   Veh_id:'+str(veh_id))
-        # if model_name == 'neural_idm_138':
+        # if model_name == 'neural_idm_142':
         #     color = 'blue'
         # else:
         #     color = 'orange'
 
-        for trace in range(5):
+        for trace in range(1):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
             plt.plot(state_pred, color='grey')
         plt.legend()
@@ -264,7 +270,7 @@ fig.subplots_adjust(hspace=0.1)
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['glob_x'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    if model_name == 'neural_idm_138':
+    if model_name == 'neural_idm_142':
         position_axis.plot(time_vals, error_total, \
                            label=paper_names[model_name], linestyle='--')
     else:
@@ -286,7 +292,7 @@ rwse speed
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['speed'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    if model_name == 'neural_idm_138':
+    if model_name == 'neural_idm_142':
         speed_axis.plot(time_vals, error_total, \
                            label=paper_names[model_name], linestyle='--')
     else:
