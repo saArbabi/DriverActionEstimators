@@ -277,7 +277,7 @@ traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-# distribution_name = 'posterior'
+distribution_name = 'posterior'
 # for i in bad_samples[0]:
 # for i in sepcific_samples:
 # for i in [2815]:
