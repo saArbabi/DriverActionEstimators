@@ -17,7 +17,7 @@ class Viewer():
         # self.elapsed_steps = []
 
     def draw_road(self, ax):
-        merge_point = (2/3)*self.config['lane_length']
+        merge_point = 200
         lane_cor = self.config['lane_width']*self.config['lanes_n']
         ax.hlines(0, 0, self.config['lane_length'], colors='k', linestyles='solid')
         ax.vlines(merge_point, 0, self.config['lane_width'], \

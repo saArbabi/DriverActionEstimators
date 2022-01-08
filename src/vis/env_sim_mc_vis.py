@@ -13,12 +13,12 @@ import tensorflow as tf
 def main():
     config = {'lanes_n':2,
             'lane_width':3.75, # m
-            'lane_length':300 # m
+            'lane_length':500 # m
             }
     env = EnvMergeMC(config)
 
-    model_name = 'neural_032'
-    model_name = 'neural_idm_156'
+    # model_name = 'neural_032'
+    model_name = 'neural_idm_158'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_01'
     # model_name = 'lstm_01'
@@ -27,7 +27,7 @@ def main():
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_156': 'NeuralIDMVehicle',
+            'neural_idm_158': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
             'latent_mlp_08': 'LatentMLPVehicle',
             'mlp_01': 'MLPVehicle',
@@ -38,7 +38,7 @@ def main():
         from vehicles.neural.neural_vehicle import NeuralVehicle
         env.neural_vehicle = NeuralVehicle()
     elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-        epoch_count = '20'
+        epoch_count = '35'
         from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
     elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
@@ -56,7 +56,7 @@ def main():
 
     episode_id = 504 # wrong switch to 1
     # episode_id = 505
-    episode_id = 506 # late switch
+    # episode_id = 506 # late switch
     trace = 0
     np.random.seed(episode_id)
     env.trans_time = np.random.randint(\

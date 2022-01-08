@@ -5,7 +5,7 @@ class EnvMergeMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
         self.metric_collection_mode = False
-        self.min_delta_x = 3 # m - anything else than this is considered a collision
+        self.min_delta_x = 0 # m - anything else than this is considered a collision
 
     def initialize_env(self, episode_id):
         """Initates the environment, but with a real and imagined (to be predicted)
@@ -57,8 +57,16 @@ class EnvMergeMC(EnvMerge):
         if  e_veh.neighbours['m'] and \
                 e_veh.neighbours['m'].lane_decision != 'keep_lane' and \
                         e_veh.neighbours['m'].glob_x-e_veh.glob_x <= self.min_delta_x:
+            msg = 'Collision detected between follower\
+                            {} and merger {}'.format(e_veh.id, e_veh.neighbours['m'].id)
+
+            print(msg)
             return True
         elif e_veh.neighbours['f'].glob_x-e_veh.glob_x <= self.min_delta_x:
+            msg = 'Collision detected between follower\
+                            {} and leader {}'.format(e_veh.id, e_veh.neighbours['f'].id)
+
+            print(msg)
             return True
         else:
             return False
@@ -77,11 +85,11 @@ class EnvMergeMC(EnvMerge):
             veh_real.act_long = act_long
 
             # imagined vehicles
-            # self.set_ima_veh_neighbours(veh_real, veh_ima)
-            veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
+            self.set_ima_veh_neighbours(veh_real, veh_ima)
+            # veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
 
-            if veh_ima.vehicle_type == 'idmmobil_merge':
-                self.set_ima_veh_decision(veh_real, veh_ima)
+            # if veh_ima.vehicle_type == 'idmmobil_merge':
+                # self.set_ima_veh_decision(veh_real, veh_ima)
             # if veh_ima.id == 'neur_3' and veh_ima.control_type == 'neural':
             #     veh_ima.neighbours['m'] = None
 
@@ -89,7 +97,6 @@ class EnvMergeMC(EnvMerge):
                 obs = veh_ima.neur_observe()
                 if self.check_collision(veh_ima):
                     self.collision_detected = True
-                    print('Collision Detected')
                 # if veh_real.id == 3:
                 #     print(veh_ima.obs_history)
                 veh_ima.update_obs_history(obs[0])
