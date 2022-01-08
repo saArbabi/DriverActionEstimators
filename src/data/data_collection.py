@@ -12,11 +12,13 @@ reload(merge)
 from envs.merge import EnvMerge
 import os
 import time
-config = {'lanes_n':2,
-        'lane_width':3.75, # m
-        'lane_length':300 # m
-        }
+import json
+
+with open('./src/envs/config.json', 'rb') as handle:
+    config = json.load(handle)
+
 env = EnvMerge(config)
+
 def pickle_this(item, data_files_dir, item_name):
     data_files_dir += '/'+item_name+'.pickle'
     if not os.path.exists(data_files_dir):
@@ -65,7 +67,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '032'
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -92,7 +94,7 @@ sim_data.shape
 Prepare data
 """
 history_len = 30 # steps
-rollout_len = 30
+rollout_len = 50
 from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
@@ -107,6 +109,8 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
+future_e_veh_a[:, :, -1].mean()
+np.
 future_e_veh_a.shape
 # %%
 train_input, val_input = prep_data(data_arrays)

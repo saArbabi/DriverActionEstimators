@@ -1,0 +1,8 @@
+{"lanes_n":2,
+        "lane_width":3.75,
+        "lane_length": 500,
+        "merge_lane_length": 100,
+        "merge_lane_start": 200,
+        "merge_zone_end": 300,
+        "ramp_exit_start": 290
+        }

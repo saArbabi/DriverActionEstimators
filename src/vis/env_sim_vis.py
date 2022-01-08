@@ -4,16 +4,15 @@ from viewer import Viewer
 from envs.merge import EnvMerge
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 
 def main():
-    config = {'lanes_n':2,
-            'lane_width':3.75, # m
-            'lane_length':300 # m
-            }
+    with open('./src/envs/config.json', 'rb') as handle:
+        config = json.load(handle)
     env = EnvMerge(config)
-    episode_id = 504
-    episode_id = 506
-    episode_id = 64
+    # episode_id = 504
+    # episode_id = 506
+    episode_id = 49
     env.initialize_env(episode_id)
 
     viewer = Viewer(config)

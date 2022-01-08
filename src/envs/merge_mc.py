@@ -85,13 +85,10 @@ class EnvMergeMC(EnvMerge):
             veh_real.act_long = act_long
 
             # imagined vehicles
-            self.set_ima_veh_neighbours(veh_real, veh_ima)
-            # veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
-
-            # if veh_ima.vehicle_type == 'idmmobil_merge':
-                # self.set_ima_veh_decision(veh_real, veh_ima)
-            # if veh_ima.id == 'neur_3' and veh_ima.control_type == 'neural':
-            #     veh_ima.neighbours['m'] = None
+            # self.set_ima_veh_neighbours(veh_real, veh_ima)
+            veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
+            if veh_ima.vehicle_type == 'idmmobil_merge':
+                self.set_ima_veh_decision(veh_real, veh_ima)
 
             if veh_ima.vehicle_type == 'neural':
                 obs = veh_ima.neur_observe()
