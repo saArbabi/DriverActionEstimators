@@ -298,7 +298,7 @@ class IDMForwardSim(tf.keras.Model):
             att_score = self.get_att(lstm_output)
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            em_act = self.handle_merger(em_act, em_delta_x, m_veh_exists)
+            # em_act = self.handle_merger(em_act, em_delta_x, m_veh_exists)
 
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
