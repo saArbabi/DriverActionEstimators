@@ -22,8 +22,8 @@ for Imitating Driver Behavior"
 for setting history/rollout length
 """
 history_len = 30 # steps
-rollout_len = 30
-data_id = '031'
+rollout_len = 50
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -37,14 +37,15 @@ data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
 
 with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
+train_input[1].shape
 # %%
 config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.05,
-    "latent_dim": 3,
+    "vae_loss_weight": 0.1,
+    "latent_dim": 6,
     },
     "Note": ""
 }
@@ -125,7 +126,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '08'
+exp_id = '09'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -137,9 +138,9 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 
 ################## Train ##################
 ################## ##### ##################
+################## ##### ####§##############
 ################## ##### ##################
-################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=15)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################

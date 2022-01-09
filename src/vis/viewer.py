@@ -161,9 +161,11 @@ class Viewer():
 class ViewerMC(Viewer):
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(13, 2))
+        self.fig = plt.figure(figsize=(13, 1))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
+        self.merge_box = [Rectangle((config['merge_lane_start'], 0), \
+                            config['merge_lane_length'], config['lane_width'])]
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -245,7 +247,7 @@ class ViewerMC(Viewer):
             return
 
         if not hasattr(self, 'act_ax'):
-            self.fig = plt.figure(figsize=(10, 14))
+            self.fig = plt.figure(figsize=(10, 8))
             self.act_ax = self.fig.add_subplot(511)
             self.speed_ax = self.fig.add_subplot(512)
             self.att_ax = self.fig.add_subplot(513)

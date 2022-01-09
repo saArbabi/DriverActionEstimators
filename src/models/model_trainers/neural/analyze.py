@@ -9,7 +9,7 @@ import json
 from importlib import reload
 
 sys.path.insert(0, './src')
-# %%
+# x%%
 hf_usc_indexs = {}
 col_names = [
          'episode_id', 'time_step',
@@ -25,7 +25,7 @@ col_names = [
 for i, item_name in enumerate(col_names):
     hf_usc_indexs[item_name] = i
 
-# %%
+# %x%
 """
 Needed methods
 """
@@ -127,8 +127,8 @@ def fetch_traj(data, sample_index, colum_index):
 Load data
 """
 history_len = 30 # steps
-rollout_len = 30
-data_id = '030'
+rollout_len = 50
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -157,7 +157,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_032'
+model_name = 'neural_034'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -249,7 +249,7 @@ sepcific_samples = []
 # for i in sepcific_samples:
 # for i in bad_zs:
 # for i in bad_samples[0]:
-while Example_pred < 30:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_samples[i]]
     # sample_index = [train_samples[i]]
@@ -262,7 +262,8 @@ while Example_pred < 30:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
+    if episode not in covered_episodes and \
+                e_veh_att[30:55].mean() > 0 and e_veh_att[:30].mean() == 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -279,7 +280,7 @@ while Example_pred < 30:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+59)
+        time_steps = range(time_0, time_0+79)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.5,
                         'episode_id: '+ info[0] +

@@ -10,10 +10,9 @@ import json
 class MCEVAL():
     eval_config_dir = './src/models/evaluation/config.json'
     def __init__(self, val_run_name):
-        self.env = EnvMergeMC(
-                {'lanes_n':2,
-                'lane_width':3.75,
-                'lane_length':300})
+        with open('./src/envs/config.json', 'rb') as handle:
+            config = json.load(handle)
+        self.env = EnvMergeMC(config)
         self.val_run_name = val_run_name # folder name in which val logs are dumped
         self.config = self.read_eval_config()
         self.env.metric_collection_mode = True
@@ -73,7 +72,7 @@ class MCEVAL():
             from vehicles.neural.mlp_vehicle import MLPVehicle
             self.env.neural_vehicle = MLPVehicle()
         elif self.model_vehicle_map[model_name] == 'LSTMVehicle':
-            epoch_count = '10'
+            epoch_count = '20'
             from vehicles.neural.lstm_vehicle import LSTMVehicle
             self.env.neural_vehicle = LSTMVehicle()
 

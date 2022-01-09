@@ -24,7 +24,7 @@ range_means = np.linspace(0.01, 0.99, 10)
 colors = [cm.rainbow(i) for i in np.linspace(0, 1, len(range_means))]
 alpha_val_plot = 0.3
 fig = plt.figure(figsize=(4, 3))
-precision = 5
+precision = 15
 for mean in range_means:
     alpha_param = precision*mean
     beta_param = precision*(1-mean)
@@ -45,7 +45,7 @@ for mean in range_means:
 
 # %%
 precision = 15
-mean = 0.99
+mean = 0.34
 color_i = 0
 alpha_param = precision*mean
 beta_param = precision*(1-mean)

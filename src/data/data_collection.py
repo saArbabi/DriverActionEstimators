@@ -111,6 +111,7 @@ future_e_veh_a[:, :, -1].std()
 future_e_veh_a[:, :, -1].mean()
 future_e_veh_a[:, :, -1].mean()
 np.
+np.where(  )
 future_e_veh_a.shape
 # %%
 train_input, val_input = prep_data(data_arrays)

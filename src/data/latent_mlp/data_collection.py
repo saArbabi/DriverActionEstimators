@@ -40,7 +40,7 @@ def prep_data(training_data):
 """
 Load generated data.
 """
-data_id = '031'
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/models/experiments/data_files/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
@@ -69,7 +69,7 @@ np.array(size).max()
 Prepare data
 """
 history_len = 30 # steps
-rollout_len = 30
+rollout_len = 50
 from data.latent_mlp import data_prep
 reload(data_prep)
 from data.latent_mlp.data_prep import DataPrepLatentMLP
@@ -84,7 +84,8 @@ history_future_usc, history_sca, \
                 future_idm_s, future_m_veh_c, history_e_veh_a = data_arrays
 # %%
 train_input, val_input = prep_data(data_arrays)
-
+train_input[0].shape
+train_input[1].shape
 # %%
 data_files_dir += '/latent_mlp'
 if not os.path.exists(data_files_dir):

@@ -1,16 +1,16 @@
 {
     "status": "NOT STARTED",
     "model_vehicle_map": {
-        "neural_idm_138": "NeuralIDMVehicle",
-        "neural_032": "NeuralVehicle",
-        "latent_mlp_08": "LatentMLPVehicle",
-        "mlp_01": "MLPVehicle",
-        "lstm_01": "LSTMVehicle"
+        "neural_idm_174": "NeuralIDMVehicle",
+        "neural_034": "NeuralVehicle",
+        "latent_mlp_09": "LatentMLPVehicle",
+        "mlp_02": "MLPVehicle",
+        "lstm_02": "LSTMVehicle"
     },
     "mc_config": {
-        "data_id": "031",
+        "data_id": "033",
         "episodes_n": 5,
-        "trace_n": 10,
+        "trace_n": 1,
         "history_len": 30,
         "rollout_len": 50
     },

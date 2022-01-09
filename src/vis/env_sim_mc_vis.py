@@ -9,28 +9,27 @@ from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
 import tensorflow as tf
+import json
 
 def main():
-    config = {'lanes_n':2,
-            'lane_width':3.75, # m
-            'lane_length':500 # m
-            }
+    with open('./src/envs/config.json', 'rb') as handle:
+        config = json.load(handle)
     env = EnvMergeMC(config)
 
     # model_name = 'neural_032'
-    model_name = 'neural_idm_158'
+    model_name = 'neural_idm_165'
     # model_name = 'latent_mlp_02'
-    # model_name = 'mlp_01'
-    # model_name = 'lstm_01'
-    data_id = '031'
+    model_name = 'mlp_02'
+    # model_name = 'lstm_02'
+    data_id = '033'
     history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_158': 'NeuralIDMVehicle',
+            'neural_idm_165': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
             'latent_mlp_08': 'LatentMLPVehicle',
-            'mlp_01': 'MLPVehicle',
+            'mlp_02': 'MLPVehicle',
             'lstm_01': 'LSTMVehicle'}
 
     if model_vehicle_map[model_name] == 'NeuralVehicle':
@@ -38,7 +37,7 @@ def main():
         from vehicles.neural.neural_vehicle import NeuralVehicle
         env.neural_vehicle = NeuralVehicle()
     elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-        epoch_count = '35'
+        epoch_count = '20'
         from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
     elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
@@ -54,7 +53,7 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 504 # wrong switch to 1
+    episode_id = 503 # wrong switch to 1
     # episode_id = 505
     # episode_id = 506 # late switch
     trace = 0

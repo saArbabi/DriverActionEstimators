@@ -126,8 +126,8 @@ def fetch_traj(data, sample_index, colum_index):
 Load data
 """
 history_len = 30 # steps
-rollout_len = 30
-data_id = '031'
+rollout_len = 50
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -152,11 +152,12 @@ train_samples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_samples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
 train_samples.shape
+train_samples[0]
 # %%
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_155'
+model_name = 'neural_idm_174'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -199,7 +200,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_156', 'neural_idm_141']:
+for name in ['neural_idm_174', 'neural_idm_173']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -272,7 +273,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 1
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -294,8 +295,10 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
-    # if episode not in covered_episodes and e_veh_att[25:35].mean() > 0:
-    if episode not in covered_episodes and  e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+    if episode not in covered_episodes and \
+                e_veh_att[30:55].mean() > 0 and e_veh_att[:30].mean() == 0:
+    # if episode not in covered_episodes and  e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+    # if episode not in covered_episodes and m_veh_exists.mean() == 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -320,7 +323,7 @@ while Example_pred < 10:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+59)
+        time_steps = range(time_0, time_0+79)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.4,
                         'experiment_name: '+ model_name+'_'+epoch_count +' '+'\n'
@@ -490,7 +493,7 @@ plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
 # %%
 # fig, ax = plt.subplots(figsize=(4, 3))
 fig, ax = plt.subplots(figsize=(5, 5))
-time_axis = np.linspace(0., 6., 59)
+time_axis = np.linspace(0., 8., 79)
 for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
