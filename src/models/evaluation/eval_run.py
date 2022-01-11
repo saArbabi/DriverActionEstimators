@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, './src')
 from models.evaluation.eval_obj import MCEVAL
-val_run_name = 'test_data_033'
+val_run_name = 'data_033_1'
 def main():
     data_obj = MCEVAL(val_run_name)
     data_obj.run()

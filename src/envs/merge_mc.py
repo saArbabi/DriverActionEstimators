@@ -5,7 +5,7 @@ class EnvMergeMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
         self.metric_collection_mode = False
-        self.min_delta_x = 0 # m - anything else than this is considered a collision
+        self.min_delta_x = 3 # m - anything else than this is considered a collision
 
     def initialize_env(self, episode_id):
         """Initates the environment, but with a real and imagined (to be predicted)
@@ -61,12 +61,14 @@ class EnvMergeMC(EnvMerge):
                             {} and merger {}'.format(e_veh.id, e_veh.neighbours['m'].id)
 
             print(msg)
+            self.collision_vehs = f'ego_{e_veh.id}_merger_{e_veh.neighbours["m"].id}'
             return True
         elif e_veh.neighbours['f'].glob_x-e_veh.glob_x <= self.min_delta_x:
             msg = 'Collision detected between follower\
                             {} and leader {}'.format(e_veh.id, e_veh.neighbours['f'].id)
 
             print(msg)
+            self.collision_vehs = f'ego_{e_veh.id}_front_{e_veh.neighbours["f"].id}'
             return True
         else:
             return False

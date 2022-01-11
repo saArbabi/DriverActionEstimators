@@ -1,9 +1,9 @@
 {
     "status": "NOT STARTED",
     "model_vehicle_map": {
-        "neural_idm_174": "NeuralIDMVehicle",
-        "neural_034": "NeuralVehicle",
-        "latent_mlp_09": "LatentMLPVehicle",
+        "neural_idm_180": "NeuralIDMVehicle",
+        "neural_035": "NeuralVehicle",
+        "latent_mlp_11": "LatentMLPVehicle",
         "mlp_02": "MLPVehicle",
         "lstm_02": "LSTMVehicle"
     },

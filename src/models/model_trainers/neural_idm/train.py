@@ -36,12 +36,7 @@ data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 
-train_input[-1][:, :, -1].mean()
-train_input[-1][:, :, -1].min()
-train_input[-2][:, :, -1]
-plt.plot(train_input[-1][0, :, -1])
-train_input[-1][0, :, -1]
-train_input[4].shape
+
 # %%
 config = {
  "model_config": {
@@ -49,7 +44,7 @@ config = {
     "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 0.3,
-    "attention_temp": 1,
+    "attention_temp": 5,
     "latent_dim": 6,
     },
      "data": {
@@ -137,7 +132,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '176'
+exp_id = '183'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 

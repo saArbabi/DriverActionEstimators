@@ -56,11 +56,11 @@ class MCEVAL():
 
     def assign_neural_vehicle(self, model_name):
         if self.model_vehicle_map[model_name] == 'NeuralVehicle':
-            epoch_count = '20'
+            epoch_count = '10'
             from vehicles.neural.neural_vehicle import NeuralVehicle
             self.env.neural_vehicle = NeuralVehicle()
         elif self.model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-            epoch_count = '20'
+            epoch_count = '10'
             from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
             self.env.neural_vehicle = NeuralIDMVehicle()
         elif self.model_vehicle_map[model_name] == 'LatentMLPVehicle':
@@ -77,6 +77,7 @@ class MCEVAL():
             self.env.neural_vehicle = LSTMVehicle()
 
         self.env.neural_vehicle.initialize_agent(
+
                         model_name,
                         epoch_count,
                         self.config['mc_config']['data_id'])
@@ -107,10 +108,9 @@ class MCEVAL():
         for i in range(0, self.env.trans_time+self.rollout_len):
             self.env.step()
             if self.env.collision_detected:
-                collision_id = f'{self.episode_id}_{trace}'
+                collision_id = f'{self.episode_id}_{trace}_'+self.env.collision_vehs
                 if collision_id not in self.collision_log:
                     self.collision_log.append(collision_id)
-                    print('collision_detected')
 
         time_end = time.time()
         runtime = (time_end - time_start)/len(self.env.real_vehicles)

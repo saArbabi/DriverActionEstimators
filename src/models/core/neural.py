@@ -157,10 +157,14 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units)
+        self.lstm_layer_1 = LSTM(self.enc_units, return_sequences=True)
+        self.lstm_layer_2 = LSTM(self.enc_units)
+
     def call(self, inputs):
-        enc_h = self.lstm_layer(inputs)
+        whole_seq_output = self.lstm_layer_1(inputs)
+        enc_h = self.lstm_layer_2(whole_seq_output)
         return enc_h
+
 
 class FutureEncoder(tf.keras.Model):
     def __init__(self):

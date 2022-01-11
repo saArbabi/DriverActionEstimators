@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_174'
-epoch_count = '20'
+model_name = 'neural_idm_180'
+epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -200,7 +200,7 @@ Compare losses
 """
 losses = {}
 # for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['neural_idm_174', 'neural_idm_173']:
+for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -217,9 +217,6 @@ for name, loss in losses.items():
     # plt.plot(loss['train_mseloss'], label='train_mseloss')
     plt.grid()
     plt.legend()
-
-
-
 # %%
 """
 Find bad examples
@@ -273,7 +270,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 1
+model.forward_sim.attention_temp = 5
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -315,7 +312,7 @@ while Example_pred < 10:
         proj_idm = model.belief_net.z_proj_idm(z_idm)
         proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
-        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
+        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                      future_idm_ss, merger_cs])
         act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
 

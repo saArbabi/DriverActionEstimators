@@ -157,8 +157,8 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_034'
-epoch_count = '20'
+model_name = 'neural_035'
+epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -262,6 +262,7 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
     # if 4 == 4:
+    # if episode not in covered_episodes and  e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
     if episode not in covered_episodes and \
                 e_veh_att[30:55].mean() > 0 and e_veh_att[:30].mean() == 0:
         covered_episodes.append(episode)

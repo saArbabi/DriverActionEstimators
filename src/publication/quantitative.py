@@ -24,8 +24,10 @@ collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_107', 'neural_029', 'latent_mlp_01']
 # model_names = ['latent_mlp_02', 'neural_idm_113']
-model_names = ['mlp_02', 'lstm_02','latent_mlp_09', 'neural_034','neural_idm_174']
-val_run_name = 'test_data_033'
+model_names = ['mlp_02', 'lstm_02','latent_mlp_11', 'neural_035','neural_idm_180']
+# model_names = ['neural_035','neural_idm_180']
+# model_names = ['neural_034','neural_idm_180']
+val_run_name = 'data_033_1'
 # val_run_name = 'test_dense'
 
 for model_name in model_names:
@@ -49,6 +51,7 @@ for model_name in model_names:
 paper_names = {} # model names used for paper
 paper_indxs_names = {}
 names = ['MLP', 'LSTM', 'Latent-MLP', 'CVAE', 'NIDM']
+# names = ['neural_035','neural_idm_180']
 for i, model_name in enumerate(model_names):
     paper_names[model_name] = names[i]
 
@@ -86,14 +89,16 @@ for model_name in model_names:
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
 
-snips_pred['neural_idm_138'].shape
-snips_pred['neural_idm_138'].shape
+# %%
+
+snips_pred['neural_idm_180'].shape
+snips_pred['neural_idm_180'].shape
 # (88, 10, 50, 8) *2
 # (101, 10, 50, 8) *3
 # (114, 10, 50, 8) no z update for latent-mlp, just like the paper
 # (194, 10, 50, 8) just some more - makes little difference to rwse
 # (222, 10, 50, 8) I increase traffic density after here
-# snips_pred['neural_idm_138'][0, 0, :, 7]
+# snips_pred['neural_idm_180'][0, 0, :, 7]
 # for key, val in snips_pred.items():
 #     snips_pred[key] = val[0:1, :, :, :]
 #
@@ -112,23 +117,23 @@ state_index = indxs['act_long']
 # model_name = 'neural_028'
 error_squared = []
 
-for i in range(0, 40):
-    epis_id = snips_true[model_names[0]][i,0,0,1]
-    veh_id = snips_true[model_names[0]][i,0,0,2]
-    state_true = snips_true[model_names[0]][i,0,:,state_index]
-    # for model_name in ['neural_idm_138', 'neural_032']:
+for i in range(70, 85):
+    epis_id = snips_true[model_names[-1]][i,0,0,1]
+    veh_id = snips_true[model_names[-1]][i,0,0,2]
+    state_true = snips_true[model_names[-1]][i,0,:,state_index]
+    for model_name in ['neural_idm_180', 'neural_035']:
     # for model_name in ['latent_mlp_07']:
-    for model_name in model_names:
+    # for model_name in model_names:
         plt.figure()
         plt.plot(state_true, color='red', linestyle='--', label=paper_names[model_name])
         plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                     '   Veh_id:'+str(veh_id))
-        # if model_name == 'neural_idm_138':
+        # if model_name == 'neural_idm_180':
         #     color = 'blue'
         # else:
         #     color = 'orange'
 
-        for trace in range(1):
+        for trace in range(10):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
             plt.plot(state_pred, color='grey')
         plt.legend()
@@ -271,7 +276,7 @@ fig.subplots_adjust(hspace=0.1)
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['glob_x'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    if model_name == 'neural_idm_138':
+    if model_name == 'neural_idm_180':
         position_axis.plot(time_vals, error_total, \
                            label=paper_names[model_name], linestyle='--')
     else:
@@ -293,7 +298,7 @@ rwse speed
 for model_name in model_names:
     vehs_err_arr = get_veh_err(indxs['speed'], model_name)
     error_total = get_rwse(vehs_err_arr)
-    if model_name == 'neural_idm_138':
+    if model_name == 'neural_idm_180':
         speed_axis.plot(time_vals, error_total, \
                            label=paper_names[model_name], linestyle='--')
     else:
@@ -304,7 +309,7 @@ speed_axis.minorticks_off()
 # speed_axis.set_ylim(0, 2)
 speed_axis.set_yticks([0, 1, 2, 3])
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
-# plt.savefig("rwse.png", dpi=500)
+plt.savefig("rwse.png", dpi=500)
 
 # %%
 
@@ -326,7 +331,7 @@ kl_divergences = {}
 for model_name in model_names:
     kl_collection = {}
     for index in ['min_delta_x', 'speed', 'act_long']:
-        state_index = indxs[index]
+        state_index = indxs[index   ]
         true_min_gaps = snips_true[model_name][:, :, :, state_index]
         true_min_gaps = np.repeat(true_min_gaps, 2, axis=1).flatten()
         pred_min_gaps = snips_pred[model_name][:, :, :, state_index].flatten()
@@ -361,13 +366,22 @@ plt.tick_params(top=False)
 ax.legend(paper_indxs_names.values(), loc='upper center', bbox_to_anchor=(0.5, -0.1),
           fancybox=False, shadow=False, edgecolor=None, ncol=5)
 fig.tight_layout()
-# plt.savefig("kl_bar_chart.png", dpi=500)
+plt.savefig("kl_bar_chart.png", dpi=500)
 
 
 # %%
 """"Collision counts"""
 collision_counts = {}
-
+snips_pred[model_name].shape
+total_traces_n = 1000
 for model_name in model_names:
-    collision_counts[model_name] = len(collision_logs[model_name])
+    count = len(collision_logs[model_name])
+    collision_counts[model_name] = [count, count/10]
 collision_counts
+avg_runtime = {}
+for model_name in model_names:
+    avg = np.array(runtimes[model_name])[:, -1].mean()
+    avg_runtime[model_name] = avg
+collision_counts
+runtimes[model_name][:, :, 0]
+runtimes

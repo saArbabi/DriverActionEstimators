@@ -126,7 +126,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '09'
+exp_id = '11'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -140,7 +140,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ####§##############
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=20)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################

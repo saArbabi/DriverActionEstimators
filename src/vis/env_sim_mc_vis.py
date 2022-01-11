@@ -17,20 +17,20 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'neural_032'
-    model_name = 'neural_idm_165'
+    model_name = 'neural_idm_174'
     # model_name = 'latent_mlp_02'
-    model_name = 'mlp_02'
+    # model_name = 'mlp_02'
     # model_name = 'lstm_02'
     data_id = '033'
     history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_165': 'NeuralIDMVehicle',
+            'neural_idm_174': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
             'latent_mlp_08': 'LatentMLPVehicle',
             'mlp_02': 'MLPVehicle',
-            'lstm_01': 'LSTMVehicle'}
+            'lstm_02': 'LSTMVehicle'}
 
     if model_vehicle_map[model_name] == 'NeuralVehicle':
         epoch_count = '20'
@@ -53,7 +53,7 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 503 # wrong switch to 1
+    episode_id = 502 # wrong switch to 1
     # episode_id = 505
     # episode_id = 506 # late switch
     trace = 0
