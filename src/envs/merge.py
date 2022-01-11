@@ -8,8 +8,9 @@ from vehicles.idmmobil_merge_vehicle import IDMMOBILVehicleMerge
 class EnvMerge(highway.Env):
     def __init__(self, config):
         super().__init__(config)
-        self.dummy_stationary_car = IDMMOBILVehicleMerge('dummy', 2, \
-                                                         (2/3)*config['lane_length'], 0, None)
+
+        self.dummy_stationary_car = IDMMOBILVehicleMerge(\
+                                'dummy', 2, config['merge_zone_end'], 0, None)
         self.env_initializor = EnvInitializor(config)
 
     def initialize_env(self, episode_id):

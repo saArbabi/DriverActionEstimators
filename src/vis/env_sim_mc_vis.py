@@ -9,29 +9,29 @@ from envs.merge_mc import EnvMergeMC
 from viewer import ViewerMC
 import numpy as np
 import tensorflow as tf
+import json
 
 def main():
-    config = {'lanes_n':2,
-            'lane_width':3.75, # m
-            'lane_length':300 # m
-            }
+    with open('./src/envs/config.json', 'rb') as handle:
+        config = json.load(handle)
     env = EnvMergeMC(config)
 
-    # model_name = 'neural_028'
-    model_name = 'neural_idm_138'
+    # model_name = 'neural_032'
+    model_name = 'neural_idm_174'
     # model_name = 'latent_mlp_02'
-    # model_name = 'mlp_01'
-    # model_name = 'lstm_01'
-    data_id = '031'
+    # model_name = 'mlp_02'
+    # model_name = 'lstm_02'
+    data_id = '033'
     history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_138': 'NeuralIDMVehicle',
+            'neural_idm_174': 'NeuralIDMVehicle',
             'neural_032': 'NeuralVehicle',
             'latent_mlp_08': 'LatentMLPVehicle',
-            'mlp_01': 'MLPVehicle',
-            'lstm_01': 'LSTMVehicle'}
+            'mlp_02': 'MLPVehicle',
+            'lstm_02': 'LSTMVehicle'}
+
     if model_vehicle_map[model_name] == 'NeuralVehicle':
         epoch_count = '20'
         from vehicles.neural.neural_vehicle import NeuralVehicle
@@ -53,8 +53,9 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    # episode_id = 503
-    episode_id = 505
+    episode_id = 502 # wrong switch to 1
+    # episode_id = 505
+    # episode_id = 506 # late switch
     trace = 0
     np.random.seed(episode_id)
     env.trans_time = np.random.randint(\
@@ -80,8 +81,8 @@ def main():
             if env.debugging_mode:
                 viewer.info_plot(env.real_mc_log, env.ima_mc_log)
         env.step()
-        if env.collision_detected:
-            sys.exit()
+        # if env.collision_detected:
+        #     sys.exit()
 
 if __name__=='__main__':
     main()

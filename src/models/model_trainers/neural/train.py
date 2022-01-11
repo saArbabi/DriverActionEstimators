@@ -19,8 +19,8 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 30 # steps
-rollout_len = 30
-data_id = '031'
+rollout_len = 50
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -41,7 +41,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.1,
+    "vae_loss_weight": 0.3,
     "latent_dim": 6,
     },
     "Note": ""
@@ -123,7 +123,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '032'
+exp_id = '035'
 model_name = 'neural_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 

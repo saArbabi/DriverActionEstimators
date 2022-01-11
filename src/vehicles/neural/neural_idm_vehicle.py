@@ -90,7 +90,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             em_delta_x = m_veh.glob_x-self.glob_x
             em_delta_y = abs(m_veh.glob_y-self.glob_y)
             em_delta_v = self.speed-m_veh_speed
-            delta_x_to_merge = 200-m_veh.glob_x
+            delta_x_to_merge = m_veh.ramp_exit_start-m_veh.glob_x
 
         if not f_veh:
             f_veh_exists = 0
@@ -160,7 +160,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return att_score
 
     def action_clip(self, act_long):
-        return max([-6, act_long])
+        return max([-5.5, act_long])
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs
@@ -168,29 +168,34 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         if self.time_lapse_since_last_param_update == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
+            # self.enc_h = tf.reshape(enc_h, [self.samples_n, 1, 128])
             latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
             z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
 
-            proj_att = self.model.belief_net.z_proj_att(
-                            np.concatenate([z_att, obs_history[:, -1, :]], axis=-1))
-            proj_idm = self.model.belief_net.z_proj_idm(
-                            np.concatenate([z_idm, obs_history[:, -1, :]], axis=-1))
+            proj_att = self.model.belief_net.z_proj_att(z_att)
+            proj_idm = self.model.belief_net.z_proj_idm(z_idm)
             self.belief_update(proj_att)
             idm_params = self.model.idm_layer(proj_idm)
             self.driver_params_update(idm_params)
-
+            # if self.id == 'neur_4':
+            #     print('self.obs_history ', self.obs_history)
         self.time_lapse_since_last_param_update += 1
 
         ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
+
+        env_state = self.scale_state(obs_t0, 'env_state')
+        merger_c = self.scale_state(obs_t0, 'merger_c')
+        att_context = tf.concat([self.proj_latent, env_state, merger_c, \
+                                                        m_veh_exists], axis=-1)
+        att_score = self.get_neur_att(att_context)
+        att_score = att_score[0][0][0]
+        # if att_score > 0.2 and self.id == 'neur_4':
+        #     att_score = 1
+
+
+
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
             em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
-            env_state = self.scale_state(obs_t0, 'env_state')
-            merger_c = self.scale_state(obs_t0, 'merger_c')
-            att_context = tf.concat([self.proj_latent, env_state, merger_c, \
-                                                            m_veh_exists], axis=-1)
-            att_score = self.get_neur_att(att_context)
-            att_score = att_score[0][0][0]
-
         else:
             em_act = 0
             att_score = 0
@@ -198,10 +203,12 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.att = att_score
         act_long = (1-att_score)*ef_act + att_score*em_act
 
-        # if self.id == 'neur_3':
-            # att_score = 0
-            # print('m_veh_exists ', m_veh_exists)
-            # print('em_act ', em_act)
+        # if self.id == 'neur_4':
+        #     print('m_veh_exists', m_veh_exists)
+        #     print('ef_act', ef_act)
+        #     print('em_act', em_act)
+            # print('obs_history ', obs_history)
+            # print('nei ', self.neighbours)
             # print('att_context ', att_context)
 
         return act_long

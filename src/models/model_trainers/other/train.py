@@ -14,16 +14,9 @@ import json
 
 sys.path.insert(0, './src')
 # %%
-"""
-Load data
-Following protocol from paper
-"Simultaneous Policy Learning and Latent State Inference
-for Imitating Driver Behavior"
-for setting history/rollout length
-"""
 history_len = 30 # steps
-rollout_len = 30
-data_id = '031'
+rollout_len = 50
+data_id = '033'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -119,10 +112,10 @@ class Trainer():
             pickle.dump(losses, handle)
 
 tf.random.set_seed(2021)
-# model_type = 'mlp'
-model_type = 'lstm'
+model_type = 'mlp'
+# model_type = 'lstm'
 model_trainer = Trainer(model_type)
-exp_id = '01'
+exp_id = '02'
 model_name = model_type+'_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)

@@ -10,13 +10,16 @@ class EnvInitializor():
         self.lanes_n = config['lanes_n']
         self.lane_length = config['lane_length']
         self.lane_width = config['lane_width']
-        self.min_desired_v = 10
-        self.max_desired_v = 25
-        self.desired_v_range = self.max_desired_v-self.min_desired_v
+        self.lane_length = config['lane_length']
+        self.merge_lane_start = config['merge_lane_start']
+
+        self.min_v = 10
+        self.max_v = 25
+        self.desired_v_range = self.max_v-self.min_v
 
     def get_init_speed(self, aggressiveness):
-        init_speed = np.random.uniform(self.min_desired_v, \
-                            self.min_desired_v+aggressiveness*self.desired_v_range)
+        init_speed = np.random.uniform(self.min_v, \
+                            self.min_v+aggressiveness*self.desired_v_range)
         return init_speed
 
     def create_main_lane_vehicle(self, lead_vehicle, lane_id, glob_x, agg):
@@ -41,7 +44,7 @@ class EnvInitializor():
                     self.next_vehicle_id, lane_id, glob_x,\
                                                 init_speed, agg)
         init_action = new_vehicle.idm_action(new_vehicle, lead_vehicle)
-        if init_action >= -new_vehicle.driver_params['min_act']:
+        if init_action >= new_vehicle.driver_params['safe_braking']:
             self.next_vehicle_id += 1
             return new_vehicle
 
@@ -51,12 +54,12 @@ class EnvInitializor():
         # main road vehicles
         lane_id = 1
         vehicles = []
-        # traffic_density = 6
         traffic_density = np.random.randint(3, 6) # number of vehicles
         # print('traffic_density ', traffic_density)
 
-        glob_x = 200
-        avg_spacing = glob_x/traffic_density
+        available_spacing = self.lane_length-self.merge_lane_start-50
+        glob_x = available_spacing
+        avg_spacing = available_spacing/traffic_density
         aggs = np.random.uniform(0.01, 0.99, traffic_density) # aggressiveness
         vehicle_count = 0
         while len(vehicles) < traffic_density:
@@ -73,14 +76,15 @@ class EnvInitializor():
                 vehicle_count += 1
             if glob_x == 0:
                 break
-        vehicles[-1].glob_x = 0
+        # vehicles[-1].glob_x = 0
+        lead_car_speed = np.random.uniform(self.min_v, self.max_v)
+        vehicles[0].speed = vehicles[0].driver_params['desired_v'] = lead_car_speed
 
         # ramp vehicles
         lane_id = 2
         aggs = np.random.uniform(0.2, 0.99) # aggressiveness
-        # aggs = 0.8
         while True:
-            glob_x = np.random.uniform(50,  150)
+            glob_x = np.random.uniform(150,  200)
             new_vehicle = self.create_ramp_merge_vehicle(lane_id, \
                                                          glob_x, aggs)
             if new_vehicle:

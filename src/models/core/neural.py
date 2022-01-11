@@ -157,10 +157,14 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units)
+        self.lstm_layer_1 = LSTM(self.enc_units, return_sequences=True)
+        self.lstm_layer_2 = LSTM(self.enc_units)
+
     def call(self, inputs):
-        enc_h = self.lstm_layer(inputs)
+        whole_seq_output = self.lstm_layer_1(inputs)
+        enc_h = self.lstm_layer_2(whole_seq_output)
         return enc_h
+
 
 class FutureEncoder(tf.keras.Model):
     def __init__(self):
@@ -196,7 +200,7 @@ class ForwardSim(tf.keras.Model):
         proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
         state_h = state_c = tf.zeros([batch_size, self.dec_units])
 
-        for step in range(30):
+        for step in range(50):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]

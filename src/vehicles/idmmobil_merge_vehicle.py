@@ -2,12 +2,16 @@ from importlib import reload
 from vehicles import idmmobil_vehicle
 reload(idmmobil_vehicle)
 from vehicles.idmmobil_vehicle import IDMMOBILVehicle
+import json
 
 class IDMMOBILVehicleMerge(IDMMOBILVehicle):
     def __init__(self, id, lane_id, glob_x, speed, aggressiveness=None):
         super().__init__(id, lane_id, glob_x, speed, aggressiveness)
-        self.ramp_entrance_x = 100
-        self.ramp_exit_x = 190
+        with open('./src/envs/config.json', 'rb') as handle:
+            config = json.load(handle)
+
+        self.merge_lane_start = config['merge_lane_start']
+        self.ramp_exit_start = config['ramp_exit_start']
 
     def my_neighbours(self, vehicles):
         """
@@ -125,9 +129,8 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         (3) Ego attends for safety
         """
         if (self.glob_x > m_veh.glob_x) or (f_veh.glob_x < m_veh.glob_x) \
-                            or (m_veh.glob_x < self.ramp_entrance_x) \
-                            or (f_veh.speed < m_veh.speed  \
-                            and m_veh.lane_decision == 'keep_lane'):
+                            or (m_veh.glob_x < self.merge_lane_start) \
+                            or m_veh.lane_decision == 'keep_lane':
             return False
         elif m_veh == self.neighbours['att']:
             return True
@@ -136,14 +139,13 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
             return True
 
         act_long = self.idm_action(self, m_veh)
-        if m_veh.lane_decision !='keep_lane':
-            if act_long < self.driver_params['safe_braking']:
-                # emergency situation
-                # print('collisio- avoidance based ########')
-                return True
-            elif self.is_cidm_att(act_long, m_veh, f_veh):
-                # print('cidm-based ########')
-                return True
+        if act_long < self.driver_params['safe_braking']:
+            # emergency situation
+            # print('collisio- avoidance based ########')
+            return True
+        elif self.is_cidm_att(act_long, m_veh, f_veh):
+            # print('cidm-based ########')
+            return True
         else:
             return False
 
@@ -163,7 +165,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         if self.lane_decision == 'keep_lane':
             return 0
 
-        if self.glob_x >= self.ramp_exit_x:
+        if self.glob_x >= self.ramp_exit_start:
             if self.target_lane != 1:
                 self.target_lane = 1
             return self.lateral_actions[self.lane_decision]
@@ -174,7 +176,7 @@ class IDMMOBILVehicleMerge(IDMMOBILVehicle):
         # return False
         # if self.id == 4:
         #     print(act_rl_lc)
-        if self.lane_id > 1 and self.glob_x > self.ramp_entrance_x and \
+        if self.lane_id > 1 and self.glob_x > self.merge_lane_start and \
                 self.driver_params['safe_braking'] <= act_rl_lc:
             return True
 

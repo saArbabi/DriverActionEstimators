@@ -5,6 +5,7 @@ class EnvMergeMC(EnvMerge):
     def __init__(self, config):
         super().__init__(config)
         self.metric_collection_mode = False
+        self.min_delta_x = 3 # m - anything else than this is considered a collision
 
     def initialize_env(self, episode_id):
         """Initates the environment, but with a real and imagined (to be predicted)
@@ -54,10 +55,20 @@ class EnvMergeMC(EnvMerge):
 
     def check_collision(self, e_veh):
         if  e_veh.neighbours['m'] and \
-                    e_veh.neighbours['m'] == e_veh.neighbours['att'] and \
-                            e_veh.glob_x >= e_veh.neighbours['m'].glob_x:
+                e_veh.neighbours['m'].lane_decision != 'keep_lane' and \
+                        e_veh.neighbours['m'].glob_x-e_veh.glob_x <= self.min_delta_x:
+            msg = 'Collision detected between follower\
+                            {} and merger {}'.format(e_veh.id, e_veh.neighbours['m'].id)
+
+            print(msg)
+            self.collision_vehs = f'ego_{e_veh.id}_merger_{e_veh.neighbours["m"].id}'
             return True
-        elif e_veh.glob_x >= e_veh.neighbours['f'].glob_x:
+        elif e_veh.neighbours['f'].glob_x-e_veh.glob_x <= self.min_delta_x:
+            msg = 'Collision detected between follower\
+                            {} and leader {}'.format(e_veh.id, e_veh.neighbours['f'].id)
+
+            print(msg)
+            self.collision_vehs = f'ego_{e_veh.id}_front_{e_veh.neighbours["f"].id}'
             return True
         else:
             return False
@@ -76,7 +87,11 @@ class EnvMergeMC(EnvMerge):
             veh_real.act_long = act_long
 
             # imagined vehicles
-            self.set_ima_veh_neighbours(veh_real, veh_ima)
+            # self.set_ima_veh_neighbours(veh_real, veh_ima)
+            veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
+            if veh_ima.vehicle_type == 'idmmobil_merge':
+                self.set_ima_veh_decision(veh_real, veh_ima)
+
             if veh_ima.vehicle_type == 'neural':
                 obs = veh_ima.neur_observe()
                 if self.check_collision(veh_ima):
@@ -94,6 +109,8 @@ class EnvMergeMC(EnvMerge):
 
                 if veh_ima.control_type == 'neural':
                     # _act_long = veh_ima.act(obs)
+
+
                     act_long = veh_ima.act(obs)
                     # if veh_ima.id == 'neur_4':
                         # act_long = 5

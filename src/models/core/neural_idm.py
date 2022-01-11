@@ -93,12 +93,12 @@ class NeurIDMModel(AbstractModel):
                                 [enc_h, enc_f], dis_type='both')
 
         z_idm, z_att = self.belief_net.sample_z(pos_params)
-        env_state = inputs[0][:, -1, :]
-        proj_idm = self.belief_net.z_proj_idm(tf.concat([z_idm, env_state], axis=-1))
-        proj_att = self.belief_net.z_proj_att(tf.concat([z_att, env_state], axis=-1))
+        proj_idm = self.belief_net.z_proj_idm(z_idm)
+        proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
         act_seq, _ = self.forward_sim.rollout([\
-                                idm_params, proj_att, inputs[2], inputs[-1]])
+                                idm_params, proj_att,
+                                inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
@@ -135,7 +135,9 @@ class BeliefModel(tf.keras.Model):
         z_sigma =  K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
+        # tf.print('z_max: ', tf.reduce_max(z_sigma))
         return sampled_z[:, :3], sampled_z[:, 3:]
+        # return sampled_z[:, :3], sampled_z
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
@@ -180,9 +182,12 @@ class HistoryEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.enc_units)
+        self.lstm_layer_1 = LSTM(self.enc_units, return_sequences=True)
+        self.lstm_layer_2 = LSTM(self.enc_units)
+
     def call(self, inputs):
-        enc_h = self.lstm_layer(inputs)
+        whole_seq_output = self.lstm_layer_1(inputs)
+        enc_h = self.lstm_layer_2(whole_seq_output)
         return enc_h
 
 class FutureEncoder(tf.keras.Model):
@@ -212,7 +217,7 @@ class IDMForwardSim(tf.keras.Model):
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=100.)
+        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
 
         desired_v = idm_params[:,:,0:1]
         desired_tgap = idm_params[:,:,1:2]
@@ -232,7 +237,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-6, clip_value_max=6)
+        return tf.clip_by_value(action, clip_value_min=-5.5, clip_value_max=5.5)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
@@ -242,23 +247,18 @@ class IDMForwardSim(tf.keras.Model):
         att_x = self.att_neu(lstm_output)
         return 1/(1+tf.exp(-self.attention_temp*att_x))
 
-    def handle_merger(self, em_act, dx, m_veh_exists):
-        """??
-        """
-        dummy_mul = tf.cast(tf.greater(dx*m_veh_exists, 0), tf.float32)
-        random_act = tf.random.normal(shape=(tf.shape(dx)[0], 1, 1), \
-                                                mean=0., stddev=0.1)
-        return em_act*dummy_mul + (1-dummy_mul)*random_act
-
+    def handle_merger(self, att_score, dx, m_veh_exists):
+        return att_score*tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
 
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        # enc_h  = tf.reshape(enc_h, [batch_size, 1, 128])
         state_h = state_c = tf.zeros([batch_size, self.dec_units])
 
-        for step in range(30):
+        for step in range(50):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -290,13 +290,14 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step:step+1, :]
 
             lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                    proj_latent, env_state, merger_c], axis=-1), \
+                                proj_belief, env_state, merger_c], axis=-1), \
                                     initial_state=[state_h, state_c])
 
             att_score = self.get_att(lstm_output)
+            # att_score = self.handle_merger(att_score, em_delta_x, m_veh_exists)
+
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-            em_act = self.handle_merger(em_act, em_delta_x, m_veh_exists)
 
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act

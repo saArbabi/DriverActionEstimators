@@ -12,11 +12,16 @@ class DataGenMerge():
                 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
 
     def is_episode_complete(self):
-        """Episode is considered complete if all
-            cars exit the road.
+        """Episode is considered complete if
+         1)  traffic reaches an steady state where vehicle action < 0.1
+         2)  merger cannot merge in time
         """
+        if self.env.time_step < 50:
+            return False
+
         for vehicle in self.env.vehicles:
-            if vehicle.glob_x < self.env.lane_length:
+            if abs(vehicle.act_long) > 0.2 or (vehicle.lane_id == 2 and  \
+                                               vehicle.neighbours['rl']):
                 return False
         else:
             return True
@@ -61,7 +66,7 @@ class DataGenMerge():
                              e_veh['speed']-m_veh['speed'],
                              m_veh['glob_x']-e_veh['glob_x'],
                              abs(m_veh['glob_y']-e_veh['glob_y']),
-                             200-m_veh['glob_x']])
+                             self.env.config['merge_zone_end']-m_veh['glob_x']])
         return step_feature
 
     def extract_features(self, raw_recordings):

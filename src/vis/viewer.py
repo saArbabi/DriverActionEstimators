@@ -10,24 +10,23 @@ class Viewer():
         self.fig = plt.figure(figsize=(13, 2))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
-        # self.att_ax = self.fig.add_subplot(212)
-        # self.model_type = model_type
-        # self.true_attention_scores = []
-        # self.attention_values = None
-        # self.elapsed_steps = []
+        self.merge_box = [Rectangle((config['merge_lane_start'], 0), \
+                            config['merge_lane_length'], config['lane_width'])]
 
     def draw_road(self, ax):
-        merge_point = (2/3)*self.config['lane_length']
         lane_cor = self.config['lane_width']*self.config['lanes_n']
         ax.hlines(0, 0, self.config['lane_length'], colors='k', linestyles='solid')
-        ax.vlines(merge_point, 0, self.config['lane_width'], \
+        ax.vlines(self.config['merge_zone_end'], 0, self.config['lane_width'], \
                                                     colors='k', linestyles='solid')
+
+        ax.vlines(self.config['ramp_exit_start'], 0, self.config['lane_width'], \
+                                                    colors='k', linestyles='solid')
+
         ax.hlines(lane_cor, 0, self.config['lane_length'],
                                                     colors='k', linestyles='solid')
 
         # Create patch collection with specified colour/alpha
-        merge_box = [Rectangle((100, 0), 100, 3.75)]
-        pc = PatchCollection(merge_box, hatch='/', alpha=0.2)
+        pc = PatchCollection(self.merge_box, hatch='/', alpha=0.2)
         ax.add_collection(pc)
         if self.config['lanes_n'] > 1:
             lane_cor = self.config['lane_width']
@@ -162,9 +161,11 @@ class Viewer():
 class ViewerMC(Viewer):
     def __init__(self, config):
         self.config  = config
-        self.fig = plt.figure(figsize=(13, 2))
+        self.fig = plt.figure(figsize=(13, 1))
         self.env_ax = self.fig.add_subplot(111)
         self.focus_on_this_vehicle = None
+        self.merge_box = [Rectangle((config['merge_lane_start'], 0), \
+                            config['merge_lane_length'], config['lane_width'])]
 
     def draw_vehicles(self, ax, vehicles, env_type):
         # vehicles = lisvehicles.values())
@@ -246,7 +247,7 @@ class ViewerMC(Viewer):
             return
 
         if not hasattr(self, 'act_ax'):
-            self.fig = plt.figure(figsize=(10, 14))
+            self.fig = plt.figure(figsize=(10, 8))
             self.act_ax = self.fig.add_subplot(511)
             self.speed_ax = self.fig.add_subplot(512)
             self.att_ax = self.fig.add_subplot(513)
