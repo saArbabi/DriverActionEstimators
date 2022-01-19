@@ -431,15 +431,24 @@ params = {
 plt.rcParams.update(params)
 plt.style.use(['science','ieee'])
 
+MEDIUM_SIZE = 14
+
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+
 # %%
 # %%
 """Prediction for an specific sample from the dataset
 """
 # model.arbiter.attention_temp = 5
 traces_n = 50
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 7
 # sample_index = [12374]
-sample_index = [3958]
+sample_index = [12894]
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
@@ -488,56 +497,54 @@ plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
 
 
 # %%
-# fig, ax = plt.subplots(figsize=(4, 3))
-fig, ax = plt.subplots(figsize=(5, 5))
+fig, ax = plt.subplots(figsize=(5, 4))
 time_axis = np.linspace(0., 8., 79)
 for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
-        label = 'Network'
+        label = 'NIDM'
     ax.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
 ax.plot(time_axis, traj, color='red')
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
-ax.plot(time_axis, traj, linestyle='--', color='black')
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
-ax.plot(time_axis, traj, color='purple',linestyle='-')
-# ax.fill_between([0,3],[-9,-9], [5,5], color='lightgrey')
+# traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+# ax.plot(time_axis, traj, linestyle='--', color='black')
+# traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+# ax.plot(time_axis, traj, color='purple',linestyle='-')
+ax.fill_between([0,3],[-9,-9], [5,5], color='lightgrey')
 # ax.set_yticks([-6, -4, -2, 0, 2])
 ax.set_xlabel('Time (s)')
 ax.set_ylabel('Long. Acceleration ($ms^{-2}$)')
-# ax.set_ylim(-6.5, 2.1)
-ax.set_xlim(0, 6.1)
+ax.set_ylim(-6.5, 4.1)
+ax.set_xlim(0, 8.1)
 ax.grid(alpha=0.2)
 ax.minorticks_off()
-# ax.legend(['Network', 'Rear car', 'Merge car', 'Front car'], \
+# ax.legend(['NIDM', 'Rear car', 'Merge car', 'Front car'], \
 #            bbox_to_anchor=(0.25, 0.3))
-ax.legend(['Network', 'Rear car', 'Merge car', 'Front car'], \
-          loc='lower left', framealpha=1, frameon=True)
+ax.legend(['NIDM', 'True action'],  loc='lower left', framealpha=1, frameon=True)
 ax.tick_params(top=False)
-# plt.savefig("example_actions.png", dpi=500)
+plt.savefig("example_actions.png", dpi=500)
 # %%
-fig, ax = plt.subplots(figsize=(4, 3))
+fig, ax = plt.subplots(figsize=(5, 4))
 
 for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
-        label = 'Network'
+        label = 'NIDM'
     ax.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 ax.plot(time_axis, e_veh_att, color='red', linewidth=1.5, linestyle='-')
 ax.fill_between([0,3],[-3,-3], [3,3], color='lightgrey')
 ax.set_ylim(-0.05, 1.05)
-ax.set_xlim(0, 6.1)
+ax.set_xlim(0, 8.1)
 ax.set_xlabel('Time (s)')
 ax.set_ylabel('$w$')
 ax.set_yticks([0., 0.5, 1])
 ax.minorticks_off()
 ax.grid(alpha=0.2)
-ax.legend(['Network', 'True attnetion'], framealpha=1, frameon=True)
-# plt.savefig("example_attention.png", dpi=500)
+ax.legend(['NIDM', 'True attentiveness'], framealpha=1, frameon=True)
+plt.savefig("example_attention.png", dpi=500)
 
 
 # %%
@@ -596,25 +603,25 @@ Visualisation of IDM param distribution for a given example in the dataset
 """
 param_names = ['desired_v', 'desired_tgap']
 
-fig = plt.figure(figsize=(4, 4))
+fig = plt.figure(figsize=(5, 4))
 desired_v_axis = fig.add_subplot(211)
 desired_tgap_axis = fig.add_subplot(212)
-fig.subplots_adjust(hspace=0.3)
+fig.subplots_adjust(hspace=0.4)
 
 """Desired speed"""
 true_val = true_params[0]
 param_samples = idm_params[:, 0]
 (mu, sigma) = norm.fit(param_samples)
-x = np.linspace(22, 26, 50)
+x = np.linspace(22, 26, 100)
 p = norm.pdf(x, mu, sigma)
 
 param_likelihoods = norm.pdf(idm_params[:, 0], mu, sigma)
 desired_v_axis.plot(x, p, linewidth=1, color='red')
-desired_v_axis.plot([true_val, true_val], [-0.1, 1.5],
+desired_v_axis.plot([true_val, true_val], [-0.1, 10],
             linewidth=1.5, color='black', linestyle='--')
 desired_v_axis.scatter(param_samples, param_likelihoods, s=20, color='blue')
 desired_v_axis.set_xticks([22, 23, 24, 25, 26])
-desired_v_axis.set_ylim(-0.1, 1.5)
+desired_v_axis.set_ylim(-0.1, 5)
 desired_v_axis.set_xlabel('$v_{des}$')
 desired_v_axis.set_ylabel('Probability Density')
 desired_v_axis.minorticks_off()
@@ -622,16 +629,16 @@ desired_v_axis.minorticks_off()
 true_val = true_params[1]
 param_samples = idm_params[:, 1]
 (mu, sigma) = norm.fit(param_samples)
-x = np.linspace(0.25, 0.95, 50)
+x = np.linspace(0.25, 0.75, 100)
 p = norm.pdf(x, mu, sigma)
 
 param_likelihoods = norm.pdf(idm_params[:, 1], mu, sigma)
 desired_tgap_axis.plot(x, p, linewidth=1, color='red')
-desired_tgap_axis.plot([true_val, true_val], [-0.5, 12],
+desired_tgap_axis.plot([true_val, true_val], [-0.5, 35],
             linewidth=1.5, color='black', linestyle='--')
 desired_tgap_axis.scatter(param_samples, param_likelihoods, s=20, color='blue')
-desired_tgap_axis.set_xticks([0.3, 0.6, 0.9])
-desired_tgap_axis.set_ylim(-0.5, 12)
+desired_tgap_axis.set_xticks([0.3, 0.4, 0.5, 0.6])
+desired_tgap_axis.set_ylim(-0.5, 30)
 desired_tgap_axis.set_xlabel('$T_{des}$')
 desired_tgap_axis.set_ylabel('Probability Density')
 desired_tgap_axis.minorticks_off()

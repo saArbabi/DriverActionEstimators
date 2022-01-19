@@ -77,7 +77,6 @@ class MCEVAL():
             self.env.neural_vehicle = LSTMVehicle()
 
         self.env.neural_vehicle.initialize_agent(
-
                         model_name,
                         epoch_count,
                         self.config['mc_config']['data_id'])

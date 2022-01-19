@@ -261,6 +261,15 @@ params = {
 plt.rcParams.update(params)
 plt.style.use(['science','ieee'])
 
+MEDIUM_SIZE = 14
+LARGE_SIZE = 16
+
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=LARGE_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=LARGE_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=MEDIUM_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
 # %%
 
 """
@@ -268,7 +277,7 @@ rwse x position
 """
 time_vals = np.linspace(0, 5, steps_n)
 
-fig = plt.figure(figsize=(6, 4))
+fig = plt.figure(figsize=(8, 6))
 position_axis = fig.add_subplot(211)
 speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.1)
@@ -284,7 +293,7 @@ for model_name in model_names:
 # model_names = ['h_lat_f_idm_act', 'h_lat_f_act', 'h_lat_act']
 
 # legends = ['NIDM', 'Latent-Seq', 'Latent-Single', 'Latent-Single-o']
-position_axis.set_ylabel('RWSE position (m)')
+position_axis.set_ylabel('RWSE position (m)', labelpad=10)
 # position_axis.set_xlabel('Time horizon (s)')
 position_axis.minorticks_off()
 # position_axis.set_ylim(0, 5)
@@ -303,7 +312,7 @@ for model_name in model_names:
                            label=paper_names[model_name], linestyle='--')
     else:
         speed_axis.plot(time_vals, error_total, label=paper_names[model_name])
-speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)')
+speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)', labelpad=10)
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
 # speed_axis.set_ylim(0, 2)
