@@ -25,7 +25,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         exp_dir = './src/models/experiments/'+model_name
         exp_path = exp_dir+'/model_epo'+epoch_count
         dataset_name = 'sim_data_'+data_id
-        data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
+        data_files_dir = './src/datasets/'+dataset_name+'/'
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.env_scaler = pickle.load(handle)

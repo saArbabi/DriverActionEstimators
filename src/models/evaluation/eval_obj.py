@@ -9,11 +9,11 @@ import json
 
 class MCEVAL():
     eval_config_dir = './src/models/evaluation/config.json'
-    def __init__(self, val_run_name):
+    def __init__(self, mc_run_name):
         with open('./src/envs/config.json', 'rb') as handle:
             config = json.load(handle)
         self.env = EnvMergeMC(config)
-        self.val_run_name = val_run_name # folder name in which val logs are dumped
+        self.mc_run_name = mc_run_name # folder name in which val logs are dumped
         self.config = self.read_eval_config()
         self.env.metric_collection_mode = True
         self.rollout_len = self.config['mc_config']['rollout_len']
@@ -34,12 +34,12 @@ class MCEVAL():
         mc_config = self.config['mc_config']
         progress_logging = self.config['progress_logging'][model_name]
         progress_logging['last_update'] = dt_string
-        progress_logging['episode_in_prog'] = \
-                                    f'{self.episode_in_prog}/{mc_config["episodes_n"]}'
+        progress_logging['current_episode_count'] = \
+                                    f'{self.current_episode_count}/{mc_config["episodes_n"]}'
 
-        progress_logging['episode'] = self.episode_id
+        progress_logging['episode_in_prog'] = self.episode_id
 
-        if self.episode_in_prog == mc_config['episodes_n']:
+        if self.current_episode_count == mc_config['episodes_n']:
             self.config['status'] = 'COMPLETE'
         else:
             self.config['status'] = 'IN PROGRESS ...'
@@ -82,7 +82,7 @@ class MCEVAL():
                         self.config['mc_config']['data_id'])
 
     def dump_mc_logs(self, model_name):
-        exp_dir = './src/models/experiments/'+model_name+'/'+self.val_run_name
+        exp_dir = './src/models/experiments/'+ self.mc_run_name + '/' + model_name
         if not os.path.exists(exp_dir):
             os.makedirs(exp_dir)
 
@@ -128,7 +128,7 @@ class MCEVAL():
 
     def run_episode(self):
         self.episode_id += 1
-        self.episode_in_prog += 1
+        self.current_episode_count += 1
         np.random.seed(self.episode_id)
         self.env.trans_time = np.random.randint(\
                             self.history_len, self.history_len*2) # controller ==> 'neural'
@@ -147,20 +147,20 @@ class MCEVAL():
                 self.real_collection[self.episode_id][veh_id].append(data_log)
 
     def initiate_eval(self, model_name):
-        self.episode_in_prog = 0
+        self.current_episode_count = 0
         self.create_empty()
         progress_logging = {}
         self.episode_id = 500
         self.target_episode = self.config['mc_config']['episodes_n'] + \
                                                             self.episode_id
 
-        progress_logging['episode'] = self.episode_id
-        progress_logging['episode_in_prog'] = 'NA'
+        progress_logging['episode_in_prog'] = self.episode_id
+        progress_logging['current_episode_count'] = 'NA'
         progress_logging['last_update'] = 'NA'
         self.config['progress_logging'][model_name] = progress_logging
 
     def load_collections(self, model_name):
-        exp_dir = './src/models/experiments/'+model_name+'/'+self.val_run_name
+        exp_dir = './src/models/experiments/'+ self.mc_run_name + '/' + model_name
         with open(exp_dir+'/real_collection.pickle', 'rb') as handle:
             self.real_collection = pickle.load(handle)
 
@@ -187,17 +187,17 @@ class MCEVAL():
         mc_config = self.config['mc_config']
         epis_n_left = 0 # remaining episodes ot compelte
 
-        episode_in_prog = progress_logging['episode_in_prog']
-        episode_in_prog = episode_in_prog.split('/')
-        self.episode_in_prog = int(episode_in_prog[0])
-        epis_n_left = mc_config['episodes_n'] - self.episode_in_prog
+        current_episode_count = progress_logging['current_episode_count']
+        current_episode_count = current_episode_count.split('/')
+        self.current_episode_count = int(current_episode_count[0])
+        epis_n_left = mc_config['episodes_n'] - self.current_episode_count
         if epis_n_left == 0:
             return True
         else:
             self.load_collections(model_name)
-            self.episode_id = progress_logging['episode']
-            progress_logging['episode_in_prog'] = \
-                        f'{self.episode_in_prog}/{mc_config["episodes_n"]}'
+            self.episode_id = progress_logging['episode_in_prog']
+            progress_logging['current_episode_count'] = \
+                        f'{self.current_episode_count}/{mc_config["episodes_n"]}'
             self.target_episode =  self.episode_id + epis_n_left
             self.update_eval_config(model_name)
             return False

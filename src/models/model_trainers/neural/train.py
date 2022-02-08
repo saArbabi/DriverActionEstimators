@@ -25,14 +25,14 @@ dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
-data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
+data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 
 data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
-data_files_dir = './src/models/experiments/data_files/'+dataset_name+'/'
+data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 # %%

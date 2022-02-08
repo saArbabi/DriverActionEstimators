@@ -42,7 +42,7 @@ Load generated data.
 """
 data_id = '033'
 dataset_name = 'sim_data_'+data_id
-data_files_dir = './src/models/experiments/data_files/'+dataset_name
+data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
 sim_data.shape
