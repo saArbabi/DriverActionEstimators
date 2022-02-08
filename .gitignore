@@ -3,3 +3,6 @@ datasets/
 *.mp4
 
 publication_results/
+
+src/evaluation/config_files/
+src/evaluation/mc_collections/

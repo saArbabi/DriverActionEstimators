@@ -8,16 +8,14 @@ import pickle
 import json
 
 class MCEVAL():
-    eval_config_dir = './src/models/evaluation/config.json'
-    def __init__(self, mc_run_name):
+    def __init__(self, eval_config):
         with open('./src/envs/config.json', 'rb') as handle:
             config = json.load(handle)
-        self.env = EnvMergeMC(config)
-        self.mc_run_name = mc_run_name # folder name in which val logs are dumped
-        self.config = self.read_eval_config()
+            self.env = EnvMergeMC(config)
         self.env.metric_collection_mode = True
-        self.rollout_len = self.config['mc_config']['rollout_len']
-        self.history_len = self.config['mc_config']['history_len']
+        self.eval_config = eval_config
+        self.rollout_len = self.eval_config['mc_config']['rollout_len'] 
+        self.history_len = self.eval_config['mc_config']['history_len']
 
     def create_empty(self):
         """
@@ -31,8 +29,8 @@ class MCEVAL():
     def update_eval_config(self, model_name):
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        mc_config = self.config['mc_config']
-        progress_logging = self.config['progress_logging'][model_name]
+        mc_config = self.eval_config['mc_config']
+        progress_logging = self.eval_config['progress_logging'][model_name]
         progress_logging['last_update'] = dt_string
         progress_logging['current_episode_count'] = \
                                     f'{self.current_episode_count}/{mc_config["episodes_n"]}'
@@ -40,14 +38,14 @@ class MCEVAL():
         progress_logging['episode_in_prog'] = self.episode_id
 
         if self.current_episode_count == mc_config['episodes_n']:
-            self.config['status'] = 'COMPLETE'
+            self.eval_config['status'] = 'COMPLETE'
         else:
-            self.config['status'] = 'IN PROGRESS ...'
+            self.eval_config['status'] = 'IN PROGRESS ...'
 
 
-        self.config['progress_logging'][model_name] = progress_logging
+        self.eval_config['progress_logging'][model_name] = progress_logging
         with open(self.eval_config_dir, 'w', encoding='utf-8') as f:
-            json.dump(self.config, f, ensure_ascii=False, indent=4)
+            json.dump(self.eval_config, f, ensure_ascii=False, indent=4)
 
     def read_eval_config(self):
         with open(self.eval_config_dir, 'rb') as handle:
@@ -79,10 +77,10 @@ class MCEVAL():
         self.env.neural_vehicle.initialize_agent(
                         model_name,
                         epoch_count,
-                        self.config['mc_config']['data_id'])
+                        self.eval_config['mc_config']['data_id'])
 
     def dump_mc_logs(self, model_name):
-        exp_dir = './src/models/experiments/'+ self.mc_run_name + '/' + model_name
+        exp_dir = './src/evaluation/mc_collections/'+ self.mc_run_name + '/' + model_name
         if not os.path.exists(exp_dir):
             os.makedirs(exp_dir)
 
@@ -133,7 +131,7 @@ class MCEVAL():
         self.env.trans_time = np.random.randint(\
                             self.history_len, self.history_len*2) # controller ==> 'neural'
 
-        for trace in range(self.config['mc_config']['trace_n']):
+        for trace in range(self.eval_config['mc_config']['traces_n']):
             self.run_trace(trace)
         for veh_id, data_log in self.env.real_mc_log.items():
             for step_log in data_log:
@@ -151,16 +149,16 @@ class MCEVAL():
         self.create_empty()
         progress_logging = {}
         self.episode_id = 500
-        self.target_episode = self.config['mc_config']['episodes_n'] + \
+        self.target_episode = self.eval_config['mc_config']['episodes_n'] + \
                                                             self.episode_id
 
         progress_logging['episode_in_prog'] = self.episode_id
         progress_logging['current_episode_count'] = 'NA'
         progress_logging['last_update'] = 'NA'
-        self.config['progress_logging'][model_name] = progress_logging
+        self.eval_config['progress_logging'][model_name] = progress_logging
 
     def load_collections(self, model_name):
-        exp_dir = './src/models/experiments/'+ self.mc_run_name + '/' + model_name
+        exp_dir = './src/evaluation/mc_collections/'+ self.mc_run_name + '/' + model_name
         with open(exp_dir+'/real_collection.pickle', 'rb') as handle:
             self.real_collection = pickle.load(handle)
 
@@ -179,12 +177,12 @@ class MCEVAL():
     def is_eval_complete(self, model_name):
         """Check if this model has been fully evaluated.
         """
-        if not model_name in self.config['progress_logging']:
+        if not model_name in self.eval_config['progress_logging']:
             self.initiate_eval(model_name)
             return False
 
-        progress_logging = self.config['progress_logging'][model_name]
-        mc_config = self.config['mc_config']
+        progress_logging = self.eval_config['progress_logging'][model_name]
+        mc_config = self.eval_config['mc_config']
         epis_n_left = 0 # remaining episodes ot compelte
 
         current_episode_count = progress_logging['current_episode_count']
@@ -203,7 +201,7 @@ class MCEVAL():
             return False
 
     def run(self):
-        self.model_vehicle_map = self.config['model_vehicle_map']
+        self.model_vehicle_map = self.eval_config['model_vehicle_map']
         model_names = self.model_vehicle_map.keys()
 
         for model_name in model_names:

@@ -27,11 +27,11 @@ runtimes = {}
 model_names = ['mlp_02', 'lstm_02','latent_mlp_11', 'neural_035','neural_idm_180']
 # model_names = ['neural_035','neural_idm_180']
 # model_names = ['neural_034','neural_idm_180']
-val_run_name = 'data_033_1'
-# val_run_name = 'test_dense'
+mc_run_name = 'data_033_1'
+# mc_run_name = 'test_dense'
 
 for model_name in model_names:
-    exp_dir = './src/models/experiments/'+model_name+'/' + val_run_name
+    exp_dir = './src/models/experiments/'+model_name+'/' + mc_run_name
 
     with open(exp_dir+'/real_collection.pickle', 'rb') as handle:
         real_collections[model_name] = pickle.load(handle)
@@ -67,7 +67,7 @@ steps_n = 50
 snips_true = {}
 snips_pred = {}
 for model_name in model_names:
-    snips_true[model_name] = [] # shape: (car_count, trace_n, steps_n, 8)
+    snips_true[model_name] = [] # shape: (car_count, traces_n, steps_n, 8)
     snips_pred[model_name] = [] # shape: (car_count, 1, steps_n, 9)
 for model_name in model_names:
     for epis_id, epis_dic in real_collections[model_name].items():
@@ -171,7 +171,7 @@ used methods
 # plt.plot(xposition_error)
 def get_trace_err(pred_traces, true_trace):
     """
-    Input shpae [trace_n, steps_n]
+    Input shpae [traces_n, steps_n]
     Return shape [1, steps_n]
     """
     # mean across traces (axis=0)
@@ -179,7 +179,7 @@ def get_trace_err(pred_traces, true_trace):
 
 def get_veh_err(index, model_name):
     """
-    Input shpae [veh_n, trace_n, steps_n, state_index]
+    Input shpae [veh_n, traces_n, steps_n, state_index]
     Return shape [veh_n, steps_n]
     """
     posx_true = snips_true[model_name][:,:,:,index]
