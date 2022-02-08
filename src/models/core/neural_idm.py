@@ -132,11 +132,12 @@ class BeliefModel(tf.keras.Model):
         z_mean, z_logsigma = dis_params
         _epsilon = tf.random.normal(shape=(tf.shape(z_mean)[0],
                                  self.latent_dim), mean=0., stddev=1)
-        z_sigma =  K.exp(z_logsigma)
+        z_sigma = K.exp(z_logsigma)
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
         return sampled_z[:, :3], sampled_z[:, 3:]
+        # return sampled_z, sampled_z
         # return sampled_z[:, :3], sampled_z
 
     def z_proj_idm(self, x):
@@ -230,8 +231,6 @@ class IDMForwardSim(tf.keras.Model):
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-
-
         # return self.action_clip(act)
         return self.action_clip(act)
 
@@ -326,7 +325,9 @@ class IDMLayer(tf.keras.Model):
         output = self.des_v_neu(x)
         minval = 10
         maxval = 30
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return minval + (maxval-minval)/(1+tf.exp(-0.2*output))
+        # return minval + tf.math.softplus(output)
+        # return minval + output
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)
@@ -355,6 +356,7 @@ class IDMLayer(tf.keras.Model):
     def call(self, x):
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
+        # tf.print('desired_v: ', tf.reduce_max(desired_v))
         min_jamx = self.get_min_jamx(x)
         max_act = self.get_max_act(x)
         min_act = self.get_min_act(x)
