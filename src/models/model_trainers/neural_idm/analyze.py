@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_180'
-epoch_count = '10'
+model_name = 'neural_idm_188'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -199,8 +199,8 @@ plt.grid()
 Compare losses
 """
 losses = {}
-# for name in ['neural_idm_105', 'neural_idm_106']:
-for name in ['latent_mlp_09', 'latent_mlp_10']:
+for name in ['neural_idm_179', 'neural_idm_188']:
+# for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
@@ -252,7 +252,7 @@ Latent visualisation - aggressiveness used for color coding the latent samples
 """
 latent_vis(zsamples_n=5000)
 latent_vis(zsamples_n=5000)
-plt.savefig("nidm_latent.png", dpi=500)
+# plt.savefig("nidm_latent.png", dpi=500)
 
 # plt.savefig("latent.png", dpi=500)
 # %%
@@ -275,7 +275,7 @@ traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-# distribution_name = 'posterior'
+distribution_name = 'posterior'
 # for i in bad_samples[0]:
 # for i in sepcific_samples:
 # for i in [2815]:

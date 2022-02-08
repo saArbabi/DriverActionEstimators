@@ -3,7 +3,7 @@ import sys
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
+
 import numpy as np
 np.set_printoptions(suppress=True)
 from importlib import reload
@@ -44,7 +44,7 @@ config = {
     "learning_rate": 1e-3,
     "batch_size": 512,
     "vae_loss_weight": 0.3,
-    "attention_temp": 5,
+    "attention_temp": 1,
     "latent_dim": 6,
     },
      "data": {
@@ -132,12 +132,12 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '183'
+exp_id = '188'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
 # model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.load_pre_trained(epoch_count='15')
+# model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.test_mseloss
 # %%
 # model_trainer.model.forward_sim.attention_temp
@@ -145,7 +145,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=10)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################
@@ -180,3 +180,8 @@ print(model_trainer.test_mseloss[-1])
 model_trainer.save_model()
 model_trainer.save_loss()
 # %%
+x = np.linspace(-3, 3, 100)
+temp = 0.2
+y = 10 + 20/(1 + np.exp(-temp*x))
+plt.plot(x, y)
+print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
