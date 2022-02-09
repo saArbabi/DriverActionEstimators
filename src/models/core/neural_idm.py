@@ -108,7 +108,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 64
+        self.proj_dim = 128
         self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
@@ -235,7 +235,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-5.5, clip_value_max=5.5)
+        return tf.clip_by_value(action, clip_value_min=-6, clip_value_max=6)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
@@ -251,12 +251,12 @@ class IDMForwardSim(tf.keras.Model):
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
+        state_h = proj_belief
+        state_c = proj_belief
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
-        # enc_h  = tf.reshape(enc_h, [batch_size, 1, 128])
-        state_h = state_c = tf.zeros([batch_size, self.dec_units])
+        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.dec_units])
 
-        for step in range(50):
+        for step in range(self.rollout_len):
             f_veh_v = idm_s[:, step:step+1, 1:2]
             m_veh_v = idm_s[:, step:step+1, 2:3]
             f_veh_glob_x = idm_s[:, step:step+1, 4:5]
@@ -293,7 +293,7 @@ class IDMForwardSim(tf.keras.Model):
 
             att_score = self.get_att(lstm_output)
             # att_score = self.handle_merger(att_score, em_delta_x, m_veh_exists)
-
+            att_score = att_score*m_veh_exists
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
