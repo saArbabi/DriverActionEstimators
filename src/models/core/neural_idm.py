@@ -19,10 +19,10 @@ class NeurIDMModel(AbstractModel):
         self.forward_sim = IDMForwardSim(config)
         self.idm_layer = IDMLayer()
 
-        self.loss_function = tf.keras.losses.Huber()
         self.vae_loss_weight = config['model_config']['vae_loss_weight']
+        # self.loss_function = tf.keras.losses.Huber()
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        # self.loss_function = tf.keras.losses.MeanSquaredError()
+        self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -108,7 +108,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 128
+        self.proj_dim = 64
         self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
@@ -136,8 +136,8 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        # return sampled_z[:, :3], sampled_z[:, 3:]
-        return sampled_z, sampled_z
+        return sampled_z[:, :6], sampled_z[:, 6:]
+        # return sampled_z, sampled_z
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
@@ -212,8 +212,8 @@ class IDMForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
-        self.res_act_neu = TimeDistributed(Dense(1))
+        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
+        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, vel, dv, dx, idm_params):
@@ -230,7 +230,6 @@ class IDMForwardSim(tf.keras.Model):
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1-(vel/desired_v)**4-\
                                             (desired_gap/dx)**2)
-        # return self.action_clip(act)
         return self.action_clip(act)
 
     def action_clip(self, action):
@@ -241,8 +240,11 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, lstm_output):
-        att_x = self.att_neu(lstm_output)
+    def get_att(self, inputs):
+        x = self.dense_1(inputs)
+        x = self.dense_2(x)
+        # clip to avoid numerical issues
+        att_x = tf.clip_by_value(self.att_neu(x), clip_value_min=-10, clip_value_max=10)
         return 1/(1+tf.exp(-self.attention_temp*att_x))
 
     def handle_merger(self, att_score, dx, m_veh_exists):
@@ -251,10 +253,8 @@ class IDMForwardSim(tf.keras.Model):
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
-        state_h = proj_belief
-        state_c = proj_belief
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
-        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.dec_units])
+        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
 
         for step in range(self.rollout_len):
             f_veh_v = idm_s[:, step:step+1, 1:2]
@@ -287,12 +287,8 @@ class IDMForwardSim(tf.keras.Model):
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step:step+1, :]
 
-            lstm_output, state_h, state_c = self.lstm_layer(tf.concat([\
-                                proj_belief, env_state, merger_c], axis=-1), \
-                                    initial_state=[state_h, state_c])
-
-            att_score = self.get_att(lstm_output)
-            # att_score = self.handle_merger(att_score, em_delta_x, m_veh_exists)
+            inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
+            att_score = self.get_att(inputs)
             att_score = att_score*m_veh_exists
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
@@ -305,7 +301,8 @@ class IDMForwardSim(tf.keras.Model):
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
-        # tf.print('att_score: ', tf.reduce_mean(att_seq))
+        # tf.print('att_score_min: ', tf.reduce_min(att_seq))
+        # tf.print('att_score_max: ', tf.reduce_max(att_seq))
         return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
