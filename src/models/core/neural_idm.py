@@ -20,9 +20,9 @@ class NeurIDMModel(AbstractModel):
         self.idm_layer = IDMLayer()
 
         self.vae_loss_weight = config['model_config']['vae_loss_weight']
-        # self.loss_function = tf.keras.losses.Huber()
+        self.loss_function = tf.keras.losses.Huber()
         # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        self.loss_function = tf.keras.losses.MeanSquaredError()
+        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
     def callback_def(self):
         self.train_mseloss = tf.keras.metrics.Mean()
@@ -243,7 +243,7 @@ class IDMForwardSim(tf.keras.Model):
     def get_att(self, inputs):
         x = self.dense_1(inputs)
         x = self.dense_2(x)
-        # clip to avoid numerical issues
+        # clip to avoid numerical issues (nans)
         att_x = tf.clip_by_value(self.att_neu(x), clip_value_min=-10, clip_value_max=10)
         return 1/(1+tf.exp(-self.attention_temp*att_x))
 
@@ -290,6 +290,8 @@ class IDMForwardSim(tf.keras.Model):
             inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
             att_score = self.get_att(inputs)
             att_score = att_score*m_veh_exists
+            # att_score = self.handle_merger(att_score, em_delta_x, m_veh_exists)
+
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
 
@@ -308,6 +310,7 @@ class IDMForwardSim(tf.keras.Model):
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
+        self.linear_dim = 1
         self.architecture_def()
 
     def architecture_def(self):
@@ -317,12 +320,42 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
+        self.des_v_linear = Dense(self.linear_dim)
+        self.des_tgap_linear = Dense(self.linear_dim)
+        self.min_jamx_linear = Dense(self.linear_dim)
+        self.max_act_linear = Dense(self.linear_dim)
+        self.min_act_linear = Dense(self.linear_dim)
+
     def get_des_v(self, x):
         output = self.des_v_neu(x)
+        # output = self.des_v_neu(self.des_v_linear(x))
         minval = 10
         maxval = 30
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return minval + (maxval-minval)/(1+tf.exp(-0.2*output))
 
+    # def get_des_tgap(self, x):
+    #     output = self.des_tgap_neu(self.des_tgap_linear(x))
+    #     minval = 0
+    #     maxval = 3
+    #     return minval + tf.math.softplus(output)
+    #
+    # def get_min_jamx(self, x):
+    #     output = self.min_jamx_neu(self.min_jamx_linear(x))
+    #     minval = 0
+    #     maxval = 6
+    #     return minval + tf.math.softplus(output)
+    #
+    # def get_max_act(self, x):
+    #     output = self.max_act_neu(self.max_act_linear(x))
+    #     minval = 1
+    #     maxval = 6
+    #     return minval + tf.math.softplus(output)
+    #
+    # def get_min_act(self, x):
+    #     output = self.min_act_neu(self.min_act_linear(x))
+    #     minval = 1
+    #     maxval = 6
+    #     return minval + tf.math.softplus(output)
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)
         minval = 0
