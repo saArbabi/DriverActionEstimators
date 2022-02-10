@@ -19,9 +19,9 @@ sys.path.insert(0, './src')
 """
 Load data
 """
-history_len = 30 # steps
-rollout_len = 50
-data_id = '033'
+history_len = 20 # steps
+rollout_len = 30
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -36,6 +36,7 @@ data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 
+val_input[0].shape
 
 # %%
 config = {
@@ -43,9 +44,9 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.3,
+    "vae_loss_weight": 0.1,
     "attention_temp": 1,
-    "latent_dim": 6,
+    "latent_dim": 12,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -70,6 +71,7 @@ class Trainer():
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
+        self.model.forward_sim.rollout_len = 30
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
@@ -132,10 +134,9 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '188'
+exp_id = '208'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
-
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.test_mseloss
@@ -145,7 +146,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=10)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################
@@ -180,8 +181,8 @@ print(model_trainer.test_mseloss[-1])
 model_trainer.save_model()
 model_trainer.save_loss()
 # %%
-x = np.linspace(-3, 3, 100)
-temp = 0.2
-y = 10 + 20/(1 + np.exp(-temp*x))
-plt.plot(x, y)
-print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
+# x = np.linspace(-3, 3, 100)
+# temp = 0.2
+# y = 10 + 20/(1 + np.exp(-temp*x))
+# plt.plot(x, y)
+# print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))

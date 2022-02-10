@@ -27,7 +27,7 @@ runtimes = {}
 model_names = ['mlp_02', 'lstm_02','latent_mlp_11', 'neural_035','neural_idm_180']
 # model_names = ['neural_035','neural_idm_180']
 # model_names = ['neural_034','neural_idm_180']
-mc_run_name = 'data_033_1'
+mc_run_name = 'data_045_1'
 # mc_run_name = 'test_dense'
 
 for model_name in model_names:

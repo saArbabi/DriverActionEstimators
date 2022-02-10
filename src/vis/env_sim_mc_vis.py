@@ -21,7 +21,7 @@ def main():
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_02'
     # model_name = 'lstm_02'
-    data_id = '033'
+    data_id = '045'
     history_len = 30 # choose this based on the model with longest history
     rollout_len = 50
 

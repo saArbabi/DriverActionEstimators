@@ -24,18 +24,6 @@ with open('./src/envs/config.json', 'rb') as handle:
 
 env = EnvMerge(config)
 sim_data_indexs = {}
-col_names = [
-         'episode_id', 'time_step',
-         'e_veh_id', 'f_veh_id', 'm_veh_id',
-         'e_veh_decision', 'e_veh_lane',
-         'f_veh_exists', 'm_veh_exists', 'e_veh_att',
-         'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-         'e_veh_action', 'f_veh_action', 'm_veh_action',
-         'aggressiveness', 'desired_v',
-         'desired_tgap', 'min_jamx', 'max_act', 'min_act',
-         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-         'em_delta_y', 'delta_x_to_merge']
 
 for i, item_name in enumerate(col_names):
     sim_data_indexs[item_name] = i
@@ -58,7 +46,7 @@ for i, item_name in enumerate(col_names):
 """
 Load generated data (not yet prepped).
 """
-data_id = '033'
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
@@ -68,9 +56,9 @@ sim_data.shape
 """
 Load generated data (already prepped).
 """
-history_len = 30 # steps
+history_len = 20 # steps
 rollout_len = 50
-data_id = '033'
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -110,11 +98,13 @@ sim_data[sim_data[:, sim_data_indexs['e_veh_action']] < -4]
 """
 Who are the yielding vehicles?
 """
-cond = (history_future_usc[:, :, -5] == 1).any(axis=1)
+
+cond = (history_future_usc[:, :, hf_usc_indexs['e_veh_att']] == 1).any(axis=1)
 att_on_vehicles = history_future_usc[cond]
+history_future_usc.shape
 att_on_vehicles.shape
-_aggressiveness = att_on_vehicles[:, 0, -1]
-_ = plt.hist(_aggressiveness, bins=50)
+_aggressiveness = att_on_vehicles[:, 0,  hf_usc_indexs['aggressiveness']]
+_ = plt.hist(_aggressiveness, bins=500)
 
 # %%
 """

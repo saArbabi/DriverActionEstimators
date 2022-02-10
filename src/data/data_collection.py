@@ -54,7 +54,7 @@ def prep_data(training_data):
     return train_input, val_input
 # %%
 """
-Generate data
+Generate datan
 """
 from data import merge_data_gen
 reload(merge_data_gen)
@@ -67,7 +67,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '033'
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -83,7 +83,7 @@ else:
 """
 Load generated data.
 """
-data_id = '031'
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
@@ -93,7 +93,7 @@ sim_data.shape
 """
 Prepare data
 """
-history_len = 30 # steps
+history_len = 20 # steps
 rollout_len = 50
 from data import data_prep
 reload(data_prep)
@@ -107,25 +107,36 @@ data_arrays = data_prep.split_data(history_future_seqs, history_future_seqs_scal
 
 history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
-future_e_veh_a[:, :, -1].std()
-future_e_veh_a[:, :, -1].mean()
-future_e_veh_a[:, :, -1].mean()
-np.
-np.where(  )
-future_e_veh_a.shape
+
+history_future_usc.shape
 # %%
 train_input, val_input = prep_data(data_arrays)
 
 # %%
-
 # """
 # BALANCE DATA
 # """
+# hf_usc_indexs = {}
+# col_names = [
+#          'episode_id', 'time_step',
+#          'e_veh_id', 'f_veh_id', 'm_veh_id',
+#          'm_veh_exists', 'e_veh_att',
+#          'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
+#          'e_veh_action', 'f_veh_action', 'm_veh_action',
+#          'aggressiveness',
+#          'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
+#          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
+#          'em_delta_y', 'delta_x_to_merge']
+#
+# for i, item_name in enumerate(col_names):
+#     hf_usc_indexs[item_name] = i
+# # %%
 # history_future_usc, history_sca, future_sca, future_idm_s, future_m_veh_c, future_e_veh_a = data_arrays
-# balance_value = np.count_nonzero((history_future_usc[:, :, -14] == 1).all(axis=1))/\
+# balance_value = np.count_nonzero((\
+#                         history_future_usc[:, :, hf_usc_indexs['e_veh_att']] == 1).any(axis=1))/\
 #                         history_future_usc.shape[0]
 # print(balance_value)
-# cond = (history_future_usc[:, :, -14] == 1).all(axis=1)
+# cond = (history_future_usc[:, :, hf_usc_indexs['e_veh_att']] == 1).any(axis=1)
 # data_arrays = [np.append(sim_dataay, sim_dataay[cond], axis=0) for sim_dataay in data_arrays]
 # %%
 """
@@ -141,11 +152,6 @@ pickle_this(m_scaler, data_files_dir, item_name)
 item_name = 'dummy_value_set'
 pickle_this(dummy_value_set, data_files_dir, item_name)
 
-item_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
-                                history_len=history_len, rollout_len=rollout_len)
-
-pickle_this(data_arrays, data_files_dir, item_name)
-# (841,502,560 bytes)
 
 item_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -156,3 +162,8 @@ item_name = 'val_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
 pickle_this(val_input, data_files_dir, item_name)
+
+item_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
+                                history_len=history_len, rollout_len=rollout_len)
+
+pickle_this(data_arrays, data_files_dir, item_name)

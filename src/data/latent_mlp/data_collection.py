@@ -40,7 +40,7 @@ def prep_data(training_data):
 """
 Load generated data.
 """
-data_id = '033'
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:

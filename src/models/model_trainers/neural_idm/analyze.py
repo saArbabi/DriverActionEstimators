@@ -119,15 +119,15 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
     return traj.flatten()
 # %%
 """
 Load data
 """
-history_len = 30 # steps
+history_len = 20 # steps
 rollout_len = 50
-data_id = '033'
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_188'
-epoch_count = '20'
+model_name = 'neural_idm_207'
+epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -169,6 +169,8 @@ from models.core import neural_idm
 reload(neural_idm)
 from models.core.neural_idm import NeurIDMModel
 model = NeurIDMModel(config)
+model.forward_sim.rollout_len = 50
+
 model.load_weights(exp_path).expect_partial()
 
 with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
@@ -199,7 +201,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_179', 'neural_idm_188']:
+for name in ['neural_idm_207', 'neural_idm_206']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -275,7 +277,7 @@ traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-distribution_name = 'posterior'
+# distribution_name = 'posterior'
 # for i in bad_samples[0]:
 # for i in sepcific_samples:
 # for i in [2815]:
@@ -291,11 +293,9 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
-    # if 4 == 4:
     if episode not in covered_episodes and \
-                e_veh_att[30:55].mean() > 0 and e_veh_att[:30].mean() == 0:
-    # if episode not in covered_episodes and  e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
-    # if episode not in covered_episodes and m_veh_exists.mean() == 0:
+                e_veh_att[20:45].mean() > 0 and e_veh_att[:20].mean() == 0:
+
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -320,7 +320,8 @@ while Example_pred < 10:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+79)
+
+        time_steps = range(time_0, time_0+69)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.4,
                         'experiment_name: '+ model_name+'_'+epoch_count +' '+'\n'
@@ -348,9 +349,10 @@ while Example_pred < 10:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[29:], act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
-           # plt.plot(time_steps[29:], act_seq[sample_trace_i, :, :].flatten(), color='grey')
+        plt.scatter(time_steps[19+30], 0, color='red')
+           # plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
         # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')
@@ -359,11 +361,10 @@ while Example_pred < 10:
         plt.figure(figsize=(5, 3))
         # plt.plot(e_veh_att[:40] , color='black')
         plt.plot(time_steps , e_veh_att, color='red')
-
-        plt.plot([time_steps[29], time_steps[29]], [0, 1], color='black')
+        plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[29:], att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(time_steps[19:], att_scores[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         ##########
@@ -498,12 +499,12 @@ plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
 
 # %%
 fig, ax = plt.subplots(figsize=(5, 4))
-time_axis = np.linspace(0., 8., 79)
+time_axis = np.linspace(0., 7., 69)
 for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
         label = 'NIDM'
-    ax.plot(time_axis[29:], act_seq[sample_trace_i, :, :].flatten(), \
+    ax.plot(time_axis[19:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
@@ -532,7 +533,7 @@ for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
         label = 'NIDM'
-    ax.plot(time_axis[29:], att_scores[sample_trace_i, :].flatten(), \
+    ax.plot(time_axis[19:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 ax.plot(time_axis, e_veh_att, color='red', linewidth=1.5, linestyle='-')
 ax.fill_between([0,3],[-3,-3], [3,3], color='lightgrey')
@@ -654,12 +655,12 @@ plt.savefig("example_params.png", dpi=500)
 # fig = pyplot.figure(figsize=(3, 2))
 # ax = Axes3D(fig)
 #
-# ax.scatter(29.2,  1., 2.6, color='red')
+# ax.scatter(19.2,  1., 2.6, color='red')
 # ax.scatter(desired_vs, desired_tgaps, b_max, color='grey')
 # ax.set_xlim(28, 30)
 # ax.set_ylim(1, 2)
 # ax.set_zlim(2, 3)
-# ax.set_xticks([28., 29, 30])
+# ax.set_xticks([28., 19, 30])
 # ax.set_yticks([1, 1.5, 2.])
 # ax.set_zticks([2, 2.5, 3])
 # # ax.set_title('Driver disposition')
