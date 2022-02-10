@@ -14,7 +14,7 @@ class MCEVAL():
             self.env = EnvMergeMC(config)
         self.env.metric_collection_mode = True
         self.eval_config = eval_config
-        self.rollout_len = self.eval_config['mc_config']['rollout_len'] 
+        self.rollout_len = self.eval_config['mc_config']['rollout_len']
         self.history_len = self.eval_config['mc_config']['history_len']
 
     def create_empty(self):

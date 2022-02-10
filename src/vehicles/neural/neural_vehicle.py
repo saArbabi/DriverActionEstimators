@@ -27,7 +27,5 @@ class NeuralVehicle(NeuralIDMVehicle):
         _context = tf.concat([self.proj_latent, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
 
-        lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
-                                    _context, initial_state=[self.state_h, self.state_c])
-        act_long = self.model.forward_sim.action_neu(lstm_output).numpy()
+        act_long = self.model.forward_sim.get_action(_context).numpy()
         return act_long[0][0][0]

@@ -22,7 +22,7 @@ ima_collections = {}
 collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_179', 'neural_idm_182', 'neural_idm_187', 'neural_idm_188']
-model_names = ['neural_idm_179', 'neural_idm_187', 'neural_idm_188']
+model_names = ['neural_idm_209', 'neural_idm_214', 'neural_idm_215', 'neural_036']
 mc_run_name = 'rwse_test'
 
 for model_name in model_names:
@@ -72,21 +72,16 @@ for model_name in model_names:
             snips_pred[model_name].append(_pred)
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
-snips_pred['neural_idm_180'].shape
-
+list(snips_pred.values())[0].shape
 # %%
 
-snips_pred['neural_idm_181'].shape
-
-snips_true[model_name][-1, 0, 1, :]
-# %%
 """
 Vis true vs pred state for models.
 Note:
 Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['act_long']
-for i in range(27):
+for i in range(14):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -188,5 +183,6 @@ speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
 collision_counts = {}
 for model_name in model_names:
     count = len(collision_logs[model_name])
-    collision_counts[model_name] = [count, count/10]
+    # collision_counts[model_name] = [count, count/10]
+    collision_counts[model_name] = [count, count]
 collision_counts

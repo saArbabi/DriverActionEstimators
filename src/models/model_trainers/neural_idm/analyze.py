@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_207'
-epoch_count = '5'
+model_name = 'neural_idm_215'
+epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -201,7 +201,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_207', 'neural_idm_206']:
+for name in ['neural_idm_215', 'neural_idm_216']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -295,6 +295,7 @@ while Example_pred < 10:
     # if episode not in covered_episodes:
     if episode not in covered_episodes and \
                 e_veh_att[20:45].mean() > 0 and e_veh_att[:20].mean() == 0:
+                # e_veh_att.mean() == 0:
 
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)

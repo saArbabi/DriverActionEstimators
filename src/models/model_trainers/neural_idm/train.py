@@ -134,7 +134,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '208'
+exp_id = '217'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -176,7 +176,6 @@ kl_axis.set_ylabel('loss (kl)')
 kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 print(model_trainer.test_mseloss[-1])
-
 # %%
 model_trainer.save_model()
 model_trainer.save_loss()

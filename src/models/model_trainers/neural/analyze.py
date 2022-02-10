@@ -120,13 +120,13 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
     return traj.flatten()
 # %%
 """
 Load data
 """
-history_len = 30 # steps
+history_len = 20 # steps
 rollout_len = 50
 data_id = '045'
 dataset_name = 'sim_data_'+data_id
@@ -157,7 +157,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_035'
+model_name = 'neural_036'
 epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -169,6 +169,7 @@ from models.core import neural
 reload(neural )
 from models.core.neural  import  NeurLatentModel
 model = NeurLatentModel(config)
+model.forward_sim.rollout_len = 50
 model.load_weights(exp_path).expect_partial()
 
 with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
@@ -261,10 +262,9 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
-    # if 4 == 4:
-    # if episode not in covered_episodes and  e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
     if episode not in covered_episodes and \
-                e_veh_att[30:55].mean() > 0 and e_veh_att[:30].mean() == 0:
+                e_veh_att[20:45].mean() > 0 and e_veh_att[:20].mean() == 0:
+                # e_veh_att.mean() == 0:
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -281,7 +281,7 @@ while Example_pred < 10:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+79)
+        time_steps = range(time_0, time_0+69)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.5,
                         'episode_id: '+ info[0] +
@@ -301,11 +301,9 @@ while Example_pred < 10:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[29:], act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
-           # plt.plot(range(29, 59), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 
-        # plt.ylim(-3, 3)
         plt.title(str(sample_index[0]) + ' -- Action')
         plt.grid()
 

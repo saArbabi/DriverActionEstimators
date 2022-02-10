@@ -10,7 +10,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         super().__init__(id=None, lane_id=None, glob_x=None, speed=None, aggressiveness=None)
         self.time_lapse_since_last_param_update = 0
         self.samples_n = 1
-        self.history_len = 30 # steps
+        self.history_len = 20 # steps
         self.state_dim = 10
         self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
 
@@ -19,6 +19,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
+        self.model.forward_sim.attention_temp = 5
+
         self.model.load_weights(exp_path).expect_partial()
 
     def initialize_agent(self, model_name, epoch_count, data_id):
@@ -130,8 +132,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
     def belief_update(self, proj_belief):
         self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 64])
         # if self.time_lapse_since_last_param_update == 0:
-            # self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
-        self.state_h = self.state_c = tf.zeros([self.samples_n, 128])
 
     def scale_state(self, state, state_type):
         if state_type == 'full':
@@ -153,11 +153,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return np.float32(state)
 
     def get_neur_att(self, att_context):
-        lstm_output, self.state_h, self.state_c = self.model.forward_sim.lstm_layer(\
-                                    att_context, initial_state=[self.state_h, self.state_c])
-        attention_temp = 5
-        att_score = 1/(1+tf.exp(-attention_temp*self.model.forward_sim.att_neu(lstm_output))).numpy()
-        return att_score
+        return self.model.forward_sim.get_att(att_context).numpy()
 
     def action_clip(self, act_long):
         return max([-5.5, act_long])
@@ -189,10 +185,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                                                         m_veh_exists], axis=-1)
         att_score = self.get_neur_att(att_context)
         att_score = att_score[0][0][0]
-        # if att_score > 0.2 and self.id == 'neur_4':
-        #     att_score = 1
-
-
 
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
             em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
