@@ -290,11 +290,9 @@ class IDMForwardSim(tf.keras.Model):
             inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
             att_score = self.get_att(inputs)
             att_score = att_score*m_veh_exists
-            # att_score = self.handle_merger(att_score, em_delta_x, m_veh_exists)
 
             ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
             em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
-
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
@@ -310,7 +308,7 @@ class IDMForwardSim(tf.keras.Model):
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
-        self.linear_dim = 1
+        self.linear_dim = 64
         self.architecture_def()
 
     def architecture_def(self):
@@ -320,70 +318,39 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
-        self.des_v_linear = Dense(self.linear_dim)
-        self.des_tgap_linear = Dense(self.linear_dim)
-        self.min_jamx_linear = Dense(self.linear_dim)
-        self.max_act_linear = Dense(self.linear_dim)
-        self.min_act_linear = Dense(self.linear_dim)
-
     def get_des_v(self, x):
-        # output = self.des_v_neu(x)
-        output = self.des_v_neu(self.des_v_linear(x))
+        output = self.des_v_neu(x)
         minval = 10
         maxval = 30
         return minval + (maxval-minval)/(1+tf.exp(-0.2*output))
 
     def get_des_tgap(self, x):
-        output = self.des_tgap_neu(self.des_tgap_linear(x))
+        output = self.des_tgap_neu(x)
         minval = 0
         maxval = 3
-        return minval + tf.math.softplus(output)
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_jamx(self, x):
-        output = self.min_jamx_neu(self.min_jamx_linear(x))
+        output = self.min_jamx_neu(x)
         minval = 0
         maxval = 6
-        return minval + tf.math.softplus(output)
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_max_act(self, x):
-        output = self.max_act_neu(self.max_act_linear(x))
+        output = self.max_act_neu(x)
         minval = 1
-        maxval = 6
-        return minval + tf.math.softplus(output)
+        maxval = 5
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def get_min_act(self, x):
-        output = self.min_act_neu(self.min_act_linear(x))
+        output = self.min_act_neu(x)
         minval = 1
-        maxval = 6
-        return minval + tf.math.softplus(output)
-    # def get_des_tgap(self, x):
-    #     output = self.des_tgap_neu(x)
-    #     minval = 0
-    #     maxval = 3
-    #     return minval + tf.math.softplus(output)
-    #
-    # def get_min_jamx(self, x):
-    #     output = self.min_jamx_neu(x)
-    #     minval = 0
-    #     maxval = 6
-    #     return minval + tf.math.softplus(output)
-    #
-    # def get_max_act(self, x):
-    #     output = self.max_act_neu(x)
-    #     minval = 1
-    #     maxval = 6
-    #     return minval + tf.math.softplus(output)
-    #
-    # def get_min_act(self, x):
-    #     output = self.min_act_neu(x)
-    #     minval = 1
-    #     maxval = 6
-    #     return minval + tf.math.softplus(output)
+        maxval = 5
+        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
 
     def call(self, x):
         desired_v = self.get_des_v(x)
         desired_tgap = self.get_des_tgap(x)
-        # tf.print('desired_v: ', tf.reduce_max(desired_v))
         min_jamx = self.get_min_jamx(x)
         max_act = self.get_max_act(x)
         min_act = self.get_min_act(x)
