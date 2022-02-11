@@ -36,13 +36,13 @@ def latent_samples(model, sample_index):
     merger_cs = future_m_veh_c[sample_index, :, 2:]
     enc_h = model.h_seq_encoder(h_seq)
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-    z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
-    return [z_idm, z_att]
+    z_ = model.belief_net.sample_z(latent_dis_param)
+    return z_
 
 def latent_vis(zsamples_n):
     fig = pyplot.figure(figsize=(4, 4))
     examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
-    sampled_z = latent_samples(model, examples_to_vis)[0].numpy()
+    sampled_z = latent_samples(model, examples_to_vis).numpy()
     #===============
     #  First subplot
     #===============
@@ -157,7 +157,7 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_215'
+model_name = 'neural_idm_223'
 epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -201,7 +201,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_215', 'neural_idm_216']:
+for name in ['neural_idm_220', 'neural_idm_221', 'neural_idm_222']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -308,10 +308,10 @@ while Example_pred < 10:
             _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
         elif distribution_name == 'prior':
             latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-        z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+        z_ = model.belief_net.sample_z(latent_dis_param)
 
-        proj_idm = model.belief_net.z_proj_idm(z_idm)
-        proj_att = model.belief_net.z_proj_att(z_att)
+        proj_idm = model.belief_net.z_proj_idm(z_)
+        proj_att = model.belief_net.z_proj_att(z_)
         idm_params = model.idm_layer(proj_idm)
         act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                      future_idm_ss, merger_cs])
@@ -466,7 +466,7 @@ h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model.h_seq_encoder(h_seq)
 latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+z_ = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm).numpy()

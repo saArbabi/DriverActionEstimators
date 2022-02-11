@@ -46,7 +46,7 @@ config = {
     "batch_size": 512,
     "vae_loss_weight": 0.1,
     "attention_temp": 1,
-    "latent_dim": 12,
+    "latent_dim": 6,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -134,15 +134,14 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '217'
+exp_id = '223'
 model_name = 'neural_idm_'+exp_id
-model_trainer.exp_dir = './src/models/experiments/'+model_name
+model_trainer.exp_dir = './src/models/experiments/' + model_name
 # model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.test_mseloss
-# %%
-# model_trainer.model.forward_sim.attention_temp
 
+# %%
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -180,8 +179,10 @@ print(model_trainer.test_mseloss[-1])
 model_trainer.save_model()
 model_trainer.save_loss()
 # %%
-# x = np.linspace(-3, 3, 100)
-# temp = 0.2
-# y = 10 + 20/(1 + np.exp(-temp*x))
-# plt.plot(x, y)
-# print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
+x = np.linspace(-10, 10, 100)
+temp = 1/3
+min = 0
+max = 3
+y = min + (max-min)/(1 + np.exp(-temp*x))
+plt.plot(x, y)
+print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))

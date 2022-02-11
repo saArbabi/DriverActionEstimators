@@ -22,7 +22,7 @@ ima_collections = {}
 collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_179', 'neural_idm_182', 'neural_idm_187', 'neural_idm_188']
-model_names = ['neural_idm_209', 'neural_idm_214', 'neural_idm_215', 'neural_036']
+model_names = ['neural_idm_214', 'neural_idm_223']
 mc_run_name = 'rwse_test'
 
 for model_name in model_names:

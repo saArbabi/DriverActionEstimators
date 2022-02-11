@@ -109,7 +109,6 @@ class BeliefModel(tf.keras.Model):
         ####
         self.proj_layer_1 = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_layer_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_layer_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -123,7 +122,6 @@ class BeliefModel(tf.keras.Model):
     def belief_proj(self, x):
         x = self.proj_layer_1(x)
         x = self.proj_layer_2(x)
-        x = self.proj_layer_3(x)
         return x
 
     def call(self, inputs, dis_type):
@@ -164,7 +162,6 @@ class HistoryEncoder(tf.keras.Model):
         whole_seq_output = self.lstm_layer_1(inputs)
         enc_h = self.lstm_layer_2(whole_seq_output)
         return enc_h
-
 
 class FutureEncoder(tf.keras.Model):
     def __init__(self):

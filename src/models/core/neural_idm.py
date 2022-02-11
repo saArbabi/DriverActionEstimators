@@ -92,9 +92,9 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
 
-        z_idm, z_att = self.belief_net.sample_z(pos_params)
-        proj_idm = self.belief_net.z_proj_idm(z_idm)
-        proj_att = self.belief_net.z_proj_att(z_att)
+        z_ = self.belief_net.sample_z(pos_params)
+        proj_idm = self.belief_net.z_proj_idm(z_)
+        proj_att = self.belief_net.z_proj_att(z_)
         idm_params = self.idm_layer(proj_idm)
         act_seq, _ = self.forward_sim.rollout([\
                                 idm_params, proj_att,
@@ -122,11 +122,9 @@ class BeliefModel(tf.keras.Model):
         ####
         self.proj_idm_1 = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_idm_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_idm_3 = Dense(self.proj_dim)
 
         self.proj_att_1 = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_att_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_att_3 = Dense(self.proj_dim)
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -136,19 +134,18 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        return sampled_z[:, :6], sampled_z[:, 6:]
+        return sampled_z
+        # return sampled_z[:, :3], sampled_z[:, 3:]
         # return sampled_z, sampled_z
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
         x = self.proj_idm_2(x)
-        x = self.proj_idm_3(x)
         return x
 
     def z_proj_att(self, x):
         x = self.proj_att_1(x)
         x = self.proj_att_2(x)
-        x = self.proj_att_3(x)
         return x
 
     def call(self, inputs, dis_type):
@@ -212,22 +209,19 @@ class IDMForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
-        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
+        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
+        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
         self.att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx, veh_exists = idm_state
-        # dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
+        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
         _gap_denum  = 2 * tf.sqrt(max_act * min_act)
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
         desired_gap = K.relu(min_jamx + _gap)
-
-        bool_cond = tf.cast(tf.greater(dx*veh_exists, 3.), tf.float32)
-        act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)*bool_cond
+        act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
         return self.action_clip(act)
-        # return act
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
@@ -241,8 +235,7 @@ class IDMForwardSim(tf.keras.Model):
         x = self.dense_1(inputs)
         x = self.dense_2(x)
         # clip to avoid numerical issues (nans)
-        # att_x = self.att_neu(x)
-        att_x = tf.clip_by_value(self.att_neu(x), clip_value_min=-10, clip_value_max=10)
+        att_x = self.att_neu(x)
         return 1/(1+tf.exp(-self.attention_temp*att_x))
 
     def handle_merger(self, att_score, dx, m_veh_exists):
@@ -292,13 +285,15 @@ class IDMForwardSim(tf.keras.Model):
 
             inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
             att_score = self.get_att(inputs)
-            # att_score = att_score*m_veh_exists
+            att_score = att_score*m_veh_exists
+            # att_score = idm_s[:, step:step+1, -3:-2]
+
             idm_state = [ego_v, ef_dv, ef_delta_x, f_veh_exists]
             ef_act = self.idm_driver(idm_state, idm_params)
             idm_state = [ego_v, em_dv, em_delta_x, m_veh_exists]
             em_act = self.idm_driver(idm_state, idm_params)
-            # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
+
             if step == 0:
                 act_seq = _act
                 att_seq = att_score
@@ -323,11 +318,11 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
-        self.des_v_linear = Dense(self.linear_dim)
-        self.des_tgap_linear = Dense(self.linear_dim)
-        self.min_jamx_linear = Dense(self.linear_dim)
-        self.max_act_linear = Dense(self.linear_dim)
-        self.min_act_linear = Dense(self.linear_dim)
+        self.des_v_linear = Dense(self.linear_dim, activation=K.tanh)
+        self.des_tgap_linear = Dense(self.linear_dim, activation=K.tanh)
+        self.min_jamx_linear = Dense(self.linear_dim, activation=K.tanh)
+        self.max_act_linear = Dense(self.linear_dim, activation=K.tanh)
+        self.min_act_linear = Dense(self.linear_dim, activation=K.tanh)
 
     def get_des_v(self, x):
         # output = self.des_v_neu(x)
@@ -344,7 +339,7 @@ class IDMLayer(tf.keras.Model):
         # tf.print('get_des_tgap')
         # tf.print('MIN output: ', tf.reduce_min(output))
         # tf.print('MAX output: ', tf.reduce_max(output))
-        minval = 0.
+        minval = 0
         maxval = 3
         return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
 
@@ -388,5 +383,4 @@ class IDMLayer(tf.keras.Model):
         # tf.print('idm_param_med: ', tf.reduce_mean(idm_param, axis=0))
         # tf.print('idm_param_max: ', tf.reduce_max(idm_param, axis=0))
         tf.debugging.check_numerics(idm_param, message='Checking idm_param')
-
         return idm_param
