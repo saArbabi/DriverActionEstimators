@@ -216,21 +216,18 @@ class IDMForwardSim(tf.keras.Model):
         self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
         self.att_neu = TimeDistributed(Dense(1))
 
-    def idm_driver(self, vel, dv, dx, idm_params):
-        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
+    def idm_driver(self, idm_state, idm_params):
+        vel, dv, dx, veh_exists = idm_state
+        # dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
+        desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
+        _gap_denum  = 2 * tf.sqrt(max_act * min_act)
+        _gap = desired_tgap * vel + (vel * dv)/_gap_denum
+        desired_gap = K.relu(min_jamx + _gap)
 
-        desired_v = idm_params[:,:,0:1]
-        desired_tgap = idm_params[:,:,1:2]
-        min_jamx = idm_params[:,:,2:3]
-        max_act = idm_params[:,:,3:4]
-        min_act = idm_params[:,:,4:5]
-
-        _gap_denum  = 2*tf.sqrt(max_act*min_act)
-        _gap = desired_tgap*vel+(vel*dv)/_gap_denum
-        desired_gap = min_jamx + K.relu(_gap)
-        act = max_act*(1-(vel/desired_v)**4-\
-                                            (desired_gap/dx)**2)
+        bool_cond = tf.cast(tf.greater(dx*veh_exists, 3.), tf.float32)
+        act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)*bool_cond
         return self.action_clip(act)
+        # return act
 
     def action_clip(self, action):
         "This is needed to avoid infinities"
@@ -244,16 +241,21 @@ class IDMForwardSim(tf.keras.Model):
         x = self.dense_1(inputs)
         x = self.dense_2(x)
         # clip to avoid numerical issues (nans)
+        # att_x = self.att_neu(x)
         att_x = tf.clip_by_value(self.att_neu(x), clip_value_min=-10, clip_value_max=10)
         return 1/(1+tf.exp(-self.attention_temp*att_x))
 
     def handle_merger(self, att_score, dx, m_veh_exists):
         return att_score*tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
 
+    def reshape_idm_params(self, idm_params, batch_size):
+        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
+        return tf.split(idm_params, 5, axis=-1)
+
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
-        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
+        idm_params = self.reshape_idm_params(idm_params, batch_size)
         proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
 
         for step in range(self.rollout_len):
@@ -266,6 +268,7 @@ class IDMForwardSim(tf.keras.Model):
             em_delta_x_true = idm_s[:, step:step+1, 9:10]
 
             # these to deal with missing cars
+            f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
@@ -289,10 +292,11 @@ class IDMForwardSim(tf.keras.Model):
 
             inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
             att_score = self.get_att(inputs)
-            att_score = att_score*m_veh_exists
-
-            ef_act = self.idm_driver(ego_v, ef_dv, ef_delta_x, idm_params)
-            em_act = self.idm_driver(ego_v, em_dv, em_delta_x, idm_params)
+            # att_score = att_score*m_veh_exists
+            idm_state = [ego_v, ef_dv, ef_delta_x, f_veh_exists]
+            ef_act = self.idm_driver(idm_state, idm_params)
+            idm_state = [ego_v, em_dv, em_delta_x, m_veh_exists]
+            em_act = self.idm_driver(idm_state, idm_params)
             # att_score = idm_s[:, step:step+1, -3:-2]
             _act = (1-att_score)*ef_act + att_score*em_act
             if step == 0:
@@ -301,8 +305,9 @@ class IDMForwardSim(tf.keras.Model):
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 att_seq = tf.concat([att_seq, att_score], axis=1)
-        # tf.print('att_score_min: ', tf.reduce_min(att_seq))
-        # tf.print('att_score_max: ', tf.reduce_max(att_seq))
+        # tf.print('act_seq_min: ', tf.reduce_min(act_seq))
+        # tf.print('act_seq_mean: ', tf.reduce_mean(act_seq))
+        # tf.print('act_seq_max: ', tf.reduce_max(act_seq))
         return act_seq, att_seq
 
 class IDMLayer(tf.keras.Model):
@@ -318,35 +323,57 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
+        self.des_v_linear = Dense(self.linear_dim)
+        self.des_tgap_linear = Dense(self.linear_dim)
+        self.min_jamx_linear = Dense(self.linear_dim)
+        self.max_act_linear = Dense(self.linear_dim)
+        self.min_act_linear = Dense(self.linear_dim)
+
     def get_des_v(self, x):
-        output = self.des_v_neu(x)
+        # output = self.des_v_neu(x)
+        output = self.des_v_neu(self.des_v_linear(x))
+        # tf.print('get_des_v')
+        # tf.print('MIN output: ', tf.reduce_min(output))
+        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 10
         maxval = 30
-        return minval + (maxval-minval)/(1+tf.exp(-0.2*output))
+        return minval + (maxval-minval)/(1+tf.exp(-(1/20)*output))
 
     def get_des_tgap(self, x):
-        output = self.des_tgap_neu(x)
-        minval = 0
+        output = self.des_tgap_neu(self.des_tgap_linear(x))
+        # tf.print('get_des_tgap')
+        # tf.print('MIN output: ', tf.reduce_min(output))
+        # tf.print('MAX output: ', tf.reduce_max(output))
+        minval = 0.
         maxval = 3
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
 
     def get_min_jamx(self, x):
-        output = self.min_jamx_neu(x)
+        output = self.min_jamx_neu(self.min_jamx_linear(x))
+        # tf.print('get_min_jamx')
+        # tf.print('MIN output: ', tf.reduce_min(output))
+        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 0
         maxval = 6
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        return minval + (maxval-minval)/(1+tf.exp(-(1/6)*output))
 
     def get_max_act(self, x):
-        output = self.max_act_neu(x)
+        output = self.max_act_neu(self.max_act_linear(x))
+        # tf.print('get_max_act')
+        # tf.print('MIN output: ', tf.reduce_min(output))
+        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 1
-        maxval = 5
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        maxval = 6
+        return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
 
     def get_min_act(self, x):
-        output = self.min_act_neu(x)
+        output = self.min_act_neu(self.min_act_linear(x))
+        # tf.print('get_min_act')
+        # tf.print('MIN output: ', tf.reduce_min(output))
+        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 1
-        maxval = 5
-        return minval + (maxval-minval)/(1+tf.exp(-1.*output))
+        maxval = 6
+        return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
 
     def call(self, x):
         desired_v = self.get_des_v(x)
@@ -355,4 +382,11 @@ class IDMLayer(tf.keras.Model):
         max_act = self.get_max_act(x)
         min_act = self.get_min_act(x)
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
+        # tf.print('xxxxx min: ', tf.reduce_min(x))
+        # tf.print('xxxxx: max', tf.reduce_max(x))
+        # tf.print('idm_param_min: ', tf.reduce_min(idm_param, axis=0))
+        # tf.print('idm_param_med: ', tf.reduce_mean(idm_param, axis=0))
+        # tf.print('idm_param_max: ', tf.reduce_max(idm_param, axis=0))
+        tf.debugging.check_numerics(idm_param, message='Checking idm_param')
+
         return idm_param
