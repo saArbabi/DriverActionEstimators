@@ -184,8 +184,8 @@ class ForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
-        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.relu))
+        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
+        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
         self.action_neu = TimeDistributed(Dense(1)) # a form
 
     def scale_env_s(self, env_state):

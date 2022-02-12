@@ -92,9 +92,9 @@ class NeurIDMModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
 
-        z_ = self.belief_net.sample_z(pos_params)
-        proj_idm = self.belief_net.z_proj_idm(z_)
-        proj_att = self.belief_net.z_proj_att(z_)
+        z_idm, z_att = self.belief_net.sample_z(pos_params)
+        proj_idm = self.belief_net.z_proj_idm(z_idm)
+        proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
         act_seq, _ = self.forward_sim.rollout([\
                                 idm_params, proj_att,
@@ -134,8 +134,8 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        return sampled_z
-        # return sampled_z[:, :3], sampled_z[:, 3:]
+        # return sampled_z
+        return sampled_z[:, :3], sampled_z[:, 3:]
         # return sampled_z, sampled_z
 
     def z_proj_idm(self, x):
@@ -211,11 +211,12 @@ class IDMForwardSim(tf.keras.Model):
     def architecture_def(self):
         self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
         self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
-        self.att_neu = TimeDistributed(Dense(1))
+        self.f_att_neu = TimeDistributed(Dense(1))
+        self.m_att_neu = TimeDistributed(Dense(1))
 
     def idm_driver(self, idm_state, idm_params):
-        vel, dv, dx, veh_exists = idm_state
-        dx = tf.clip_by_value(dx, clip_value_min=1, clip_value_max=1000.)
+        vel, dv, dx = idm_state
+        dx = 0.1 + K.relu(dx)
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
         _gap_denum  = 2 * tf.sqrt(max_act * min_act)
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
@@ -235,8 +236,9 @@ class IDMForwardSim(tf.keras.Model):
         x = self.dense_1(inputs)
         x = self.dense_2(x)
         # clip to avoid numerical issues (nans)
-        att_x = self.att_neu(x)
-        return 1/(1+tf.exp(-self.attention_temp*att_x))
+        f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
+        m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
+        return f_att_score, m_att_score
 
     def handle_merger(self, att_score, dx, m_veh_exists):
         return att_score*tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
@@ -261,7 +263,6 @@ class IDMForwardSim(tf.keras.Model):
             em_delta_x_true = idm_s[:, step:step+1, 9:10]
 
             # these to deal with missing cars
-            f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
@@ -284,26 +285,28 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step:step+1, :]
 
             inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
-            att_score = self.get_att(inputs)
-            att_score = att_score*m_veh_exists
-            # att_score = idm_s[:, step:step+1, -3:-2]
+            f_att_score, m_att_score = self.get_att(inputs)
+            # m_att_score = m_att_score*m_veh_exists
+            # m_att_score = idm_s[:, step:step+1, -3:-2]
 
-            idm_state = [ego_v, ef_dv, ef_delta_x, f_veh_exists]
+            idm_state = [ego_v, ef_dv, ef_delta_x]
             ef_act = self.idm_driver(idm_state, idm_params)
-            idm_state = [ego_v, em_dv, em_delta_x, m_veh_exists]
+            idm_state = [ego_v, em_dv, em_delta_x]
             em_act = self.idm_driver(idm_state, idm_params)
-            _act = (1-att_score)*ef_act + att_score*em_act
+            _act = f_att_score*ef_act + m_att_score*em_act
 
             if step == 0:
                 act_seq = _act
-                att_seq = att_score
+                f_att_seq = f_att_score
+                m_att_seq = m_att_score
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
-                att_seq = tf.concat([att_seq, att_score], axis=1)
+                f_att_seq = tf.concat([f_att_seq, f_att_score], axis=1)
+                m_att_seq = tf.concat([m_att_seq, m_att_score], axis=1)
         # tf.print('act_seq_min: ', tf.reduce_min(act_seq))
         # tf.print('act_seq_mean: ', tf.reduce_mean(act_seq))
         # tf.print('act_seq_max: ', tf.reduce_max(act_seq))
-        return act_seq, att_seq
+        return act_seq, [f_att_seq, m_att_seq]
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
@@ -325,47 +328,31 @@ class IDMLayer(tf.keras.Model):
         self.min_act_linear = Dense(self.linear_dim, activation=K.tanh)
 
     def get_des_v(self, x):
-        # output = self.des_v_neu(x)
         output = self.des_v_neu(self.des_v_linear(x))
-        # tf.print('get_des_v')
-        # tf.print('MIN output: ', tf.reduce_min(output))
-        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 10
         maxval = 30
         return minval + (maxval-minval)/(1+tf.exp(-(1/20)*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(self.des_tgap_linear(x))
-        # tf.print('get_des_tgap')
-        # tf.print('MIN output: ', tf.reduce_min(output))
-        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 0
         maxval = 3
         return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(self.min_jamx_linear(x))
-        # tf.print('get_min_jamx')
-        # tf.print('MIN output: ', tf.reduce_min(output))
-        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 0
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-(1/6)*output))
 
     def get_max_act(self, x):
         output = self.max_act_neu(self.max_act_linear(x))
-        # tf.print('get_max_act')
-        # tf.print('MIN output: ', tf.reduce_min(output))
-        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 1
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(self.min_act_linear(x))
-        # tf.print('get_min_act')
-        # tf.print('MIN output: ', tf.reduce_min(output))
-        # tf.print('MAX output: ', tf.reduce_max(output))
         minval = 1
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))

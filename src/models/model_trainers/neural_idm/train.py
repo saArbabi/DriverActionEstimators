@@ -128,13 +128,12 @@ class Trainer():
                   'train_klloss':self.train_klloss,
                   'test_mseloss':self.test_mseloss,
                   'test_klloss':self.test_klloss}
-
         with open(self.exp_dir+'/losses.pickle', 'wb') as handle:
             pickle.dump(losses, handle)
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '223'
+exp_id = '237'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/' + model_name
 # model_trainer.train(train_input, val_input, epochs=1)

@@ -22,7 +22,7 @@ ima_collections = {}
 collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_179', 'neural_idm_182', 'neural_idm_187', 'neural_idm_188']
-model_names = ['neural_idm_214', 'neural_idm_223']
+model_names = ['neural_idm_214', 'neural_idm_234', 'neural_idm_236']
 mc_run_name = 'rwse_test'
 
 for model_name in model_names:
@@ -81,6 +81,7 @@ Note:
 Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['act_long']
+state_index = indxs['att']
 for i in range(14):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]

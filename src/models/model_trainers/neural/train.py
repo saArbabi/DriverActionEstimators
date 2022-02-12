@@ -124,7 +124,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '036'
+exp_id = '037'
 model_name = 'neural_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 

@@ -36,7 +36,7 @@ def latent_samples(model, sample_index):
     merger_cs = future_m_veh_c[sample_index, :, 2:]
     enc_h = model.h_seq_encoder(h_seq)
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-    z_ = model.belief_net.sample_z(latent_dis_param)
+    z_, _ = model.belief_net.sample_z(latent_dis_param)
     return z_
 
 def latent_vis(zsamples_n):
@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_223'
-epoch_count = '10'
+model_name = 'neural_idm_237'
+epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -201,7 +201,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_220', 'neural_idm_221', 'neural_idm_222']:
+for name in ['neural_idm_232', 'neural_idm_233']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -308,14 +308,15 @@ while Example_pred < 10:
             _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
         elif distribution_name == 'prior':
             latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-        z_ = model.belief_net.sample_z(latent_dis_param)
+        z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 
-        proj_idm = model.belief_net.z_proj_idm(z_)
-        proj_att = model.belief_net.z_proj_att(z_)
+        proj_idm = model.belief_net.z_proj_idm(z_idm)
+        proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
         act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
                                                      future_idm_ss, merger_cs])
-        act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
+        f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
+        act_seq = act_seq.numpy()
 
         plt.figure(figsize=(5, 4))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
@@ -365,7 +366,12 @@ while Example_pred < 10:
         plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], att_scores[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(time_steps[19:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
+        plt.title(str(sample_index[0]) + ' -- Attention')
+
+        plt.figure(figsize=(5, 3))
+        for sample_trace_i in range(traces_n):
+           plt.plot(time_steps[19:], f_att_seq[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention')
 
         ##########
