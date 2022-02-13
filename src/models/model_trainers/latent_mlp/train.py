@@ -15,14 +15,13 @@ import json
 sys.path.insert(0, './src')
 # %%
 """
-Load data
-Following protocol from paper
+Source for architecure:
 "Simultaneous Policy Learning and Latent State Inference
 for Imitating Driver Behavior"
-for setting history/rollout length
+
 """
-history_len = 30 # steps
-rollout_len = 50
+history_len = 20 # steps
+rollout_len = 30
 data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -126,7 +125,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '11'
+exp_id = '12'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, val_input, epochs=1)
@@ -140,7 +139,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ####§##############
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=20)
+model_trainer.train(train_input, val_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################

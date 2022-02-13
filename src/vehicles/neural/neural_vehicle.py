@@ -28,4 +28,4 @@ class NeuralVehicle(NeuralIDMVehicle):
                                                         m_veh_exists], axis=-1)
 
         act_long = self.model.forward_sim.get_action(_context).numpy()
-        return act_long[0][0][0]
+        return self.action_clip(act_long[0][0][0])

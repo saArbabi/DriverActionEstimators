@@ -13,7 +13,6 @@ import sys
 import json
 
 sys.path.insert(0, './src')
-# %%
 
 # %%
 """
@@ -133,11 +132,11 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '237'
+exp_id = '238'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/' + model_name
 # model_trainer.train(train_input, val_input, epochs=1)
-# model_trainer.load_pre_trained(epoch_count='10')
+model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.test_mseloss
 
 # %%
@@ -179,9 +178,10 @@ model_trainer.save_model()
 model_trainer.save_loss()
 # %%
 x = np.linspace(-10, 10, 100)
-temp = 1/3
+temp = 4/3
 min = 0
 max = 3
 y = min + (max-min)/(1 + np.exp(-temp*x))
 plt.plot(x, y)
 print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
+min(max([-6, 10]), 6)

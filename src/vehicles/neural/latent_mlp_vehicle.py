@@ -7,10 +7,6 @@ tfd = tfp.distributions
 class LatentMLPVehicle(NeuralIDMVehicle):
     def __init__(self):
         super().__init__()
-        self.samples_n = 1
-        self.history_len = 30 # steps
-        self.state_dim = 10
-        self.obs_history = np.zeros([self.samples_n, self.history_len, self.state_dim])
 
     def load_model(self, config, exp_path):
         from models.core.latent_mlp import LatentMLP
@@ -36,4 +32,4 @@ class LatentMLPVehicle(NeuralIDMVehicle):
 
         _mean, _var = self.model.forward_sim.get_dis(_context)
         act_long = tfd.Normal(_mean, _var, name='Normal').sample().numpy()
-        return act_long[0][0][0]
+        return self.action_clip(act_long[0][0][0])

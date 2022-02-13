@@ -134,7 +134,6 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        # return sampled_z
         return sampled_z[:, :3], sampled_z[:, 3:]
         # return sampled_z, sampled_z
 
@@ -321,38 +320,67 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
-        self.des_v_linear = Dense(self.linear_dim, activation=K.tanh)
-        self.des_tgap_linear = Dense(self.linear_dim, activation=K.tanh)
-        self.min_jamx_linear = Dense(self.linear_dim, activation=K.tanh)
-        self.max_act_linear = Dense(self.linear_dim, activation=K.tanh)
-        self.min_act_linear = Dense(self.linear_dim, activation=K.tanh)
+        # self.des_v_linear = Dense(self.linear_dim, activation=K.tanh)
+        # self.des_tgap_linear = Dense(self.linear_dim, activation=K.tanh)
+        # self.min_jamx_linear = Dense(self.linear_dim, activation=K.tanh)
+        # self.max_act_linear = Dense(self.linear_dim, activation=K.tanh)
+        # self.min_act_linear = Dense(self.linear_dim, activation=K.tanh)
 
+    # def get_des_v(self, x):
+    #     output = self.des_v_neu(self.des_v_linear(x))
+    #     minval = 10
+    #     maxval = 30
+    #     return minval + (maxval-minval)/(1+tf.exp(-(1/20)*output))
+    #
+    # def get_des_tgap(self, x):
+    #     output = self.des_tgap_neu(self.des_tgap_linear(x))
+    #     minval = 0
+    #     maxval = 3
+    #     return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
+    #
+    # def get_min_jamx(self, x):
+    #     output = self.min_jamx_neu(self.min_jamx_linear(x))
+    #     minval = 0
+    #     maxval = 6
+    #     return minval + (maxval-minval)/(1+tf.exp(-(1/6)*output))
+    #
+    # def get_max_act(self, x):
+    #     output = self.max_act_neu(self.max_act_linear(x))
+    #     minval = 1
+    #     maxval = 6
+    #     return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
+    #
+    # def get_min_act(self, x):
+    #     output = self.min_act_neu(self.min_act_linear(x))
+    #     minval = 1
+    #     maxval = 6
+    #     return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
     def get_des_v(self, x):
-        output = self.des_v_neu(self.des_v_linear(x))
+        output = self.des_v_neu(x)
         minval = 10
         maxval = 30
         return minval + (maxval-minval)/(1+tf.exp(-(1/20)*output))
 
     def get_des_tgap(self, x):
-        output = self.des_tgap_neu(self.des_tgap_linear(x))
+        output = self.des_tgap_neu(x)
         minval = 0
         maxval = 3
         return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
 
     def get_min_jamx(self, x):
-        output = self.min_jamx_neu(self.min_jamx_linear(x))
+        output = self.min_jamx_neu(x)
         minval = 0
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-(1/6)*output))
 
     def get_max_act(self, x):
-        output = self.max_act_neu(self.max_act_linear(x))
+        output = self.max_act_neu(x)
         minval = 1
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
 
     def get_min_act(self, x):
-        output = self.min_act_neu(self.min_act_linear(x))
+        output = self.min_act_neu(x)
         minval = 1
         maxval = 6
         return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))

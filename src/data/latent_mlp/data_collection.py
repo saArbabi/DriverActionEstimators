@@ -1,8 +1,8 @@
 import sys
 sys.path.insert(0, './src')
 # import os
-# os.getcwd()
-# os.chdir('../')
+os.getcwd()
+# os.chdir('./DriverActionEstimators')
 from importlib import reload
 import numpy as np
 np.set_printoptions(suppress=True)
@@ -46,18 +46,7 @@ data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
 sim_data.shape
-# %%
 
-# size = []
-# for i in range(1, 100):
-#     epis_arr = sim_data[sim_data[:, 0] == i]
-#     att_1 = epis_arr[epis_arr[:, 9] == 1]
-#     if att_1.size != 0:
-#         size.append([i, att_1[:, 1].min()])
-#     else:
-#         print(i)
-#
-# size
 # %%
 
 plt.hist(size)
@@ -68,8 +57,8 @@ np.array(size).max()
 """
 Prepare data
 """
-history_len = 30 # steps
-rollout_len = 50
+history_len = 20 # steps
+rollout_len = 30
 from data.latent_mlp import data_prep
 reload(data_prep)
 from data.latent_mlp.data_prep import DataPrepLatentMLP

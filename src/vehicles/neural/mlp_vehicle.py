@@ -19,4 +19,4 @@ class MLPVehicle(NeuralIDMVehicle):
 
         pred_dis = self.model(_context[:, 0, :])
         act_long = pred_dis.sample().numpy()
-        return act_long[0][0]
+        return self.action_clip(act_long[0][0])

@@ -57,8 +57,8 @@ class MCEVAL():
             epoch_count = '10'
             from vehicles.neural.neural_vehicle import NeuralVehicle
             self.env.neural_vehicle = NeuralVehicle()
-        elif self.model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-            epoch_count = '10'
+            elif self.model_vehicle_map[model_name] == 'NeuralIDMVehicle':
+            epoch_count = '20'
             from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
             self.env.neural_vehicle = NeuralIDMVehicle()
         elif self.model_vehicle_map[model_name] == 'LatentMLPVehicle':

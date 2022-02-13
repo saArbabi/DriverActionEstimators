@@ -100,15 +100,15 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 49, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
     return traj.flatten()
 # %%
 """
 Load data
 """
-history_len = 50 # steps
-rollout_len = 50
-data_id = '029'
+history_len = 20 # steps
+rollout_len = 30
+data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -136,7 +136,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'latent_mlp_06'
+model_name = 'latent_mlp_12'
 epoch_count = '15'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -175,7 +175,7 @@ plt.grid()
 """
 Latent visualisation - aggressiveness used for color coding the latent samples
 """
-latent_vis(zsamples_n=3000)
+latent_vis(zsamples_n=1000)
 # %%
 """
 Visualisation of model predictions. Use this for debugging.
@@ -197,7 +197,7 @@ distribution_name = 'posterior'
 # for i in sepcific_samples:
 # for i in bad_zs:
 # for i in bad_samples[0]:
-while Example_pred < 20:
+while Example_pred < 10:
     "ENSURE ONLY VAL SAMPLES CONSIDERED"
     sample_index = [val_samples[i]]
     # sample_index = [train_samples[i]]
@@ -208,9 +208,9 @@ while Example_pred < 20:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes:
+    if episode not in covered_episodes:
     # if 4 == 4:
-    if episode not in covered_episodes and e_veh_att[55:65].mean() > 0:
+    # if episode not in covered_episodes and e_veh_att[55:65].mean() > 0:
         covered_episodes.append(episode)
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -234,7 +234,7 @@ while Example_pred < 20:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+99)
+        time_steps = range(time_0, time_0+49)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.5,
                         'episode_id: '+ info[0] +
@@ -254,7 +254,7 @@ while Example_pred < 20:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[49:], act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
            # plt.plot(range(29, 59), act_seq[sample_trace_i, :, :].flatten(), color='grey')
 

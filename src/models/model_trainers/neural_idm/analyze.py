@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_237'
-epoch_count = '5'
+model_name = 'neural_idm_238'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -367,12 +367,14 @@ while Example_pred < 10:
 
         for sample_trace_i in range(traces_n):
            plt.plot(time_steps[19:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
-        plt.title(str(sample_index[0]) + ' -- Attention')
+        plt.title(str(sample_index[0]) + ' -- Attention on merger')
 
         plt.figure(figsize=(5, 3))
+        plt.plot(time_steps , e_veh_att, color='red')
+        plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
         for sample_trace_i in range(traces_n):
            plt.plot(time_steps[19:], f_att_seq[sample_trace_i, :].flatten(), color='grey')
-        plt.title(str(sample_index[0]) + ' -- Attention')
+        plt.title(str(sample_index[0]) + ' -- Attention on leader')
 
         ##########
         # m_veh_id = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_id'])

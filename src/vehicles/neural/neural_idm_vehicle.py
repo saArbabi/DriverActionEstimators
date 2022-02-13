@@ -153,15 +153,15 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return np.float32(state)
 
     def get_neur_att(self, att_context):
-        _, att_score = self.model.forward_sim.get_att(att_context)
-        return att_score.numpy()
+        f_att_score, m_att_score = self.model.forward_sim.get_att(att_context)
+        return f_att_score.numpy()[0][0][0], m_att_score.numpy()[0][0][0]
 
     def action_clip(self, act_long):
-        return max([-5.5, act_long])
+        return min(max([-6, act_long]), 6)
 
     def act(self, obs):
         obs_t0, m_veh_exists = obs
-        # if self.time_lapse_since_last_param_update % 30 == 0:
+        # if self.time_lapse_since_last_param_update % 20 == 0:
         if self.time_lapse_since_last_param_update == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
@@ -178,23 +178,22 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             #     print('self.obs_history ', self.obs_history)
         self.time_lapse_since_last_param_update += 1
 
-        ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
 
         env_state = self.scale_state(obs_t0, 'env_state')
         merger_c = self.scale_state(obs_t0, 'merger_c')
         att_context = tf.concat([self.proj_latent, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
-        att_score = self.get_neur_att(att_context)
-        att_score = att_score[0][0][0]
+        f_att_score, m_att_score = self.get_neur_att(att_context)
+        ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
 
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
             em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
         else:
-            em_act = 0
-            att_score = 0
+            em_act = -6
 
-        self.att = att_score
-        act_long = (1-att_score)*ef_act + att_score*em_act
+
+        self.att = m_att_score
+        act_long = f_att_score*ef_act + m_att_score*em_act
 
         # if self.id == 'neur_4':
         #     print('m_veh_exists', m_veh_exists)

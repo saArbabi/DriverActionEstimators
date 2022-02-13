@@ -3,8 +3,8 @@ import os
 import json
 sys.path.insert(0, './src')
 from evaluation.eval_obj import MCEVAL
-mc_run_name = 'rwse_test'
-config_name = 'rwse_test'
+mc_run_name = 'test_updating_latent'
+config_name = 'test_updating_latent'
 
 eval_config_dir = './src/evaluation/config_files/'+ config_name +'.json'
 

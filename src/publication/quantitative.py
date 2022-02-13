@@ -21,9 +21,10 @@ real_collections = {}
 ima_collections = {}
 collision_logs = {}
 runtimes = {}
-# model_names = ['neural_idm_179', 'neural_idm_182', 'neural_idm_187', 'neural_idm_188']
-model_names = ['neural_idm_214', 'neural_idm_234', 'neural_idm_236']
-mc_run_name = 'rwse_test'
+model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
+# model_names = ['neural_idm_238_no', 'neural_idm_238_ep20']
+mc_run_name = 'test_updating_latent'
+mc_run_name = 'rwse'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name
@@ -80,8 +81,8 @@ Vis true vs pred state for models.
 Note:
 Models being compared qualitatively must have the same history_len.
 """
+state_index = indxs['speed']
 state_index = indxs['act_long']
-state_index = indxs['att']
 for i in range(14):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
