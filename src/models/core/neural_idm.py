@@ -208,10 +208,10 @@ class IDMForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
-        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
-        self.f_att_neu = TimeDistributed(Dense(1))
-        self.m_att_neu = TimeDistributed(Dense(1))
+        self.dense_1 = Dense(self.dec_units, activation=K.tanh)
+        self.dense_2 = Dense(self.dec_units, activation=K.tanh)
+        self.f_att_neu = Dense(1)
+        self.m_att_neu = Dense(1)
 
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
@@ -232,6 +232,7 @@ class IDMForwardSim(tf.keras.Model):
         return env_state
 
     def get_att(self, inputs):
+
         x = self.dense_1(inputs)
         x = self.dense_2(x)
         # clip to avoid numerical issues (nans)
@@ -243,29 +244,28 @@ class IDMForwardSim(tf.keras.Model):
         return att_score*tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
 
     def reshape_idm_params(self, idm_params, batch_size):
-        idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
         return tf.split(idm_params, 5, axis=-1)
 
     def rollout(self, inputs):
         idm_params, proj_belief, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
-        idm_params = self.reshape_idm_params(idm_params, batch_size)
-        proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        idm_params = tf.split(idm_params, 5, axis=-1)
+        # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
 
         for step in range(self.rollout_len):
-            f_veh_v = idm_s[:, step:step+1, 1:2]
-            m_veh_v = idm_s[:, step:step+1, 2:3]
-            f_veh_glob_x = idm_s[:, step:step+1, 4:5]
-            m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+            f_veh_v = idm_s[:, step, 1:2]
+            m_veh_v = idm_s[:, step, 2:3]
+            f_veh_glob_x = idm_s[:, step, 4:5]
+            m_veh_glob_x = idm_s[:, step, 5:6]
 
-            em_dv_true = idm_s[:, step:step+1, 8:9]
-            em_delta_x_true = idm_s[:, step:step+1, 9:10]
+            em_dv_true = idm_s[:, step, 8:9]
+            em_delta_x_true = idm_s[:, step, 9:10]
 
             # these to deal with missing cars
-            m_veh_exists = idm_s[:, step:step+1, -1:]
+            m_veh_exists = idm_s[:, step, -1:]
             if step == 0:
-                ego_v = idm_s[:, step:step+1, 0:1]
-                ego_glob_x = idm_s[:, step:step+1, 3:4]
+                ego_v = idm_s[:, step, 0:1]
+                ego_glob_x = idm_s[:, step, 3:4]
             else:
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
@@ -281,12 +281,12 @@ class IDMForwardSim(tf.keras.Model):
             env_state = tf.concat([ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
-            merger_c = merger_cs[:, step:step+1, :]
+            merger_c = merger_cs[:, step, :]
 
             inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
             f_att_score, m_att_score = self.get_att(inputs)
             # m_att_score = m_att_score*m_veh_exists
-            # m_att_score = idm_s[:, step:step+1, -3:-2]
+            # m_att_score = idm_s[:, step, -3:-2]
 
             idm_state = [ego_v, ef_dv, ef_delta_x]
             ef_act = self.idm_driver(idm_state, idm_params)
@@ -305,6 +305,13 @@ class IDMForwardSim(tf.keras.Model):
         # tf.print('act_seq_min: ', tf.reduce_min(act_seq))
         # tf.print('act_seq_mean: ', tf.reduce_mean(act_seq))
         # tf.print('act_seq_max: ', tf.reduce_max(act_seq))
+        # tf.print('act_seq_max: ', tf.shape(act_seq))
+        act_seq = tf.reshape(act_seq, [batch_size, self.rollout_len, 1])
+        f_att_seq = tf.reshape(f_att_seq, [batch_size, self.rollout_len, 1])
+        m_att_seq = tf.reshape(m_att_seq, [batch_size, self.rollout_len, 1])
+        # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+
         return act_seq, [f_att_seq, m_att_seq]
 
 class IDMLayer(tf.keras.Model):
@@ -320,41 +327,6 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
-        # self.des_v_linear = Dense(self.linear_dim, activation=K.tanh)
-        # self.des_tgap_linear = Dense(self.linear_dim, activation=K.tanh)
-        # self.min_jamx_linear = Dense(self.linear_dim, activation=K.tanh)
-        # self.max_act_linear = Dense(self.linear_dim, activation=K.tanh)
-        # self.min_act_linear = Dense(self.linear_dim, activation=K.tanh)
-
-    # def get_des_v(self, x):
-    #     output = self.des_v_neu(self.des_v_linear(x))
-    #     minval = 10
-    #     maxval = 30
-    #     return minval + (maxval-minval)/(1+tf.exp(-(1/20)*output))
-    #
-    # def get_des_tgap(self, x):
-    #     output = self.des_tgap_neu(self.des_tgap_linear(x))
-    #     minval = 0
-    #     maxval = 3
-    #     return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
-    #
-    # def get_min_jamx(self, x):
-    #     output = self.min_jamx_neu(self.min_jamx_linear(x))
-    #     minval = 0
-    #     maxval = 6
-    #     return minval + (maxval-minval)/(1+tf.exp(-(1/6)*output))
-    #
-    # def get_max_act(self, x):
-    #     output = self.max_act_neu(self.max_act_linear(x))
-    #     minval = 1
-    #     maxval = 6
-    #     return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
-    #
-    # def get_min_act(self, x):
-    #     output = self.min_act_neu(self.min_act_linear(x))
-    #     minval = 1
-    #     maxval = 6
-    #     return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
     def get_des_v(self, x):
         output = self.des_v_neu(x)
         minval = 10

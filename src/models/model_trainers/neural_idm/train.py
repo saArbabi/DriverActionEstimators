@@ -70,7 +70,7 @@ class Trainer():
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
-        self.model.forward_sim.rollout_len = 30
+        self.model.forward_sim.rollout_len = 50
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
@@ -132,11 +132,11 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '238'
+exp_id = '243'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/' + model_name
 # model_trainer.train(train_input, val_input, epochs=1)
-model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.test_mseloss
 
 # %%
