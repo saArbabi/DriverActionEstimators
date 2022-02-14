@@ -7,7 +7,6 @@ reload(abstract_model)
 from models.core.abstract_model import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
-
 tfd = tfp.distributions
 
 class NeurIDMModel(AbstractModel):
@@ -221,23 +220,28 @@ class IDMForwardSim(tf.keras.Model):
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
         desired_gap = K.relu(min_jamx + _gap)
         act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
-        return self.action_clip(act)
+        return self.action_clip(act, 50)
 
-    def action_clip(self, action):
+    def action_clip(self, action, clip_value):
         "This is needed to avoid infinities"
-        return tf.clip_by_value(action, clip_value_min=-6, clip_value_max=6)
+        return tf.clip_by_value(\
+            action, clip_value_min=-clip_value, clip_value_max=clip_value)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
     def get_att(self, inputs):
-
         x = self.dense_1(inputs)
         x = self.dense_2(x)
         # clip to avoid numerical issues (nans)
-        f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
-        m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
+        # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
+        # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
+        f_att_score = tf.exp(self.f_att_neu(x)*self.attention_temp)
+        m_att_score = tf.exp(self.m_att_neu(x)*self.attention_temp)
+        att_sum = f_att_score + m_att_score
+        f_att_score = f_att_score/att_sum
+        m_att_score = m_att_score/att_sum
         return f_att_score, m_att_score
 
     def handle_merger(self, att_score, dx, m_veh_exists):
@@ -311,7 +315,7 @@ class IDMForwardSim(tf.keras.Model):
         m_att_seq = tf.reshape(m_att_seq, [batch_size, self.rollout_len, 1])
         # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
         # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
-
+        act_seq = self.action_clip(act_seq, 5.4)
         return act_seq, [f_att_seq, m_att_seq]
 
 class IDMLayer(tf.keras.Model):
