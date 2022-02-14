@@ -96,7 +96,7 @@ class NeurIDMModel(AbstractModel):
         proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
         act_seq, _ = self.forward_sim.rollout([\
-                                idm_params, proj_att,
+                                idm_params, proj_att, enc_h,
                                 inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
@@ -207,8 +207,9 @@ class IDMForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.dense_1 = Dense(self.dec_units, activation=K.tanh)
-        self.dense_2 = Dense(self.dec_units, activation=K.tanh)
+        self.dense_1 = Dense(self.dec_units, activation=LeakyReLU())
+        self.dense_2 = Dense(self.dec_units, activation=LeakyReLU())
+        self.dense_3 = Dense(self.dec_units, activation=LeakyReLU())
         self.f_att_neu = Dense(1)
         self.m_att_neu = Dense(1)
 
@@ -234,6 +235,7 @@ class IDMForwardSim(tf.keras.Model):
     def get_att(self, inputs):
         x = self.dense_1(inputs)
         x = self.dense_2(x)
+        x = self.dense_3(x)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
@@ -251,7 +253,7 @@ class IDMForwardSim(tf.keras.Model):
         return tf.split(idm_params, 5, axis=-1)
 
     def rollout(self, inputs):
-        idm_params, proj_belief, idm_s, merger_cs = inputs
+        idm_params, proj_belief, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = tf.split(idm_params, 5, axis=-1)
         # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
@@ -287,7 +289,7 @@ class IDMForwardSim(tf.keras.Model):
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step, :]
 
-            inputs = tf.concat([proj_belief, env_state, merger_c], axis=-1)
+            inputs = tf.concat([proj_belief, enc_h, env_state, merger_c], axis=-1)
             f_att_score, m_att_score = self.get_att(inputs)
             # m_att_score = m_att_score*m_veh_exists
             # m_att_score = idm_s[:, step, -3:-2]
