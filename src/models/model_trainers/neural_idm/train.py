@@ -11,7 +11,7 @@ import pickle
 import os
 import sys
 import json
-
+import time
 sys.path.insert(0, './src')
 
 # %%
@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 30
+rollout_len = 50
 data_id = '045'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -35,14 +35,14 @@ data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
 
-val_input[0].shape
+val_input[-1].shape
 
 # %%
 config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 512,
+    "batch_size": 256,
     "vae_loss_weight": 0.1,
     "attention_temp": 1,
     "latent_dim": 6,
@@ -100,6 +100,7 @@ class Trainer():
 
     def train(self, train_input, val_input, epochs):
         for epoch in range(epochs):
+            t0 = time.time()
             self.epoch_count += 1
             self.model.train_loop(train_input)
             self.model.test_loop(val_input)
@@ -109,6 +110,7 @@ class Trainer():
             self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
 
             print(self.epoch_count, 'epochs completed')
+            print(round((time.time()-t0)/60), 'min per epoch')
 
     def save_model(self):
         if not os.path.exists(self.exp_dir):
@@ -132,10 +134,9 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '243'
+exp_id = '253'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.train(train_input, val_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.test_mseloss
 

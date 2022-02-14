@@ -54,15 +54,15 @@ def latent_vis(zsamples_n):
 
     # x ticks
     ax.set_xticks([-2, 0, 2], minor=False)
-    ax.set_xlim(-2.5, 2.5)
+    # ax.set_xlim(-2.5, 2.5)
 
     # y ticks
     ax.set_yticks([-4, -2, 0, 2], minor=False)
-    ax.set_ylim(-4.5, 2.5)
+    # ax.set_ylim(-4.5, 2.5)
 
     # z ticks
     ax.set_zticks([-6, -3, 0, 3], minor=False)
-    ax.set_zlim(-6.5, 3.5)
+    # ax.set_zlim(-6.5, 3.5)
     ax.minorticks_off()
 
 
@@ -157,8 +157,8 @@ train_samples[0]
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_243'
-epoch_count = '5'
+model_name = 'neural_idm_253'
+epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -201,7 +201,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_242', 'neural_idm_243']:
+for name in ['neural_idm_253', 'neural_idm_252']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -272,7 +272,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 1
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -317,7 +317,8 @@ while Example_pred < 10:
                                                      future_idm_ss, merger_cs])
         f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
         act_seq = act_seq.numpy()
-
+        if np.isnan(act_seq).any():
+            raise ValueError('There is nan in actions')
         plt.figure(figsize=(5, 4))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]

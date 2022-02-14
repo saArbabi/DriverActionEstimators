@@ -1,6 +1,7 @@
 import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+# physical_devices = tf.config.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+# print(physical_devices)
 
 class AbstractModel(tf.keras.Model):
     def __init__(self, config):
@@ -52,7 +53,8 @@ class AbstractModel(tf.keras.Model):
     def batch_data(self, sets):
         data_slices = tuple([tf.cast(set, dtype='float32') for set in sets])
         dataset = tf.data.Dataset.from_tensor_slices(\
-            data_slices).shuffle(len(data_slices[0]), reshuffle_each_iteration=True).batch(self.batch_size)
+            data_slices).shuffle(\
+                len(data_slices[0]), reshuffle_each_iteration=True).batch(self.batch_size)
         return dataset
 
     def mse(self, act_true, act_pred):
