@@ -111,7 +111,26 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 history_future_usc.shape
 # %%
 train_input, val_input = prep_data(data_arrays)
-train_input[0].shape
+train_input[-1].shape
+# %%
+
+"""
+Make displacement the target
+"""
+def get_target_vals(arr):
+    dxs = np.zeros([arr.shape[0], rollout_len, 1])
+
+    for step in range(1, 50):
+        dxs[:, step, :] = dxs[:, step-1, :] + arr[:, step, 1:]*0.1 \
+                                                    + 0.5*arr[:, step, 0:1]*0.1**2
+    return dxs
+dxs = get_target_vals(train_input[-1])
+del train_input[-1]
+train_input.append(dxs)
+
+dxs = get_target_vals(val_input[-1])
+del val_input[-1]
+val_input.append(dxs)
 # %%
 # """
 # BALANCE DATA
