@@ -34,9 +34,13 @@ train_input[0].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
-train_input[0].shape
+train_input[-1].shape
+
+# %%
+
 train_input[-1].mean()
 train_input[-1].std()
+train_input[-1].min()
 
 # %%
 config = {
@@ -135,7 +139,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '260'
+exp_id = '262'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/' + model_name
 # model_trainer.load_pre_trained(epoch_count='5')
@@ -172,7 +176,7 @@ kl_axis.plot(model_trainer.train_klloss)
 kl_axis.grid()
 kl_axis.set_xlabel('epochs')
 kl_axis.set_ylabel('loss (kl)')
-kl_axis.set_title('kl')
+kl_axis.set_title('kl')§
 kl_axis.legend(['test', 'train'])
 print(model_trainer.test_mseloss[-1])
 # %%

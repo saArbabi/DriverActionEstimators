@@ -30,8 +30,8 @@ class NeurIDMModel(AbstractModel):
         self.test_klloss = tf.keras.metrics.Mean()
 
     def mse(self, act_true, act_pred):
-        act_true = (act_true-16)/0.1
-        act_pred = (act_pred-16)/0.1
+        act_true = (act_true-40)/0.1
+        act_pred = (act_pred-40)/0.1
         loss = self.loss_function(act_true, act_pred)
         tf.debugging.check_numerics(loss, message='Checking loss')
         return loss
@@ -95,14 +95,14 @@ class NeurIDMModel(AbstractModel):
         proj_idm = self.belief_net.z_proj_idm(z_idm)
         proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
-        speed_seq, _, _ = self.forward_sim.rollout([\
+        displacement_seq, _, _ = self.forward_sim.rollout([\
                                 idm_params, proj_att, enc_h,
                                 inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
         # tf.print('att_scoreean: ', tf.reduce_mean(att_scores))
-        return speed_seq, pri_params, pos_params
+        return displacement_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
@@ -221,7 +221,7 @@ class IDMForwardSim(tf.keras.Model):
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
         desired_gap = K.relu(min_jamx + _gap)
         act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
-        return self.clip_value(act, 5.4)
+        return self.clip_value(act, 20)
 
     def clip_value(self, tensor, clip_lim):
         "This is needed to avoid infinities"
@@ -282,9 +282,13 @@ class IDMForwardSim(tf.keras.Model):
             if step == 0:
                 ego_v = idm_s[:, step, 0:1]
                 ego_glob_x = idm_s[:, step, 3:4]
+                displacement = tf.zeros([batch_size, 1])
+
             else:
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+                displacement += ego_v*0.1 + 0.5*_act*0.1**2
+
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
@@ -312,12 +316,12 @@ class IDMForwardSim(tf.keras.Model):
             _act = f_att_score*ef_act + m_att_score*em_act*m_veh_exists
 
             if step == 0:
-                speed_seq = ego_v
+                displacement_seq = displacement
                 act_seq = _act
                 f_att_seq = f_att_score
                 m_att_seq = m_att_score
             else:
-                speed_seq = tf.concat([speed_seq, ego_v], axis=1)
+                displacement_seq = tf.concat([displacement_seq, displacement], axis=1)
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 f_att_seq = tf.concat([f_att_seq, f_att_score], axis=1)
                 m_att_seq = tf.concat([m_att_seq, m_att_score], axis=1)
@@ -330,8 +334,8 @@ class IDMForwardSim(tf.keras.Model):
         m_att_seq = tf.reshape(m_att_seq, [batch_size, self.rollout_len, 1])
         # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
         # proj_belief  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
-        act_seq = self.clip_value(act_seq, 5.5)
-        return speed_seq, act_seq, [f_att_seq, m_att_seq]
+        # act_seq = self.clip_value(act_seq, 5.5)
+        return displacement_seq, act_seq, [f_att_seq, m_att_seq]
 
 class IDMLayer(tf.keras.Model):
     def __init__(self):
