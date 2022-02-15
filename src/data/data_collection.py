@@ -67,7 +67,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '045'
+data_id = '046'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -83,7 +83,7 @@ else:
 """
 Load generated data.
 """
-data_id = '045'
+data_id = '046'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
@@ -111,7 +111,7 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
 history_future_usc.shape
 # %%
 train_input, val_input = prep_data(data_arrays)
-
+train_input[0].shape
 # %%
 # """
 # BALANCE DATA

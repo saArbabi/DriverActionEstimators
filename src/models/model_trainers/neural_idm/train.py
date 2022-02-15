@@ -20,7 +20,7 @@ Load data
 """
 history_len = 20 # steps
 rollout_len = 50
-data_id = '045'
+data_id = '046'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -34,8 +34,9 @@ train_input[0].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     val_input = pickle.load(handle)
-
-val_input[-1].shape
+train_input[0].shape
+train_input[-1].mean()
+train_input[-1].std()
 
 # %%
 config = {
@@ -134,10 +135,10 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '253'
+exp_id = '260'
 model_name = 'neural_idm_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='5')
 # model_trainer.test_mseloss
 
 # %%
@@ -178,11 +179,11 @@ print(model_trainer.test_mseloss[-1])
 model_trainer.save_model()
 model_trainer.save_loss()
 # %%
-x = np.linspace(-10, 10, 100)
+x = np.linspace(-1, 5, 100)
 temp = 4/3
 min = 0
 max = 3
-y = min + (max-min)/(1 + np.exp(-temp*x))
+# y = min + (max-min)/(1 + np.exp(-temp*x))
+y = np.exp(x)
 plt.plot(x, y)
 print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
-min(max([-6, 10]), 6)

@@ -127,7 +127,7 @@ Load data
 """
 history_len = 20 # steps
 rollout_len = 50
-data_id = '045'
+data_id = '046'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -152,12 +152,11 @@ train_samples = np.where(history_future_usc[:, 0:1, 0] == train_epis)[0]
 val_samples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 # history_sca.shape
 train_samples.shape
-train_samples[0]
 # %%
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_253'
+model_name = 'neural_idm_260'
 epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -201,7 +200,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_253', 'neural_idm_252']:
+for name in ['neural_idm_258', 'neural_idm_259']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -272,7 +271,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 1
+model.forward_sim.attention_temp = 5
 traces_n = 50
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
@@ -293,9 +292,11 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode not in covered_episodes:
+    # if episode == 8 and \
     if episode not in covered_episodes and \
                 e_veh_att[20:45].mean() > 0 and e_veh_att[:20].mean() == 0:
-                # e_veh_att.mean() == 0:
+    # if episode not in covered_episodes and \
+    #             e_veh_att.mean() == 0:
 
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -313,7 +314,7 @@ while Example_pred < 10:
         proj_idm = model.belief_net.z_proj_idm(z_idm)
         proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
-        act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
+        _, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
                                                      future_idm_ss, merger_cs])
         f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
         act_seq = act_seq.numpy()
