@@ -6,6 +6,7 @@ import os
 import pickle
 import sys
 import json
+import tensorflow as tf
 from importlib import reload
 reload(pyplot)
 sys.path.insert(0, './src')
@@ -273,6 +274,8 @@ i = 0
 covered_episodes = []
 model.forward_sim.attention_temp = 5
 traces_n = 50
+tf.random.set_seed(2021)
+
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'

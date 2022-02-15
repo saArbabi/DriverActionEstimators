@@ -221,7 +221,7 @@ class IDMForwardSim(tf.keras.Model):
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
         desired_gap = K.relu(min_jamx + _gap)
         act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
-        return self.clip_value(act, 20)
+        return self.clip_value(act, 5.5)
 
     def clip_value(self, tensor, clip_lim):
         "This is needed to avoid infinities"
