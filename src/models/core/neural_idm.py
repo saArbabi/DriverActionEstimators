@@ -133,8 +133,8 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        return sampled_z[:, :3], sampled_z[:, 3:]
-        # return sampled_z, sampled_z
+        # return sampled_z[:, :3], sampled_z[:, 3:]
+        return sampled_z, sampled_z
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
@@ -209,7 +209,7 @@ class IDMForwardSim(tf.keras.Model):
     def architecture_def(self):
         self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
-        # self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.f_att_neu = TimeDistributed(Dense(1))
         self.m_att_neu = TimeDistributed(Dense(1))
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
@@ -235,7 +235,7 @@ class IDMForwardSim(tf.keras.Model):
         lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
         x = self.dense_1(lstm_output)
         x = self.dense_2(x)
-        # x = self.dense_3(x)
+        x = self.dense_3(x)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
@@ -245,9 +245,6 @@ class IDMForwardSim(tf.keras.Model):
         f_att_score = f_att_score/att_sum
         m_att_score = m_att_score/att_sum
         return f_att_score, m_att_score, [state_h, state_c]
-
-    def handle_merger(self, att_score, dx, m_veh_exists):
-        return att_score*tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
 
     def reshape_idm_params(self, idm_params, batch_size):
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
