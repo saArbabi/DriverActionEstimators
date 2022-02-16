@@ -122,7 +122,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]]]
 
     def driver_params_update(self, idm_params):
-        idm_params = idm_params.numpy()[0]
+
+        idm_params = idm_params.numpy()[0, :]
         self.driver_params['desired_v'] = idm_params[0]
         self.driver_params['desired_tgap'] = idm_params[1]
         self.driver_params['min_jamx'] = idm_params[2]
@@ -195,10 +196,12 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.att = m_att_score
         act_long = f_att_score*ef_act + m_att_score*em_act
 
-        # if self.id == 'neur_4':
+        # if self.id == 'neur_2':
         #     print('m_veh_exists', m_veh_exists)
         #     print('ef_act', ef_act)
         #     print('em_act', em_act)
+        #     print('f_att_score', f_att_score)
+        #     print('m_att_score', m_att_score)
             # print('obs_history ', obs_history)
             # print('nei ', self.neighbours)
             # print('att_context ', att_context)

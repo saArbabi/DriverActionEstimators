@@ -22,7 +22,7 @@ ima_collections = {}
 collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
-model_names = ['neural_idm_266', 'neural_038']
+model_names = ['neural_idm_266', 'neural_idm_238', 'neural_038', 'neural_037']
 mc_run_name = 'rwse_state'
 
 for model_name in model_names:
@@ -92,7 +92,7 @@ for i in range(14):
         plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                     '   Veh_id:'+str(veh_id))
 
-        for trace in range(snips_pred[model_name].shape[1]):
+        for trace in range(2):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
             plt.plot(state_pred, color='grey')
         plt.legend()
