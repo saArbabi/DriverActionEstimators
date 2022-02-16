@@ -207,9 +207,6 @@ class IDMForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
-        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
-        self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.f_att_neu = TimeDistributed(Dense(1))
         self.m_att_neu = TimeDistributed(Dense(1))
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
@@ -233,14 +230,11 @@ class IDMForwardSim(tf.keras.Model):
 
     def get_att(self, inputs, lstm_states):
         lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
-        x = self.dense_1(lstm_output)
-        x = self.dense_2(x)
-        x = self.dense_3(x)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
-        f_att_score = tf.exp(self.f_att_neu(x)*self.attention_temp)
-        m_att_score = tf.exp(self.m_att_neu(x)*self.attention_temp)
+        f_att_score = tf.exp(self.f_att_neu(lstm_output)*self.attention_temp)
+        m_att_score = tf.exp(self.m_att_neu(lstm_output)*self.attention_temp)
         att_sum = f_att_score + m_att_score
         f_att_score = f_att_score/att_sum
         m_att_score = m_att_score/att_sum
@@ -322,7 +316,6 @@ class IDMForwardSim(tf.keras.Model):
 class IDMLayer(tf.keras.Model):
     def __init__(self):
         super(IDMLayer, self).__init__(name="IDMLayer")
-        self.linear_dim = 64
         self.architecture_def()
 
     def architecture_def(self):
@@ -334,33 +327,38 @@ class IDMLayer(tf.keras.Model):
 
     def get_des_v(self, x):
         output = self.des_v_neu(x)
-        minval = 10
-        maxval = 30
-        return minval + (maxval-minval)/(1+tf.exp(-(1/20)*output))
+        minval = 15
+        maxval = 25
+        dif_val = maxval - minval
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)
-        minval = 0
-        maxval = 3
-        return minval + (maxval-minval)/(1+tf.exp(-(1/3)*output))
+        minval = 0.5
+        maxval = 2
+        dif_val = maxval - minval
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(x)
         minval = 0
         maxval = 6
-        return minval + (maxval-minval)/(1+tf.exp(-(1/6)*output))
+        dif_val = maxval - minval
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_max_act(self, x):
         output = self.max_act_neu(x)
         minval = 1
         maxval = 6
-        return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
+        dif_val = maxval - minval
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(x)
         minval = 1
         maxval = 6
-        return minval + (maxval-minval)/(1+tf.exp(-(1/5)*output))
+        dif_val = maxval - minval
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def call(self, x):
         desired_v = self.get_des_v(x)
