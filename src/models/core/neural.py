@@ -190,22 +190,26 @@ class ForwardSim(tf.keras.Model):
         self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.action_neu = TimeDistributed(Dense(1))
+        self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_action(self, inputs):
-        x = self.dense_1(inputs)
+    def get_action(self, inputs, lstm_states):
+        lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
+        x = self.dense_1(lstm_output)
         x = self.dense_2(x)
         x = self.dense_3(x)
-        return self.action_neu(x)
+        return self.action_neu(x), [state_h, state_c]
 
     def rollout(self, inputs):
         proj_latent, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
         enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
+        init_lstm_state = tf.zeros([batch_size, self.dec_units])
+        lstm_states = [init_lstm_state, init_lstm_state]
 
         for step in range(self.rollout_len):
             f_veh_v = idm_s[:, step:step+1, 1:2]
@@ -241,8 +245,9 @@ class ForwardSim(tf.keras.Model):
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step:step+1, :]
+            inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
 
-            _act = self.get_action(tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1))
+            _act, lstm_states = self.get_action(inputs, lstm_states)
             if step == 0:
                 act_seq = _act
                 displacement_seq = displacement
