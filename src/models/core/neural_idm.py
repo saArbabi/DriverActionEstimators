@@ -209,10 +209,10 @@ class IDMForwardSim(tf.keras.Model):
     def architecture_def(self):
         self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
-        self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        # self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.f_att_neu = TimeDistributed(Dense(1))
         self.m_att_neu = TimeDistributed(Dense(1))
-
+        self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
         dx = 0.1 + K.relu(dx)
@@ -231,10 +231,11 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, inputs):
-        x = self.dense_1(inputs)
+    def get_att(self, inputs, lstm_states):
+        lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
+        x = self.dense_1(lstm_output)
         x = self.dense_2(x)
-        x = self.dense_3(x)
+        # x = self.dense_3(x)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
@@ -243,7 +244,7 @@ class IDMForwardSim(tf.keras.Model):
         att_sum = f_att_score + m_att_score
         f_att_score = f_att_score/att_sum
         m_att_score = m_att_score/att_sum
-        return f_att_score, m_att_score
+        return f_att_score, m_att_score, [state_h, state_c]
 
     def handle_merger(self, att_score, dx, m_veh_exists):
         return att_score*tf.cast(tf.greater(dx*m_veh_exists, 0.), tf.float32)
@@ -258,7 +259,8 @@ class IDMForwardSim(tf.keras.Model):
         idm_params = self.reshape_idm_params(idm_params, batch_size)
         enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
-
+        init_lstm_state = tf.zeros([batch_size, self.dec_units])
+        lstm_states = [init_lstm_state, init_lstm_state]
         # proj_latent  = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
 
         for step in range(self.rollout_len):
@@ -297,7 +299,7 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step:step+1, :]
 
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score = self.get_att(inputs)
+            f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
             # m_att_score = m_att_score*m_veh_exists
             # m_att_score = idm_s[:, step:step+1, -3:-2]
 
