@@ -330,35 +330,36 @@ class IDMLayer(tf.keras.Model):
         minval = 15
         maxval = 25
         dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return 10 + tf.math.softplus(output)
+        # return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)
         minval = 0.5
         maxval = 2
         dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return tf.math.softplus(output)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(x)
         minval = 0
         maxval = 6
         dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return tf.math.softplus(output)
 
     def get_max_act(self, x):
         output = self.max_act_neu(x)
         minval = 1
         maxval = 6
         dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return tf.math.softplus(output)
 
     def get_min_act(self, x):
         output = self.min_act_neu(x)
         minval = 1
         maxval = 6
         dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return tf.math.softplus(output)
 
     def call(self, x):
         desired_v = self.get_des_v(x)
