@@ -21,10 +21,9 @@ real_collections = {}
 ima_collections = {}
 collision_logs = {}
 runtimes = {}
-model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
-# model_names = ['neural_idm_238_no', 'neural_idm_238_ep20']
-mc_run_name = 'test_updating_latent'
-mc_run_name = 'rwse'
+# model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
+model_names = ['neural_idm_266', 'neural_038']
+mc_run_name = 'rwse_state'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name

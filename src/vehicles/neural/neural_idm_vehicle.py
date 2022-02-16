@@ -129,8 +129,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.driver_params['max_act'] = idm_params[3]
         self.driver_params['min_act'] = idm_params[4]
 
-    def belief_update(self, proj_belief):
-        self.proj_latent = tf.reshape(proj_belief, [self.samples_n, 1, 64])
+    def belief_update(self, proj_latent):
+        self.proj_latent = tf.reshape(proj_latent, [self.samples_n, 1, 64])
         # if self.time_lapse_since_last_param_update == 0:
 
     def scale_state(self, state, state_type):
@@ -165,10 +165,9 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         if self.time_lapse_since_last_param_update == 0:
             obs_history = self.scale_state(self.obs_history.copy(), 'full')
             enc_h = self.model.h_seq_encoder(obs_history)
-            # self.enc_h = tf.reshape(enc_h, [self.samples_n, 1, 128])
-            latent_dis_param = self.model.belief_net(enc_h, dis_type='prior')
+            self.enc_h = tf.reshape(enc_h, [self.samples_n, 1, 128])
+            latent_dis_param = self.model.belief_net(enc_h , dis_type='prior')
             z_idm, z_att = self.model.belief_net.sample_z(latent_dis_param)
-
             proj_att = self.model.belief_net.z_proj_att(z_att)
             proj_idm = self.model.belief_net.z_proj_idm(z_idm)
             self.belief_update(proj_att)
@@ -181,7 +180,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
         env_state = self.scale_state(obs_t0, 'env_state')
         merger_c = self.scale_state(obs_t0, 'merger_c')
-        att_context = tf.concat([self.proj_latent, env_state, merger_c, \
+        att_context = tf.concat([self.proj_latent, self.enc_h , env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
         f_att_score, m_att_score = self.get_neur_att(att_context)
         ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
@@ -189,7 +188,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
             em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
         else:
-            em_act = -6
+            em_act = 0
+            m_att_score = 0
 
 
         self.att = m_att_score

@@ -157,8 +157,8 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_261'
-epoch_count = '10'
+model_name = 'neural_idm_266'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -201,7 +201,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_258', 'neural_idm_259']:
+for name in ['neural_idm_261', 'neural_idm_263', 'neural_idm_264']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -233,9 +233,9 @@ def get_avg_loss_across_sim(examples_to_vis):
     enc_h = model.h_seq_encoder(h_seq)
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
     sampled_z = model.belief_net.sample_z(latent_dis_param)
-    proj_belief = model.belief_net.belief_proj(sampled_z)
-    idm_params = model.idm_layer(proj_belief)
-    act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_belief, \
+    proj_latent = model.belief_net.belief_proj(sampled_z)
+    idm_params = model.idm_layer(proj_latent)
+    act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_latent, \
                                             future_idm_ss, merger_cs])
     true_actions = future_e_veh_a[examples_to_vis, :, 2:]
     loss = (tf.square(tf.subtract(act_seq, true_actions)))**0.5

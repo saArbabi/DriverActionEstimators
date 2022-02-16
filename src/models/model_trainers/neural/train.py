@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 30
+rollout_len = 50
 data_id = '046'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -40,7 +40,7 @@ config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 512,
+    "batch_size": 256,
     "vae_loss_weight": 0.1,
     "latent_dim": 6,
     },
@@ -62,7 +62,7 @@ class Trainer():
         reload(neural )
         from models.core.neural  import  NeurLatentModel
         self.model = NeurLatentModel(config)
-        self.model.forward_sim.rollout_len = 30
+        self.model.forward_sim.rollout_len = 50
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
 
@@ -124,7 +124,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '037'
+exp_id = '038'
 model_name = 'neural_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 
@@ -137,7 +137,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, val_input, epochs=10)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################

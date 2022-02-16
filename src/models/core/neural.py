@@ -27,10 +27,12 @@ class NeurLatentModel(AbstractModel):
         self.train_klloss = tf.keras.metrics.Mean()
         self.test_klloss = tf.keras.metrics.Mean()
 
-    def mse(self, act_true, act_pred):
-        act_true = (act_true)/0.1
-        act_pred = (act_pred)/0.1
-        return self.loss_function(act_true, act_pred)
+    def mse(self, _true, _pred):
+        _true = (_true-40)/0.1
+        _pred = (_pred-40)/0.1
+        loss = self.loss_function(_true, _pred)
+        tf.debugging.check_numerics(loss, message='Checking loss')
+        return loss
 
     def kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
@@ -55,8 +57,8 @@ class NeurLatentModel(AbstractModel):
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets):
         with tf.GradientTape() as tape:
-            act_pred, pri_params, pos_params = self(states)
-            mse_loss = self.mse(targets, act_pred)
+            _pred, pri_params, pos_params = self(states)
+            mse_loss = self.mse(targets, _pred)
             kl_loss = self.kl_loss(pri_params, pos_params)
             loss = self.vae_loss(mse_loss, kl_loss)
 
@@ -69,8 +71,8 @@ class NeurLatentModel(AbstractModel):
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets):
-        act_pred, pri_params, pos_params = self(states)
-        mse_loss = self.mse(targets, act_pred)
+        _pred, pri_params, pos_params = self(states)
+        mse_loss = self.mse(targets, _pred)
         kl_loss = self.kl_loss(pri_params, pos_params)
         loss = self.vae_loss(mse_loss, kl_loss)
         self.test_mseloss.reset_states()
@@ -88,9 +90,9 @@ class NeurLatentModel(AbstractModel):
         pri_params, pos_params = self.belief_net(\
                                 [enc_h, enc_f], dis_type='both')
         sampled_z = self.belief_net.sample_z(pos_params)
-        proj_belief = self.belief_net.belief_proj(sampled_z)
-        act_seq = self.forward_sim.rollout([proj_belief, inputs[2], inputs[-1]])
-        return act_seq, pri_params, pos_params
+        proj_latent = self.belief_net.belief_proj(sampled_z)
+        displacement_seq, _ = self.forward_sim.rollout([proj_latent, enc_h, inputs[2], inputs[-1]])
+        return displacement_seq, pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
@@ -184,9 +186,10 @@ class ForwardSim(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
-        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=K.tanh))
-        self.action_neu = TimeDistributed(Dense(1)) # a form
+        self.dense_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        self.dense_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        self.dense_3 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        self.action_neu = TimeDistributed(Dense(1))
 
     def scale_env_s(self, env_state):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
@@ -195,12 +198,14 @@ class ForwardSim(tf.keras.Model):
     def get_action(self, inputs):
         x = self.dense_1(inputs)
         x = self.dense_2(x)
+        x = self.dense_3(x)
         return self.action_neu(x)
 
     def rollout(self, inputs):
-        proj_belief, idm_s, merger_cs = inputs
+        proj_latent, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
-        proj_latent  = tf.reshape(proj_belief, [batch_size, 1, self.proj_dim])
+        proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
+        enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
 
         for step in range(self.rollout_len):
             f_veh_v = idm_s[:, step:step+1, 1:2]
@@ -214,14 +219,16 @@ class ForwardSim(tf.keras.Model):
             em_delta_x_true = idm_s[:, step:step+1, 9:10]
 
             # these to deal with missing cars
-            f_veh_exists = idm_s[:, step:step+1, -2:-1]
             m_veh_exists = idm_s[:, step:step+1, -1:]
             if step == 0:
                 ego_v = idm_s[:, step:step+1, 0:1]
                 ego_glob_x = idm_s[:, step:step+1, 3:4]
+                displacement = tf.zeros([batch_size, 1, 1])
             else:
                 ego_v += _act*0.1
                 ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+                displacement += ego_v*0.1 + 0.5*_act*0.1**2
+
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
@@ -235,10 +242,13 @@ class ForwardSim(tf.keras.Model):
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step:step+1, :]
 
-            _act = self.get_action(tf.concat([proj_latent, env_state, merger_c], axis=-1))
+            _act = self.get_action(tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1))
             if step == 0:
                 act_seq = _act
+                displacement_seq = displacement
+
             else:
                 act_seq = tf.concat([act_seq, _act], axis=1)
+                displacement_seq = tf.concat([displacement_seq, displacement], axis=1)
 
-        return act_seq
+        return displacement_seq, act_seq

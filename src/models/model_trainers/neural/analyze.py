@@ -56,17 +56,13 @@ def latent_vis(zsamples_n):
     # # ax.set_zlabel('$z_{3}$', labelpad=1)
     # x ticks
     ax.set_xticks([-4, -2, 0, 2], minor=False)
-    ax.set_xlim(-4.5, 2.5)
 
     # y ticks
     ax.set_yticks([-2, 0, 2], minor=False)
-    ax.set_ylim(-2.5, 2.5)
 
     # z ticks
     ax.set_zticks([-6, -3, 0, 3, 6], minor=False)
-    ax.set_zlim(-6.5, 6.5)
     ax.minorticks_off()
-
 
     aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiveness']]
     color_shade = aggressiveness
@@ -84,33 +80,7 @@ def latent_vis(zsamples_n):
 
     ax.grid(False)
     ax.view_init(30, 50)
-    #===============
-    #  Second subplot
-    #===============
-    # set up the axes for the second plot
-    # ax = fig.add_subplot(1, 2, 2, projection='3d')
-    # ax.set_xticks([])
-    # ax.set_yticks([])
-    # ax.set_zticks([])
-    # latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-    #               s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
-    #
-    # axins = inset_axes(ax,
-    #                     width="5%",
-    #                     height="90%",
-    #                     loc='right',
-    #                     borderpad=-2
-    #                    )
-    #
-    # fig.colorbar(latent_plot, cax=axins)
-    # cbar = fig.colorbar(latent_plot, cax=axins)
-    # ax.tick_params(pad=1)
-    # ax.grid(False)
-    # ax.view_init(30, 50)
-    # # ax.set_xlabel('$z_{1}$', labelpad=1)
-    # # ax.set_ylabel('$z_{2}$', labelpad=1)
-    # # ax.set_zlabel('$z_{3}$', labelpad=1)
-    # plt.subplots_adjust(wspace=0.2, hspace=None)
+
 
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
@@ -157,8 +127,8 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_036'
-epoch_count = '10'
+model_name = 'neural_038'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -205,9 +175,9 @@ def get_avg_loss_across_sim(examples_to_vis):
     enc_h = model.h_seq_encoder(h_seq)
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
     sampled_z = model.belief_net.sample_z(latent_dis_param)
-    proj_belief = model.belief_net.belief_proj(sampled_z)
-    idm_params = model.idm_layer(proj_belief)
-    act_seq, latent_plotores = model.forward_sim.rollout([idm_params, proj_belief, \
+    proj_latent = model.belief_net.belief_proj(sampled_z)
+    idm_params = model.idm_layer(proj_latent)
+    act_seq, latent_plotores = model.forward_sim.rollout([idm_params, proj_latent, \
                                             future_idm_ss, merger_cs])
     true_actions = future_e_veh_a[examples_to_vis, :, 2:]
     loss = (tf.square(tf.subtract(act_seq, true_actions)))**0.5
@@ -272,8 +242,8 @@ while Example_pred < 10:
         enc_h = model.h_seq_encoder(h_seq)
         prior_param = model.belief_net(enc_h, dis_type='prior')
         sampled_z = model.belief_net.sample_z(prior_param)
-        proj_belief = model.belief_net.belief_proj(sampled_z)
-        act_seq = model.forward_sim.rollout([proj_belief, \
+        proj_latent = model.belief_net.belief_proj(sampled_z)
+        _, act_seq = model.forward_sim.rollout([proj_latent, enc_h, \
                                                     future_idm_ss, merger_cs])
         act_seq = act_seq.numpy()
 
