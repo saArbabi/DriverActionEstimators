@@ -128,11 +128,13 @@ class BeliefModel(tf.keras.Model):
         self.pri_projection = Dense(self.proj_dim, activation=LeakyReLU())
         self.pos_projection = Dense(self.proj_dim, activation=LeakyReLU())
         ####
-        self.proj_idm_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_idm_1 = Dense(self.proj_dim)
         self.proj_idm_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_idm_3 = Dense(self.proj_dim, activation=LeakyReLU())
 
-        self.proj_att_1 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_att_1 = Dense(self.proj_dim)
         self.proj_att_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_att_3 = Dense(self.proj_dim, activation=LeakyReLU())
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -142,17 +144,19 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        return sampled_z[:, :3], sampled_z[:, 3:]
-        # return sampled_z, sampled_z
+        # return sampled_z[:, :3], sampled_z[:, 3:]
+        return sampled_z, sampled_z
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
         x = self.proj_idm_2(x)
+        x = self.proj_idm_3(x)
         return x
 
     def z_proj_att(self, x):
         x = self.proj_att_1(x)
         x = self.proj_att_2(x)
+        x = self.proj_att_3(x)
         return x
 
     def call(self, inputs, dis_type):
@@ -335,39 +339,74 @@ class IDMLayer(tf.keras.Model):
         self.max_act_neu = Dense(1)
         self.min_act_neu = Dense(1)
 
+    # def get_des_v(self, x):
+    #     output = self.des_v_neu(x)
+    #     minval = 10
+    #     maxval = 30
+    #     dif_val = maxval - minval
+    #     # return 10 + tf.math.softplus(output)
+    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    # def get_des_tgap(self, x):
+    #     output = self.des_tgap_neu(x)
+    #     minval = 0.
+    #     maxval = 3
+    #     dif_val = maxval - minval
+    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    # def get_min_jamx(self, x):
+    #     output = self.min_jamx_neu(x)
+    #     minval = 0.
+    #     maxval = 6
+    #     dif_val = maxval - minval
+    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    # def get_max_act(self, x):
+    #     output = self.max_act_neu(x)
+    #     minval = 1
+    #     maxval = 6
+    #     dif_val = maxval - minval
+    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    # def get_min_act(self, x):
+    #     output = self.min_act_neu(x)
+    #     minval = 1
+    #     maxval = 6
+    #     dif_val = maxval - minval
+    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
     def get_des_v(self, x):
         output = self.des_v_neu(x)
-        minval = 10
-        maxval = 30
+        minval = 15
+        maxval = 25
         dif_val = maxval - minval
         # return 10 + tf.math.softplus(output)
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)
-        minval = 0.
-        maxval = 3
+        minval = 0.5
+        maxval = 2
         dif_val = maxval - minval
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(x)
-        minval = 0.
-        maxval = 6
+        minval = 1
+        maxval = 5
         dif_val = maxval - minval
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_max_act(self, x):
         output = self.max_act_neu(x)
-        minval = 1
-        maxval = 6
+        minval = 2
+        maxval = 4
         dif_val = maxval - minval
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
     def get_min_act(self, x):
         output = self.min_act_neu(x)
-        minval = 1
-        maxval = 6
+        minval = 2
+        maxval = 4
         dif_val = maxval - minval
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
