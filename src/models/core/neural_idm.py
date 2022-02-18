@@ -20,6 +20,7 @@ class NeurIDMModel(AbstractModel):
 
         self.vae_loss_weight = config['model_config']['vae_loss_weight']
         self.loss_function = tf.keras.losses.Huber()
+        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
         if exp_id:
             self.exp_dir = './src/models/experiments/' + 'neural_idm_' + exp_id
@@ -227,11 +228,11 @@ class IDMForwardSim(tf.keras.Model):
 
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
-        dx = 0.1 + K.relu(dx)
+        dx = tf.clip_by_value(dx, 0.1, 500)
         desired_v, desired_tgap, min_jamx, max_act, min_act = idm_params
         _gap_denum  = 2 * tf.sqrt(max_act * min_act)
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
-        desired_gap = K.relu(min_jamx + _gap)
+        desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
         return self.clip_value(act, 5.5)
 
@@ -268,7 +269,6 @@ class IDMForwardSim(tf.keras.Model):
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
         init_lstm_state = tf.zeros([batch_size, self.dec_units])
         lstm_states = [init_lstm_state, init_lstm_state]
-        # proj_latent  = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
 
         displacement = tf.zeros([batch_size, 1, 1])
         displacement_seq = displacement
@@ -343,72 +343,72 @@ class IDMLayer(tf.keras.Model):
     #     output = self.des_v_neu(x)
     #     minval = 10
     #     maxval = 30
-    #     dif_val = maxval - minval
+    #
     #     # return 10 + tf.math.softplus(output)
-    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #     return self.logistic_function(output, minval, maxval)
     #
     # def get_des_tgap(self, x):
     #     output = self.des_tgap_neu(x)
     #     minval = 0.
     #     maxval = 3
-    #     dif_val = maxval - minval
-    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    #     return self.logistic_function(output, minval, maxval)
     #
     # def get_min_jamx(self, x):
     #     output = self.min_jamx_neu(x)
     #     minval = 0.
     #     maxval = 6
-    #     dif_val = maxval - minval
-    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    #     return self.logistic_function(output, minval, maxval)
     #
     # def get_max_act(self, x):
     #     output = self.max_act_neu(x)
     #     minval = 1
     #     maxval = 6
-    #     dif_val = maxval - minval
-    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    #     return self.logistic_function(output, minval, maxval)
     #
     # def get_min_act(self, x):
     #     output = self.min_act_neu(x)
     #     minval = 1
     #     maxval = 6
-    #     dif_val = maxval - minval
-    #     return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+    #
+    #     return self.logistic_function(output, minval, maxval)
+
+    def logistic_function(self, x, minval, maxval):
+        dif_val = maxval - minval
+        x = tf.clip_by_value(x, -100, 100)
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*x))
+
     def get_des_v(self, x):
         output = self.des_v_neu(x)
         minval = 15
         maxval = 25
-        dif_val = maxval - minval
-        # return 10 + tf.math.softplus(output)
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return self.logistic_function(output, minval, maxval)
 
     def get_des_tgap(self, x):
         output = self.des_tgap_neu(x)
         minval = 0.5
         maxval = 2
-        dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return self.logistic_function(output, minval, maxval)
 
     def get_min_jamx(self, x):
         output = self.min_jamx_neu(x)
         minval = 1
         maxval = 5
-        dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return self.logistic_function(output, minval, maxval)
 
     def get_max_act(self, x):
         output = self.max_act_neu(x)
         minval = 2
         maxval = 4
-        dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return self.logistic_function(output, minval, maxval)
 
     def get_min_act(self, x):
         output = self.min_act_neu(x)
         minval = 2
         maxval = 4
-        dif_val = maxval - minval
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
+        return self.logistic_function(output, minval, maxval)
 
     def call(self, x):
         desired_v = self.get_des_v(x)
