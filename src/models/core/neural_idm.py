@@ -10,7 +10,7 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 class NeurIDMModel(AbstractModel):
-    def __init__(self, config):
+    def __init__(self, config, exp_id=None):
         super(NeurIDMModel, self).__init__(config)
         self.f_seq_encoder = FutureEncoder()
         self.h_seq_encoder = HistoryEncoder()
@@ -20,23 +20,31 @@ class NeurIDMModel(AbstractModel):
 
         self.vae_loss_weight = config['model_config']['vae_loss_weight']
         self.loss_function = tf.keras.losses.Huber()
-        # self.loss_function = tf.keras.losses.MeanAbsoluteError()
-        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
-    def callback_def(self):
-        self.train_mseloss = tf.keras.metrics.Mean()
-        self.test_mseloss = tf.keras.metrics.Mean()
-        self.train_klloss = tf.keras.metrics.Mean()
-        self.test_klloss = tf.keras.metrics.Mean()
+        if exp_id:
+            self.exp_dir = './src/models/experiments/' + 'neural_idm_' + exp_id
+            self.make_event_files()
 
-    def mse(self, _true, _pred):
-        _true = (_true-40)/0.1
-        _pred = (_pred-40)/0.1
+    def make_event_files(self):
+        self.train_writer = tf.summary.create_file_writer(self.exp_dir+'/logs/train')
+        self.test_writer = tf.summary.create_file_writer(self.exp_dir+'/logs/test')
+
+    def get_displacement_loss(self, _true, _pred):
+        _true = (_true[:, :, -1:] - self.disx_means)/self.disx_std
+        _pred = (_pred[:, 1:, :] - self.disx_means)/self.disx_std
         loss = self.loss_function(_true, _pred)
-        tf.debugging.check_numerics(loss, message='Checking loss')
         return loss
 
-    def kl_loss(self, pri_params, pos_params):
+    def get_action_loss(self, _true, _pred):
+        _true = _true[:, :, 0:1]/0.7
+        _pred = _pred[:, :, :]/0.7
+        loss = self.loss_function(_true, _pred)
+        return loss
+
+    def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
+        return self.vae_loss_weight*kl_loss + displacement_loss + action_loss
+
+    def get_kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
         pos_mean, pos_logsigma = pos_params
 
@@ -44,46 +52,49 @@ class NeurIDMModel(AbstractModel):
         posterior = tfd.Normal(loc=pos_mean, scale=tf.exp(pos_logsigma))
         return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
-    def train_loop(self, data_objs):
+    def batch_test_data(self, test_data):
+        return self.batch_data([tf.repeat(set, 2, axis=0) for set in test_data])
+
+    def train_test_loop(self, train_test_data):
         # tf.print('######## TRAIN #######:')
-        train_ds = self.batch_data(data_objs)
-
-        for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
-            self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
-
-    def test_loop(self, data_objs):
-        train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_m_veh_c, future_ego_a in train_ds:
-            self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_c], future_ego_a)
+        train_ds = self.batch_data(train_test_data[0])
+        test_ds = self.batch_test_data(train_test_data[1])
+        for step, batch_data in enumerate(zip(train_ds, test_ds)):
+            step = tf.convert_to_tensor(step, dtype=tf.int64)
+            # train step
+            self.train_step(batch_data[0][:-1], batch_data[0][-1], step)
+            # test step
+            # self.test_step(batch_data[1][:-1], batch_data[1][-1], step)
 
     @tf.function(experimental_relax_shapes=True)
-    def train_step(self, states, targets):
+    def train_step(self, states, targets, step):
         with tf.GradientTape() as tape:
             _pred, pri_params, pos_params = self(states)
-            mse_loss = self.mse(targets, _pred)
-            kl_loss = self.kl_loss(pri_params, pos_params)
-            loss = self.vae_loss(mse_loss, kl_loss)
+            displacement_loss = self.get_displacement_loss(targets, _pred[0])
+            action_loss = self.get_action_loss(targets, _pred[1])
+            kl_loss = self.get_kl_loss(pri_params, pos_params)
+            loss = self.get_tot_loss(kl_loss, displacement_loss, action_loss)
 
         gradients = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        self.train_mseloss.reset_states()
-        self.train_klloss.reset_states()
-        self.train_mseloss(mse_loss)
-        self.train_klloss(kl_loss)
+        with self.train_writer.as_default():
+            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+            tf.summary.scalar('action_loss', action_loss, step=step)
+            tf.summary.scalar('kl_loss', kl_loss, step=step)
+            tf.summary.scalar('tot_loss', loss, step=step)
 
     @tf.function(experimental_relax_shapes=True)
-    def test_step(self, states, targets):
+    def test_step(self, states, targets, step):
         _pred, pri_params, pos_params = self(states)
-        mse_loss = self.mse(targets, _pred)
-        kl_loss = self.kl_loss(pri_params, pos_params)
-        loss = self.vae_loss(mse_loss, kl_loss)
-        self.test_mseloss.reset_states()
-        self.test_klloss.reset_states()
-        self.test_mseloss(mse_loss)
-        self.test_klloss(kl_loss)
-
-    def vae_loss(self, mse_loss, kl_loss):
-        return  self.vae_loss_weight*kl_loss + mse_loss
+        displacement_loss = self.get_displacement_loss(targets, _pred[0])
+        action_loss = self.get_action_loss(targets, _pred[1])
+        kl_loss = self.get_kl_loss(pri_params, pos_params)
+        loss = self.get_tot_loss(kl_loss, displacement_loss, action_loss)
+        with self.test_writer.as_default():
+            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+            tf.summary.scalar('action_loss', action_loss, step=step)
+            tf.summary.scalar('kl_loss', kl_loss, step=step)
+            tf.summary.scalar('tot_loss', loss, step=step)
 
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history
@@ -95,14 +106,14 @@ class NeurIDMModel(AbstractModel):
         proj_idm = self.belief_net.z_proj_idm(z_idm)
         proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
-        displacement_seq, _, _ = self.forward_sim.rollout([\
+        displacement_seq, action_seq, _ = self.forward_sim.rollout([\
                                 idm_params, proj_att, enc_h,
                                 inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
         # tf.print('att_scorein: ', tf.reduce_min(att_scores))
         # tf.print('att_scoreean: ', tf.reduce_mean(att_scores))
-        return displacement_seq, pri_params, pos_params
+        return [displacement_seq, action_seq], pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
@@ -210,6 +221,8 @@ class IDMForwardSim(tf.keras.Model):
         self.f_att_neu = TimeDistributed(Dense(1))
         self.m_att_neu = TimeDistributed(Dense(1))
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
+        self.dense_linear = TimeDistributed(Dense(self.dec_units))
+
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
         dx = 0.1 + K.relu(dx)
@@ -230,6 +243,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def get_att(self, inputs, lstm_states):
         lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
+        # lstm_output = self.dense_linear(lstm_output)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
@@ -254,27 +268,21 @@ class IDMForwardSim(tf.keras.Model):
         lstm_states = [init_lstm_state, init_lstm_state]
         # proj_latent  = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
 
-        for step in range(self.rollout_len):
-            f_veh_v = idm_s[:, step:step+1, 1:2]
-            m_veh_v = idm_s[:, step:step+1, 2:3]
-            f_veh_glob_x = idm_s[:, step:step+1, 4:5]
-            m_veh_glob_x = idm_s[:, step:step+1, 5:6]
+        displacement = tf.zeros([batch_size, 1, 1])
+        displacement_seq = displacement
+        ego_v = idm_s[:,  0:1, 0:1]
+        ego_glob_x = idm_s[:,  0:1, 3:4]
+        for step in range(1, self.rollout_len+1):
+            f_veh_v = idm_s[:, step-1:step, 1:2]
+            m_veh_v = idm_s[:, step-1:step, 2:3]
+            f_veh_glob_x = idm_s[:, step-1:step, 4:5]
+            m_veh_glob_x = idm_s[:, step-1:step, 5:6]
 
-            em_dv_true = idm_s[:, step:step+1, 8:9]
-            em_delta_x_true = idm_s[:, step:step+1, 9:10]
+            em_dv_true = idm_s[:, step-1:step, 8:9]
+            em_delta_x_true = idm_s[:, step-1:step, 9:10]
 
             # these to deal with missing cars
-            m_veh_exists = idm_s[:, step:step+1, -1:]
-            if step == 0:
-                ego_v = idm_s[:, step:step+1, 0:1]
-                ego_glob_x = idm_s[:, step:step+1, 3:4]
-                displacement = tf.zeros([batch_size, 1, 1])
-
-            else:
-                ego_v += _act*0.1
-                ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
-                displacement += ego_v*0.1 + 0.5*_act*0.1**2
-
+            m_veh_exists = idm_s[:, step-1:step, -1:]
 
             ef_delta_x = (f_veh_glob_x - ego_glob_x)
             em_delta_x = (m_veh_glob_x - ego_glob_x)*m_veh_exists+\
@@ -287,30 +295,35 @@ class IDMForwardSim(tf.keras.Model):
             env_state = tf.concat([ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
-            merger_c = merger_cs[:, step:step+1, :]
+            merger_c = merger_cs[:, step-1:step, :]
 
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
             f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
-            # m_att_score = m_att_score*m_veh_exists
-            # m_att_score = idm_s[:, step:step+1, -3:-2]
-
+            # m_att_score = idm_s[:, step-1:step, -3:-2]
+            f_att_score = 1-m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
             ef_act = self.idm_driver(idm_state, idm_params)
             idm_state = [ego_v, em_dv, em_delta_x]
             em_act = self.idm_driver(idm_state, idm_params)
             # _act = f_att_score*ef_act + m_att_score*em_act
             _act = f_att_score*ef_act + m_att_score*em_act*m_veh_exists
+            displacement += ego_v*0.1 + 0.5*_act*0.1**2
+            ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
+            ego_v += _act*0.1
 
-            if step == 0:
-                displacement_seq = displacement
+            if step-1 == 0:
+                # first step
                 act_seq = _act
                 f_att_seq = f_att_score
                 m_att_seq = m_att_score
+
             else:
-                displacement_seq = tf.concat([displacement_seq, displacement], axis=1)
                 act_seq = tf.concat([act_seq, _act], axis=1)
                 f_att_seq = tf.concat([f_att_seq, f_att_score], axis=1)
                 m_att_seq = tf.concat([m_att_seq, m_att_score], axis=1)
+
+            displacement_seq = tf.concat([displacement_seq, displacement], axis=1)
+
         return displacement_seq, act_seq, [f_att_seq, m_att_seq]
 
 class IDMLayer(tf.keras.Model):
@@ -347,7 +360,6 @@ class IDMLayer(tf.keras.Model):
         dif_val = maxval - minval
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
 
-
     def get_max_act(self, x):
         output = self.max_act_neu(x)
         minval = 1
@@ -361,7 +373,6 @@ class IDMLayer(tf.keras.Model):
         maxval = 6
         dif_val = maxval - minval
         return minval + dif_val/(1+tf.exp(-(1/dif_val)*output))
-
 
     def call(self, x):
         desired_v = self.get_des_v(x)
