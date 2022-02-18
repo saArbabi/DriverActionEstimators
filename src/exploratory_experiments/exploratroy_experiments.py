@@ -193,25 +193,25 @@ class Trainer():
         if self.model_type == 'dnn':
             xs_c, ys_c = training_data
             train_input = [xs_c[0:train_sample_index, 1:], ys_c[0:train_sample_index, 1:]]
-            val_input = [xs_c[train_sample_index:, 1:], ys_c[train_sample_index:, 1:]]
+            test_input = [xs_c[train_sample_index:, 1:], ys_c[train_sample_index:, 1:]]
 
         elif self.model_type == 'lstm':
             xs_h, _, ys_c = training_data
             train_input = [xs_h[0:train_sample_index, :, 1:], ys_c[0:train_sample_index, 1:]]
-            val_input = [xs_h[train_sample_index:, :, 1:], ys_c[train_sample_index:, 1:]]
+            test_input = [xs_h[train_sample_index:, :, 1:], ys_c[train_sample_index:, 1:]]
 
         elif self.model_type == 'lstm_idm':
             xs_h, xs_c, ys_c = training_data
             train_input = [xs_h[0:train_sample_index, :, 1:], xs_c[0:train_sample_index, 1:], \
                                             ys_c[0:train_sample_index, 1:]]
-            val_input = [xs_h[train_sample_index:, :, 1:], xs_c[train_sample_index:, 1:], \
+            test_input = [xs_h[train_sample_index:, :, 1:], xs_c[train_sample_index:, 1:], \
                                             ys_c[train_sample_index:, 1:]]
 
         elif self.model_type == 'lstm_seq_idm' or self.model_type == 'vae_idm':
             xs_h, xs_f, ys_f = training_data
             train_input = [xs_h[0:train_sample_index, :, 1:], xs_f[0:train_sample_index, :, 1:], \
                                             ys_f[0:train_sample_index, :, 1:]]
-            val_input = [xs_h[train_sample_index:, :, 1:], xs_f[train_sample_index:, :, 1:], \
+            test_input = [xs_h[train_sample_index:, :, 1:], xs_f[train_sample_index:, :, 1:], \
                                             ys_f[train_sample_index:, :, 1:]]
 
         elif self.model_type == 'neural_idm':
@@ -250,7 +250,7 @@ class Trainer():
                             merger_xas[0:train_sample_index, :, 1:],
                             ys_f[0:train_sample_index, 20:, 2:]]
 
-            val_input = [xs_h[train_sample_index:, :, 1:],
+            test_input = [xs_h[train_sample_index:, :, 1:],
                         scaled_xs_f[train_sample_index:, :, 1:],
                         unscaled_xs_f[train_sample_index:, 20:, 1:],
                         merger_xas[train_sample_index:, :, 1:],
@@ -259,7 +259,7 @@ class Trainer():
 
         for epoch in range(epochs):
             self.model.train_loop(train_input)
-            self.model.test_loop(val_input)
+            self.model.test_loop(test_input)
             if self.model_type == 'vae_idm' or self.model_type == 'neural_idm':
                 self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
                 self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))

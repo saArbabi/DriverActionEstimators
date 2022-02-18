@@ -32,10 +32,10 @@ def prep_data(training_data):
     train_input = [history_sca[train_samples, :, 2:],
                 history_e_veh_a[train_samples, :, 2:]]
 
-    val_input = [history_sca[val_samples, :, 2:],
+    test_input = [history_sca[val_samples, :, 2:],
                 history_e_veh_a[val_samples, :, 2:]]
 
-    return train_input, val_input
+    return train_input, test_input
 # %%
 """
 Load generated data.
@@ -72,7 +72,7 @@ data_arrays = data_prep.split_data(history_future_seqs, history_future_seqs_scal
 history_future_usc, history_sca, \
                 future_idm_s, future_m_veh_c, history_e_veh_a = data_arrays
 # %%
-train_input, val_input = prep_data(data_arrays)
+train_input, test_input = prep_data(data_arrays)
 train_input[0].shape
 train_input[1].shape
 # %%
@@ -91,7 +91,7 @@ item_name = 'train_input{history_len}_f{rollout_len}'.format(\
 
 pickle_this(train_input, data_files_dir, item_name)
 
-item_name = 'val_input{history_len}_f{rollout_len}'.format(\
+item_name = 'test_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
-pickle_this(val_input, data_files_dir, item_name)
+pickle_this(test_input, data_files_dir, item_name)

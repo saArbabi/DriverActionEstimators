@@ -13,6 +13,7 @@ from envs.merge import EnvMerge
 import os
 import time
 import json
+import matplotlib.pyplot as plt
 
 with open('./src/envs/config.json', 'rb') as handle:
     config = json.load(handle)
@@ -45,13 +46,13 @@ def prep_data(training_data):
                 future_m_veh_c[train_samples, :, 2:],
                 future_e_veh_a[train_samples, :, 2:]]
 
-    val_input = [history_sca[val_samples, :, 2:],
+    test_input = [history_sca[val_samples, :, 2:],
                 future_sca[val_samples, :, 2:],
                 future_idm_s[val_samples, :, 2:],
                 future_m_veh_c[val_samples, :, 2:],
                 future_e_veh_a[val_samples, :, 2:]]
 
-    return train_input, val_input
+    return train_input, test_input
 # %%
 """
 Generate datan
@@ -94,7 +95,7 @@ sim_data.shape
 Prepare data
 """
 history_len = 20 # steps
-rollout_len = 50
+rollout_len = 20
 from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
@@ -109,8 +110,9 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 
 history_future_usc.shape
+future_e_veh_a.shape
 # %%
-train_input, val_input = prep_data(data_arrays)
+train_input, test_input = prep_data(data_arrays)
 train_input[-1].shape
 # %%
 
@@ -118,19 +120,20 @@ train_input[-1].shape
 Make displacement the target
 """
 def get_target_vals(arr):
-    dxs = np.zeros([arr.shape[0], rollout_len, 1])
+    dxs = np.zeros([arr.shape[0], rollout_len+1, 1])
 
-    for step in range(1, 50):
-        dxs[:, step, :] = dxs[:, step-1, :] + arr[:, step, 1:]*0.1 \
-                                                    + 0.5*arr[:, step, 0:1]*0.1**2
-    return dxs
+    for step in range(1, rollout_len+1):
+        dxs[:, step, :] = dxs[:, step-1, :] + arr[:, step-1, 1:]*0.1 \
+                                                    + 0.5*arr[:, step-1, 0:1]*0.1**2
+    return dxs[:, 1:, :]
 dxs = get_target_vals(train_input[-1])
-del train_input[-1]
-train_input.append(dxs)
+train_input[-1] = np.append(train_input[-1], dxs, axis=-1)
 
-dxs = get_target_vals(val_input[-1])
-del val_input[-1]
-val_input.append(dxs)
+dxs = get_target_vals(test_input[-1])
+test_input[-1] = np.append(test_input[-1], dxs, axis=-1)
+
+plt.plot(train_input[-1][0, :, -1])
+plt.plot(train_input[-1][1000, :, -1])
 # %%
 # """
 # BALANCE DATA
@@ -177,10 +180,10 @@ item_name = 'train_input{history_len}_f{rollout_len}'.format(\
 
 pickle_this(train_input, data_files_dir, item_name)
 
-item_name = 'val_input{history_len}_f{rollout_len}'.format(\
+item_name = 'test_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
-pickle_this(val_input, data_files_dir, item_name)
+pickle_this(test_input, data_files_dir, item_name)
 
 item_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)

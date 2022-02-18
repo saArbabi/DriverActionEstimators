@@ -127,8 +127,8 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_038'
-epoch_count = '20'
+model_name = 'neural_039'
+epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:

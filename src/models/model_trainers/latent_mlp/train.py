@@ -31,11 +31,11 @@ data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 
-data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
+data_arr_name = 'test_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 
 with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
-    val_input = pickle.load(handle)
+    test_input = pickle.load(handle)
 train_input[1].shape
 # %%
 config = {
@@ -90,11 +90,11 @@ class Trainer():
         with open(self.exp_dir+'/config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
 
-    def train(self, train_input, val_input, epochs):
+    def train(self, train_input, test_input, epochs):
         for epoch in range(epochs):
             self.epoch_count += 1
             self.model.train_loop(train_input)
-            self.model.test_loop(val_input)
+            self.model.test_loop(test_input)
             self.train_llloss.append(round(self.model.train_llloss.result().numpy().item(), 2))
             self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
             self.test_llloss.append(round(self.model.test_llloss.result().numpy().item(), 2))
@@ -128,9 +128,9 @@ model_trainer = Trainer()
 exp_id = '12'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
-# model_trainer.train(train_input, val_input, epochs=1)
+# model_trainer.train(train_input, test_input, epochs=1)
 # model_trainer.load_pre_trained(epoch_count='20')
-# model_trainer.train(train_input, val_input, epochs=1)
+# model_trainer.train(train_input, test_input, epochs=1)
 
 # %%
 # model_trainer.model.forward_sim.attention_temp
@@ -139,7 +139,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ####§##############
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################

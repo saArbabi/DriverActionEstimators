@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 50
+rollout_len = 20
 data_id = '046'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -28,17 +28,20 @@ data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
-data_arr_name = 'val_input{history_len}_f{rollout_len}'.format(\
+data_arr_name = 'test_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
 train_input[0].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
-    val_input = pickle.load(handle)
+    test_input = pickle.load(handle)
 train_input[-1].shape
-
 # %%
 train_input[-1].mean()
 train_input[-1].std()
+train_input[-1][:, :, 0:1].mean(axis=0)
+train_input[-1][:, :, -1:].shape
+train_input[-1][0:1, :, :]
+(train_input[-1][0:1, :, :] - train_input[-1][:, :, :].mean(axis=0))/train_input[-1][:, :, :].std(axis=0)
 train_input[-1].min()
 # %%
 config = {
@@ -59,21 +62,20 @@ config = {
     }
 
 class Trainer():
-    def __init__(self):
-        self.train_mseloss = []
-        self.train_klloss = []
-
-        self.test_mseloss = []
-        self.test_klloss = []
+    def __init__(self, exp_id):
         self.epoch_count = 0
-        self.initiate_model()
+        self.losses = {'train_losses':{'displacement_loss':[], \
+                               'action_loss':[], 'kl_loss':[], 'tot_loss':[]}, \
+                       'test_losses':{'displacement_loss':[], \
+                              'action_loss':[], 'kl_loss':[], 'tot_loss':[]}}
+        self.initiate_model(exp_id)
 
-    def initiate_model(self):
+    def initiate_model(self, exp_id):
         from models.core import neural_idm
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
-        self.model = NeurIDMModel(config)
-        self.model.forward_sim.rollout_len = 50
+        self.model = NeurIDMModel(config, exp_id)
+        self.model.forward_sim.rollout_len = 20
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
@@ -81,18 +83,15 @@ class Trainer():
         with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
             self.model.forward_sim.dummy_value_set = pickle.load(handle)
 
+        self.model.disx_means = train_input[-1][:, :, -1:].mean(axis=0)
+        self.model.disx_std = train_input[-1][:, :, -1:].std(axis=0)
+
     def load_pre_trained(self, epoch_count):
         exp_dir = self.exp_dir+'/model_epo'+epoch_count
         self.epoch_count = int(epoch_count)
         self.model.load_weights(exp_dir).expect_partial()
-
         with open(os.path.dirname(exp_dir)+'/'+'losses.pickle', 'rb') as handle:
-            losses = pickle.load(handle)
-
-        self.train_mseloss = losses['train_mseloss']
-        self.train_klloss = losses['train_klloss']
-        self.test_mseloss = losses['test_mseloss']
-        self.test_klloss = losses['test_klloss']
+            self.losses = pickle.load(handle)
 
     def update_config(self):
         config['train_info'] = {}
@@ -101,19 +100,71 @@ class Trainer():
         with open(self.exp_dir+'/config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
 
-    def train(self, train_input, val_input, epochs):
+    def get_event_paths(self):
+        event_items = os.listdir(self.exp_dir+'/logs/train')
+        train_event_paths = []
+        for event in event_items:
+            path = os.path.join(self.exp_dir+'/logs/train', event)
+            train_event_paths.append(path)
+
+        event_items = os.listdir(self.exp_dir+'/logs/test')
+        test_event_paths = []
+        for event in event_items:
+            path = os.path.join(self.exp_dir+'/logs/test', event)
+            test_event_paths.append(path)
+        return train_event_paths, test_event_paths
+
+    def read_event_loss(self):
+        train_losses = {'displacement_loss':[], 'action_loss':[], \
+                                                'kl_loss':[], 'tot_loss':[]}
+        test_losses = {'displacement_loss':[], 'action_loss':[], \
+                                                'kl_loss':[], 'tot_loss':[]}
+        train_event_paths, test_event_paths = self.get_event_paths()
+
+        for e in tf.compat.v1.train.summary_iterator(train_event_paths[-1]):
+            for value in e.summary.value:
+                if value.tag == 'displacement_loss':
+                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                if value.tag == 'action_loss':
+                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                if value.tag == 'kl_loss':
+                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                if value.tag == 'tot_loss':
+                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+
+        for e in tf.compat.v1.train.summary_iterator(test_event_paths[-1]):
+            for value in e.summary.value:
+                if value.tag == 'displacement_loss':
+                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                if value.tag == 'action_loss':
+                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                if value.tag == 'kl_loss':
+                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                if value.tag == 'tot_loss':
+                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+        return train_losses, test_losses
+
+    def update_losses(self):
+        train_losses, test_losses = self.read_event_loss()
+        self.losses['train_losses']['displacement_loss'].extend(train_losses['displacement_loss'])
+        self.losses['test_losses']['displacement_loss'].extend(test_losses['displacement_loss'])
+        self.losses['train_losses']['action_loss'].extend(train_losses['action_loss'])
+        self.losses['test_losses']['action_loss'].extend(test_losses['action_loss'])
+        self.losses['train_losses']['kl_loss'].extend(train_losses['kl_loss'])
+        self.losses['test_losses']['kl_loss'].extend(test_losses['kl_loss'])
+        self.losses['train_losses']['tot_loss'].extend(train_losses['tot_loss'])
+        self.losses['test_losses']['tot_loss'].extend(test_losses['tot_loss'])
+
+    def train(self, train_input, test_input, epochs):
         for epoch in range(epochs):
             t0 = time.time()
             self.epoch_count += 1
-            self.model.train_loop(train_input)
-            self.model.test_loop(val_input)
-            self.train_mseloss.append(round(self.model.train_mseloss.result().numpy().item(), 2))
-            self.train_klloss.append(round(self.model.train_klloss.result().numpy().item(), 2))
-            self.test_mseloss.append(round(self.model.test_mseloss.result().numpy().item(), 2))
-            self.test_klloss.append(round(self.model.test_klloss.result().numpy().item(), 2))
+            self.model.train_test_loop([train_input, test_input])
+            # self.model.test_loop(test_input)
 
             print(self.epoch_count, 'epochs completed')
-            print(round((time.time()-t0)/60), 'min per epoch')
+            print(round((time.time()-t0)), 'secs per epoch')
+        self.update_losses()
 
     def save_model(self):
         if not os.path.exists(self.exp_dir):
@@ -123,69 +174,83 @@ class Trainer():
                                                     epoch=self.epoch_count)
         if not os.path.exists(check_point_dir+'.index'):
             self.model.save_weights(check_point_dir)
+            print('Saved at ', self.exp_dir)
         else:
             print('This checkpoint is already saved')
 
-
     def save_loss(self):
-        losses = {'train_mseloss':self.train_mseloss,
-                  'train_klloss':self.train_klloss,
-                  'test_mseloss':self.test_mseloss,
-                  'test_klloss':self.test_klloss}
         with open(self.exp_dir+'/losses.pickle', 'wb') as handle:
-            pickle.dump(losses, handle)
+            pickle.dump(self.losses, handle)
 
 tf.random.set_seed(2021)
-model_trainer = Trainer()
-exp_id = '267'
+exp_id = 'test_73'
 model_name = 'neural_idm_'+exp_id
+model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='1')
 # model_trainer.test_mseloss
+# model_trainer.model.vae_loss_weight += 0.1
 
-# %%
+# s%%
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, val_input, epochs=5)
+model_trainer.train(train_input, test_input, epochs=1)
 ################## ##### ##################
 ################## ###\## ########### #######
 ################## ##### ##################
 ################## ##### ####### ###########
-
-################## MSE LOSS ####    ###########
-fig = plt.figure(figsize=(15, 5))
+fig = plt.figure(figsize=(15, 10))
 # plt.style.use('default')
 
-mse_axis = fig.add_subplot(121)
-kl_axis = fig.add_subplot(122)
-mse_axis.plot(model_trainer.test_mseloss)
-mse_axis.plot(model_trainer.train_mseloss)
-mse_axis.grid()
-mse_axis.set_xlabel('epochs')
-mse_axis.set_ylabel('loss (MSE)')
-mse_axis.set_title('MSE')
-mse_axis.legend(['test', 'train'])
+displacement_axis = fig.add_subplot(221)
+action_axis = fig.add_subplot(223)
+kl_axis = fig.add_subplot(222)
+tot_axis = fig.add_subplot(224)
+train_losses, test_losses = model_trainer.losses['train_losses'], model_trainer.losses['test_losses']
+itr_step = np.linspace(0, len(train_losses['displacement_loss']), len(test_losses['displacement_loss']))
 
+################## displacement_loss LOSS ####    ###########
+displacement_axis.plot(itr_step, test_losses['displacement_loss'], color='blue')
+displacement_axis.plot(train_losses['displacement_loss'], color='red')
+displacement_axis.grid()
+displacement_axis.set_xlabel('iterations')
+displacement_axis.set_ylabel('displacement_loss')
+displacement_axis.legend(['test', 'train'])
+################## action_loss LOSS ####    ###########
+action_axis.plot(itr_step, test_losses['action_loss'], color='blue')
+action_axis.plot(train_losses['action_loss'], color='red')
+action_axis.grid()
+action_axis.set_xlabel('iterations')
+action_axis.set_ylabel('action_loss')
+action_axis.legend(['test', 'train'])
 ################## kl LOSS ##################
-kl_axis.plot(model_trainer.test_klloss)
-kl_axis.plot(model_trainer.train_klloss)
-
+kl_axis.plot(itr_step, test_losses['kl_loss'], color='blue')
+kl_axis.plot(train_losses['kl_loss'], color='red')
 kl_axis.grid()
-kl_axis.set_xlabel('epochs')
+kl_axis.set_xlabel('iterations')
 kl_axis.set_ylabel('loss (kl)')
-kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
-print(model_trainer.test_mseloss[-1])
-# %%
+################## Total LOSS ##################
+tot_axis.plot(itr_step, test_losses['tot_loss'], color='blue')
+tot_axis.plot(train_losses['tot_loss'], color='red')
+tot_axis.grid()
+tot_axis.set_xlabel('iterations')
+tot_axis.set_ylabel('tot_loss')
+tot_axis.legend(['test', 'train'])
+
+print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
+#s %%
+
 model_trainer.save_model()
-model_trainer.save_loss()
+# model_trainer.save_loss()
 # %%
-x = np.linspace(-1, 5, 100)
-temp = 4/3
-min = 0
-max = 3
-# y = min + (max-min)/(1 + np.exp(-temp*x))
-y = np.exp(x)
+x = np.linspace(-100, 20, 100)
+temp = 1/10
+min = 15
+max = 25
+y
+y = min + (max-min)/(1 + np.exp(-temp*x))
+# y = np.exp(x)
 plt.plot(x, y)
 print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
