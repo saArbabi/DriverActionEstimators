@@ -32,14 +32,12 @@ class NeurIDMModel(AbstractModel):
     def get_displacement_loss(self, _true, _pred):
         _true = (_true[:, :, -1:] - self.disx_means)/self.disx_std
         _pred = (_pred[:, 1:, :] - self.disx_means)/self.disx_std
-        loss = self.loss_function(_true, _pred)
-        return loss
+        return self.loss_function(_true, _pred)
 
     def get_action_loss(self, _true, _pred):
         _true = _true[:, :, 0:1]/0.7
         _pred = _pred[:, :, :]/0.7
-        loss = self.loss_function(_true, _pred)
-        return loss
+        return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
         return self.vae_loss_weight*kl_loss + displacement_loss + action_loss
@@ -64,7 +62,7 @@ class NeurIDMModel(AbstractModel):
             # train step
             self.train_step(batch_data[0][:-1], batch_data[0][-1], step)
             # test step
-            # self.test_step(batch_data[1][:-1], batch_data[1][-1], step)
+            self.test_step(batch_data[1][:-1], batch_data[1][-1], step)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets, step):
@@ -144,8 +142,8 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        # return sampled_z[:, :3], sampled_z[:, 3:]
-        return sampled_z, sampled_z
+        return sampled_z[:, :3], sampled_z[:, 3:]
+        # return sampled_z, sampled_z
 
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
@@ -291,7 +289,6 @@ class IDMForwardSim(tf.keras.Model):
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                             (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
             # tf.print('############ ef_act ############')
-
             env_state = tf.concat([ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
@@ -300,7 +297,7 @@ class IDMForwardSim(tf.keras.Model):
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
             f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
             # m_att_score = idm_s[:, step-1:step, -3:-2]
-            f_att_score = 1-m_att_score
+            # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
             ef_act = self.idm_driver(idm_state, idm_params)
             idm_state = [ego_v, em_dv, em_delta_x]
