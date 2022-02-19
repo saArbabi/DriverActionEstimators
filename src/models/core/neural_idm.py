@@ -123,8 +123,15 @@ class BeliefModel(tf.keras.Model):
         self.pri_logsigma = Dense(self.latent_dim)
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
-        self.pri_projection = Dense(self.proj_dim, activation=LeakyReLU())
-        self.pos_projection = Dense(self.proj_dim, activation=LeakyReLU())
+
+        self.proj_pri_1 = Dense(self.proj_dim)
+        self.proj_pri_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_pri_3 = Dense(self.proj_dim, activation=LeakyReLU())
+
+        self.proj_pos_1 = Dense(self.proj_dim)
+        self.proj_pos_2 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_pos_3 = Dense(self.proj_dim, activation=LeakyReLU())
+
         ####
         self.proj_idm_1 = Dense(self.proj_dim)
         self.proj_idm_2 = Dense(self.proj_dim, activation=LeakyReLU())
@@ -145,28 +152,36 @@ class BeliefModel(tf.keras.Model):
         # return sampled_z[:, :3], sampled_z[:, 3:]
         return sampled_z, sampled_z
 
+    def pri_proj(self, enc_h):
+        x = self.proj_pri_1(enc_h)
+        x = self.proj_pri_2(x)
+        return self.proj_pri_3(x)
+
+    def pos_proj(self, enc_h, enc_f):
+        x = self.proj_pos_1(enc_h + enc_f)
+        x = self.proj_pos_2(x)
+        return self.proj_pos_3(x)
+
     def z_proj_idm(self, x):
         x = self.proj_idm_1(x)
         x = self.proj_idm_2(x)
-        x = self.proj_idm_3(x)
-        return x
+        return self.proj_idm_3(x)
 
     def z_proj_att(self, x):
         x = self.proj_att_1(x)
         x = self.proj_att_2(x)
-        x = self.proj_att_3(x)
-        return x
+        return self.proj_att_3(x)
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
             enc_h, enc_f = inputs
             # prior
-            pri_context = self.pri_projection(enc_h)
+            pri_context = self.pri_proj(enc_h)
             pri_mean = self.pri_mean(pri_context)
             pri_logsigma = self.pri_logsigma(pri_context)
 
             # posterior
-            pos_context = self.pos_projection(tf.concat([enc_h, enc_f], axis=-1))
+            pos_context = self.pos_proj(enc_h, enc_f)
             pos_mean = self.pos_mean(pos_context)
             pos_logsigma = self.pos_logsigma(pos_context)
 
@@ -175,7 +190,7 @@ class BeliefModel(tf.keras.Model):
             return pri_params, pos_params
 
         elif dis_type == 'prior':
-            pri_context = self.pri_projection(inputs)
+            pri_context = self.pri_proj(inputs)
             pri_mean = self.pri_mean(pri_context)
             pri_logsigma = self.pri_logsigma(pri_context)
             pri_params = [pri_mean, pri_logsigma]
@@ -203,7 +218,7 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='sum')
 
     def call(self, inputs):
         enc_acts = self.lstm_layer(inputs)
