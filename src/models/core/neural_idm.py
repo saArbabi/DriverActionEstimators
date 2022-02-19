@@ -24,7 +24,6 @@ class NeurIDMModel(AbstractModel):
 
         if exp_id:
             self.exp_dir = './src/models/experiments/' + 'neural_idm_' + exp_id
-            self.make_event_files()
 
     def make_event_files(self):
         self.train_writer = tf.summary.create_file_writer(self.exp_dir+'/logs/train')
@@ -258,7 +257,7 @@ class IDMForwardSim(tf.keras.Model):
 
     def get_att(self, inputs, lstm_states):
         lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
-        # lstm_output = self.dense_linear(lstm_output)
+        lstm_output = self.dense_linear(lstm_output)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
