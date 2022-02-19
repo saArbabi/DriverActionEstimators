@@ -158,7 +158,7 @@ class BeliefModel(tf.keras.Model):
         return self.proj_pri_3(x)
 
     def pos_proj(self, enc_h, enc_f):
-        x = self.proj_pos_1(enc_h + enc_f)
+        x = self.proj_pos_1(tf.concat([enc_h, enc_f], axis=-1))
         x = self.proj_pos_2(x)
         return self.proj_pos_3(x)
 
@@ -218,7 +218,7 @@ class FutureEncoder(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='sum')
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
 
     def call(self, inputs):
         enc_acts = self.lstm_layer(inputs)
