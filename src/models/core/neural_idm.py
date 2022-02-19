@@ -51,13 +51,10 @@ class NeurIDMModel(AbstractModel):
         posterior = tfd.Normal(loc=pos_mean, scale=tf.exp(pos_logsigma))
         return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
-    def batch_test_data(self, test_data):
-        return self.batch_data([tf.repeat(set, 2, axis=0) for set in test_data])
-
     def train_test_loop(self, train_test_data):
         # tf.print('######## TRAIN #######:')
-        train_ds = self.batch_data(train_test_data[0])
-        test_ds = self.batch_test_data(train_test_data[1])
+        train_ds = self.batch_data(train_test_data[0], self.batch_size)
+        test_ds = self.batch_data(train_test_data[1], int(self.batch_size/2))
         for step, batch_data in enumerate(zip(train_ds, test_ds)):
             step = tf.convert_to_tensor(step, dtype=tf.int64)
             # train step
