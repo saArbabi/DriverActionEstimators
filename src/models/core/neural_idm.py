@@ -12,8 +12,8 @@ tfd = tfp.distributions
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, exp_id=None):
         super(NeurIDMModel, self).__init__(config)
-        self.f_seq_encoder = FutureEncoder()
-        self.h_seq_encoder = HistoryEncoder()
+        self.f_seq_encoder = SeqEncoder()
+        self.h_seq_encoder = SeqEncoder()
         self.belief_net = BeliefModel(config)
         self.forward_sim = IDMForwardSim(config)
         self.idm_layer = IDMLayer()
@@ -35,8 +35,8 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_action_loss(self, _true, _pred):
-        _true = _true[:, :, 0:1]/0.7
-        _pred = _pred[:, :, :]/0.7
+        _true = (_true[:, :, 0:1] - self.action_means)/self.action_std
+        _pred = (_pred[:, :, :] - self.action_means)/self.action_std
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
@@ -70,7 +70,10 @@ class NeurIDMModel(AbstractModel):
             kl_loss = self.get_kl_loss(pri_params, pos_params)
             loss = self.get_tot_loss(kl_loss, displacement_loss, action_loss)
 
+
         gradients = tape.gradient(loss, self.trainable_variables)
+        # tf.print('xxxxx gradients: ', gradients)
+
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         with self.train_writer.as_default():
             tf.summary.scalar('displacement_loss', displacement_loss, step=step)
@@ -113,7 +116,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 64
+        self.proj_dim = 128
         self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
@@ -123,22 +126,11 @@ class BeliefModel(tf.keras.Model):
         self.pos_mean = Dense(self.latent_dim)
         self.pos_logsigma = Dense(self.latent_dim)
 
-        self.proj_pri_1 = Dense(self.proj_dim)
-        self.proj_pri_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_pri_3 = Dense(self.proj_dim, activation=LeakyReLU())
-
-        self.proj_pos_1 = Dense(self.proj_dim)
-        self.proj_pos_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_pos_3 = Dense(self.proj_dim, activation=LeakyReLU())
-
+        self.proj_pri = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_pos = Dense(self.proj_dim, activation=LeakyReLU())
         ####
-        self.proj_idm_1 = Dense(self.proj_dim)
-        self.proj_idm_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_idm_3 = Dense(self.proj_dim, activation=LeakyReLU())
-
-        self.proj_att_1 = Dense(self.proj_dim)
-        self.proj_att_2 = Dense(self.proj_dim, activation=LeakyReLU())
-        self.proj_att_3 = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_idm = Dense(self.proj_dim, activation=LeakyReLU())
+        self.proj_att = Dense(self.proj_dim, activation=LeakyReLU())
 
     def sample_z(self, dis_params):
         z_mean, z_logsigma = dis_params
@@ -152,24 +144,16 @@ class BeliefModel(tf.keras.Model):
         return sampled_z, sampled_z
 
     def pri_proj(self, enc_h):
-        x = self.proj_pri_1(enc_h)
-        x = self.proj_pri_2(x)
-        return self.proj_pri_3(x)
+        return self.proj_pri(enc_h)
 
     def pos_proj(self, enc_h, enc_f):
-        x = self.proj_pos_1(tf.concat([enc_h, enc_f], axis=-1))
-        x = self.proj_pos_2(x)
-        return self.proj_pos_3(x)
+        return self.proj_pos(tf.concat([enc_h, enc_f], axis=-1))
 
     def z_proj_idm(self, x):
-        x = self.proj_idm_1(x)
-        x = self.proj_idm_2(x)
-        return self.proj_idm_3(x)
+        return self.proj_idm(x)
 
     def z_proj_att(self, x):
-        x = self.proj_att_1(x)
-        x = self.proj_att_2(x)
-        return self.proj_att_3(x)
+        return self.proj_att(x)
 
     def call(self, inputs, dis_type):
         if dis_type == 'both':
@@ -195,39 +179,23 @@ class BeliefModel(tf.keras.Model):
             pri_params = [pri_mean, pri_logsigma]
             return pri_params
 
-class HistoryEncoder(tf.keras.Model):
+class SeqEncoder(tf.keras.Model):
     def __init__(self):
-        super(HistoryEncoder, self).__init__(name="HistoryEncoder")
+        super(SeqEncoder, self).__init__(name="SeqEncoder")
         self.enc_units = 128
         self.architecture_def()
 
     def architecture_def(self):
-        self.lstm_layer_1 = LSTM(self.enc_units, return_sequences=True)
-        self.lstm_layer_2 = LSTM(self.enc_units)
+        self.lstm_layer = LSTM(self.enc_units)
 
     def call(self, inputs):
-        whole_seq_output = self.lstm_layer_1(inputs)
-        enc_h = self.lstm_layer_2(whole_seq_output)
-        return enc_h
-
-class FutureEncoder(tf.keras.Model):
-    def __init__(self):
-        super(FutureEncoder, self).__init__(name="FutureEncoder")
-        self.enc_units = 128
-        self.architecture_def()
-
-    def architecture_def(self):
-        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
-
-    def call(self, inputs):
-        enc_acts = self.lstm_layer(inputs)
-        return enc_acts
+        return self.lstm_layer(inputs)
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self, config):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.attention_temp = config['model_config']['attention_temp']
-        self.proj_dim = 64
+        self.proj_dim = 128
         self.dec_units = 128
         self.architecture_def()
 
@@ -304,21 +272,21 @@ class IDMForwardSim(tf.keras.Model):
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                             (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
             # tf.print('############ ef_act ############')
-            env_state = tf.concat([ego_v, f_veh_v, \
-                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            env_state = self.scale_env_s(env_state)
-            merger_c = merger_cs[:, step-1:step, :]
-
-            inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
-            # m_att_score = idm_s[:, step-1:step, -3:-2]
-            # f_att_score = 1 - m_att_score
+            # env_state = tf.concat([ego_v, f_veh_v, \
+            #                         ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            # env_state = self.scale_env_s(env_state)
+            # merger_c = merger_cs[:, step-1:step, :]
+            #
+            # inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
+            # f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
+            m_att_score = idm_s[:, step-1:step, -3:-2]
+            f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
             ef_act = self.idm_driver(idm_state, idm_params)
             idm_state = [ego_v, em_dv, em_delta_x]
             em_act = self.idm_driver(idm_state, idm_params)
             # _act = f_att_score*ef_act + m_att_score*em_act
-            _act = f_att_score*ef_act + m_att_score*em_act*m_veh_exists
+            _act = f_att_score*ef_act + m_att_score*em_act
             displacement += ego_v*0.1 + 0.5*_act*0.1**2
             ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
             ego_v += _act*0.1
@@ -344,94 +312,51 @@ class IDMLayer(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.des_v_neu = Dense(1)
-        self.des_tgap_neu = Dense(1)
-        self.min_jamx_neu = Dense(1)
-        self.max_act_neu = Dense(1)
-        self.min_act_neu = Dense(1)
-
-    # def get_des_v(self, x):
-    #     output = self.des_v_neu(x)
-    #     minval = 10
-    #     maxval = 30
-    #
-    #     # return 10 + tf.math.softplus(output)
-    #     return self.logistic_function(output, minval, maxval)
-    #
-    # def get_des_tgap(self, x):
-    #     output = self.des_tgap_neu(x)
-    #     minval = 0.
-    #     maxval = 3
-    #
-    #     return self.logistic_function(output, minval, maxval)
-    #
-    # def get_min_jamx(self, x):
-    #     output = self.min_jamx_neu(x)
-    #     minval = 0.
-    #     maxval = 6
-    #
-    #     return self.logistic_function(output, minval, maxval)
-    #
-    # def get_max_act(self, x):
-    #     output = self.max_act_neu(x)
-    #     minval = 1
-    #     maxval = 6
-    #
-    #     return self.logistic_function(output, minval, maxval)
-    #
-    # def get_min_act(self, x):
-    #     output = self.min_act_neu(x)
-    #     minval = 1
-    #     maxval = 6
-    #
-    #     return self.logistic_function(output, minval, maxval)
+        self.idm_param_neu = Dense(5)
 
     def logistic_function(self, x, minval, maxval):
         dif_val = maxval - minval
         x = tf.clip_by_value(x, -100, 100)
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*x))
+        return minval + dif_val/(1+tf.exp(-(4/dif_val)*x))
 
     def get_des_v(self, x):
-        output = self.des_v_neu(x)
         minval = 15
         maxval = 25
-        return self.logistic_function(output, minval, maxval)
+        return self.logistic_function(x, minval, maxval)
 
     def get_des_tgap(self, x):
-        output = self.des_tgap_neu(x)
         minval = 0.5
         maxval = 2
-        return self.logistic_function(output, minval, maxval)
+        return self.logistic_function(x, minval, maxval)
 
     def get_min_jamx(self, x):
-        output = self.min_jamx_neu(x)
         minval = 1
         maxval = 5
-        return self.logistic_function(output, minval, maxval)
+        return self.logistic_function(x, minval, maxval)
 
     def get_max_act(self, x):
-        output = self.max_act_neu(x)
         minval = 2
         maxval = 4
-        return self.logistic_function(output, minval, maxval)
+        return self.logistic_function(x, minval, maxval)
 
     def get_min_act(self, x):
-        output = self.min_act_neu(x)
         minval = 2
         maxval = 4
-        return self.logistic_function(output, minval, maxval)
+        return self.logistic_function(x, minval, maxval)
 
     def call(self, x):
-        desired_v = self.get_des_v(x)
-        desired_tgap = self.get_des_tgap(x)
-        min_jamx = self.get_min_jamx(x)
-        max_act = self.get_max_act(x)
-        min_act = self.get_min_act(x)
+        x = self.idm_param_neu(x)
+        desired_v = self.get_des_v(x[:, 0:1])
+        desired_tgap = self.get_des_tgap(x[:, 1:2])
+        min_jamx = self.get_min_jamx(x[:, 2:3])
+        max_act = self.get_max_act(x[:, 3:4])
+        min_act = self.get_min_act(x[:, 4:5])
+
         idm_param = tf.concat([desired_v, desired_tgap, min_jamx, max_act, min_act], axis=-1)
         # tf.print('xxxxx min: ', tf.reduce_min(x))
         # # tf.print('xxxxx: max', tf.reduce_max(x))
-        # tf.print('idm_param_min: ', tf.reduce_min(idm_param, axis=0))
-        # tf.print('idm_param_med: ', tf.reduce_mean(idm_param, axis=0))
-        # tf.print('idm_param_max: ', tf.reduce_max(idm_param, axis=0))
+        # tf.print('idm_param  min: ', tf.reduce_min(x, axis=0))
+        # tf.print('idm_param  max: ', tf.reduce_max(x, axis=0))
+        # tf.print('idm_param_med: ', tf.reduce_mean(x, axis=0))
         tf.debugging.check_numerics(idm_param, message='Checking idm_param')
         return idm_param
