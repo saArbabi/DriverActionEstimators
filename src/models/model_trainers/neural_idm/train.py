@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 20
+rollout_len = 50
 data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -66,7 +66,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.0,
+    "vae_loss_weight": 0.1,
     "attention_temp": 1,
     "latent_dim": 6,
     },
@@ -94,7 +94,7 @@ class Trainer():
         self.model = NeurIDMModel(config, exp_id)
         self.model.make_event_files()
 
-        self.model.forward_sim.rollout_len = 20
+        self.model.forward_sim.rollout_len = 50
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
@@ -181,12 +181,7 @@ class Trainer():
         for epoch in range(epochs):
             t0 = time.time()
             self.epoch_count += 1
-            # self.model.make_event_files()
             self.model.train_test_loop([train_input, test_input])
-
-            # self.model.test_loop(test_input)
-            # self.model.vae_loss_weight += 0.07
-            # self.model.vae_loss_weight = min(0.3, self.model.vae_loss_weight)
             print(self.epoch_count, 'epochs completed')
             print(round((time.time()-t0)), 'secs per epoch')
         self.read_losses()
@@ -205,14 +200,15 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '285'
+exp_id = '292'
 # exp_id = 'test_48'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='2')
+# model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.model.vae_loss_weight = 0.03
 # model_trainer.model.make_event_files()
+print(model_trainer.exp_dir)
 # %%
 # model_trainer.model.vae_loss_weight = 0.1
 ################## Train ##################
@@ -223,6 +219,8 @@ model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ########### #######
 ################## ##### ##################
 ################## ##### ####### ###########
+# c%%
+
 fig = plt.figure(figsize=(15, 10))
 # plt.style.use('default')
 
@@ -233,6 +231,8 @@ tot_axis = fig.add_subplot(224)
 train_losses, test_losses = model_trainer.losses['train_losses'], model_trainer.losses['test_losses']
 itr_step = np.linspace(0, len(train_losses['displacement_loss']), len(test_losses['displacement_loss']))
 
+# np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
+# np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
 ################## displacement_loss LOSS ####    ###########
 displacement_axis.plot(itr_step, test_losses['displacement_loss'], color='blue')
 displacement_axis.plot(train_losses['displacement_loss'], color='red')
@@ -275,3 +275,4 @@ y = min + (max-min)/(1 + np.exp(-temp*x))
 # y = np.exp(x)
 plt.plot(x, y)
 print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
+# %%

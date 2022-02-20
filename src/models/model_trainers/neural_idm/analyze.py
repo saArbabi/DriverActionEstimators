@@ -159,9 +159,9 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_285'
+model_name = 'neural_idm_292'
 # model_name = 'neural_idm_test_48'
-epoch_count = '5'
+epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -316,7 +316,6 @@ while Example_pred < 10:
                 e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
                 # e_veh_att.mean() == 0:
                 # e_veh_att.mean() == 0:
-
         Example_pred += 1
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -324,7 +323,7 @@ while Example_pred < 10:
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model.h_seq_encoder(h_seq)
         if distribution_name == 'posterior':
-            f_seq = vectorise(future_sca[sample_index, :20, 2:], traces_n)
+            f_seq = vectorise(future_sca[sample_index, :, 2:], traces_n)
             enc_f = model.f_seq_encoder(f_seq)
             _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
         elif distribution_name == 'prior':
@@ -537,11 +536,11 @@ plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
 traces_n = 50
 model.forward_sim.attention_temp = 5
 sample_index = [11540]
-sample_index = [8887]
+sample_index = [11086]
 tf.random.set_seed(2021)
 
 distribution_name = 'prior'
-distribution_name = 'posterior'
+# distribution_name = 'posterior'
 
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
@@ -561,7 +560,6 @@ elif distribution_name == 'prior':
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
 z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 
-z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm)
@@ -616,9 +614,42 @@ plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
 for sample_trace_i in range(traces_n):
    plt.plot(time_steps[19:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
 plt.title(str(sample_index[0]) + ' -- Attention on merger')
-
-
 # %%
+
+"""
+Visualisation of latent distribution for a given example in the dataset
+"""
+latent_dim = 3
+from scipy.stats import norm
+min_bound = z_idm.numpy().min()
+max_bound = z_idm.numpy().max()
+for dim in range(latent_dim):
+    # plt.figure(figsize=(3, 2))
+    datos = z_idm.numpy()[:, dim]
+    (mu, sigma) = norm.fit(datos)
+    x = np.linspace(min_bound, max_bound, 300)
+    p = norm.pdf(x, mu, sigma)
+    plt.plot(x, p, linewidth=2, label=sigma)
+plt.legend()
+    # plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
+# %%
+latent_dim = 3
+from scipy.stats import norm
+min_bound = z_att.numpy().min()
+max_bound = z_att.numpy().max()
+for dim in range(latent_dim):
+    # plt.figure(figsize=(3, 2))
+    datos = z_att.numpy()[:, dim]
+    (mu, sigma) = norm.fit(datos)
+    x = np.linspace(min_bound, max_bound, 300)
+    p = norm.pdf(x, mu, sigma)
+    plt.plot(x, p, linewidth=2, label=sigma)
+plt.legend()
+    # plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
+# %%
+
+
+
 fig, ax = plt.subplots(figsize=(5, 4))
 time_axis = np.linspace(0., 7., 69)
 for sample_trace_i in range(traces_n):
@@ -680,21 +711,7 @@ idm_axis.scatter(sampled_idm_z[:, 0], sampled_idm_z[:, 1], s=15, color='black')
 ax.set_ylabel('$z_1$')
 ax.set_xlabel('$z_2$')
 # %%
-"""
-Visualisation of latent distribution for a given example in the dataset
-"""
-latent_dim = 6
-from scipy.stats import norm
-min_bound = z_idm.numpy().min()
-max_bound = z_idm.numpy().max()
-for dim in range(latent_dim):
-    # plt.figure(figsize=(3, 2))
-    datos = z_idm.numpy()[:, dim]
-    (mu, sigma) = norm.fit(datos)
-    x = np.linspace(min_bound, max_bound, 300)
-    p = norm.pdf(x, mu, sigma)
-    plt.plot(x, p, linewidth=2)
-    # plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
+
 
 # %%
 """
