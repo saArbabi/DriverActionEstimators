@@ -319,7 +319,7 @@ class IDMLayer(tf.keras.Model):
     def logistic_function(self, x, minval, maxval):
         dif_val = maxval - minval
         x = tf.clip_by_value(x, -100, 100)
-        return minval + dif_val/(1+tf.exp(-(4/dif_val)*x))
+        return minval + dif_val/(1+tf.exp(-(1/dif_val)*x))
 
     def get_des_v(self, x):
         minval = 15
