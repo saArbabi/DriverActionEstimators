@@ -68,7 +68,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '046'
+data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -84,7 +84,7 @@ else:
 """
 Load generated data.
 """
-data_id = '046'
+data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
@@ -95,7 +95,7 @@ sim_data.shape
 Prepare data
 """
 history_len = 20 # steps
-rollout_len = 20
+rollout_len = 50
 from data import data_prep
 reload(data_prep)
 from data.data_prep import DataPrep
@@ -110,7 +110,6 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 
 history_future_usc.shape
-future_e_veh_a.shape
 # %%
 train_input, test_input = prep_data(data_arrays)
 train_input[-1].shape

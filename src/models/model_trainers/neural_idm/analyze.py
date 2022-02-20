@@ -130,7 +130,7 @@ Load data
 """
 history_len = 20 # steps
 rollout_len = 50
-data_id = '046'
+data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -159,8 +159,9 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_test_73'
-epoch_count = '1'
+model_name = 'neural_idm_284'
+# model_name = 'neural_idm_test_48'
+epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -182,6 +183,11 @@ with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
     model.forward_sim.dummy_value_set = pickle.load(handle)
 # model.forward_sim.attention_temp = 10
 # %%
+a = np.zeros([512, 1])
+a[0:50, :] = 4
+a.mean()
+# %%
+
 """
 Plot loss
 """
@@ -203,22 +209,22 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_221']:
+for name in ['neural_idm_269']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
 
 plt.figure()
 for name, loss in losses.items():
-    plt.plot(loss['test_mseloss'], label=name)
-    # plt.plot(loss['train_mseloss'], label='train_mseloss')
+    plt.plot(loss['test_mseloss'], label='test_mseloss')
+    plt.plot(loss['train_mseloss'], label='train_mseloss')
     plt.grid()
     plt.legend()
 
 plt.figure()
 for name, loss in losses.items():
-    plt.plot(loss['test_klloss'], label=name)
-    # plt.plot(loss['train_mseloss'], label='train_mseloss')
+    plt.plot(loss['test_klloss'], label='test_klloss')
+    plt.plot(loss['train_mseloss'], label='train_mseloss')
     plt.grid()
     plt.legend()
 # %%
@@ -268,11 +274,11 @@ latent_vis(zsamples_n=5000)
 
 # plt.savefig("latent.png", dpi=500)
 # %%
-params = {
-          'font.size' : 12,
-          'font.family' : 'Palatino Linotype',
-          }
-plt.rcParams.update(params)
+# params = {
+#           'font.size' : 12,
+#           'font.family' : 'Palatino Linotype',
+#           }
+# plt.rcParams.update(params)
 # %%
 for i in range(10):
     plt.plot(displacement_seq[i, :, 0], color='gray')
@@ -286,14 +292,14 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 1
 traces_n = 50
 tf.random.set_seed(2021)
 
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-# distribution_name = 'posterior'
+distribution_name = 'posterior'
 
 while Example_pred < 10:
     sample_index = [val_samples[i]]
@@ -307,8 +313,10 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode == 8 and \
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att[20:25].mean() > 0 and e_veh_att[:20].mean() == 0:
-    #             e_veh_att.mean() == 0:
+                e_veh_att.mean() == 0:
+                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                # e_veh_att.mean() == 0:
+
         Example_pred += 1
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -316,7 +324,7 @@ while Example_pred < 10:
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model.h_seq_encoder(h_seq)
         if distribution_name == 'posterior':
-            f_seq = vectorise(future_sca[sample_index, :, 2:], traces_n)
+            f_seq = vectorise(future_sca[sample_index, :20, 2:], traces_n)
             enc_f = model.f_seq_encoder(f_seq)
             _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
         elif distribution_name == 'prior':
@@ -367,7 +375,7 @@ while Example_pred < 10:
         for sample_trace_i in range(traces_n):
            plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
-        plt.scatter(time_steps[19+30], 0, color='red')
+        plt.scatter(time_steps[19+20], 0, color='red')
         # plt.text(30, -6, 'true: '+ str(true_params), color='red')
         # plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
@@ -526,35 +534,41 @@ plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
 # %%
 """Prediction for an specific sample from the dataset
 """
-# model.arbiter.attention_temp = 5
 traces_n = 50
-model.forward_sim.attention_temp = 7
-# sample_index = [12374]
-sample_index = [12894]
+model.forward_sim.attention_temp = 5
+sample_index = [11540]
+sample_index = [8887]
+tf.random.set_seed(2021)
+
+distribution_name = 'prior'
+distribution_name = 'posterior'
+
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
 aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
 em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
 episode = future_idm_s[sample_index, 0, 0][0]
-# merger_cs.shape
-# plt.plot(history_future_usc[sample_index, 20: ,hf_usc_indexs['delta_x_to_merge']][0])
-# plt.plot(merger_cs[0, :, -1])
 
 merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
-# merger_cs[:, 10, -1] = 0
 h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
 future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
 enc_h = model.h_seq_encoder(h_seq)
-latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-z_ = model.belief_net.sample_z(latent_dis_param)
+if distribution_name == 'posterior':
+    f_seq = vectorise(future_sca[sample_index, :, 2:], traces_n)
+    enc_f = model.f_seq_encoder(f_seq)
+    _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
+elif distribution_name == 'prior':
+    latent_dis_param = model.belief_net(enc_h, dis_type='prior')
+z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+
+z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
-idm_params = model.idm_layer(proj_idm).numpy()
-act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, \
-                                                        future_idm_ss, merger_cs])
-act_seq, att_scores = act_seq.numpy(), att_scores.numpy()
-
-att_ = att_scores.flatten()
+idm_params = model.idm_layer(proj_idm)
+displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
+                                             future_idm_ss, merger_cs])
+f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
+act_seq = act_seq.numpy()
 plt.figure(figsize=(5, 3))
 episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
@@ -567,15 +581,41 @@ plt.text(0.1, 0.5,
         'e_veh_id: '+ info[2] +
         'aggressiveness: '+ info[3]
             , fontsize=10)
+
 true_params = []
-idm_names = ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
-for param_name in idm_names:
+for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act']:
     true_pram_val = history_future_usc[sample_index, 0, hf_usc_indexs[param_name]][0]
     true_params.append(round(true_pram_val, 2))
 
-plt.text(0.1, 0.3, 'true: '+ str(true_params)) #True
-# plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
-plt.text(0.1, 0.1, 'pred: '+ str(idm_params[:, :].mean(axis=0).round(2)))
+plt.text(0.1, 0.3, 'true: '+ str(true_params))
+plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
+plt.figure(figsize=(5, 3))
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+plt.plot(time_steps, traj, color='purple')
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+plt.plot(time_steps, traj, color='black', linewidth=2)
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+plt.plot(time_steps, traj, color='red')
+plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
+
+for sample_trace_i in range(traces_n):
+   plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
+                                color='grey', alpha=0.4)
+plt.scatter(time_steps[19+30], 0, color='red')
+# plt.text(30, -6, 'true: '+ str(true_params), color='red')
+# plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
+
+plt.title(str(sample_index[0]) + ' -- Action')
+plt.grid()
+
+plt.figure(figsize=(5, 3))
+# plt.plot(e_veh_att[:40] , color='black')
+plt.plot(time_steps , e_veh_att, color='red')
+plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
+
+for sample_trace_i in range(traces_n):
+   plt.plot(time_steps[19:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
+plt.title(str(sample_index[0]) + ' -- Attention on merger')
 
 
 # %%
@@ -643,17 +683,18 @@ ax.set_xlabel('$z_2$')
 """
 Visualisation of latent distribution for a given example in the dataset
 """
-latent_dim = 3
+latent_dim = 6
 from scipy.stats import norm
+min_bound = z_idm.numpy().min()
+max_bound = z_idm.numpy().max()
 for dim in range(latent_dim):
-    plt.figure(figsize=(3, 2))
-    datos = sampled_z.numpy()[:, dim]
+    # plt.figure(figsize=(3, 2))
+    datos = z_idm.numpy()[:, dim]
     (mu, sigma) = norm.fit(datos)
-    datos.std()
-    x = np.linspace(-1, 2, 300)
+    x = np.linspace(min_bound, max_bound, 300)
     p = norm.pdf(x, mu, sigma)
     plt.plot(x, p, linewidth=2)
-    plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
+    # plt.title('dim: '+str(dim) + ' sigma: '+str(round(sigma, 2)))
 
 # %%
 """

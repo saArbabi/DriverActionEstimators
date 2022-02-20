@@ -50,11 +50,11 @@ class AbstractModel(tf.keras.Model):
         self.test_loss.reset_states()
         self.test_loss(loss)
 
-    def batch_data(self, sets):
+    def batch_data(self, sets, batch_size):
         data_slices = tuple([tf.cast(set, dtype='float32') for set in sets])
         dataset = tf.data.Dataset.from_tensor_slices(\
             data_slices).shuffle(\
-                len(data_slices[0]), reshuffle_each_iteration=True).batch(self.batch_size)
+                len(data_slices[0]), reshuffle_each_iteration=True).batch(batch_size)
         return dataset
 
     def mse(self, act_true, act_pred):

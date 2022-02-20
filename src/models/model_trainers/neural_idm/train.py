@@ -20,7 +20,7 @@ Load data
 """
 history_len = 20 # steps
 rollout_len = 20
-data_id = '046'
+data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -36,20 +36,37 @@ with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
 train_input[-1].shape
 # %%
-train_input[-1].mean()
-train_input[-1].std()
-train_input[-1][:, :, 0:1].mean(axis=0)
-train_input[-1][:, :, -1:].shape
-train_input[-1][0:1, :, :]
-(train_input[-1][0:1, :, :] - train_input[-1][:, :, :].mean(axis=0))/train_input[-1][:, :, :].std(axis=0)
-train_input[-1].min()
+train_input[-1][:, :, 0:1].mean()
+train_input[-1][:, :, 0:1].std()
+# train_input[-1][:, :, -1:].shape
+# train_input[-1][0:1, :, :]
+# (train_input[-1][0:1, :, :] - train_input[-1][:, :, :].mean(axis=0))/train_input[-1][:, :, :].std(axis=0)
+# %%
+true =
+train_input[1].shape
+train_input[0].shape
+# %%
+train_input[0][0, :, 1]
+for i in range(10):
+    plt.figure()
+    plt.plot(train_input[0][0, :, i])
+    plt.plot(range(19, 39), train_input[1][0, :, i])
+
+
+# %%
+temp_init = 0.01
+increase_rate = 0.07
+for i in range(6):
+    print(temp_init)
+    temp_init += increase_rate
+
 # %%
 config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.1,
+    "vae_loss_weight": 0.0,
     "attention_temp": 1,
     "latent_dim": 6,
     },
@@ -75,6 +92,8 @@ class Trainer():
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config, exp_id)
+        self.model.make_event_files()
+
         self.model.forward_sim.rollout_len = 20
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
@@ -85,13 +104,14 @@ class Trainer():
 
         self.model.disx_means = train_input[-1][:, :, -1:].mean(axis=0)
         self.model.disx_std = train_input[-1][:, :, -1:].std(axis=0)
+        self.model.action_means = train_input[-1][:, :, 0].mean()
+        self.model.action_std = train_input[-1][:, :, 0].std()
 
     def load_pre_trained(self, epoch_count):
         exp_dir = self.exp_dir+'/model_epo'+epoch_count
         self.epoch_count = int(epoch_count)
         self.model.load_weights(exp_dir).expect_partial()
-        with open(os.path.dirname(exp_dir)+'/'+'losses.pickle', 'rb') as handle:
-            self.losses = pickle.load(handle)
+        self.read_losses()
 
     def update_config(self):
         config['train_info'] = {}
@@ -114,57 +134,62 @@ class Trainer():
             test_event_paths.append(path)
         return train_event_paths, test_event_paths
 
-    def read_event_loss(self):
+    def read_event_files(self):
         train_losses = {'displacement_loss':[], 'action_loss':[], \
                                                 'kl_loss':[], 'tot_loss':[]}
         test_losses = {'displacement_loss':[], 'action_loss':[], \
                                                 'kl_loss':[], 'tot_loss':[]}
         train_event_paths, test_event_paths = self.get_event_paths()
 
-        for e in tf.compat.v1.train.summary_iterator(train_event_paths[-1]):
-            for value in e.summary.value:
-                if value.tag == 'displacement_loss':
-                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
-                if value.tag == 'action_loss':
-                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
-                if value.tag == 'kl_loss':
-                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
-                if value.tag == 'tot_loss':
-                    train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+        for train_event_path in train_event_paths:
+            for e in tf.compat.v1.train.summary_iterator(train_event_path):
+                for value in e.summary.value:
+                    if value.tag == 'displacement_loss':
+                        train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                    if value.tag == 'action_loss':
+                        train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                    if value.tag == 'kl_loss':
+                        train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                    if value.tag == 'tot_loss':
+                        train_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
 
-        for e in tf.compat.v1.train.summary_iterator(test_event_paths[-1]):
-            for value in e.summary.value:
-                if value.tag == 'displacement_loss':
-                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
-                if value.tag == 'action_loss':
-                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
-                if value.tag == 'kl_loss':
-                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
-                if value.tag == 'tot_loss':
-                    test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+        for test_event_path in test_event_paths:
+            for e in tf.compat.v1.train.summary_iterator(test_event_path):
+                for value in e.summary.value:
+                    if value.tag == 'displacement_loss':
+                        test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                    if value.tag == 'action_loss':
+                        test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                    if value.tag == 'kl_loss':
+                        test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
+                    if value.tag == 'tot_loss':
+                        test_losses[value.tag].append(tf.make_ndarray(value.tensor).tolist())
         return train_losses, test_losses
 
-    def update_losses(self):
-        train_losses, test_losses = self.read_event_loss()
-        self.losses['train_losses']['displacement_loss'].extend(train_losses['displacement_loss'])
-        self.losses['test_losses']['displacement_loss'].extend(test_losses['displacement_loss'])
-        self.losses['train_losses']['action_loss'].extend(train_losses['action_loss'])
-        self.losses['test_losses']['action_loss'].extend(test_losses['action_loss'])
-        self.losses['train_losses']['kl_loss'].extend(train_losses['kl_loss'])
-        self.losses['test_losses']['kl_loss'].extend(test_losses['kl_loss'])
-        self.losses['train_losses']['tot_loss'].extend(train_losses['tot_loss'])
-        self.losses['test_losses']['tot_loss'].extend(test_losses['tot_loss'])
+    def read_losses(self):
+        train_losses, test_losses = self.read_event_files()
+        self.losses['train_losses']['displacement_loss'] = train_losses['displacement_loss']
+        self.losses['test_losses']['displacement_loss'] = test_losses['displacement_loss']
+        self.losses['train_losses']['action_loss'] = train_losses['action_loss']
+        self.losses['test_losses']['action_loss'] = test_losses['action_loss']
+        self.losses['train_losses']['kl_loss'] = train_losses['kl_loss']
+        self.losses['test_losses']['kl_loss'] = test_losses['kl_loss']
+        self.losses['train_losses']['tot_loss'] = train_losses['tot_loss']
+        self.losses['test_losses']['tot_loss'] = test_losses['tot_loss']
 
     def train(self, train_input, test_input, epochs):
         for epoch in range(epochs):
             t0 = time.time()
             self.epoch_count += 1
+            # self.model.make_event_files()
             self.model.train_test_loop([train_input, test_input])
-            # self.model.test_loop(test_input)
 
+            # self.model.test_loop(test_input)
+            # self.model.vae_loss_weight += 0.07
+            # self.model.vae_loss_weight = min(0.3, self.model.vae_loss_weight)
             print(self.epoch_count, 'epochs completed')
             print(round((time.time()-t0)), 'secs per epoch')
-        self.update_losses()
+        self.read_losses()
 
     def save_model(self):
         if not os.path.exists(self.exp_dir):
@@ -178,26 +203,24 @@ class Trainer():
         else:
             print('This checkpoint is already saved')
 
-    def save_loss(self):
-        with open(self.exp_dir+'/losses.pickle', 'wb') as handle:
-            pickle.dump(self.losses, handle)
 
 tf.random.set_seed(2021)
-exp_id = 'test_73'
+exp_id = '284'
+# exp_id = 'test_48'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='1')
-# model_trainer.test_mseloss
-# model_trainer.model.vae_loss_weight += 0.1
-
-# s%%
+# model_trainer.load_pre_trained(epoch_count='2')
+# model_trainer.model.vae_loss_weight = 0.03
+# model_trainer.model.make_event_files()
+# %%
+# model_trainer.model.vae_loss_weight = 0.1
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=1)
+model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ##################
-################## ###\## ########### #######
+################## ##### ########### #######
 ################## ##### ##################
 ################## ##### ####### ###########
 fig = plt.figure(figsize=(15, 10))
@@ -238,18 +261,16 @@ tot_axis.grid()
 tot_axis.set_xlabel('iterations')
 tot_axis.set_ylabel('tot_loss')
 tot_axis.legend(['test', 'train'])
-
 print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
-#s %%
 
-model_trainer.save_model()
-# model_trainer.save_loss()
 # %%
-x = np.linspace(-100, 20, 100)
-temp = 1/10
-min = 15
-max = 25
-y
+model_trainer.save_model()
+# %%
+x = np.linspace(-5, 5, 100)
+min = 1
+max = 5
+temp = 4/(max-min)
+
 y = min + (max-min)/(1 + np.exp(-temp*x))
 # y = np.exp(x)
 plt.plot(x, y)

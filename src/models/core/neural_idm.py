@@ -203,7 +203,8 @@ class IDMForwardSim(tf.keras.Model):
         self.f_att_neu = TimeDistributed(Dense(1))
         self.m_att_neu = TimeDistributed(Dense(1))
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
-        self.dense_linear = TimeDistributed(Dense(self.dec_units))
+        self.att_layer_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        self.att_layer_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
 
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
@@ -225,7 +226,8 @@ class IDMForwardSim(tf.keras.Model):
 
     def get_att(self, inputs, lstm_states):
         lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
-        lstm_output = self.dense_linear(lstm_output)
+        lstm_output = self.att_layer_1(lstm_output)
+        lstm_output = self.att_layer_2(lstm_output)
         # clip to avoid numerical issues (nans)
         # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
         # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))

@@ -20,7 +20,7 @@ Load data
 """
 history_len = 20 # steps
 rollout_len = 50
-data_id = '046'
+data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
