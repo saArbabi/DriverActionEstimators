@@ -40,7 +40,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + displacement_loss + action_loss
+        return self.vae_loss_weight*kl_loss + 5*displacement_loss + action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
@@ -322,28 +322,28 @@ class IDMLayer(tf.keras.Model):
         return minval + dif_val/(1+tf.exp(-(4/dif_val)*x))
 
     def get_des_v(self, x):
-        minval = 10
-        maxval = 30
+        minval = 15
+        maxval = 25
         return self.logistic_function(x, minval, maxval)
 
     def get_des_tgap(self, x):
-        minval = 0.1
-        maxval = 2.5
+        minval = 0.5
+        maxval = 2
         return self.logistic_function(x, minval, maxval)
 
     def get_min_jamx(self, x):
-        minval = 0.1
-        maxval = 6
+        minval = 1
+        maxval = 5
         return self.logistic_function(x, minval, maxval)
 
     def get_max_act(self, x):
-        minval = 1
-        maxval = 5
+        minval = 2
+        maxval = 4
         return self.logistic_function(x, minval, maxval)
 
     def get_min_act(self, x):
-        minval = 1
-        maxval = 5
+        minval = 2
+        maxval = 4
         return self.logistic_function(x, minval, maxval)
 
     def call(self, x):
