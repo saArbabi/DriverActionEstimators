@@ -272,15 +272,15 @@ class IDMForwardSim(tf.keras.Model):
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                             (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
             # tf.print('############ ef_act ############')
-            # env_state = tf.concat([ego_v, f_veh_v, \
-            #                         ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
-            # env_state = self.scale_env_s(env_state)
-            # merger_c = merger_cs[:, step-1:step, :]
-            #
-            # inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
-            # f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
-            m_att_score = idm_s[:, step-1:step, -3:-2]
-            f_att_score = 1 - m_att_score
+            env_state = tf.concat([ego_v, f_veh_v, \
+                                    ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
+            env_state = self.scale_env_s(env_state)
+            merger_c = merger_cs[:, step-1:step, :]
+
+            inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
+            f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
+            # m_att_score = idm_s[:, step-1:step, -3:-2]
+            # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
             ef_act = self.idm_driver(idm_state, idm_params)
             idm_state = [ego_v, em_dv, em_delta_x]
