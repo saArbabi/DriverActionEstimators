@@ -36,7 +36,10 @@ class DataPrep():
         cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1)).all(axis=1)
         cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1)).all(axis=1)
 
-        cond = np.all([cond_hist, cond_fut], axis=0)
+        action_cond_hist = ((np.abs(history_seqs[:,:, self.names_to_index('e_veh_action')]) > 0.1)).any(axis=1)
+        action_cond_fut = ((np.abs(future_seqs[:,:, self.names_to_index('e_veh_action')]) > 0.1)).any(axis=1)
+
+        cond = np.all([cond_hist, cond_fut, action_cond_hist, action_cond_fut], axis=0)
         return history_seqs[cond], future_seqs[cond]
 
     def sequence(self, features, history_len, rollout_len):
