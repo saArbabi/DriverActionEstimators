@@ -159,7 +159,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_284'
+model_name = 'neural_idm_285'
 # model_name = 'neural_idm_test_48'
 epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
@@ -292,7 +292,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 1
+model.forward_sim.attention_temp = 5
 traces_n = 50
 tf.random.set_seed(2021)
 
@@ -313,8 +313,8 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode == 8 and \
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att.mean() == 0:
-                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                # e_veh_att.mean() == 0:
                 # e_veh_att.mean() == 0:
 
         Example_pred += 1

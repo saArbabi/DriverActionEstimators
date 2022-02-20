@@ -205,7 +205,7 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '284'
+exp_id = '285'
 # exp_id = 'test_48'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
