@@ -140,8 +140,8 @@ class BeliefModel(tf.keras.Model):
         sampled_z = z_mean + z_sigma*_epsilon
         # tf.print('z_min: ', tf.reduce_min(z_sigma))
         # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        # return sampled_z[:, :3], sampled_z[:, 3:]
-        return sampled_z, sampled_z
+        return sampled_z[:, :3], sampled_z[:, 3:]
+        # return sampled_z, sampled_z
 
     def pri_proj(self, enc_h):
         return self.proj_pri(enc_h)
