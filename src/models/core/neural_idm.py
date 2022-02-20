@@ -319,31 +319,31 @@ class IDMLayer(tf.keras.Model):
     def logistic_function(self, x, minval, maxval):
         dif_val = maxval - minval
         x = tf.clip_by_value(x, -100, 100)
-        return minval + dif_val/(1+tf.exp(-(1/dif_val)*x))
+        return minval + dif_val/(1+tf.exp(-(4/dif_val)*x))
 
     def get_des_v(self, x):
-        minval = 15
-        maxval = 25
+        minval = 10
+        maxval = 30
         return self.logistic_function(x, minval, maxval)
 
     def get_des_tgap(self, x):
-        minval = 0.5
-        maxval = 2
+        minval = 0.1
+        maxval = 2.5
         return self.logistic_function(x, minval, maxval)
 
     def get_min_jamx(self, x):
+        minval = 0.1
+        maxval = 6
+        return self.logistic_function(x, minval, maxval)
+
+    def get_max_act(self, x):
         minval = 1
         maxval = 5
         return self.logistic_function(x, minval, maxval)
 
-    def get_max_act(self, x):
-        minval = 2
-        maxval = 4
-        return self.logistic_function(x, minval, maxval)
-
     def get_min_act(self, x):
-        minval = 2
-        maxval = 4
+        minval = 1
+        maxval = 5
         return self.logistic_function(x, minval, maxval)
 
     def call(self, x):
