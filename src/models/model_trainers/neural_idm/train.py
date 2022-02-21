@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 50
+rollout_len = 20
 data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -43,9 +43,9 @@ train_input[-1][:, :, 0:1].std()
 config = {
  "model_config": {
     "dataset_name": dataset_name,
-    "learning_rate": 1e-3,
-    "batch_size": 512,
-    "vae_loss_weight": 0.1,
+    "learning_rate": 1e-4,
+    "batch_size": 128,
+    "vae_loss_weight": 0.01,
     "attention_temp": 1,
     "latent_dim": 6,
     },
@@ -179,8 +179,8 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '306'
-# exp_id = 'test_1'
+# exp_id = '319'
+exp_id = 'test_10'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
@@ -193,7 +193,7 @@ print(model_trainer.exp_dir)
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=5)
+model_trainer.train(train_input, test_input, epochs=10)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################
@@ -210,6 +210,7 @@ itr_step = np.linspace(0, len(train_losses['displacement_loss']), len(test_losse
 
 np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
 np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
+np.array(train_losses['action_loss']).min()/np.array(train_losses['displacement_loss']).min()
 ################## displacement_loss LOSS ####    ###########
 displacement_axis.plot(itr_step, test_losses['displacement_loss'], color='blue')
 displacement_axis.plot(train_losses['displacement_loss'], color='red')
@@ -240,8 +241,9 @@ tot_axis.set_ylabel('tot_loss')
 tot_axis.legend(['test', 'train'])
 print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
 
-# %%
+#x %%
 model_trainer.save_model()
+
 # %%
 x = np.linspace(-5, 5, 100)
 min = 1

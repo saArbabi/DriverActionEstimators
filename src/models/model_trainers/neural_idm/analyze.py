@@ -159,10 +159,11 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_306'
-# model_name = 'neural_idm_test_48'
+# model_name = 'neural_idm_319'
+model_name = 'neural_idm_test_10'
 epoch_count = '10'
-epoch_count = '5'
+# epoch_count = '5'
+# epoch_count = '2'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -182,7 +183,7 @@ with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
 
 with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
     model.forward_sim.dummy_value_set = pickle.load(handle)
-# model.forward_sim.attention_temp = 10
+print(exp_path)
 # %%
 a = np.zeros([512, 1])
 a[0:50, :] = 4
@@ -302,7 +303,7 @@ sepcific_samples = []
 distribution_name = 'prior'
 # distribution_name = 'posterior'
 
-while Example_pred < 10:
+while Example_pred < 20:
     sample_index = [val_samples[i]]
     # sample_index = [train_samples[i]]
     # sample_index = [i]
@@ -324,7 +325,7 @@ while Example_pred < 10:
         future_idm_ss = vectorise(future_idm_s[sample_index, :, 2:], traces_n)
         enc_h = model.h_seq_encoder(h_seq)
         if distribution_name == 'posterior':
-            f_seq = vectorise(future_sca[sample_index, :, 2:], traces_n)
+            f_seq = vectorise(future_sca[sample_index, :20, 2:], traces_n)
             enc_f = model.f_seq_encoder(f_seq)
             _, latent_dis_param = model.belief_net([enc_h, enc_f], dis_type='both')
         elif distribution_name == 'prior':
@@ -425,7 +426,9 @@ plt.plot(dxs[sample_index[0], :, 0], color='red')
 
 
 # %%
-sample_index = [5755]
+sample_index = [7217]
+model.forward_sim.attention_temp = 5
+
 # sample_index = [train_samples[i]]
 # sample_index = [i]
 i += 1
@@ -493,8 +496,8 @@ for sample_trace_i in range(traces_n):
    plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
                                 color='grey', alpha=0.4)
 plt.scatter(time_steps[19+30], 0, color='red')
-plt.text(30, -6, 'true: '+ str(true_params), color='red')
-plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
+# plt.text(30, -6, 'true: '+ str(true_params), color='red')
+# plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
 plt.title(str(sample_index[0]) + ' -- Action')
 plt.grid()
@@ -538,6 +541,7 @@ traces_n = 50
 model.forward_sim.attention_temp = 5
 sample_index = [11540]
 sample_index = [11086]
+sample_index = [7217]
 tf.random.set_seed(2021)
 
 distribution_name = 'prior'
