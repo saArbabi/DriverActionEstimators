@@ -40,7 +40,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + 5*displacement_loss + action_loss
+        return self.vae_loss_weight*kl_loss + 5*displacement_loss + 0.1*action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params

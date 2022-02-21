@@ -66,7 +66,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.1,
+    "vae_loss_weight": 0.05,
     "attention_temp": 1,
     "latent_dim": 6,
     },
@@ -200,7 +200,7 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '292'
+exp_id = '297'
 # exp_id = 'test_48'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)

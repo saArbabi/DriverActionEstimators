@@ -159,9 +159,9 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_292'
+model_name = 'neural_idm_297'
 # model_name = 'neural_idm_test_48'
-epoch_count = '10'
+epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -299,7 +299,7 @@ tf.random.set_seed(2021)
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-distribution_name = 'posterior'
+# distribution_name = 'posterior'
 
 while Example_pred < 10:
     sample_index = [val_samples[i]]
