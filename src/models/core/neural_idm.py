@@ -40,7 +40,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + 5*displacement_loss + 0.1*action_loss
+        return self.vae_loss_weight*kl_loss + 15*displacement_loss + 0.05*action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_params_idm, pri_params_att = pri_params
@@ -133,7 +133,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 128
+        self.proj_dim = 64
         self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
@@ -227,7 +227,7 @@ class IDMForwardSim(tf.keras.Model):
     def __init__(self, config):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.attention_temp = config['model_config']['attention_temp']
-        self.proj_dim = 128
+        self.proj_dim = 64
         self.dec_units = 128
         self.architecture_def()
 
@@ -260,9 +260,6 @@ class IDMForwardSim(tf.keras.Model):
         lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
         lstm_output = self.att_layer_1(lstm_output)
         lstm_output = self.att_layer_2(lstm_output)
-        # clip to avoid numerical issues (nans)
-        # f_att_score = 1/(1+tf.exp(-self.attention_temp*self.f_att_neu(x)))
-        # m_att_score = 1/(1+tf.exp(-self.attention_temp*self.m_att_neu(x)))
         f_att_score = tf.exp(self.f_att_neu(lstm_output)*self.attention_temp)
         m_att_score = tf.exp(self.m_att_neu(lstm_output)*self.attention_temp)
         att_sum = f_att_score + m_att_score
@@ -278,7 +275,7 @@ class IDMForwardSim(tf.keras.Model):
         idm_params, proj_latent, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = self.reshape_idm_params(idm_params, batch_size)
-        enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
+        # enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
         init_lstm_state = tf.zeros([batch_size, self.dec_units])
         lstm_states = [init_lstm_state, init_lstm_state]
@@ -311,7 +308,7 @@ class IDMForwardSim(tf.keras.Model):
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step-1:step, :]
 
-            inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
+            inputs = tf.concat([proj_latent, env_state, merger_c], axis=-1)
             f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
 
             # m_att_score = idm_s[:, step-1:step, -3:-2]

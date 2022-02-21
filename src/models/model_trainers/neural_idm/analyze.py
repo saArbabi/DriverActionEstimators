@@ -159,8 +159,9 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_296'
+model_name = 'neural_idm_306'
 # model_name = 'neural_idm_test_48'
+epoch_count = '10'
 epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -540,7 +541,7 @@ sample_index = [11086]
 tf.random.set_seed(2021)
 
 distribution_name = 'prior'
-# distribution_name = 'posterior'
+distribution_name = 'posterior'
 
 e_veh_att = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_att'])
 m_veh_exists = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_exists'])
