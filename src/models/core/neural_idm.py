@@ -43,12 +43,22 @@ class NeurIDMModel(AbstractModel):
         return self.vae_loss_weight*kl_loss + 5*displacement_loss + action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
-        pri_mean, pri_logsigma = pri_params
-        pos_mean, pos_logsigma = pos_params
+        pri_params_idm, pri_params_att = pri_params
+        pos_params_idm, pos_params_att = pos_params
 
-        prior = tfd.Normal(loc=pri_mean, scale=tf.exp(pri_logsigma))
-        posterior = tfd.Normal(loc=pos_mean, scale=tf.exp(pos_logsigma))
-        return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
+        prior_idm = tfd.Normal(loc=pri_params_idm[0], \
+                               scale=tf.exp(pri_params_idm[1]))
+        prior_att = tfd.Normal(loc=pri_params_att[0], \
+                               scale=tf.exp(pri_params_att[1]))
+
+        posterior_idm = tfd.Normal(loc=pos_params_idm[0], \
+                               scale=tf.exp(pos_params_idm[1]))
+        posterior_att = tfd.Normal(loc=pos_params_att[0], \
+                               scale=tf.exp(pos_params_att[1]))
+
+        kl_idm = tfp.distributions.kl_divergence(posterior_idm, prior_idm)
+        kl_att = tfp.distributions.kl_divergence(posterior_att, prior_att)
+        return tf.reduce_mean(kl_idm), tf.reduce_mean(kl_att)
 
     def train_test_loop(self, train_test_data):
         # tf.print('######## TRAIN #######:')
@@ -67,8 +77,11 @@ class NeurIDMModel(AbstractModel):
             _pred, pri_params, pos_params = self(states)
             displacement_loss = self.get_displacement_loss(targets, _pred[0])
             action_loss = self.get_action_loss(targets, _pred[1])
-            kl_loss = self.get_kl_loss(pri_params, pos_params)
-            loss = self.get_tot_loss(kl_loss, displacement_loss, action_loss)
+            kl_loss_idm, kl_loss_att = self.get_kl_loss(pri_params, pos_params)
+            kl_loss = kl_loss_idm + kl_loss_att
+            loss = self.get_tot_loss(kl_loss,
+                                     displacement_loss,
+                                     action_loss)
 
 
         gradients = tape.gradient(loss, self.trainable_variables)
@@ -86,8 +99,12 @@ class NeurIDMModel(AbstractModel):
         _pred, pri_params, pos_params = self(states)
         displacement_loss = self.get_displacement_loss(targets, _pred[0])
         action_loss = self.get_action_loss(targets, _pred[1])
-        kl_loss = self.get_kl_loss(pri_params, pos_params)
-        loss = self.get_tot_loss(kl_loss, displacement_loss, action_loss)
+        kl_loss_idm, kl_loss_att = self.get_kl_loss(pri_params, pos_params)
+        kl_loss = kl_loss_idm + kl_loss_att
+        loss = self.get_tot_loss(kl_loss,
+                                 displacement_loss,
+                                 action_loss)
+
         with self.test_writer.as_default():
             tf.summary.scalar('displacement_loss', displacement_loss, step=step)
             tf.summary.scalar('action_loss', action_loss, step=step)
@@ -121,10 +138,15 @@ class BeliefModel(tf.keras.Model):
         self.architecture_def()
 
     def architecture_def(self):
-        self.pri_mean = Dense(self.latent_dim)
-        self.pri_logsigma = Dense(self.latent_dim)
-        self.pos_mean = Dense(self.latent_dim)
-        self.pos_logsigma = Dense(self.latent_dim)
+        self.pri_mean_idm = Dense(self.latent_dim)
+        self.pri_logsigma_idm = Dense(self.latent_dim)
+        self.pri_mean_att = Dense(self.latent_dim)
+        self.pri_logsigma_att = Dense(self.latent_dim)
+
+        self.pos_mean_idm = Dense(self.latent_dim)
+        self.pos_logsigma_idm = Dense(self.latent_dim)
+        self.pos_mean_att = Dense(self.latent_dim)
+        self.pos_logsigma_att = Dense(self.latent_dim)
 
         self.proj_pri = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_pos = Dense(self.proj_dim, activation=LeakyReLU())
@@ -132,16 +154,16 @@ class BeliefModel(tf.keras.Model):
         self.proj_idm = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_att = Dense(self.proj_dim, activation=LeakyReLU())
 
-    def sample_z(self, dis_params):
-        z_mean, z_logsigma = dis_params
-        _epsilon = tf.random.normal(shape=(tf.shape(z_mean)[0],
+    def sample_z(self, distribution_params):
+        params_idm, params_att = distribution_params
+        _epsilon = tf.random.normal(shape=(tf.shape(params_idm[0])[0],
                                  self.latent_dim), mean=0., stddev=1)
-        z_sigma = K.exp(z_logsigma)
-        sampled_z = z_mean + z_sigma*_epsilon
-        # tf.print('z_min: ', tf.reduce_min(z_sigma))
-        # tf.print('z_max: ', tf.reduce_max(z_sigma))
-        return sampled_z[:, :3], sampled_z[:, 3:]
-        # return sampled_z, sampled_z
+        sampled_z_idm = params_idm[0] + K.exp(params_idm[1])*_epsilon
+
+        _epsilon = tf.random.normal(shape=(tf.shape(params_att[0])[0],
+                                 self.latent_dim), mean=0., stddev=1)
+        sampled_z_att = params_att[0] + K.exp(params_att[1])*_epsilon
+        return sampled_z_idm, sampled_z_att
 
     def pri_proj(self, enc_h):
         return self.proj_pri(enc_h)
@@ -160,24 +182,34 @@ class BeliefModel(tf.keras.Model):
             enc_h, enc_f = inputs
             # prior
             pri_context = self.pri_proj(enc_h)
-            pri_mean = self.pri_mean(pri_context)
-            pri_logsigma = self.pri_logsigma(pri_context)
+            pri_mean_idm = self.pri_mean_idm(pri_context)
+            pri_logsigma_idm = self.pri_logsigma_idm(pri_context)
+            pri_mean_att = self.pri_mean_att(pri_context)
+            pri_logsigma_att = self.pri_logsigma_att(pri_context)
+            pri_params_idm = [pri_mean_idm, pri_logsigma_idm]
+            pri_params_att = [pri_mean_att, pri_logsigma_att]
 
             # posterior
             pos_context = self.pos_proj(enc_h, enc_f)
-            pos_mean = self.pos_mean(pos_context)
-            pos_logsigma = self.pos_logsigma(pos_context)
+            pos_mean_idm = self.pos_mean_idm(pos_context)
+            pos_logsigma_idm = self.pos_logsigma_idm(pos_context)
+            pos_mean_att = self.pos_mean_att(pos_context)
+            pos_logsigma_att = self.pos_logsigma_att(pos_context)
+            pos_params_idm = [pos_mean_idm, pos_logsigma_idm]
+            pos_params_att = [pos_mean_att, pos_logsigma_att]
 
-            pri_params = [pri_mean, pri_logsigma]
-            pos_params = [pos_mean, pos_logsigma]
-            return pri_params, pos_params
+
+            return [pri_params_idm, pri_params_att], [pos_params_idm, pos_params_att]
 
         elif dis_type == 'prior':
             pri_context = self.pri_proj(inputs)
-            pri_mean = self.pri_mean(pri_context)
-            pri_logsigma = self.pri_logsigma(pri_context)
-            pri_params = [pri_mean, pri_logsigma]
-            return pri_params
+            pri_mean_idm = self.pri_mean_idm(pri_context)
+            pri_logsigma_idm = self.pri_logsigma_idm(pri_context)
+            pri_mean_att = self.pri_mean_att(pri_context)
+            pri_logsigma_att = self.pri_logsigma_att(pri_context)
+            pri_params_idm = [pri_mean_idm, pri_logsigma_idm]
+            pri_params_att = [pri_mean_att, pri_logsigma_att]
+            return [pri_params_idm, pri_params_att]
 
 class SeqEncoder(tf.keras.Model):
     def __init__(self):
@@ -281,6 +313,7 @@ class IDMForwardSim(tf.keras.Model):
 
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
             f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
+
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]

@@ -38,27 +38,6 @@ train_input[-1].shape
 # %%
 train_input[-1][:, :, 0:1].mean()
 train_input[-1][:, :, 0:1].std()
-# train_input[-1][:, :, -1:].shape
-# train_input[-1][0:1, :, :]
-# (train_input[-1][0:1, :, :] - train_input[-1][:, :, :].mean(axis=0))/train_input[-1][:, :, :].std(axis=0)
-# %%
-true =
-train_input[1].shape
-train_input[0].shape
-# %%
-train_input[0][0, :, 1]
-for i in range(10):
-    plt.figure()
-    plt.plot(train_input[0][0, :, i])
-    plt.plot(range(19, 39), train_input[1][0, :, i])
-
-
-# %%
-temp_init = 0.01
-increase_rate = 0.07
-for i in range(6):
-    print(temp_init)
-    temp_init += increase_rate
 
 # %%
 config = {
@@ -66,7 +45,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.1,
+    "vae_loss_weight": 0.05,
     "attention_temp": 1,
     "latent_dim": 6,
     },
@@ -94,7 +73,7 @@ class Trainer():
         self.model = NeurIDMModel(config, exp_id)
         self.model.make_event_files()
 
-        self.model.forward_sim.rollout_len = 50
+        self.model.forward_sim.rollout_len = rollout_len
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
             self.model.forward_sim.env_scaler = pickle.load(handle)
@@ -200,12 +179,12 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '292'
-# exp_id = 'test_48'
+exp_id = '295'
+# exp_id = 'test_1'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='1')
 # model_trainer.model.vae_loss_weight = 0.03
 # model_trainer.model.make_event_files()
 print(model_trainer.exp_dir)
@@ -219,8 +198,6 @@ model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ########### #######
 ################## ##### ##################
 ################## ##### ####### ###########
-# c%%
-
 fig = plt.figure(figsize=(15, 10))
 # plt.style.use('default')
 
