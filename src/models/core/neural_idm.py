@@ -133,7 +133,7 @@ class NeurIDMModel(AbstractModel):
 class BeliefModel(tf.keras.Model):
     def __init__(self, config):
         super(BeliefModel, self).__init__(name="BeliefModel")
-        self.proj_dim = 64
+        self.proj_dim = 128
         self.latent_dim = config['model_config']['latent_dim']
         self.architecture_def()
 
@@ -227,7 +227,7 @@ class IDMForwardSim(tf.keras.Model):
     def __init__(self, config):
         super(IDMForwardSim, self).__init__(name="IDMForwardSim")
         self.attention_temp = config['model_config']['attention_temp']
-        self.proj_dim = 64
+        self.proj_dim = 128
         self.dec_units = 128
         self.architecture_def()
 
