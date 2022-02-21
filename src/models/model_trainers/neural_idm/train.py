@@ -47,7 +47,7 @@ config = {
     "batch_size": 512,
     "vae_loss_weight": 0.05,
     "attention_temp": 1,
-    "latent_dim": 6,
+    "latent_dim": 3,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -179,7 +179,7 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '295'
+exp_id = '296'
 # exp_id = 'test_1'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
@@ -208,8 +208,8 @@ tot_axis = fig.add_subplot(224)
 train_losses, test_losses = model_trainer.losses['train_losses'], model_trainer.losses['test_losses']
 itr_step = np.linspace(0, len(train_losses['displacement_loss']), len(test_losses['displacement_loss']))
 
-# np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
-# np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
+np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
+np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
 ################## displacement_loss LOSS ####    ###########
 displacement_axis.plot(itr_step, test_losses['displacement_loss'], color='blue')
 displacement_axis.plot(train_losses['displacement_loss'], color='red')
