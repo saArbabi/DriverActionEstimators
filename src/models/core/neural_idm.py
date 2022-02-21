@@ -40,7 +40,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + 15*displacement_loss + 0.05*action_loss
+        return self.vae_loss_weight*kl_loss + 15*displacement_loss + 0.01*action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_params_idm, pri_params_att = pri_params
@@ -246,7 +246,7 @@ class IDMForwardSim(tf.keras.Model):
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
-        return self.clip_value(act, 5.5)
+        return self.clip_value(act, 10)
 
     def clip_value(self, tensor, clip_lim):
         "This is needed to avoid infinities"
@@ -310,6 +310,8 @@ class IDMForwardSim(tf.keras.Model):
 
             inputs = tf.concat([proj_latent, env_state, merger_c], axis=-1)
             f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
+            m_att_score = m_att_score*m_veh_exists*tf.cast(\
+                                        tf.greater(em_delta_x, 0.5), tf.float32)
 
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
@@ -319,6 +321,7 @@ class IDMForwardSim(tf.keras.Model):
             em_act = self.idm_driver(idm_state, idm_params)
             # _act = f_att_score*ef_act + m_att_score*em_act
             _act = f_att_score*ef_act + m_att_score*em_act
+
             displacement += ego_v*0.1 + 0.5*_act*0.1**2
             ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
             ego_v += _act*0.1
