@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 20
+rollout_len = 50
 data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -184,7 +184,7 @@ exp_id = '320'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='1')
+model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.model.vae_loss_weight = 0.03
 # model_trainer.model.make_event_files()
 print(model_trainer.exp_dir)
@@ -193,7 +193,7 @@ print(model_trainer.exp_dir)
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=2)
+model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################
@@ -208,9 +208,9 @@ tot_axis = fig.add_subplot(224)
 train_losses, test_losses = model_trainer.losses['train_losses'], model_trainer.losses['test_losses']
 itr_step = np.linspace(0, len(train_losses['displacement_loss']), len(test_losses['displacement_loss']))
 
-np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
-np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
-np.array(train_losses['action_loss']).min()/np.array(train_losses['displacement_loss']).min()
+# np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
+# np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
+# np.array(train_losses['action_loss']).min()/np.array(train_losses['displacement_loss']).min()
 ################## displacement_loss LOSS ####    ###########
 displacement_axis.plot(itr_step, test_losses['displacement_loss'], color='blue')
 displacement_axis.plot(train_losses['displacement_loss'], color='red')

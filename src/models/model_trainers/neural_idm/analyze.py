@@ -161,7 +161,7 @@ Load model (with config file)
 """
 model_name = 'neural_idm_320'
 # model_name = 'neural_idm_test_15'
-epoch_count = '2'
+epoch_count = '15'
 # epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -293,7 +293,7 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 2
 traces_n = 50
 tf.random.set_seed(2021)
 
@@ -334,7 +334,7 @@ while Example_pred < 10:
         proj_idm = model.belief_net.z_proj_idm(z_idm)
         proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
-        displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
+        displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att,\
                                                      future_idm_ss, merger_cs])
         f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
         act_seq = act_seq.numpy()
@@ -451,7 +451,7 @@ z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm)
-displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
+displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att,\
                                              future_idm_ss, merger_cs])
 f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
 act_seq = act_seq.numpy()
@@ -564,7 +564,7 @@ z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm)
-displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
+displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att,\
                                              future_idm_ss, merger_cs])
 f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
 act_seq = act_seq.numpy()

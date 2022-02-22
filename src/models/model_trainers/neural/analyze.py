@@ -40,47 +40,28 @@ def latent_samples(model, sample_index):
     return sampled_z
 
 def latent_vis(zsamples_n):
-    fig = pyplot.figure(figsize=(5, 4))
+    fig = pyplot.figure(figsize=(4, 4))
     examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
     sampled_z = latent_samples(model, examples_to_vis).numpy()
     #===============
     #  First subplot
     #===============
     # set up the axes for the first plot
-    ax = fig.add_subplot(1, 1, 1, projection='3d')
-    ax.xaxis.set_tick_params(pad=1, which='both')
-    ax.yaxis.set_tick_params(pad=1, which='both')
-    ax.zaxis.set_tick_params(pad=1, which='both')
-    # # ax.set_xlabel('$z_{1}$', labelpad=1)
-    # # ax.set_ylabel('$z_{2}$', labelpad=1)
-    # # ax.set_zlabel('$z_{3}$', labelpad=1)
-    # x ticks
-    ax.set_xticks([-4, -2, 0, 2], minor=False)
+    ax = fig.add_subplot(1, 1, 1)
 
-    # y ticks
-    ax.set_yticks([-2, 0, 2], minor=False)
-
-    # z ticks
-    ax.set_zticks([-6, -3, 0, 3, 6], minor=False)
     ax.minorticks_off()
+
 
     aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiveness']]
     color_shade = aggressiveness
-    latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
+    # latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
+    #               s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+    latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1],
                   s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
 
-    axins = inset_axes(ax,
-                        width="5%",
-                        height="90%",
-                        loc='right',
-                        borderpad=-2
-                       )
-
-    fig.colorbar(latent_plot, cax=axins, ticks=np.arange(0, 1.1, 0.2))
-
     ax.grid(False)
-    ax.view_init(30, 50)
 
+    return ax
 
 def vectorise(step_row, traces_n):
     return np.repeat(step_row, traces_n, axis=0)
@@ -127,8 +108,8 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_039'
-epoch_count = '10'
+model_name = 'neural_040'
+epoch_count = '15'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -231,10 +212,10 @@ while Example_pred < 10:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode not in covered_episodes:
-    if episode not in covered_episodes and \
-                e_veh_att[20:45].mean() > 0 and e_veh_att[:20].mean() == 0:
-                # e_veh_att.mean() == 0:
+    if episode not in covered_episodes and episode != -8 and \
+                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+
+        Example_pred += 1
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
         h_seq = vectorise(history_sca[sample_index, :, 2:], traces_n)
@@ -242,8 +223,8 @@ while Example_pred < 10:
         enc_h = model.h_seq_encoder(h_seq)
         prior_param = model.belief_net(enc_h, dis_type='prior')
         sampled_z = model.belief_net.sample_z(prior_param)
-        proj_latent = model.belief_net.belief_proj(sampled_z)
-        _, act_seq = model.forward_sim.rollout([proj_latent, enc_h, \
+        proj_latent = model.belief_net.z_proj(sampled_z)
+        _, act_seq = model.forward_sim.rollout([proj_latent, \
                                                     future_idm_ss, merger_cs])
         act_seq = act_seq.numpy()
 
@@ -278,4 +259,3 @@ while Example_pred < 10:
         plt.grid()
 
         plt.figure(figsize=(5, 3))
-        Example_pred += 1
