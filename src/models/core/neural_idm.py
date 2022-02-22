@@ -40,7 +40,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + 15*displacement_loss + 0.01*action_loss
+        return self.vae_loss_weight*kl_loss + 10*displacement_loss + 0.1*action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_params_idm, pri_params_att = pri_params
@@ -310,8 +310,6 @@ class IDMForwardSim(tf.keras.Model):
 
             inputs = tf.concat([proj_latent, env_state, merger_c], axis=-1)
             f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
-            m_att_score = m_att_score*m_veh_exists*tf.cast(\
-                                        tf.greater(em_delta_x, 0.5), tf.float32)
 
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
