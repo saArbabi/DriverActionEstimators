@@ -89,6 +89,7 @@ class NeurIDMModel(AbstractModel):
 
         gradients = tape.gradient(loss, self.trainable_variables)
         # tf.print('xxxxx gradients: ', gradients)
+        tf.debugging.check_numerics(loss, message='Checking loss')
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         with self.train_writer.as_default():
@@ -125,7 +126,7 @@ class NeurIDMModel(AbstractModel):
         proj_att = self.belief_net.z_proj_att(z_att)
         idm_params = self.idm_layer(proj_idm)
         displacement_seq, action_seq, _ = self.forward_sim.rollout([\
-                                idm_params, proj_att, enc_h,
+                                idm_params, proj_att,
                                 inputs[2], inputs[-1]])
         # tf.print('###############:')
         # tf.print('att_scoreax: ', tf.reduce_max(att_scores))
@@ -153,7 +154,7 @@ class BeliefModel(tf.keras.Model):
 
         self.proj_pri = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_pos = Dense(self.proj_dim, activation=LeakyReLU())
-        ####
+
         self.proj_idm = Dense(self.proj_dim, activation=LeakyReLU())
         self.proj_att = Dense(self.proj_dim, activation=LeakyReLU())
 
@@ -237,10 +238,9 @@ class IDMForwardSim(tf.keras.Model):
     def architecture_def(self):
         self.f_att_neu = TimeDistributed(Dense(1))
         self.m_att_neu = TimeDistributed(Dense(1))
-        self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
+        self.lstm_layer = LSTM(self.dec_units)
         self.att_layer_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.att_layer_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
-        # self.att_layer_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
 
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
@@ -261,7 +261,6 @@ class IDMForwardSim(tf.keras.Model):
         return env_state
 
     def get_att(self, inputs):
-        # lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
         x = self.att_layer_1(inputs)
         x = self.att_layer_2(x)
         f_att_score = tf.exp(self.f_att_neu(x)*self.attention_temp)
@@ -276,16 +275,16 @@ class IDMForwardSim(tf.keras.Model):
         return tf.split(idm_params, 5, axis=-1)
 
     def rollout(self, inputs):
-        idm_params, proj_latent, enc_h, idm_s, merger_cs = inputs
+        idm_params, proj_latent, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         idm_params = self.reshape_idm_params(idm_params, batch_size)
-        # enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
 
         displacement = tf.zeros([batch_size, 1, 1])
         displacement_seq = displacement
         ego_v = idm_s[:,  0:1, 0:1]
         ego_glob_x = idm_s[:,  0:1, 3:4]
+        lstm_output = self.lstm_layer(ego_glob_x)
         for step in range(1, self.rollout_len+1):
             f_veh_v = idm_s[:, step-1:step, 1:2]
             m_veh_v = idm_s[:, step-1:step, 2:3]
