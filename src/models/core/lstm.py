@@ -46,12 +46,12 @@ class LSTMEncoder(AbstractModel):
         self.neu_var = Dense(1, activation=K.exp)
 
     def train_loop(self, data_objs):
-        train_ds = self.batch_data(data_objs)
+        train_ds = self.batch_data(data_objs, self.batch_size)
         for s, t in train_ds:
             self.train_step(s, t)
 
     def test_loop(self, data_objs):
-        train_ds = self.batch_data(data_objs)
+        train_ds = self.batch_data(data_objs, self.batch_size)
         for s, t in train_ds:
             self.test_step(s, t)
 

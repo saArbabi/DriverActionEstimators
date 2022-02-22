@@ -35,13 +35,13 @@ class LatentMLP(AbstractModel):
 
     def train_loop(self, data_objs):
         # tf.print('######## TRAIN #######:')
-        train_ds = self.batch_data(data_objs)
+        train_ds = self.batch_data(data_objs, self.batch_size)
         for history_sca, history_e_veh_a in train_ds:
             self.train_step(history_sca, history_e_veh_a)
 
     def test_loop(self, data_objs):
         # tf.print('######## TEST #######:')
-        train_ds = self.batch_data(data_objs)
+        train_ds = self.batch_data(data_objs, self.batch_size)
         for history_sca, history_e_veh_a in train_ds:
             self.test_step(history_sca, history_e_veh_a)
 

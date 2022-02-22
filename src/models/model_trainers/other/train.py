@@ -15,7 +15,7 @@ import json
 sys.path.insert(0, './src')
 # %%
 history_len = 20 # steps
-rollout_len = 30
+rollout_len = 50
 data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -26,7 +26,7 @@ with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     train_input = pickle.load(handle)
 data_arr_name = 'test_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
-train_input[0].shape
+train_input[-1].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
@@ -113,9 +113,9 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_type = 'mlp'
-model_type = 'lstm'
+# model_type = 'lstm'
 model_trainer = Trainer(model_type)
-exp_id = '03'
+exp_id = '04'
 model_name = model_type+'_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, test_input, epochs=1)
@@ -124,12 +124,12 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 # %%
 
 if model_trainer.model_type == 'mlp':
-    _train_input = [train_input[0][:,-1,:], train_input[-1][:,0,:]]
-    _test_input = [test_input[0][:,-1,:], test_input[-1][:,0,:]]
+    _train_input = [train_input[0][:,-1,:], train_input[-1][:,0, 0:1]]
+    _test_input = [test_input[0][:,-1,:], test_input[-1][:,0, 0:1]]
 
 if model_trainer.model_type == 'lstm':
-    _train_input = [train_input[0], train_input[-1][:,0,:]]
-    _test_input = [test_input[0], test_input[-1][:,0,:]]
+    _train_input = [train_input[0], train_input[-1][:,0, 0:1]]
+    _test_input = [test_input[0], test_input[-1][:,0, 0:1]]
 
 # %%
 # model_trainer.model.forward_sim.attention_temp
