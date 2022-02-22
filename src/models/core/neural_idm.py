@@ -78,8 +78,6 @@ class NeurIDMModel(AbstractModel):
             displacement_loss = self.get_displacement_loss(targets, _pred[0])
             action_loss = self.get_action_loss(targets, _pred[1])
             kl_loss_idm, kl_loss_att = self.get_kl_loss(pri_params, pos_params)
-            # tf.print('displacement_loss ', displacement_loss)
-            # tf.print('action_loss ', action_loss)
 
             kl_loss = kl_loss_idm + kl_loss_att
             loss = self.get_tot_loss(kl_loss,
@@ -88,7 +86,6 @@ class NeurIDMModel(AbstractModel):
 
 
         gradients = tape.gradient(loss, self.trainable_variables)
-        # tf.print('xxxxx gradients: ', gradients)
         tf.debugging.check_numerics(loss, message='Checking loss')
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
