@@ -179,8 +179,8 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '306'
-exp_id = 'test_15'
+exp_id = '320'
+# exp_id = 'test_15'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
@@ -193,7 +193,7 @@ print(model_trainer.exp_dir)
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=10)
+model_trainer.train(train_input, test_input, epochs=2)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################

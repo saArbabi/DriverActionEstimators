@@ -4,37 +4,16 @@ from keras import backend as K
 from importlib import reload
 from models.core import abstract_model
 reload(abstract_model)
-from models.core.abstract_model import  AbstractModel
+from models.core.neural_idm import  AbstractModel
 import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-class NeurLatentModel(AbstractModel):
+class NeurLatentModel(NeurIDMModel):
     def __init__(self, config):
         super(NeurLatentModel, self).__init__(config)
-        self.f_seq_encoder = FutureEncoder()
-        self.h_seq_encoder = HistoryEncoder()
-        self.act_encoder = FutureEncoder() # sdv's future action
-        self.belief_net = BeliefModel(config)
-        self.forward_sim = ForwardSim()
-        self.vae_loss_weight = config['model_config']['vae_loss_weight']
-        self.loss_function = tf.keras.losses.Huber()
-        # self.loss_function = tf.keras.losses.MeanSquaredError()
 
-    def callback_def(self):
-        self.train_mseloss = tf.keras.metrics.Mean()
-        self.test_mseloss = tf.keras.metrics.Mean()
-        self.train_klloss = tf.keras.metrics.Mean()
-        self.test_klloss = tf.keras.metrics.Mean()
-
-    def mse(self, _true, _pred):
-        _true = (_true-40)/0.1
-        _pred = (_pred-40)/0.1
-        loss = self.loss_function(_true, _pred)
-        tf.debugging.check_numerics(loss, message='Checking loss')
-        return loss
-
-    def kl_loss(self, pri_params, pos_params):
+    def get_kl_loss(self, pri_params, pos_params):
         pri_mean, pri_logsigma = pri_params
         pos_mean, pos_logsigma = pos_params
 
@@ -42,46 +21,44 @@ class NeurLatentModel(AbstractModel):
         posterior = tfd.Normal(loc=pos_mean, scale=tf.exp(pos_logsigma))
         return tf.reduce_mean(tfp.distributions.kl_divergence(posterior, prior))
 
-    def train_loop(self, data_objs):
-        # tf.print('######## TRAIN #######:')
-        train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
-            self.train_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
-
-    def test_loop(self, data_objs):
-        # tf.print('######## TEST #######:')
-        train_ds = self.batch_data(data_objs)
-        for history_sca, future_sca, future_idm_s, future_m_veh_a, future_ego_a in train_ds:
-            self.test_step([history_sca, future_sca, future_idm_s, future_m_veh_a], future_ego_a)
 
     @tf.function(experimental_relax_shapes=True)
-    def train_step(self, states, targets):
+    def train_step(self, states, targets, step):
         with tf.GradientTape() as tape:
             _pred, pri_params, pos_params = self(states)
-            mse_loss = self.mse(targets, _pred)
-            kl_loss = self.kl_loss(pri_params, pos_params)
-            loss = self.vae_loss(mse_loss, kl_loss)
+            displacement_loss = self.get_displacement_loss(targets, _pred[0])
+            action_loss = self.get_action_loss(targets, _pred[1])
+            kl_loss = self.get_kl_loss(pri_params, pos_params)
+            loss = self.get_tot_loss(kl_loss,
+                                     displacement_loss,
+                                     action_loss)
+
 
         gradients = tape.gradient(loss, self.trainable_variables)
+        # tf.print('xxxxx gradients: ', gradients)
+
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        self.train_mseloss.reset_states()
-        self.train_klloss.reset_states()
-        self.train_mseloss(mse_loss)
-        self.train_klloss(kl_loss)
+        with self.train_writer.as_default():
+            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+            tf.summary.scalar('action_loss', action_loss, step=step)
+            tf.summary.scalar('kl_loss', kl_loss, step=step)
+            tf.summary.scalar('tot_loss', loss, step=step)
 
     @tf.function(experimental_relax_shapes=True)
-    def test_step(self, states, targets):
+    def test_step(self, states, targets, step):
         _pred, pri_params, pos_params = self(states)
-        mse_loss = self.mse(targets, _pred)
-        kl_loss = self.kl_loss(pri_params, pos_params)
-        loss = self.vae_loss(mse_loss, kl_loss)
-        self.test_mseloss.reset_states()
-        self.test_klloss.reset_states()
-        self.test_mseloss(mse_loss)
-        self.test_klloss(kl_loss)
+        displacement_loss = self.get_displacement_loss(targets, _pred[0])
+        action_loss = self.get_action_loss(targets, _pred[1])
+        kl_loss = self.get_kl_loss(pri_params, pos_params)
+        loss = self.get_tot_loss(kl_loss,
+                                 displacement_loss,
+                                 action_loss)
 
-    def vae_loss(self, mse_loss, kl_loss):
-        return  self.vae_loss_weight*kl_loss + mse_loss
+        with self.test_writer.as_default():
+            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+            tf.summary.scalar('action_loss', action_loss, step=step)
+            tf.summary.scalar('kl_loss', kl_loss, step=step)
+            tf.summary.scalar('tot_loss', loss, step=step)
 
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state

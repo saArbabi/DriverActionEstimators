@@ -159,9 +159,9 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_306'
-model_name = 'neural_idm_test_15'
-epoch_count = '10'
+model_name = 'neural_idm_320'
+# model_name = 'neural_idm_test_15'
+epoch_count = '2'
 # epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -314,8 +314,7 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode == 8 and \
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att[50:].mean() > 0 and e_veh_att[:50].mean() == 0:
-                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
                 # e_veh_att.mean() == 0:
                 # e_veh_att.mean() == 0:
         Example_pred += 1
