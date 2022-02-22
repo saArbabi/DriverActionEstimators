@@ -78,6 +78,9 @@ class NeurIDMModel(AbstractModel):
             displacement_loss = self.get_displacement_loss(targets, _pred[0])
             action_loss = self.get_action_loss(targets, _pred[1])
             kl_loss_idm, kl_loss_att = self.get_kl_loss(pri_params, pos_params)
+            # tf.print('displacement_loss ', displacement_loss)
+            # tf.print('action_loss ', action_loss)
+
             kl_loss = kl_loss_idm + kl_loss_att
             loss = self.get_tot_loss(kl_loss,
                                      displacement_loss,
@@ -237,6 +240,7 @@ class IDMForwardSim(tf.keras.Model):
         self.lstm_layer = LSTM(self.dec_units, return_sequences=True, return_state=True)
         self.att_layer_1 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
         self.att_layer_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
+        # self.att_layer_2 = TimeDistributed(Dense(self.dec_units, activation=LeakyReLU()))
 
     def idm_driver(self, idm_state, idm_params):
         vel, dv, dx = idm_state
@@ -246,7 +250,7 @@ class IDMForwardSim(tf.keras.Model):
         _gap = desired_tgap * vel + (vel * dv)/_gap_denum
         desired_gap = min_jamx + K.relu(_gap)
         act = max_act*(1 - (vel/desired_v)**4 - (desired_gap/dx)**2)
-        return self.clip_value(act, 10)
+        return self.clip_value(act, 5.5)
 
     def clip_value(self, tensor, clip_lim):
         "This is needed to avoid infinities"
@@ -256,16 +260,16 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, inputs, lstm_states):
-        lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
-        lstm_output = self.att_layer_1(lstm_output)
-        lstm_output = self.att_layer_2(lstm_output)
-        f_att_score = tf.exp(self.f_att_neu(lstm_output)*self.attention_temp)
-        m_att_score = tf.exp(self.m_att_neu(lstm_output)*self.attention_temp)
+    def get_att(self, inputs):
+        # lstm_output, state_h, state_c = self.lstm_layer(inputs, initial_state=lstm_states)
+        x = self.att_layer_1(inputs)
+        x = self.att_layer_2(x)
+        f_att_score = tf.exp(self.f_att_neu(x)*self.attention_temp)
+        m_att_score = tf.exp(self.m_att_neu(x)*self.attention_temp)
         att_sum = f_att_score + m_att_score
         f_att_score = f_att_score/att_sum
         m_att_score = m_att_score/att_sum
-        return f_att_score, m_att_score, [state_h, state_c]
+        return f_att_score, m_att_score
 
     def reshape_idm_params(self, idm_params, batch_size):
         idm_params = tf.reshape(idm_params, [batch_size, 1, 5])
@@ -277,8 +281,6 @@ class IDMForwardSim(tf.keras.Model):
         idm_params = self.reshape_idm_params(idm_params, batch_size)
         # enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
-        init_lstm_state = tf.zeros([batch_size, self.dec_units])
-        lstm_states = [init_lstm_state, init_lstm_state]
 
         displacement = tf.zeros([batch_size, 1, 1])
         displacement_seq = displacement
@@ -309,8 +311,7 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step-1:step, :]
 
             inputs = tf.concat([proj_latent, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score, lstm_states = self.get_att(inputs, lstm_states)
-
+            f_att_score, m_att_score = self.get_att(inputs)
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]

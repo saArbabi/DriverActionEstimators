@@ -19,7 +19,7 @@ sys.path.insert(0, './src')
 Load data
 """
 history_len = 20 # steps
-rollout_len = 50
+rollout_len = 20
 data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -210,6 +210,7 @@ itr_step = np.linspace(0, len(train_losses['displacement_loss']), len(test_losse
 
 np.array(test_losses['action_loss']).mean()/np.array(test_losses['displacement_loss']).mean()
 np.array(train_losses['action_loss']).mean()/np.array(train_losses['displacement_loss']).mean()
+np.array(train_losses['action_loss']).min()/np.array(train_losses['displacement_loss']).min()
 ################## displacement_loss LOSS ####    ###########
 displacement_axis.plot(itr_step, test_losses['displacement_loss'], color='blue')
 displacement_axis.plot(train_losses['displacement_loss'], color='red')
@@ -240,8 +241,9 @@ tot_axis.set_ylabel('tot_loss')
 tot_axis.legend(['test', 'train'])
 print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
 
-# %%
+#x %%
 model_trainer.save_model()
+
 # %%
 x = np.linspace(-5, 5, 100)
 min = 1
