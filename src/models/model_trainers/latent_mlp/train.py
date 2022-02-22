@@ -21,7 +21,7 @@ for Imitating Driver Behavior"
 
 """
 history_len = 20 # steps
-rollout_len = 30
+rollout_len = 50
 data_id = '047'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -36,15 +36,18 @@ data_arr_name = 'test_input{history_len}_f{rollout_len}'.format(\
 
 with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
-train_input[1].shape
+train_input[-1].shape
+train_input[-1].shape
+train_input[-1][0, :, -1]
+train_input[-1][110, :, 0]
 # %%
 config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 512,
-    "vae_loss_weight": 0.1,
-    "latent_dim": 6,
+    "batch_size": 128,
+    "vae_loss_weight": 0.001,
+    "latent_dim": 2,
     },
     "Note": ""
 }
@@ -125,12 +128,12 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '12'
+exp_id = '17'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, test_input, epochs=1)
-# model_trainer.load_pre_trained(epoch_count='20')
-# model_trainer.train(train_input, test_input, epochs=1)
+# model_trainer.load_pre_trained(epoch_count='15')
+# model_trainer.train(train_input, test_input, epochs=15)
 
 # %%
 # model_trainer.model.forward_sim.attention_temp
@@ -169,6 +172,6 @@ kl_axis.set_title('kl')
 kl_axis.legend(['test', 'train'])
 print(model_trainer.test_llloss[-1])
 
-# %%
+# z%%
 model_trainer.save_model()
 model_trainer.save_loss()

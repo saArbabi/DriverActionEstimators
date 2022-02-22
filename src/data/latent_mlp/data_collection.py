@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, './src')
 # import os
-os.getcwd()
+# os.getcwd()
 # os.chdir('./DriverActionEstimators')
 from importlib import reload
 import numpy as np
@@ -30,10 +30,10 @@ def prep_data(training_data):
     _, history_sca, future_idm_s, future_m_veh_c, history_e_veh_a = training_data
 
     train_input = [history_sca[train_samples, :, 2:],
-                history_e_veh_a[train_samples, :, 2:]]
+                history_e_veh_a[train_samples, :, 2:3]]
 
     test_input = [history_sca[val_samples, :, 2:],
-                history_e_veh_a[val_samples, :, 2:]]
+                history_e_veh_a[val_samples, :, 2:3]]
 
     return train_input, test_input
 # %%
@@ -58,7 +58,7 @@ np.array(size).max()
 Prepare data
 """
 history_len = 20 # steps
-rollout_len = 30
+rollout_len = 50
 from data.latent_mlp import data_prep
 reload(data_prep)
 from data.latent_mlp.data_prep import DataPrepLatentMLP
