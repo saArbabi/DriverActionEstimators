@@ -12,8 +12,8 @@ tfd = tfp.distributions
 class NeurIDMModel(AbstractModel):
     def __init__(self, config, exp_id=None):
         super(NeurIDMModel, self).__init__(config)
-        self.f_seq_encoder = SeqEncoder()
-        self.h_seq_encoder = SeqEncoder()
+        self.f_seq_encoder = FutureSeqEncoder()
+        self.h_seq_encoder = HistorySeqEncoder()
         self.belief_net = BeliefModel(config)
         self.forward_sim = IDMForwardSim(config)
         self.idm_layer = IDMLayer()
@@ -40,7 +40,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + 10*displacement_loss + 0.1*action_loss
+        return self.vae_loss_weight*kl_loss + 10*displacement_loss + action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_params_idm, pri_params_att = pri_params
@@ -78,6 +78,8 @@ class NeurIDMModel(AbstractModel):
             displacement_loss = self.get_displacement_loss(targets, _pred[0])
             action_loss = self.get_action_loss(targets, _pred[1])
             kl_loss_idm, kl_loss_att = self.get_kl_loss(pri_params, pos_params)
+            # tf.print('kl_loss_idm: ', kl_loss_idm)
+            # tf.print('kl_loss_att: ', kl_loss_att)
 
             kl_loss = kl_loss_idm + kl_loss_att
             loss = self.get_tot_loss(kl_loss,
@@ -89,11 +91,11 @@ class NeurIDMModel(AbstractModel):
         tf.debugging.check_numerics(loss, message='Checking loss')
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        with self.train_writer.as_default():
-            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
-            tf.summary.scalar('action_loss', action_loss, step=step)
-            tf.summary.scalar('kl_loss', kl_loss, step=step)
-            tf.summary.scalar('tot_loss', loss, step=step)
+        # with self.train_writer.as_default():
+        #     tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+        #     tf.summary.scalar('action_loss', action_loss, step=step)
+        #     tf.summary.scalar('kl_loss', kl_loss, step=step)
+        #     tf.summary.scalar('tot_loss', loss, step=step)
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets, step):
@@ -105,12 +107,12 @@ class NeurIDMModel(AbstractModel):
         loss = self.get_tot_loss(kl_loss,
                                  displacement_loss,
                                  action_loss)
-
-        with self.test_writer.as_default():
-            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
-            tf.summary.scalar('action_loss', action_loss, step=step)
-            tf.summary.scalar('kl_loss', kl_loss, step=step)
-            tf.summary.scalar('tot_loss', loss, step=step)
+        #
+        # with self.test_writer.as_default():
+        #     tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+        #     tf.summary.scalar('action_loss', action_loss, step=step)
+        #     tf.summary.scalar('kl_loss', kl_loss, step=step)
+        #     tf.summary.scalar('tot_loss', loss, step=step)
 
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history
@@ -212,9 +214,9 @@ class BeliefModel(tf.keras.Model):
             pri_params_att = [pri_mean_att, pri_logsigma_att]
             return [pri_params_idm, pri_params_att]
 
-class SeqEncoder(tf.keras.Model):
+class HistorySeqEncoder(tf.keras.Model):
     def __init__(self):
-        super(SeqEncoder, self).__init__(name="SeqEncoder")
+        super(HistorySeqEncoder, self).__init__(name="HistorySeqEncoder")
         self.enc_units = 128
         self.architecture_def()
 
@@ -223,6 +225,19 @@ class SeqEncoder(tf.keras.Model):
 
     def call(self, inputs):
         return self.lstm_layer(inputs)
+
+class FutureSeqEncoder(tf.keras.Model):
+    def __init__(self):
+        super(FutureSeqEncoder, self).__init__(name="FutureSeqEncoder")
+        self.enc_units = 128
+        self.architecture_def()
+
+    def architecture_def(self):
+        self.lstm_layer = Bidirectional(LSTM(self.enc_units), merge_mode='concat')
+
+    def call(self, inputs):
+        enc_acts = self.lstm_layer(inputs)
+        return enc_acts
 
 class IDMForwardSim(tf.keras.Model):
     def __init__(self, config):
@@ -257,11 +272,18 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, inputs):
+    def get_att(self, inputs, step):
         x = self.att_layer_1(inputs)
         x = self.att_layer_2(x)
-        f_att_score = tf.exp(self.f_att_neu(x)*self.attention_temp)
-        m_att_score = tf.exp(self.m_att_neu(x)*self.attention_temp)
+        # f_att_x = self.clip_value(self.f_att_neu(x), 100)
+        # m_att_x = self.clip_value(self.m_att_neu(x), 100)
+        # if step == 10:
+        #     tf.print('xxxxx f_att_x  min: ', tf.reduce_min(f_att_x))
+        #     tf.print('xxxxx f_att_x  max: ', tf.reduce_max(f_att_x))
+        #     tf.print('xxxxx m_att_x  min: ', tf.reduce_min(m_att_x))
+        #     tf.print('xxxxx m_att_x  max: ', tf.reduce_max(m_att_x))
+        f_att_score = tf.exp(f_att_x * self.attention_temp)
+        m_att_score = tf.exp(m_att_x * self.attention_temp)
         att_sum = f_att_score + m_att_score
         f_att_score = f_att_score/att_sum
         m_att_score = m_att_score/att_sum
@@ -307,7 +329,7 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step-1:step, :]
 
             inputs = tf.concat([proj_latent, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score = self.get_att(inputs)
+            f_att_score, m_att_score = self.get_att(inputs, step)
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
