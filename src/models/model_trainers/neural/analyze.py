@@ -16,7 +16,8 @@ col_names = [
          'e_veh_id', 'f_veh_id', 'm_veh_id',
          'm_veh_exists', 'e_veh_att',
          'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-         'e_veh_action', 'f_veh_action', 'm_veh_action',
+         'e_veh_action_p', 'f_veh_action_p', 'm_veh_action_p',
+         'e_veh_action_c', 'f_veh_action_c', 'm_veh_action_c',
          'aggressiveness',
          'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -71,15 +72,15 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], history_len-1, axis=1)
     return traj.flatten()
 # %%
 """
 Load data
 """
-history_len = 20 # steps
+history_len = 30 # steps
 rollout_len = 50
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -108,8 +109,8 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_040'
-epoch_count = '15'
+model_name = 'neural_043'
+epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -177,6 +178,7 @@ bad_samples = np.where(loss > 1)
 Latent visualisation - aggressiveness used for color coding the latent samples
 """
 latent_vis(zsamples_n=5000)
+latent_vis(zsamples_n=5000)
 # plt.savefig("cvae_latent.png", dpi=500)
 # %%
 # import matplotlib.pyplot as plt
@@ -213,7 +215,8 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
 
         Example_pred += 1
         covered_episodes.append(episode)
@@ -224,7 +227,7 @@ while Example_pred < 10:
         prior_param = model.belief_net(enc_h, dis_type='prior')
         sampled_z = model.belief_net.sample_z(prior_param)
         proj_latent = model.belief_net.z_proj(sampled_z)
-        _, act_seq = model.forward_sim.rollout([proj_latent, \
+        _, act_seq = model.forward_sim.rollout([proj_latent, enc_h, \
                                                     future_idm_ss, merger_cs])
         act_seq = act_seq.numpy()
 
@@ -232,7 +235,7 @@ while Example_pred < 10:
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
-        time_steps = range(time_0, time_0+69)
+        time_steps = range(time_0, time_0+history_len+rollout_len-1)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.5,
                         'episode_id: '+ info[0] +
@@ -243,16 +246,16 @@ while Example_pred < 10:
                             , fontsize=10)
 
         plt.figure(figsize=(5, 3))
-        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action_c'])
         plt.plot(time_steps, traj, color='purple')
-        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action_c'])
         plt.plot(time_steps, traj, color='black', linewidth=2)
-        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action_c'])
         plt.plot(time_steps, traj, color='red')
-        plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
+        plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action_c'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
 
         plt.title(str(sample_index[0]) + ' -- Action')

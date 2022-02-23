@@ -20,7 +20,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 50
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -34,7 +34,7 @@ train_input[0].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
-train_input[-1].shape
+train_input[2].shape
 print(round(train_input[-1].shape[0]*0.1/60**2, 1), ' hours of driving')
 # %%
 train_input[-1][:, :, 0:1].mean()
@@ -46,9 +46,9 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.5,
+    "vae_loss_weight": 0.01,
     "attention_temp": 1,
-    "latent_dim": 6,
+    "latent_dim": 3,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -65,6 +65,7 @@ class Trainer():
                                'action_loss':[], 'kl_loss':[], 'tot_loss':[]}, \
                        'test_losses':{'displacement_loss':[], \
                               'action_loss':[], 'kl_loss':[], 'tot_loss':[]}}
+        self.temps_range = np.linspace(0.01, 1, 15)
         self.initiate_model(exp_id)
 
     def initiate_model(self, exp_id):
@@ -73,7 +74,6 @@ class Trainer():
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config, exp_id)
         # self.model.make_event_files()
-
         self.model.forward_sim.rollout_len = rollout_len
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
@@ -160,11 +160,18 @@ class Trainer():
     def train(self, train_input, test_input, epochs):
         for epoch in range(epochs):
             t0 = time.time()
+            try:
+                self.model.vae_loss_weight = self.temps_range[self.epoch_count]
+            except:
+                self.model.vae_loss_weight = self.temps_range[-1]
+
             self.epoch_count += 1
             self.model.train_test_loop([train_input, test_input])
             print(self.epoch_count, 'epochs completed')
             print(round((time.time()-t0)), 'secs per epoch')
-            self.save_model()
+
+
+            # self.save_model()
         # self.read_losses()
 
     def save_model(self):
@@ -181,17 +188,16 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '322'
-exp_id = 'test_8'
+exp_id = '326'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='15')
+# model_trainer.load_pre_trained(epoch_count='20')
 # model_trainer.model.vae_loss_weight = 0.03
 # model_trainer.model.make_event_files()
 print(model_trainer.exp_dir)
 # %%
-# model_trainer.model.vae_loss_weight = 0.3
+# model_trainer.model.vae_loss_weight = 2
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -200,7 +206,7 @@ model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ########### #######
 ################## ##### ##################
 ################## ##### ####### ##########0#
-# model_trainer.save_model()
+model_trainer.save_model()
 
 # %%
 

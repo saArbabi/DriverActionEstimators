@@ -20,9 +20,9 @@ Source for architecure:
 for Imitating Driver Behavior"
 
 """
-history_len = 20 # steps
+history_len = 30 # steps
 rollout_len = 50
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -45,8 +45,8 @@ config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 128,
-    "vae_loss_weight": 0.001,
+    "batch_size": 512,
+    "vae_loss_weight": 0.05,
     "latent_dim": 2,
     },
     "Note": ""
@@ -128,7 +128,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '17'
+exp_id = '19'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, test_input, epochs=1)

@@ -23,7 +23,7 @@ collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
 model_names = ['neural_idm_320', 'neural_040', 'latent_mlp_18', 'mlp_04', 'lstm_04']
-model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
+# model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
 mc_run_name = 'rwse'
 
 for model_name in model_names:
@@ -59,8 +59,8 @@ for model_name in model_names:
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
-            if _true[:, :, -1].mean() == 0 or _true[:, :, -1].mean() == 1:
-                continue
+            # if _true[:, :, -1].mean() == 0 or _true[:, :, -1].mean() == 1:
+            #     continue
             flatten_ima = []
             for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
                 flatten_ima.append(\
@@ -73,8 +73,8 @@ for model_name in model_names:
             snips_pred[model_name].append(_pred)
     # snips_pred[model_name] = np.array(snips_pred[model_name])[14:, :, :, :]
     # snips_true[model_name] = np.array(snips_true[model_name])[14:, :, :, :]
-    snips_pred[model_name] = np.array(snips_pred[model_name])[:, :, :, :]
-    snips_true[model_name] = np.array(snips_true[model_name])[:, :, :, :]
+    snips_pred[model_name] = np.array(snips_pred[model_name])
+    snips_true[model_name] = np.array(snips_true[model_name])
 list(snips_pred.values())[0].shape
 # %%
 
@@ -96,10 +96,10 @@ for i in range(7):
                                                     '   Veh_id:'+str(veh_id))
 
 
-        for trace in range(10):
+        for trace in range(5):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            plt.plot(state_pred, color='grey')
-            # plt.plot(state_pred, label=trace)
+            # plt.plot(state_pred, color='grey')
+            plt.plot(state_pred, label=trace)
         plt.legend()
 
 

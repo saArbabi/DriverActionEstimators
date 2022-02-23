@@ -272,7 +272,7 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, inputs, step):
+    def get_att(self, inputs):
         x = self.att_layer_1(inputs)
         x = self.att_layer_2(x)
         f_att_x = self.clip_value(self.f_att_neu(x), 20)
@@ -336,7 +336,7 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step-1:step, :]
 
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score = self.get_att(inputs, step)
+            f_att_score, m_att_score = self.get_att(inputs)
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
@@ -344,9 +344,7 @@ class IDMForwardSim(tf.keras.Model):
             idm_state = [ego_v, em_dv, em_delta_x]
             em_act = self.idm_driver(idm_state, idm_params)
             # _act = f_att_score*ef_act + m_att_score*em_act
-            ego_veh_a = f_att_score*ef_act + \
-                    m_att_score*em_act*tf.cast(tf.greater(em_delta_x, 0), tf.float32)*m_veh_exists
-
+            ego_veh_a = f_att_score*ef_act + m_att_score*em_act
             displacement += ego_v*0.1 + 0.5*ego_veh_a*0.1**2
             ego_glob_x += ego_v*0.1 + 0.5*ego_veh_a*0.1**2
             ego_v += ego_veh_a*0.1

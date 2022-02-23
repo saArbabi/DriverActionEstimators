@@ -153,7 +153,7 @@ class ForwardSim(tf.keras.Model):
     def rollout(self, inputs, training):
         if training:
             sampled_z, history_sca = inputs
-            sampled_z = tf.repeat(sampled_z, 20, axis=1)
+            sampled_z = tf.repeat(sampled_z, 30, axis=1)
             mean_seq, var_seq = self.get_dis(tf.concat([\
                                     sampled_z, history_sca], axis=-1))
             act_seq = tfd.Normal(mean_seq, var_seq, name='Normal').sample()

@@ -14,9 +14,9 @@ import json
 
 sys.path.insert(0, './src')
 # %%
-history_len = 20 # steps
+history_len = 30 # steps
 rollout_len = 50
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -113,9 +113,9 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_type = 'mlp'
-# model_type = 'lstm'
+model_type = 'lstm'
 model_trainer = Trainer(model_type)
-exp_id = '04'
+exp_id = '05'
 model_name = model_type+'_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, test_input, epochs=1)
@@ -138,7 +138,7 @@ if model_trainer.model_type == 'lstm':
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(_train_input, _test_input, epochs=5)
+model_trainer.train(_train_input, _test_input, epochs=20)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
