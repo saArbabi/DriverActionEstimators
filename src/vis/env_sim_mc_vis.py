@@ -21,8 +21,8 @@ def main():
     # model_name = 'neural_037'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_02'
-    model_name = 'lstm_04'
-    data_id = '047'
+    # model_name = 'lstm_04'
+    data_id = '048'
     history_len = 20 # choose this based on the model with longest history
     rollout_len = 50
 
@@ -54,10 +54,10 @@ def main():
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
-    episode_id = 502 # wrong switch to 1
+    episode_id = 22 # wrong switch to 1
     # episode_id = 505
     # episode_id = 506 # late switch
-    trace = 0
+    trace = 4
     np.random.seed(episode_id)
     env.trans_time = np.random.randint(\
                 history_len, history_len*2) # controller ==> 'neural'

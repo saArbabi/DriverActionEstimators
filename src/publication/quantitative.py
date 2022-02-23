@@ -22,8 +22,9 @@ ima_collections = {}
 collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
-model_names = ['neural_idm_320', 'neural_040', 'latent_mlp_17', 'latent_mlp_18', 'mlp_04', 'lstm_04']
-mc_run_name = 'test_rwse'
+model_names = ['neural_idm_320', 'neural_040', 'latent_mlp_18', 'mlp_04', 'lstm_04']
+model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
+mc_run_name = 'rwse'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name
@@ -58,8 +59,8 @@ for model_name in model_names:
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
             _true = _true[:,:steps_n, :]
-            # if _true[:, :, -1].mean() == 0 or _true[:, :, -1].mean() == 1:
-            #     continue
+            if _true[:, :, -1].mean() == 0 or _true[:, :, -1].mean() == 1:
+                continue
             flatten_ima = []
             for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
                 flatten_ima.append(\
@@ -70,8 +71,10 @@ for model_name in model_names:
             # xposition_error = rwse(pred_traces, true_trace)
             snips_true[model_name].append(_true)
             snips_pred[model_name].append(_pred)
-    snips_pred[model_name] = np.array(snips_pred[model_name])
-    snips_true[model_name] = np.array(snips_true[model_name])
+    # snips_pred[model_name] = np.array(snips_pred[model_name])[14:, :, :, :]
+    # snips_true[model_name] = np.array(snips_true[model_name])[14:, :, :, :]
+    snips_pred[model_name] = np.array(snips_pred[model_name])[:, :, :, :]
+    snips_true[model_name] = np.array(snips_true[model_name])[:, :, :, :]
 list(snips_pred.values())[0].shape
 # %%
 
@@ -82,7 +85,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(14):
+for i in range(7):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -92,9 +95,11 @@ for i in range(14):
         plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
                                                     '   Veh_id:'+str(veh_id))
 
-        for trace in range(2):
+
+        for trace in range(10):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
             plt.plot(state_pred, color='grey')
+            # plt.plot(state_pred, label=trace)
         plt.legend()
 
 

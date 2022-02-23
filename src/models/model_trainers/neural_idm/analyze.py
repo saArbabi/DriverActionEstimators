@@ -37,8 +37,8 @@ def latent_samples(model, sample_index):
     merger_cs = future_m_veh_c[sample_index, :, 2:]
     enc_h = model.h_seq_encoder(h_seq)
     latent_dis_param = model.belief_net(enc_h, dis_type='prior')
-    z_, _ = model.belief_net.sample_z(latent_dis_param)
-    return z_
+    z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
+    return z_idm
 
 def latent_vis(zsamples_n):
     fig = pyplot.figure(figsize=(4, 4))
@@ -122,15 +122,15 @@ def fetch_traj(data, sample_index, colum_index):
         the transition point from history to future.
     """
     # data shape: [sample_index, time, feature]
-    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 19, axis=1)
+    traj = np.delete(data[sample_index, :, colum_index:colum_index+1], 29, axis=1)
     return traj.flatten()
 # %%
 """
 Load data
 """
-history_len = 20 # steps
+history_len = 30 # steps
 rollout_len = 50
-data_id = '047'
+data_id = '048'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -159,9 +159,10 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_320'
+model_name = 'neural_idm_test_8'
+# model_name = 'neural_idm_322'
 # model_name = 'neural_idm_test_15'
-epoch_count = '15'
+epoch_count = '20'
 # epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -210,7 +211,7 @@ plt.grid()
 Compare losses
 """
 losses = {}
-for name in ['neural_idm_269']:
+for name in ['neural_idm_2history_len+rollout_len-1']:
 # for name in ['latent_mlp_09', 'latent_mlp_10']:
     with open('./src/models/experiments/'+name+'/'+'losses.pickle', 'rb') as handle:
         losses[name] = pickle.load(handle)
@@ -293,14 +294,14 @@ Visualisation of model predictions. Use this for debugging.
 Example_pred = 0
 i = 0
 covered_episodes = []
-model.forward_sim.attention_temp = 2
+model.forward_sim.attention_temp = 1
 traces_n = 50
 tf.random.set_seed(2021)
 
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-# distribution_name = 'posterior'
+distribution_name = 'posterior'
 
 while Example_pred < 10:
     sample_index = [val_samples[i]]
@@ -314,7 +315,9 @@ while Example_pred < 10:
     episode = future_idm_s[sample_index, 0, 0][0]
     # if episode == 8 and \
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
                 # e_veh_att.mean() == 0:
                 # e_veh_att.mean() == 0:
         Example_pred += 1
@@ -340,12 +343,13 @@ while Example_pred < 10:
         act_seq = act_seq.numpy()
         if np.isnan(act_seq).any():
             raise ValueError('There is nan in actions')
+            break
         plt.figure(figsize=(5, 4))
         episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
         e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
         time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
 
-        time_steps = range(time_0, time_0+69)
+        time_steps = range(time_0, time_0+history_len+rollout_len-1)
         info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
         plt.text(0.1, 0.4,
                         'experiment_name: '+ model_name+'_'+epoch_count +' '+'\n'
@@ -373,9 +377,9 @@ while Example_pred < 10:
         plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
+           plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
                                         color='grey', alpha=0.4)
-        plt.scatter(time_steps[19+20], 0, color='red')
+        plt.scatter(time_steps[history_len-1+20], 0, color='red')
         # plt.text(30, -6, 'true: '+ str(true_params), color='red')
         # plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
@@ -385,17 +389,17 @@ while Example_pred < 10:
         plt.figure(figsize=(5, 3))
         # plt.plot(e_veh_att[:40] , color='black')
         plt.plot(time_steps , e_veh_att, color='red')
-        plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
+        plt.plot([time_steps[history_len-1], time_steps[history_len-1]], [0, 1], color='black')
 
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(time_steps[history_len-1:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention on merger')
 
         plt.figure(figsize=(5, 3))
-        plt.plot(time_steps , e_veh_att, color='red')
-        plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
+        plt.plot(time_steps , 1-e_veh_att, color='red')
+        plt.plot([time_steps[history_len-1], time_steps[history_len-1]], [0, 1], color='black')
         for sample_trace_i in range(traces_n):
-           plt.plot(time_steps[19:], f_att_seq[sample_trace_i, :].flatten(), color='grey')
+           plt.plot(time_steps[history_len-1:], f_att_seq[sample_trace_i, :].flatten(), color='grey')
         plt.title(str(sample_index[0]) + ' -- Attention on leader')
 
         ##########
@@ -462,7 +466,7 @@ episode_id = history_future_usc[sample_index, 0, hf_usc_indexs['episode_id']][0]
 e_veh_id = history_future_usc[sample_index, 0, hf_usc_indexs['e_veh_id']][0]
 time_0 = int(history_future_usc[sample_index, 0, hf_usc_indexs['time_step']][0])
 
-time_steps = range(time_0, time_0+69)
+time_steps = range(time_0, time_0+history_len+rollout_len-1)
 info = [str(item)+' '+'\n' for item in [episode_id, time_0, e_veh_id, aggressiveness]]
 plt.text(0.1, 0.4,
                 'experiment_name: '+ model_name+'_'+epoch_count +' '+'\n'
@@ -490,24 +494,14 @@ plt.plot(time_steps, traj, color='red')
 plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
 for sample_trace_i in range(traces_n):
-   plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
+   plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
                                 color='grey', alpha=0.4)
-plt.scatter(time_steps[19+30], 0, color='red')
+plt.scatter(time_steps[history_len-1+30], 0, color='red')
 plt.text(30, -6, 'true: '+ str(true_params), color='red')
 plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
 plt.title(str(sample_index[0]) + ' -- Action')
 plt.grid()
-
-# %%
-
-
-
-
-
-
-
-
 
 # %%
 """ Set scientific plot format
@@ -598,9 +592,9 @@ plt.plot(time_steps, traj, color='red')
 plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
 
 for sample_trace_i in range(traces_n):
-   plt.plot(time_steps[19:], act_seq[sample_trace_i, :, :].flatten(),
+   plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
                                 color='grey', alpha=0.4)
-plt.scatter(time_steps[19+30], 0, color='red')
+plt.scatter(time_steps[history_len-1+30], 0, color='red')
 # plt.text(30, -6, 'true: '+ str(true_params), color='red')
 # plt.text(30, -7, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 
@@ -610,10 +604,10 @@ plt.grid()
 plt.figure(figsize=(5, 3))
 # plt.plot(e_veh_att[:40] , color='black')
 plt.plot(time_steps , e_veh_att, color='red')
-plt.plot([time_steps[19], time_steps[19]], [0, 1], color='black')
+plt.plot([time_steps[history_len-1], time_steps[history_len-1]], [0, 1], color='black')
 
 for sample_trace_i in range(traces_n):
-   plt.plot(time_steps[19:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
+   plt.plot(time_steps[history_len-1:], m_att_seq[sample_trace_i, :].flatten(), color='grey')
 plt.title(str(sample_index[0]) + ' -- Attention on merger')
 # %%
 
@@ -652,12 +646,12 @@ plt.legend()
 
 
 fig, ax = plt.subplots(figsize=(5, 4))
-time_axis = np.linspace(0., 7., 69)
+time_axis = np.linspace(0., 7., history_len+rollout_len-1)
 for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
         label = 'NIDM'
-    ax.plot(time_axis[19:], act_seq[sample_trace_i, :, :].flatten(), \
+    ax.plot(time_axis[history_len-1:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 
 traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
@@ -686,7 +680,7 @@ for sample_trace_i in range(traces_n):
     label = '_nolegend_'
     if sample_trace_i == 0:
         label = 'NIDM'
-    ax.plot(time_axis[19:], att_scores[sample_trace_i, :].flatten(), \
+    ax.plot(time_axis[history_len-1:], att_scores[sample_trace_i, :].flatten(), \
             color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 ax.plot(time_axis, e_veh_att, color='red', linewidth=1.5, linestyle='-')
 ax.fill_between([0,3],[-3,-3], [3,3], color='lightgrey')

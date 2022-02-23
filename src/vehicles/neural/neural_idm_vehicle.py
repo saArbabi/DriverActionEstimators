@@ -19,7 +19,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
-        # self.model.forward_sim.attention_temp = 5
+        self.model.forward_sim.attention_temp = 3
 
         self.model.load_weights(exp_path).expect_partial()
 
@@ -93,6 +93,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             em_delta_y = abs(m_veh.glob_y-self.glob_y)
             em_delta_v = self.speed-m_veh_speed
             delta_x_to_merge = m_veh.ramp_exit_start-m_veh.glob_x
+            print(delta_x_to_merge)
 
         if not f_veh:
             f_veh_exists = 0
@@ -186,8 +187,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
             em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
         else:
-            em_act = 0
-            m_att_score = 0
+            em_act = -6
+            # m_att_score = 0
 
 
         self.att = m_att_score
