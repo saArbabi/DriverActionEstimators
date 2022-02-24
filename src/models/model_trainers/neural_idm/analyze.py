@@ -16,9 +16,9 @@ col_names = [
          'episode_id', 'time_step',
          'e_veh_id', 'f_veh_id', 'm_veh_id',
          'm_veh_exists', 'e_veh_att',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'e_veh_action_p', 'f_veh_action_p', 'm_veh_action_p',
          'e_veh_action_c', 'f_veh_action_c', 'm_veh_action_c',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'aggressiveness',
          'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -160,12 +160,13 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_326'
+model_name = 'neural_idm_355'
 # model_name = 'neural_idm_322'
 # model_name = 'neural_idm_test_15'
+epoch_count = '21'
+# epoch_count = '15'
+epoch_count = '15'
 epoch_count = '20'
-# epoch_count = '5'
-# epoch_count = '10'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -315,10 +316,11 @@ while Example_pred < 10:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode == 8 and \
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                e_veh_att[40:].mean() == 1 and \
+                e_veh_att[:30].mean() == 0:
                 # e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+
         Example_pred += 1
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)

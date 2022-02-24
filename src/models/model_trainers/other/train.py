@@ -30,6 +30,8 @@ train_input[-1].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
+
+train_input[0].shape
 # %%
 config = {
  "model_config": {
@@ -113,7 +115,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_type = 'mlp'
-model_type = 'lstm'
+# model_type = 'lstm'
 model_trainer = Trainer(model_type)
 exp_id = '05'
 model_name = model_type+'_'+exp_id
@@ -138,7 +140,7 @@ if model_trainer.model_type == 'lstm':
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(_train_input, _test_input, epochs=20)
+model_trainer.train(_train_input, _test_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -159,6 +161,6 @@ ll_axis.legend(['test', 'train'])
 
 print(model_trainer.test_llloss[-1])
 
-# %%
+# x%%
 model_trainer.save_model()
 model_trainer.save_loss()

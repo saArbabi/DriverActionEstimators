@@ -60,7 +60,7 @@ Generate datan
 from data import merge_data_gen
 reload(merge_data_gen)
 from data.merge_data_gen import DataGenMerge
-data_gen = DataGenMerge(env=env, episodes_n=300)
+data_gen = DataGenMerge(env=env, episodes_n=500)
 sim_data = data_gen.prep_data()
 sim_data.shape
 
@@ -68,7 +68,7 @@ sim_data.shape
 """
 Pickle generated data.
 """
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 if not os.path.exists(data_files_dir):
@@ -84,12 +84,21 @@ else:
 """
 Load generated data.
 """
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_files_dir = './src/datasets/'+dataset_name
 with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
 sim_data.shape
+sim_data[20, 1]
+# %%
+
+
+lens = []
+for i in range(100):
+    lens.append(np.unique(sim_data[sim_data[:, 0] == i][:, 1]).shape[0])
+lens
+plt.hist(lens, bins=50)
 # %%
 """
 Prepare data
@@ -110,13 +119,14 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 
 history_future_usc.shape
+
 # %%
 train_input, test_input = prep_data(data_arrays)
 train_input[-1].shape
 # %%
 
 """
-Make displacement the target
+Make displacement a target
 """
 def get_target_vals(arr):
     dxs = np.zeros([arr.shape[0], rollout_len+1, 1])

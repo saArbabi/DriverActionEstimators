@@ -19,7 +19,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
-        self.model.forward_sim.attention_temp = 3
+        # self.model.forward_sim.attention_temp = 3
 
         self.model.load_weights(exp_path).expect_partial()
 
@@ -122,6 +122,15 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
         obs_t0.append(m_veh_exists)
         self.m_veh_exists = m_veh_exists
+        # if self.id == 'neur_2':
+        #     print('m_veh_exists', m_veh_exists)
+        #     # print('ef_act', ef_act)
+        #     # print('em_act', em_act)
+        #     # print('f_att_score', f_att_score)
+        #     # print('m_att_score', m_att_score)
+        #     print('delta_x_to_merge ', delta_x_to_merge)
+            # print('nei ', self.neighbours)
+            # print('att_context ', att_context)
 
         return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]]]
 
@@ -156,7 +165,7 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return np.float32(state)
 
     def get_neur_att(self, att_context):
-        f_att_score, m_att_score = self.model.forward_sim.get_att(att_context)
+        f_att_score, m_att_score = self.model.forward_sim.get_att(att_context, self.m_veh_exists)
         return f_att_score.numpy()[0][0][0], m_att_score.numpy()[0][0][0]
 
     def action_clip(self, act_long):
@@ -178,6 +187,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
             self.driver_params_update(idm_params)
             # if self.id == 'neur_4':
             #     print('self.obs_history ', self.obs_history)
+
+
         self.time_lapse_since_last_param_update += 1
 
 
@@ -198,14 +209,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         self.att = m_att_score
         act_long = f_att_score*ef_act + m_att_score*em_act
 
-        # if self.id == 'neur_2':
-        #     print('m_veh_exists', m_veh_exists)
-        #     print('ef_act', ef_act)
-        #     print('em_act', em_act)
-        #     print('f_att_score', f_att_score)
-        #     print('m_att_score', m_att_score)
-            # print('obs_history ', obs_history)
-            # print('nei ', self.neighbours)
-            # print('att_context ', att_context)
+
 
         return act_long

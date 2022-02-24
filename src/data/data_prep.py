@@ -12,7 +12,8 @@ class DataPrep():
                  'f_veh_exists', 'm_veh_exists', 'e_veh_att',
                  'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
                  'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-                 'e_veh_action', 'f_veh_action', 'm_veh_action',
+                  'e_veh_action_p', 'f_veh_action_p', 'm_veh_action_p',
+                  'e_veh_action_c', 'f_veh_action_c', 'm_veh_action_c',
                  'aggressiveness', 'desired_v',
                  'desired_tgap', 'min_jamx', 'max_act', 'min_act',
                  'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -33,11 +34,14 @@ class DataPrep():
         """
         Remove unwanted samples
         """
+        mask_nans = np.isnan(history_seqs).any(axis=-1).any(axis=1)
+        history_seqs = history_seqs[~mask_nans]
+        future_seqs = future_seqs[~mask_nans]
         cond_hist = ((history_seqs[:,:, self.names_to_index('f_veh_id')] != -1)).all(axis=1)
         cond_fut = ((future_seqs[:,:, self.names_to_index('f_veh_id')] != -1)).all(axis=1)
 
-        action_cond_hist = ((np.abs(history_seqs[:,:, self.names_to_index('e_veh_action')]) > 0.1)).any(axis=1)
-        action_cond_fut = ((np.abs(future_seqs[:,:, self.names_to_index('e_veh_action')]) > 0.1)).any(axis=1)
+        action_cond_hist = ((np.abs(history_seqs[:,:, self.names_to_index('e_veh_action_c')]) > 0.1)).any(axis=1)
+        action_cond_fut = ((np.abs(future_seqs[:,:, self.names_to_index('e_veh_action_c')]) > 0.1)).any(axis=1)
 
         cond = np.all([cond_hist, cond_fut, action_cond_hist, action_cond_fut], axis=0)
         return history_seqs[cond], future_seqs[cond]
@@ -69,14 +73,14 @@ class DataPrep():
     def scale_data(self, features):
         features_scaled = features.copy()
         # env state
-        col_names = ['e_veh_speed', 'f_veh_speed',
+        col_names = ['e_veh_action_p', 'f_veh_action_p', 'e_veh_speed', 'f_veh_speed',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x']
 
         scalar_indexs = self.names_to_index(col_names)
         env_scaler = preprocessing.StandardScaler().fit(features[:, scalar_indexs])
         features_scaled[:, scalar_indexs] = env_scaler.transform(features[:, scalar_indexs])
         # merger context
-        col_names = ['m_veh_speed','em_delta_y', 'delta_x_to_merge']
+        col_names = ['m_veh_action_p', 'm_veh_speed','em_delta_y', 'delta_x_to_merge']
         scalar_indexs = self.names_to_index(col_names)
         m_scaler = preprocessing.StandardScaler().fit(features[:, scalar_indexs])
         features_scaled[:, scalar_indexs] = m_scaler.transform(features[:, scalar_indexs])
@@ -88,10 +92,11 @@ class DataPrep():
         history_seqs_scaled, future_seqs_scaled = history_future_seqs_scaled
         # future and histroy states - fed to LSTMs
         col_names = ['episode_id', 'time_step',
-                    'e_veh_speed', 'f_veh_speed',
+                    'e_veh_action_p', 'f_veh_action_p',
+                     'e_veh_speed', 'f_veh_speed',
                     'el_delta_v', 'el_delta_x',
                     'em_delta_v', 'em_delta_x',
-                    'm_veh_speed','em_delta_y',
+                    'm_veh_action_p', 'm_veh_speed','em_delta_y',
                     'delta_x_to_merge','m_veh_exists']
         history_sca = history_seqs_scaled[:, :, self.names_to_index(col_names)]
         future_sca = future_seqs_scaled[:, :, self.names_to_index(col_names)]
@@ -101,8 +106,9 @@ class DataPrep():
                  'episode_id', 'time_step',
                  'e_veh_id', 'f_veh_id', 'm_veh_id',
                  'm_veh_exists', 'e_veh_att',
+                 'e_veh_action_p', 'f_veh_action_p', 'm_veh_action_p',
+                 'e_veh_action_c', 'f_veh_action_c', 'm_veh_action_c',
                  'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-                 'e_veh_action', 'f_veh_action', 'm_veh_action',
                  'aggressiveness',
                  'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
                  'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -117,18 +123,19 @@ class DataPrep():
                         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
                         'e_veh_glob_x', 'f_veh_glob_x', 'm_veh_glob_x',
                         'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
-                        'e_veh_att', 'f_veh_exists', 'm_veh_exists']
+                        'e_veh_att', 'e_veh_action_p', 'f_veh_action_p',
+                        'f_veh_exists', 'm_veh_exists']
         future_idm_s = future_seqs[:, :, self.names_to_index(col_names)]
 
         # future context of m_veh - fed to LSTMs
         # this holds all the context needed to infer merger type
         # m_veh_exists is a boolean (not scaled) and is appended later
         col_names = ['episode_id', 'time_step',
-            'm_veh_speed', 'em_delta_y', 'delta_x_to_merge', 'm_veh_exists']
+            'm_veh_action_p', 'm_veh_speed', 'em_delta_y', 'delta_x_to_merge', 'm_veh_exists']
         future_m_veh_c = future_seqs_scaled[:, :, self.names_to_index(col_names)]
 
         # future action of e_veh - used as target
-        col_names = ['episode_id', 'time_step', 'e_veh_action', 'e_veh_speed']
+        col_names = ['episode_id', 'time_step', 'e_veh_action_c', 'e_veh_speed']
         future_e_veh_a = future_seqs[:, :, self.names_to_index(col_names)]
 
         data_arrays = [history_future_usc, history_sca, future_sca, future_idm_s, \
@@ -154,8 +161,10 @@ class DataPrep():
             features[nan_indx, indx] = dummy_value
             return dummy_value
 
-        cols_with_nans = ['f_veh_speed', 'm_veh_speed',
-                          'f_veh_action','m_veh_action',
+        cols_with_nans = [
+                          'f_veh_action_p','m_veh_action_p',
+                          'f_veh_action_c','m_veh_action_c',
+                          'f_veh_speed', 'm_veh_speed',
                           'el_delta_v', 'el_delta_x',
                           'em_delta_v', 'em_delta_x',
                           'delta_x_to_merge',

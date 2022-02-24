@@ -36,17 +36,25 @@ with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
 train_input[2].shape
 print(round(train_input[-1].shape[0]*0.1/60**2, 1), ' hours of driving')
-# %%
-train_input[-1][:, :, 0:1].mean()
-train_input[-1][:, :, 0:1].std()
 
+
+
+# %%
+train_input[-1][:, :, -1:].mean(axis=0)
+train_input[-1][:, :, -1:].std(axis=0)
+train_input[2][:, :, 11:12].std()
+train_input[2][:, :, 12].std()
+train_input[2][:, :, -3].max()
+train_input[2][:, :, :].shape
+512/2
+128*3
 # %%
 config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.01,
+    "vae_loss_weight": 0.02,
     "attention_temp": 1,
     "latent_dim": 3,
     },
@@ -65,7 +73,6 @@ class Trainer():
                                'action_loss':[], 'kl_loss':[], 'tot_loss':[]}, \
                        'test_losses':{'displacement_loss':[], \
                               'action_loss':[], 'kl_loss':[], 'tot_loss':[]}}
-        self.temps_range = np.linspace(0.01, 1, 15)
         self.initiate_model(exp_id)
 
     def initiate_model(self, exp_id):
@@ -160,11 +167,6 @@ class Trainer():
     def train(self, train_input, test_input, epochs):
         for epoch in range(epochs):
             t0 = time.time()
-            try:
-                self.model.vae_loss_weight = self.temps_range[self.epoch_count]
-            except:
-                self.model.vae_loss_weight = self.temps_range[-1]
-
             self.epoch_count += 1
             self.model.train_test_loop([train_input, test_input])
             print(self.epoch_count, 'epochs completed')
@@ -188,13 +190,14 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '326'
+# exp_id = 't'
+exp_id = '355'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='20')
+model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.model.vae_loss_weight = 0.03
-# model_trainer.model.make_event_files()
+
 print(model_trainer.exp_dir)
 # %%
 # model_trainer.model.vae_loss_weight = 2
@@ -207,7 +210,6 @@ model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ##################
 ################## ##### ####### ##########0#
 model_trainer.save_model()
-
 # %%
 
 fig = plt.figure(figsize=(15, 10))
@@ -257,10 +259,10 @@ print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
 model_trainer.save_model()
 
 # %%
-x = np.linspace(-5, 5, 100)
-min = 0
-max = 1
-temp = 4/(max-min)
+x = np.linspace(-100, 50, 100)
+min = 15
+max = 25
+temp = 1/(max-min)
 
 y = min + (max-min)/(1 + np.exp(-temp*x))
 # y = np.exp(x)

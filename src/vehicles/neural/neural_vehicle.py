@@ -20,11 +20,12 @@ class NeuralVehicle(NeuralIDMVehicle):
             sampled_z = self.model.belief_net.sample_z(latent_dis_param)
             proj_latent = self.model.belief_net.z_proj(sampled_z)
             self.belief_update(proj_latent)
+            self.enc_h = tf.reshape(enc_h, [self.samples_n, 1, 128])
         self.time_lapse_since_last_param_update += 1
 
         env_state = self.scale_state(obs_t0, 'env_state')
         merger_c = self.scale_state(obs_t0, 'merger_c')
-        _context = tf.concat([self.proj_latent, env_state, merger_c, \
+        _context = tf.concat([self.proj_latent, self.enc_h, env_state, merger_c, \
                                                         m_veh_exists], axis=-1)
 
         act_long = self.model.forward_sim.get_action(_context).numpy()
