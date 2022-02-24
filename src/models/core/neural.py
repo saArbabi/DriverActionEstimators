@@ -42,11 +42,11 @@ class NeurLatentModel(NeurIDMModel):
         tf.debugging.check_numerics(loss, message='Checking loss')
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        with self.train_writer.as_default():
-            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
-            tf.summary.scalar('action_loss', action_loss, step=step)
-            tf.summary.scalar('kl_loss', kl_loss, step=step)
-            tf.summary.scalar('tot_loss', loss, step=step)
+        # with self.train_writer.as_default():
+        #     tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+        #     tf.summary.scalar('action_loss', action_loss, step=step)
+        #     tf.summary.scalar('kl_loss', kl_loss, step=step)
+        #     tf.summary.scalar('tot_loss', loss, step=step)
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets, step):
@@ -58,11 +58,11 @@ class NeurLatentModel(NeurIDMModel):
                                  displacement_loss,
                                  action_loss)
 
-        with self.test_writer.as_default():
-            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
-            tf.summary.scalar('action_loss', action_loss, step=step)
-            tf.summary.scalar('kl_loss', kl_loss, step=step)
-            tf.summary.scalar('tot_loss', loss, step=step)
+        # with self.test_writer.as_default():
+        #     tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+        #     tf.summary.scalar('action_loss', action_loss, step=step)
+        #     tf.summary.scalar('kl_loss', kl_loss, step=step)
+        #     tf.summary.scalar('tot_loss', loss, step=step)
 
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history lstm state
@@ -73,7 +73,7 @@ class NeurLatentModel(NeurIDMModel):
         sampled_z = self.belief_net.sample_z(pos_params)
         proj_latent = self.belief_net.z_proj(sampled_z)
         displacement_seq, action_seq = self.forward_sim.rollout([\
-                                    proj_latent, inputs[2], inputs[-1]])
+                                    proj_latent, enc_h, inputs[2], inputs[-1]])
         return [displacement_seq, action_seq], pri_params, pos_params
 
 class BeliefModel(tf.keras.Model):
@@ -160,13 +160,15 @@ class ForwardSim(tf.keras.Model):
         return self.action_neu(x)
 
     def rollout(self, inputs):
-        proj_latent, idm_s, merger_cs = inputs
+        proj_latent, enc_h, idm_s, merger_cs = inputs
         batch_size = tf.shape(idm_s)[0]
         proj_latent = tf.reshape(proj_latent, [batch_size, 1, self.proj_dim])
+        enc_h = tf.reshape(enc_h, [batch_size, 1, self.dec_units])
 
         displacement = tf.zeros([batch_size, 1, 1])
         displacement_seq = displacement
         ego_v = idm_s[:,  0:1, 0:1]
+        ego_veh_a = idm_s[:, 0:1, 11:12]
         ego_glob_x = idm_s[:,  0:1, 3:4]
         lstm_output = self.lstm_layer(ego_glob_x)
         for step in range(1, self.rollout_len+1):
@@ -174,6 +176,7 @@ class ForwardSim(tf.keras.Model):
             m_veh_v = idm_s[:, step-1:step, 2:3]
             f_veh_glob_x = idm_s[:, step-1:step, 4:5]
             m_veh_glob_x = idm_s[:, step-1:step, 5:6]
+            f_veh_a = idm_s[:, step-1:step, 12:13]
 
             em_dv_true = idm_s[:, step-1:step, 8:9]
             em_delta_x_true = idm_s[:, step-1:step, 9:10]
@@ -188,22 +191,22 @@ class ForwardSim(tf.keras.Model):
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                             (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
 
-            env_state = tf.concat([ego_v, f_veh_v, \
+            env_state = tf.concat([ego_veh_a, f_veh_a, ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step-1:step, :]
-            inputs = tf.concat([proj_latent, env_state, merger_c], axis=-1)
+            inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
 
-            _act = self.get_action(inputs)
+            ego_veh_a = self.get_action(inputs)
 
-            displacement += ego_v*0.1 + 0.5*_act*0.1**2
-            ego_glob_x += ego_v*0.1 + 0.5*_act*0.1**2
-            ego_v += _act*0.1
+            displacement += ego_v*0.1 + 0.5*ego_veh_a*0.1**2
+            ego_glob_x += ego_v*0.1 + 0.5*ego_veh_a*0.1**2
+            ego_v += ego_veh_a*0.1
             if step-1 == 0:
-                act_seq = _act
+                act_seq = ego_veh_a
 
             else:
-                act_seq = tf.concat([act_seq, _act], axis=1)
+                act_seq = tf.concat([act_seq, ego_veh_a], axis=1)
             displacement_seq = tf.concat([displacement_seq, displacement], axis=1)
 
         return displacement_seq, act_seq

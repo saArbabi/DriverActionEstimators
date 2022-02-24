@@ -82,7 +82,7 @@ class Viewer():
                 print('ego_lane_id_target: ', vehicle.target_lane)
                 print('glob_y: ', vehicle.glob_y)
                 print('glob_x: ', round(vehicle.glob_x, 2))
-                print('ego_act: ', vehicle.act_long)
+                print('ego_act: ', vehicle.act_long_c)
                 print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
                 # print('lane_y: ', vehicle.lane_y)
                 print('driver_params: ', vehicle.driver_params)
@@ -214,7 +214,7 @@ class ViewerMC(Viewer):
                 print('ego_decision: ', vehicle.lane_decision)
                 print('ego_lane_id: ', vehicle.lane_id)
                 print('lane_y: ', round(vehicle.lane_y, 2))
-                print('ego_act: ', vehicle.act_long)
+                print('ego_act: ', vehicle.act_long_c)
                 print('steps_since_lc_initiation: ', vehicle.steps_since_lc_initiation)
                 # print('lane_y: ', vehicle.lane_y)
                 print('driver_params: ', vehicle.driver_params)
@@ -261,11 +261,11 @@ class ViewerMC(Viewer):
         self.desparam_ax.clear()
 
         veh_id = self.focus_on_this_vehicle
-        tace_len = len(real_mc_log[veh_id]['act'])
+        tace_len = len(real_mc_log[veh_id]['act_long_c'])
         x_range = range(tace_len)
         colors = cm.rainbow(np.linspace(0, 1, 5))
 
-        self.act_ax.plot(x_range, real_mc_log[veh_id]['act'], label=veh_id)
+        self.act_ax.plot(x_range, real_mc_log[veh_id]['act_long_c'], label=veh_id)
         self.speed_ax.plot(x_range, real_mc_log[veh_id]['speed'], label=veh_id)
         self.att_ax.plot(x_range, real_mc_log[veh_id]['att'])
         color_i = 0
@@ -277,7 +277,7 @@ class ViewerMC(Viewer):
                 self.desparam_ax.plot(x_range, real_mc_log[veh_id][key], color=color)
             color_i += 1
         # Imagined vehicle
-        self.act_ax.plot(x_range, ima_mc_log[veh_id]['act'], linestyle='--')
+        self.act_ax.plot(x_range, ima_mc_log[veh_id]['act_long_c'], linestyle='--')
         self.speed_ax.plot(x_range, ima_mc_log[veh_id]['speed'], linestyle='--')
         speed_lim_min = min(ima_mc_log[veh_id]['speed']+real_mc_log[veh_id]['speed'])-1
         speed_lim_max = max(ima_mc_log[veh_id]['speed']+real_mc_log[veh_id]['speed'])+1

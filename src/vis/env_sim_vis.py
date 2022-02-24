@@ -13,7 +13,8 @@ def main():
     # episode   _id = 504
     # episode_id = 506
     episode_id = 102
-    episode_id = 22
+    episode_id = 3
+    # episode_id = 83
     # episode_id = 10
     env.initialize_env(episode_id)
 

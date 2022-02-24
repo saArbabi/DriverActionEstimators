@@ -16,8 +16,9 @@ col_names = [
          'episode_id', 'time_step',
          'e_veh_id', 'f_veh_id', 'm_veh_id',
          'm_veh_exists', 'e_veh_att',
+         'e_veh_action_p', 'f_veh_action_p', 'm_veh_action_p',
+         'e_veh_action_c', 'f_veh_action_c', 'm_veh_action_c',
          'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
-         'e_veh_action', 'f_veh_action', 'm_veh_action',
          'aggressiveness',
          'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -130,7 +131,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 50
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'data_arrays_h{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -159,11 +160,13 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_test_8'
+model_name = 'neural_idm_355'
 # model_name = 'neural_idm_322'
 # model_name = 'neural_idm_test_15'
+epoch_count = '21'
+# epoch_count = '15'
+epoch_count = '15'
 epoch_count = '20'
-# epoch_count = '5'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -301,7 +304,7 @@ tf.random.set_seed(2021)
 # np.where((history_future_usc[:, 0, 0] == 26) & (history_future_usc[:, 0, 2] == 4))
 sepcific_samples = []
 distribution_name = 'prior'
-distribution_name = 'posterior'
+# distribution_name = 'posterior'
 
 while Example_pred < 10:
     sample_index = [val_samples[i]]
@@ -313,13 +316,11 @@ while Example_pred < 10:
     aggressiveness = history_future_usc[sample_index, 0, hf_usc_indexs['aggressiveness']][0]
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
-    # if episode == 8 and \
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
-                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
-                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
-                # e_veh_att.mean() == 0:
-                # e_veh_att.mean() == 0:
+                e_veh_att[40:].mean() == 1 and \
+                e_veh_att[:30].mean() == 0:
+                # e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+
         Example_pred += 1
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -337,8 +338,10 @@ while Example_pred < 10:
         proj_idm = model.belief_net.z_proj_idm(z_idm)
         proj_att = model.belief_net.z_proj_att(z_att)
         idm_params = model.idm_layer(proj_idm)
-        displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att,\
-                                                     future_idm_ss, merger_cs])
+        displacement_seq, act_seq, att_scores = \
+                                            model.forward_sim.rollout([\
+                                            idm_params, proj_att, enc_h,\
+                                            future_idm_ss, merger_cs])
         f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
         act_seq = act_seq.numpy()
         if np.isnan(act_seq).any():
@@ -365,16 +368,17 @@ while Example_pred < 10:
             true_pram_val = history_future_usc[sample_index, 0, hf_usc_indexs[param_name]][0]
             true_params.append(round(true_pram_val, 2))
 
-        plt.text(0.1, 0.3, 'true: '+ str(true_params))
+        plt.text(0.1, 0.3, 'true: '+ str(true_params), color='red')
         plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
+        plt.title(distribution_name)
         plt.figure(figsize=(5, 3))
-        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action_c'])
         plt.plot(time_steps, traj, color='purple')
-        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action_c'])
         plt.plot(time_steps, traj, color='black', linewidth=2)
-        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+        traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action_c'])
         plt.plot(time_steps, traj, color='red')
-        plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
+        plt.legend(['f_veh_action_c', 'e_veh_action_c', 'm_veh_action_c'])
 
         for sample_trace_i in range(traces_n):
            plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
@@ -485,13 +489,13 @@ for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act'
 plt.text(0.1, 0.3, 'true: '+ str(true_params))
 plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 plt.figure(figsize=(5, 3))
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action_c'])
 plt.plot(time_steps, traj, color='purple')
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action_c'])
 plt.plot(time_steps, traj, color='black', linewidth=2)
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action_c'])
 plt.plot(time_steps, traj, color='red')
-plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
+plt.legend(['f_veh_action_c', 'e_veh_action_c', 'm_veh_action_c'])
 
 for sample_trace_i in range(traces_n):
    plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
@@ -583,13 +587,13 @@ for param_name in ['desired_v', 'desired_tgap', 'min_jamx', 'max_act', 'min_act'
 plt.text(0.1, 0.3, 'true: '+ str(true_params))
 plt.text(0.1, 0.1, 'pred: '+ str(idm_params.numpy()[:, :].mean(axis=0).round(2)))
 plt.figure(figsize=(5, 3))
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action_c'])
 plt.plot(time_steps, traj, color='purple')
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action_c'])
 plt.plot(time_steps, traj, color='black', linewidth=2)
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action_c'])
 plt.plot(time_steps, traj, color='red')
-plt.legend(['f_veh_action', 'e_veh_action', 'm_veh_action'])
+plt.legend(['f_veh_action_c', 'e_veh_action_c', 'm_veh_action_c'])
 
 for sample_trace_i in range(traces_n):
    plt.plot(time_steps[history_len-1:], act_seq[sample_trace_i, :, :].flatten(),
@@ -654,11 +658,11 @@ for sample_trace_i in range(traces_n):
     ax.plot(time_axis[history_len-1:], act_seq[sample_trace_i, :, :].flatten(), \
                     color='grey', alpha=0.4, linewidth=1, label=label, linestyle='-')
 
-traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action'])
+traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['e_veh_action_c'])
 ax.plot(time_axis, traj, color='red')
-# traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action'])
+# traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['m_veh_action_c'])
 # ax.plot(time_axis, traj, linestyle='--', color='black')
-# traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action'])
+# traj = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['f_veh_action_c'])
 # ax.plot(time_axis, traj, color='purple',linestyle='-')
 ax.fill_between([0,3],[-9,-9], [5,5], color='lightgrey')
 # ax.set_yticks([-6, -4, -2, 0, 2])
@@ -789,12 +793,12 @@ plt.savefig("example_params.png", dpi=500)
 # fig = pyplot.figure(figsize=(3, 2))
 # ax = Axes3D(fig)
 #
-# ax.scatter(19.2,  1., 2.6, color='red')
+# ax.scatter(history_len-1.2,  1., 2.6, color='red')
 # ax.scatter(desired_vs, desired_tgaps, b_max, color='grey')
 # ax.set_xlim(28, 30)
 # ax.set_ylim(1, 2)
 # ax.set_zlim(2, 3)
-# ax.set_xticks([28., 19, 30])
+# ax.set_xticks([28., history_len-1, 30])
 # ax.set_yticks([1, 1.5, 2.])
 # ax.set_zticks([2, 2.5, 3])
 # # ax.set_title('Driver disposition')

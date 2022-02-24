@@ -20,7 +20,7 @@ Load data
 """
 history_len = 30 # steps
 rollout_len = 50
-data_id = '048'
+data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
                                 history_len=history_len, rollout_len=rollout_len)
@@ -34,21 +34,29 @@ train_input[0].shape
 data_files_dir = './src/datasets/'+dataset_name+'/'
 with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
-train_input[-1].shape
+train_input[2].shape
 print(round(train_input[-1].shape[0]*0.1/60**2, 1), ' hours of driving')
-# %%
-train_input[-1][:, :, 0:1].mean()
-train_input[-1][:, :, 0:1].std()
 
+
+
+# %%
+train_input[-1][:, :, -1:].mean(axis=0)
+train_input[-1][:, :, -1:].std(axis=0)
+train_input[2][:, :, 11:12].std()
+train_input[2][:, :, 12].std()
+train_input[2][:, :, -3].max()
+train_input[2][:, :, :].shape
+512/2
+128*3
 # %%
 config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.5,
+    "vae_loss_weight": 0.02,
     "attention_temp": 1,
-    "latent_dim": 6,
+    "latent_dim": 3,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -73,7 +81,6 @@ class Trainer():
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config, exp_id)
         # self.model.make_event_files()
-
         self.model.forward_sim.rollout_len = rollout_len
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
@@ -164,7 +171,9 @@ class Trainer():
             self.model.train_test_loop([train_input, test_input])
             print(self.epoch_count, 'epochs completed')
             print(round((time.time()-t0)), 'secs per epoch')
-            self.save_model()
+
+
+            # self.save_model()
         # self.read_losses()
 
     def save_model(self):
@@ -181,17 +190,17 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '322'
-exp_id = 'test_8'
+# exp_id = 't'
+exp_id = '355'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='15')
+model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.model.vae_loss_weight = 0.03
-# model_trainer.model.make_event_files()
+
 print(model_trainer.exp_dir)
 # %%
-# model_trainer.model.vae_loss_weight = 0.3
+# model_trainer.model.vae_loss_weight = 2
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
@@ -200,8 +209,7 @@ model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ########### #######
 ################## ##### ##################
 ################## ##### ####### ##########0#
-# model_trainer.save_model()
-
+model_trainer.save_model()
 # %%
 
 fig = plt.figure(figsize=(15, 10))
@@ -251,10 +259,10 @@ print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
 model_trainer.save_model()
 
 # %%
-x = np.linspace(-5, 5, 100)
-min = 0
-max = 1
-temp = 4/(max-min)
+x = np.linspace(-100, 50, 100)
+min = 15
+max = 25
+temp = 1/(max-min)
 
 y = min + (max-min)/(1 + np.exp(-temp*x))
 # y = np.exp(x)
