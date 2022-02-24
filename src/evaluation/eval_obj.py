@@ -54,23 +54,23 @@ class MCEVAL():
 
     def assign_neural_vehicle(self, model_name):
         if self.model_vehicle_map[model_name] == 'NeuralVehicle':
-            epoch_count = '15'
+            epoch_count = '20'
             from vehicles.neural.neural_vehicle import NeuralVehicle
             self.env.neural_vehicle = NeuralVehicle()
         elif self.model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-            epoch_count = '15'
+            epoch_count = '20'
             from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
             self.env.neural_vehicle = NeuralIDMVehicle()
         elif self.model_vehicle_map[model_name] == 'LatentMLPVehicle':
-            epoch_count = '30'
+            epoch_count = '20'
             from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
             self.env.neural_vehicle = LatentMLPVehicle()
         elif self.model_vehicle_map[model_name] == 'MLPVehicle':
-            epoch_count = '15'
+            epoch_count = '20'
             from vehicles.neural.mlp_vehicle import MLPVehicle
             self.env.neural_vehicle = MLPVehicle()
         elif self.model_vehicle_map[model_name] == 'LSTMVehicle':
-            epoch_count = '15'
+            epoch_count = '20'
             from vehicles.neural.lstm_vehicle import LSTMVehicle
             self.env.neural_vehicle = LSTMVehicle()
 
@@ -129,7 +129,7 @@ class MCEVAL():
         self.current_episode_count += 1
         np.random.seed(self.episode_id)
         self.env.trans_time = np.random.randint(\
-                            self.history_len, self.history_len * 3) # controller ==> 'neural'
+                            self.history_len, 100) # controller ==> 'neural'
 
         for trace in range(self.eval_config['mc_config']['traces_n']):
             self.run_trace(trace)

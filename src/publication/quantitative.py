@@ -22,9 +22,13 @@ ima_collections = {}
 collision_logs = {}
 runtimes = {}
 # model_names = ['neural_idm_238', 'neural_037', 'latent_mlp_12', 'mlp_03', 'lstm_03']
-model_names = ['neural_idm_320', 'neural_040', 'latent_mlp_18', 'mlp_04', 'lstm_04']
+model_names = ['neural_idm_326', 'neural_idm_327', 'neural_044', 'latent_mlp_22','mlp_05', 'lstm_05']
+model_names = ['neural_idm_326', 'neural_idm_353', 'neural_idm_353__', 'neural_idm_355']
+# model_names = ['neural_idm_326']
+# model_names = ['neural_044']
 # model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
-mc_run_name = 'rwse'
+mc_run_name = 'rwse_long'
+mc_run_name = 'nidm_test'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name
@@ -85,7 +89,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(7):
+for i in range(14):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -98,10 +102,33 @@ for i in range(7):
 
         for trace in range(5):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            # plt.plot(state_pred, color='grey')
-            plt.plot(state_pred, label=trace)
+            plt.plot(state_pred, color='grey')
+            # plt.plot(state_pred, label=trace)
         plt.legend()
 
+# %%
+
+"""
+Vis true vs pred state for models.
+Note:
+Models being compared qualitatively must have the same history_len.
+"""
+state_index = indxs['speed']
+state_index = indxs['act_long']
+for i in range(14):
+    plt.figure()
+    epis_id = snips_true[model_names[-1]][i,0,0,1]
+    veh_id = snips_true[model_names[-1]][i,0,0,2]
+    state_true = snips_true[model_names[-1]][i,0,:,state_index]
+    plt.plot(state_true, color='red', linestyle='--')
+    plt.title(str(i)+'   Episode_id:'+str(epis_id)+\
+                                                '   Veh_id:'+str(veh_id))
+    for model_name in model_names:
+        for trace in range(1):
+            state_pred = snips_pred[model_name][i,trace,:,state_index]
+            # plt.plot(state_pred, color='grey')
+            plt.plot(state_pred, label=model_name)
+    plt.legend()
 
 # %%
 """
@@ -116,13 +143,17 @@ def get_trace_err(pred_traces, true_trace):
     # mean across traces (axis=0)
     return np.mean((pred_traces - true_trace)**2, axis=0)
 
-def get_veh_err(index, model_name):
+def get_veh_err(index, model_name, car_id_to_rwse):
     """
     Input shpae [veh_n, traces_n, steps_n, state_index]
     Return shape [veh_n, steps_n]
     """
-    posx_true = snips_true[model_name][:,:,:,index]
-    posx_pred = snips_pred[model_name][:,:,:,index]
+    if type(car_id_to_rwse) == int:
+        posx_true = snips_true[model_name][car_id_to_rwse:car_id_to_rwse+1,:,:,index]
+        posx_pred = snips_pred[model_name][car_id_to_rwse:car_id_to_rwse+1,:,:,index]
+    else:
+        posx_true = snips_true[model_name][:,:,:,index]
+        posx_pred = snips_pred[model_name][:,:,:,index]
 
     vehs_err_arr = [] # vehicles error array
     veh_n = posx_true.shape[0]
@@ -134,13 +165,14 @@ def get_rwse(vehs_err_arr):
     # mean across all snippets (axis=0)
     return np.mean(vehs_err_arr, axis=0)**0.5
 
-
 # %%
 
 """
 rwse x position
 """
 time_vals = np.linspace(0, 5, steps_n)
+# car_id_to_rwse = 5
+car_id_to_rwse = 'all'
 
 fig = plt.figure(figsize=(8, 6))
 position_axis = fig.add_subplot(211)
@@ -148,7 +180,7 @@ speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.1)
 # for model_name in model_names:
 for model_name in model_names:
-    vehs_err_arr = get_veh_err(indxs['glob_x'], model_name)
+    vehs_err_arr = get_veh_err(indxs['glob_x'], model_name, car_id_to_rwse)
     error_total = get_rwse(vehs_err_arr)
     if model_name == 'neural_idm_180':
         position_axis.plot(time_vals, error_total, \
@@ -170,7 +202,7 @@ rwse speed
 
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 for model_name in model_names:
-    vehs_err_arr = get_veh_err(indxs['speed'], model_name)
+    vehs_err_arr = get_veh_err(indxs['speed'], model_name, car_id_to_rwse)
     error_total = get_rwse(vehs_err_arr)
     if model_name == 'neural_idm_180':
         speed_axis.plot(time_vals, error_total, \
@@ -181,7 +213,11 @@ speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)', labelpad=10)
 speed_axis.set_xlabel('Time horizon (s)')
 speed_axis.minorticks_off()
 # speed_axis.set_ylim(0, 2)
-speed_axis.set_yticks([0, 1, 2, 3])
+# speed_axis.set_yticks([0, 1, 2, 3])
+speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
+# %%
+
+
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
 
 # %%

@@ -154,7 +154,7 @@ class ForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def getego_veh_aion(self, inputs):
+    def get_action(self, inputs):
         x = self.att_layer_1(inputs)
         x = self.att_layer_2(x)
         return self.action_neu(x)
@@ -191,13 +191,13 @@ class ForwardSim(tf.keras.Model):
             em_dv = (ego_v - m_veh_v)*m_veh_exists+\
                             (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
 
-            env_state = tf.concat([ego_v, f_veh_v, ego_veh_a, f_veh_a,\
+            env_state = tf.concat([ego_veh_a, f_veh_a, ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step-1:step, :]
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
 
-            ego_veh_a = self.getego_veh_aion(inputs)
+            ego_veh_a = self.get_action(inputs)
 
             displacement += ego_v*0.1 + 0.5*ego_veh_a*0.1**2
             ego_glob_x += ego_v*0.1 + 0.5*ego_veh_a*0.1**2

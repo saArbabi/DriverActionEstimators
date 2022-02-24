@@ -73,6 +73,41 @@ class EnvMergeMC(EnvMerge):
         else:
             return False
 
+    def veh_ima_action(self, veh_real, veh_ima):
+        # self.set_ima_veh_neighbours(veh_real, veh_ima)
+        veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
+        if veh_ima.vehicle_type == 'idmmobil_merge':
+            self.set_ima_veh_decision(veh_real, veh_ima)
+
+        if veh_ima.vehicle_type == 'neural':
+            obs = veh_ima.neur_observe()
+            if self.check_collision(veh_ima):
+                self.collision_detected = True
+            # if veh_real.id == 3:
+            #     print(veh_ima.obs_history)
+            veh_ima.update_obs_history(obs[0])
+
+            if veh_ima.control_type != 'neural':
+                if not (veh_ima.obs_history[0,0,:] == 0).all() and \
+                                    self.time_step >= self.trans_time:
+
+                    # controller change
+                    veh_ima.control_type = 'neural'
+
+            if veh_ima.control_type == 'neural':
+                # _act_long = veh_ima.act(obs)
+                act_long = veh_ima.act(obs)
+                # if veh_ima.id == 'neur_4':
+                    # act_long = 5
+                veh_ima.act_long_c = act_long
+                if self.metric_collection_mode:
+                    self.mc_log_info(veh_real, veh_ima)
+
+                return act_long
+
+        return veh_real.act_long_c
+
+
     def get_joint_action(self):
         """
         Returns the joint action of all vehicles on the road
@@ -80,55 +115,32 @@ class EnvMergeMC(EnvMerge):
         acts_real = []
         acts_ima = []
         for veh_real, veh_ima in zip(self.real_vehicles, self.ima_vehicles):
+            if self.time_step > 0:
+                veh_real.act_long_p = veh_real.act_long_c
+                veh_ima.act_long_p = veh_ima.act_long_c
             # real vehicles
             veh_real.neighbours = veh_real.my_neighbours(self.real_vehicles+[self.dummy_stationary_car])
             act_long, act_lat = veh_real.act()
             acts_real.append([act_long, act_lat])
-            veh_real.act_long = act_long
-
+            veh_real.act_long_c = act_long
             # imagined vehicles
-            # self.set_ima_veh_neighbours(veh_real, veh_ima)
-            veh_ima.neighbours = veh_ima.my_neighbours(self.ima_vehicles+[self.dummy_stationary_car])
-            if veh_ima.vehicle_type == 'idmmobil_merge':
-                self.set_ima_veh_decision(veh_real, veh_ima)
-
-            if veh_ima.vehicle_type == 'neural':
-                obs = veh_ima.neur_observe()
-                if self.check_collision(veh_ima):
-                    self.collision_detected = True
-                # if veh_real.id == 3:
-                #     print(veh_ima.obs_history)
-                veh_ima.update_obs_history(obs[0])
-
-                if veh_ima.control_type != 'neural':
-                    if not (veh_ima.obs_history[0,0,:] == 0).all() and \
-                                        self.time_step >= self.trans_time:
-
-                        # controller change
-                        veh_ima.control_type = 'neural'
-
-                if veh_ima.control_type == 'neural':
-                    # _act_long = veh_ima.act(obs)
-
-
-                    act_long = veh_ima.act(obs)
-                    # if veh_ima.id == 'neur_4':
-                        # act_long = 5
-                    veh_ima.act_long = act_long
-                    if self.metric_collection_mode:
-                        self.mc_log_info(veh_real, veh_ima)
-
-            acts_ima.append([act_long, act_lat]) # lateral action is from veh_real
+            act_long_ima = self.veh_ima_action(veh_real, veh_ima)
+            acts_ima.append([act_long_ima, act_lat]) # lateral action is from veh_real
+            veh_ima.act_long_c = act_long_ima
+            # print('####')
+            # print(acts_real)
+            # print(act_long_ima)
+            # print('####')
 
             if self.debugging_mode:
                 if veh_ima.vehicle_type == 'neural':
                     if veh_ima.control_type == 'neural':
-                        # veh_ima.act_long = _act_long
-                        veh_ima.act_long = act_long
+                        # veh_ima.act_long_c = _act_long
+                        veh_ima.act_long_c = act_long_ima
                     else:
-                        veh_ima.act_long = act_long
+                        veh_ima.act_long_c = act_long
                 else:
-                    veh_ima.act_long = act_long
+                    veh_ima.act_long_c = act_long
 
                 self.vis_log_info(veh_real, veh_ima)
 
@@ -185,27 +197,27 @@ class EnvMergeMC(EnvMerge):
                 self.real_mc_log[veh_id] = {}
                 self.ima_mc_log[veh_id] = {}
 
-                self.real_mc_log[veh_id]['act'] = []
+                self.real_mc_log[veh_id]['act_long_c'] = []
                 self.real_mc_log[veh_id]['speed'] = []
                 self.real_mc_log[veh_id]['att'] = []
                 for key in veh_ima.driver_params.keys():
                     self.real_mc_log[veh_id][key] = []
 
-                self.ima_mc_log[veh_id]['act'] = []
+                self.ima_mc_log[veh_id]['act_long_c'] = []
                 self.ima_mc_log[veh_id]['speed'] = []
                 self.ima_mc_log[veh_id]['att'] = []
                 self.ima_mc_log[veh_id]['m_veh_exists'] = []
                 for key in veh_ima.driver_params.keys():
                     self.ima_mc_log[veh_id][key] = []
 
-            self.real_mc_log[veh_id]['act'].append(veh_real.act_long)
+            self.real_mc_log[veh_id]['act_long_c'].append(veh_real.act_long_c)
             self.real_mc_log[veh_id]['speed'].append(veh_real.speed)
             self.real_mc_log[veh_id]['att'].append(att_real)
             for key in veh_ima.driver_params.keys():
                 self.real_mc_log[veh_id][key].append(veh_real.driver_params[key])
 
             # Imagined vehicle
-            self.ima_mc_log[veh_id]['act'].append(veh_ima.act_long)
+            self.ima_mc_log[veh_id]['act_long_c'].append(veh_ima.act_long_c)
             self.ima_mc_log[veh_id]['speed'].append(veh_ima.speed)
 
             if not hasattr(veh_ima, 'att'):
@@ -228,7 +240,6 @@ class EnvMergeMC(EnvMerge):
         - ego (real and imagined) speed for rwse
         - ego (real and imagined) action for comparing action distributions
         """
-
         veh_id =  veh_real.id
         if veh_id not in self.real_mc_log:
             self.real_mc_log[veh_id] = {}
@@ -248,7 +259,7 @@ class EnvMergeMC(EnvMerge):
         else:
             min_delta_x = 100
         real_mc_log = [self.time_step, veh_real.glob_x, \
-                            veh_real.speed, veh_real.act_long, min_delta_x, att_real]
+                            veh_real.speed, veh_real.act_long_c, min_delta_x, att_real]
         self.real_mc_log[veh_id].append(real_mc_log)
 
         # Imagined vehicle
@@ -258,7 +269,7 @@ class EnvMergeMC(EnvMerge):
             min_delta_x = 100
 
         # ima_mc_log = [self.time_step, veh_ima.glob_x, \
-        #                         veh_ima.speed, veh_ima.act_long, min_delta_x, veh_ima.att]
+        #                         veh_ima.speed, veh_ima.act_long_c, min_delta_x, veh_ima.att]
         ima_mc_log = [self.time_step, veh_ima.glob_x, \
-                                veh_ima.speed, veh_ima.act_long, min_delta_x]
+                                veh_ima.speed, veh_ima.act_long_c, min_delta_x]
         self.ima_mc_log[veh_id].append(ima_mc_log)

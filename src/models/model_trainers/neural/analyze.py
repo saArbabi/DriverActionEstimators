@@ -15,9 +15,9 @@ col_names = [
          'episode_id', 'time_step',
          'e_veh_id', 'f_veh_id', 'm_veh_id',
          'm_veh_exists', 'e_veh_att',
-         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'e_veh_action_p', 'f_veh_action_p', 'm_veh_action_p',
          'e_veh_action_c', 'f_veh_action_c', 'm_veh_action_c',
+         'e_veh_speed', 'f_veh_speed', 'm_veh_speed',
          'aggressiveness',
          'desired_v','desired_tgap', 'min_jamx', 'max_act', 'min_act',
          'el_delta_v', 'el_delta_x', 'em_delta_v', 'em_delta_x',
@@ -109,7 +109,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_043'
+model_name = 'neural_044'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -215,8 +215,8 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
-                # e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
+                # e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
 
         Example_pred += 1
         covered_episodes.append(episode)

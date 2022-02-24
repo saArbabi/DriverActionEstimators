@@ -7,7 +7,7 @@ class DataGenMerge():
         self.env.usage = 'data generation'
         self.env.recordings = {}
         self.env.veh_log = ['lane_decision', 'lane_id', 'glob_x', \
-                                 'glob_y', 'speed', 'act_long']
+                                 'glob_y', 'speed', 'act_long_p', 'act_long_c']
         self.ego_internal_state = ['aggressiveness', 'desired_v', \
                 'desired_tgap', 'min_jamx', 'max_act', 'min_act']
 
@@ -20,7 +20,7 @@ class DataGenMerge():
             return False
 
         for vehicle in self.env.vehicles:
-            if abs(vehicle.act_long) > 0.2 or (vehicle.lane_id == 2 and  \
+            if abs(vehicle.act_long_c) > 0.2 or (vehicle.lane_id == 2 and  \
                                                vehicle.neighbours['rl']):
                 return False
         else:
@@ -53,7 +53,8 @@ class DataGenMerge():
                         f_veh_exists, m_veh_exists, e_veh_att,
                         e_veh['glob_x'], f_veh['glob_x'], m_veh['glob_x'],
                         e_veh['speed'], f_veh['speed'], m_veh['speed'],
-                        e_veh['act_long'], f_veh['act_long'], m_veh['act_long']]
+                        e_veh['act_long_p'], f_veh['act_long_p'], m_veh['act_long_p'],
+                        e_veh['act_long_c'], f_veh['act_long_c'], m_veh['act_long_c']]
 
         ego_internal_state = [e_veh.get(key) for key in self.ego_internal_state]
         step_feature.extend(ego_internal_state)

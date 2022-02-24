@@ -42,7 +42,8 @@ class EnvMerge(highway.Env):
                 log['min_jamx'] = ego.driver_params['min_jamx']
                 log['max_act'] = ego.driver_params['max_act']
                 log['min_act'] = ego.driver_params['min_act']
-                log['act_long'] = ego.act_long
+                log['act_long_p'] = ego.act_long_p
+                log['act_long_c'] = ego.act_long_c
             self.recordings[self.episode_id][ego.id][self.time_step] = log
 
     def get_joint_action(self):
@@ -54,7 +55,9 @@ class EnvMerge(highway.Env):
             vehicle.neighbours = vehicle.my_neighbours(self.vehicles+[self.dummy_stationary_car])
             actions = vehicle.act()
             joint_action.append(actions)
-            vehicle.act_long = actions[0]
+            if self.time_step > 0:
+                vehicle.act_long_p = vehicle.act_long_c
+            vehicle.act_long_c = actions[0]
         return joint_action
 
     def remove_unwanted_vehicles(self):
