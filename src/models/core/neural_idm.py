@@ -21,7 +21,6 @@ class NeurIDMModel(AbstractModel):
         self.vae_loss_weight = config['model_config']['vae_loss_weight']
         self.loss_function = tf.keras.losses.Huber()
         # self.loss_function = tf.keras.losses.MeanSquaredError()
-
         if exp_id:
             self.exp_dir = './src/models/experiments/' + 'neural_idm_' + exp_id
 
@@ -40,7 +39,7 @@ class NeurIDMModel(AbstractModel):
         return self.loss_function(_true, _pred)
 
     def get_tot_loss(self, kl_loss, displacement_loss, action_loss):
-        return self.vae_loss_weight*kl_loss + 10*displacement_loss + action_loss
+        return self.vae_loss_weight*kl_loss + displacement_loss + action_loss
 
     def get_kl_loss(self, pri_params, pos_params):
         pri_params_idm, pri_params_att = pri_params
@@ -69,7 +68,7 @@ class NeurIDMModel(AbstractModel):
             # train step
             self.train_step(batch_data[0][:-1], batch_data[0][-1], step)
             # test step
-            self.test_step(batch_data[1][:-1], batch_data[1][-1], step)
+            # self.test_step(batch_data[1][:-1], batch_data[1][-1], step)
 
     @tf.function(experimental_relax_shapes=True)
     def train_step(self, states, targets, step):
@@ -166,6 +165,10 @@ class BeliefModel(tf.keras.Model):
         _epsilon = tf.random.normal(shape=(tf.shape(params_att[0])[0],
                                  self.latent_dim), mean=0., stddev=1)
         sampled_z_att = params_att[0] + K.exp(params_att[1])*_epsilon
+        # tf.print('xxxxx sampled_z_idm  min: ', tf.reduce_min(K.exp(params_idm[1])))
+        # tf.print('xxxxx sampled_z_idm  max: ', tf.reduce_max(K.exp(params_idm[1])))
+        # tf.print('xxxxx sampled_z_att  min: ', tf.reduce_min(K.exp(params_att[1])))
+        # tf.print('xxxxx sampled_z_att  max: ', tf.reduce_max(K.exp(params_att[1])))
         return sampled_z_idm, sampled_z_att
 
     def pri_proj(self, enc_h):
@@ -272,7 +275,7 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, inputs):
+    def get_att(self, inputs, m_veh_exists):
         x = self.att_layer_1(inputs)
         x = self.att_layer_2(x)
         f_att_x = self.clip_value(self.f_att_neu(x), 20)
@@ -287,8 +290,8 @@ class IDMForwardSim(tf.keras.Model):
         f_att_score = tf.exp(f_att_x * self.attention_temp)
         m_att_score = tf.exp(m_att_x * self.attention_temp)
         att_sum = f_att_score + m_att_score
-        f_att_score = f_att_score/att_sum
-        m_att_score = m_att_score/att_sum
+        f_att_score = (1-m_veh_exists) + m_veh_exists*f_att_score/att_sum
+        m_att_score = m_veh_exists*m_att_score/att_sum
         return f_att_score, m_att_score
 
     def reshape_idm_params(self, idm_params, batch_size):
@@ -330,13 +333,13 @@ class IDMForwardSim(tf.keras.Model):
                             (1-m_veh_exists)*self.dummy_value_set['em_delta_v']
             # tf.print('############ ef_act ############')
 
-            env_state = tf.concat([ego_v, f_veh_v, ego_veh_a, f_veh_a,\
+            env_state = tf.concat([ego_veh_a, f_veh_a, ego_v, f_veh_v, \
                                     ef_dv, ef_delta_x, em_dv, em_delta_x], axis=-1)
             env_state = self.scale_env_s(env_state)
             merger_c = merger_cs[:, step-1:step, :]
 
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score = self.get_att(inputs)
+            f_att_score, m_att_score = self.get_att(inputs, m_veh_exists)
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
@@ -374,7 +377,6 @@ class IDMLayer(tf.keras.Model):
 
     def logistic_function(self, x, minval, maxval):
         dif_val = maxval - minval
-        x = tf.clip_by_value(x, -100, 100)
         return minval + dif_val/(1+tf.exp(-(4/dif_val)*x))
 
     def get_des_v(self, x):
@@ -404,6 +406,7 @@ class IDMLayer(tf.keras.Model):
 
     def call(self, x):
         x = self.idm_param_neu(x)
+        x = tf.clip_by_value(x, -100, 100)
         desired_v = self.get_des_v(x[:, 0:1])
         desired_tgap = self.get_des_tgap(x[:, 1:2])
         min_jamx = self.get_min_jamx(x[:, 2:3])
