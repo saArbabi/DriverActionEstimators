@@ -53,10 +53,10 @@ config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 512,
+    "batch_size": 128,
     "vae_loss_weight": 0.02,
     "attention_temp": 1,
-    "latent_dim": 3,
+    "latent_dim": 6,
     },
      "data": {
      "dataset_name": dataset_name,
@@ -191,11 +191,11 @@ class Trainer():
 
 tf.random.set_seed(2021)
 # exp_id = 't'
-exp_id = '355'
+exp_id = '356'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-model_trainer.load_pre_trained(epoch_count='10')
+# model_trainer.load_pre_trained(epoch_count='10')
 # model_trainer.model.vae_loss_weight = 0.03
 
 print(model_trainer.exp_dir)
@@ -204,7 +204,7 @@ print(model_trainer.exp_dir)
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=5)
+model_trainer.train(train_input, test_input, epochs = 5)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################

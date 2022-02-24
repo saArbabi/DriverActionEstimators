@@ -44,8 +44,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.01,
-    "attention_temp": 1,
+    "vae_loss_weight": 0.02,
     "latent_dim": 6,
     },
      "data": {
@@ -63,9 +62,7 @@ class Trainer():
                                'action_loss':[], 'kl_loss':[], 'tot_loss':[]}, \
                        'test_losses':{'displacement_loss':[], \
                               'action_loss':[], 'kl_loss':[], 'tot_loss':[]}}
-        self.temps_range = np.linspace(0.01, 1, 15)
         self.initiate_model(exp_id)
-
     def initiate_model(self, exp_id):
         from models.core import neural
         reload(neural)
@@ -159,10 +156,6 @@ class Trainer():
 
     def train(self, train_input, test_input, epochs):
         for epoch in range(epochs):
-            try:
-                self.model.vae_loss_weight = self.temps_range[self.epoch_count]
-            except:
-                self.model.vae_loss_weight = self.temps_range[-1]
             self.epoch_count += 1
             self.model.train_test_loop([train_input, test_input])
             print(self.epoch_count, 'epochs completed')
@@ -182,7 +175,7 @@ class Trainer():
 
 
 tf.random.set_seed(2021)
-exp_id = '044'
+exp_id = '045'
 model_name = 'neural_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
@@ -195,7 +188,7 @@ print(model_trainer.exp_dir)
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=15)
+model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################

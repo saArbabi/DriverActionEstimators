@@ -17,8 +17,8 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'latent_mlp_12'
-    model_name = 'neural_idm_353'
-    # model_name = 'neural_037'
+    model_name = 'neural_idm_355'
+    model_name = 'neural_045'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_02'
     # model_name = 'lstm_04'
@@ -27,18 +27,18 @@ def main():
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_353': 'NeuralIDMVehicle',
-            'neural_037': 'NeuralVehicle',
+            'neural_idm_355': 'NeuralIDMVehicle',
+            'neural_045': 'NeuralVehicle',
             'latent_mlp_12': 'LatentMLPVehicle',
             'mlp_02': 'MLPVehicle',
             'lstm_04': 'LSTMVehicle'}
 
     if model_vehicle_map[model_name] == 'NeuralVehicle':
-        epoch_count = '10'
+        epoch_count = '20'
         from vehicles.neural.neural_vehicle import NeuralVehicle
         env.neural_vehicle = NeuralVehicle()
     elif model_vehicle_map[model_name] == 'NeuralIDMVehicle':
-        epoch_count = '21'
+        epoch_count = '20'
         from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
     elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
@@ -55,9 +55,9 @@ def main():
         env.neural_vehicle = LSTMVehicle()
 
     episode_id = 22 # wrong switch to 1
-    episode_id = 505
+    episode_id = 508
     # episode_id = 506 # late switch
-    trace = 0
+    trace = 3
     np.random.seed(episode_id)
     env.trans_time = np.random.randint(\
                 history_len, 100) # controller ==> 'neural'

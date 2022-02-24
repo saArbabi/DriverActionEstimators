@@ -25,10 +25,10 @@ runtimes = {}
 model_names = ['neural_idm_326', 'neural_idm_327', 'neural_044', 'latent_mlp_22','mlp_05', 'lstm_05']
 model_names = ['neural_idm_326', 'neural_idm_353', 'neural_idm_353__', 'neural_idm_355']
 # model_names = ['neural_idm_326']
-# model_names = ['neural_044']
+model_names = ['neural_045', 'neural_idm_355', 'latent_mlp_22','mlp_05', 'lstm_05']
 # model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
-mc_run_name = 'rwse_long'
-mc_run_name = 'nidm_test'
+# model_names = ['neural_045', 'neural_idm_355']
+mc_run_name = 'rwse'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name
@@ -89,7 +89,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(14):
+for i in range(20, 21):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -100,10 +100,10 @@ for i in range(14):
                                                     '   Veh_id:'+str(veh_id))
 
 
-        for trace in range(5):
+        for trace in range(10):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            plt.plot(state_pred, color='grey')
-            # plt.plot(state_pred, label=trace)
+            # plt.plot(state_pred, color='grey')
+            plt.plot(state_pred, label=trace)
         plt.legend()
 
 # %%
@@ -171,8 +171,8 @@ def get_rwse(vehs_err_arr):
 rwse x position
 """
 time_vals = np.linspace(0, 5, steps_n)
-# car_id_to_rwse = 5
 car_id_to_rwse = 'all'
+# car_id_to_rwse = 20
 
 fig = plt.figure(figsize=(8, 6))
 position_axis = fig.add_subplot(211)

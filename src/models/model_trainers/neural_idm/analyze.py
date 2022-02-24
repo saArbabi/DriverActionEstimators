@@ -49,8 +49,8 @@ def latent_vis(zsamples_n):
     #  First subplot
     #===============
     # set up the axes for the first plot
-    ax = fig.add_subplot(1, 1, 1)
-    # ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # ax = fig.add_subplot(1, 1, 1)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
     # ax.xaxis.set_tick_params(pad=1, which='both')
     # ax.yaxis.set_tick_params(pad=1, which='both')
     # ax.zaxis.set_tick_params(pad=1, which='both')
@@ -71,10 +71,10 @@ def latent_vis(zsamples_n):
 
     aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiveness']]
     color_shade = aggressiveness
-    # latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-    #               s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
-    latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1],
+    latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
                   s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
+    # latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1],
+    #               s=5, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
     # axins = inset_axes(ax,
     #                     width="5%",
     #                     height="90%",
@@ -160,7 +160,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_355'
+model_name = 'neural_idm_356'
 # model_name = 'neural_idm_322'
 # model_name = 'neural_idm_test_15'
 epoch_count = '21'

@@ -109,7 +109,7 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_044'
+model_name = 'neural_045'
 epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
@@ -129,7 +129,6 @@ with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
 
 with open(data_files_dir+'dummy_value_set.pickle', 'rb') as handle:
     model.forward_sim.dummy_value_set = pickle.load(handle)
-# model.forward_sim.attention_temp = 10
 # %%
 with open(exp_dir+'/'+'losses.pickle', 'rb') as handle:
     losses = pickle.load(handle)
@@ -215,8 +214,9 @@ while Example_pred < 10:
     em_delta_y = fetch_traj(history_future_usc, sample_index, hf_usc_indexs['em_delta_y'])
     episode = future_idm_s[sample_index, 0, 0][0]
     if episode not in covered_episodes and episode != -8 and \
-                e_veh_att[20:35].mean() > 0 and e_veh_att[:20].mean() == 0:
-                # e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+                e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
+                # e_veh_att[40:].mean() == 1 and \
+                # e_veh_att[:30].mean() == 0:
 
         Example_pred += 1
         covered_episodes.append(episode)
