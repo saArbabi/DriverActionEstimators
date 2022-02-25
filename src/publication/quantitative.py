@@ -89,7 +89,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(20, 21):
+for i in range(190, 207):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -172,7 +172,7 @@ rwse x position
 """
 time_vals = np.linspace(0, 5, steps_n)
 car_id_to_rwse = 'all'
-# car_id_to_rwse = 20
+# car_id_to_rwse = 109
 
 fig = plt.figure(figsize=(8, 6))
 position_axis = fig.add_subplot(211)

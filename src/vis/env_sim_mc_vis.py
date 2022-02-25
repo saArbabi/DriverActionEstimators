@@ -18,9 +18,9 @@ def main():
 
     # model_name = 'latent_mlp_12'
     model_name = 'neural_idm_355'
-    model_name = 'neural_045'
+    # model_name = 'neural_045'
     # model_name = 'latent_mlp_02'
-    # model_name = 'mlp_02'
+    # model_name = 'mlp_05'
     # model_name = 'lstm_04'
     data_id = '049'
     history_len = 30 # choose this based on the model with longest history
@@ -30,7 +30,7 @@ def main():
             'neural_idm_355': 'NeuralIDMVehicle',
             'neural_045': 'NeuralVehicle',
             'latent_mlp_12': 'LatentMLPVehicle',
-            'mlp_02': 'MLPVehicle',
+            'mlp_05': 'MLPVehicle',
             'lstm_04': 'LSTMVehicle'}
 
     if model_vehicle_map[model_name] == 'NeuralVehicle':
@@ -55,7 +55,7 @@ def main():
         env.neural_vehicle = LSTMVehicle()
 
     episode_id = 22 # wrong switch to 1
-    episode_id = 508
+    episode_id = 526
     # episode_id = 506 # late switch
     trace = 3
     np.random.seed(episode_id)
