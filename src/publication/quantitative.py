@@ -25,10 +25,11 @@ runtimes = {}
 model_names = ['neural_idm_326', 'neural_idm_327', 'neural_044', 'latent_mlp_22','mlp_05', 'lstm_05']
 model_names = ['neural_idm_326', 'neural_idm_353', 'neural_idm_353__', 'neural_idm_355']
 # model_names = ['neural_idm_326']
-model_names = ['neural_045', 'neural_idm_355', 'latent_mlp_22','mlp_05', 'lstm_05']
+model_names = ['neural_045', 'neural_idm_362','neural_idm_365','latent_mlp_22','mlp_05', 'lstm_05']
 # model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
 # model_names = ['neural_045', 'neural_idm_355']
 mc_run_name = 'rwse'
+mc_run_name = 'test_fix'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name
@@ -50,28 +51,28 @@ for model_name in model_names:
 
 # 4%%
 """
-Each trajectory snippet is steps_n time steps long.
+Each trajectory snippet is rollout_len time steps long.
 """
-steps_n = 50
+rollout_len = 100
 snips_true = {}
 snips_pred = {}
 for model_name in model_names:
-    snips_true[model_name] = [] # shape: (car_count, traces_n, steps_n, 8)
-    snips_pred[model_name] = [] # shape: (car_count, 1, steps_n, 9)
+    snips_true[model_name] = [] # shape: (car_count, traces_n, rollout_len, 8)
+    snips_pred[model_name] = [] # shape: (car_count, 1, rollout_len, 9)
 for model_name in model_names:
     for epis_id, epis_dic in real_collections[model_name].items():
         for veh_id, veh_dic in real_collections[model_name][epis_id].items():
             _true = np.array(real_collections[model_name][epis_id][veh_id])
-            _true = _true[:,:steps_n, :]
+            _true = _true[:,:rollout_len, :]
             # if _true[:, :, -1].mean() == 0 or _true[:, :, -1].mean() == 1:
             #     continue
             flatten_ima = []
             for trace in range(len(ima_collections[model_name][epis_id][veh_id])):
                 flatten_ima.append(\
-                    ima_collections[model_name][epis_id][veh_id][trace][:steps_n])
+                    ima_collections[model_name][epis_id][veh_id][trace][:rollout_len])
 
             _pred = np.array(flatten_ima)
-            _pred = _pred[:,:steps_n, :]
+            _pred = _pred[:,:rollout_len, :]
             # xposition_error = rwse(pred_traces, true_trace)
             snips_true[model_name].append(_true)
             snips_pred[model_name].append(_pred)
@@ -89,7 +90,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(190, 207):
+for i in range(27):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -115,7 +116,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(14):
+for i in range(27):
     plt.figure()
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
@@ -137,16 +138,16 @@ used methods
 # plt.plot(xposition_error)
 def get_trace_err(pred_traces, true_trace):
     """
-    Input shpae [traces_n, steps_n]
-    Return shape [1, steps_n]
+    Input shpae [traces_n, rollout_len]
+    Return shape [1, rollout_len]
     """
     # mean across traces (axis=0)
     return np.mean((pred_traces - true_trace)**2, axis=0)
 
 def get_veh_err(index, model_name, car_id_to_rwse):
     """
-    Input shpae [veh_n, traces_n, steps_n, state_index]
-    Return shape [veh_n, steps_n]
+    Input shpae [veh_n, traces_n, rollout_len, state_index]
+    Return shape [veh_n, rollout_len]
     """
     if type(car_id_to_rwse) == int:
         posx_true = snips_true[model_name][car_id_to_rwse:car_id_to_rwse+1,:,:,index]
@@ -170,7 +171,7 @@ def get_rwse(vehs_err_arr):
 """
 rwse x position
 """
-time_vals = np.linspace(0, 5, steps_n)
+time_vals = np.linspace(0, 5, rollout_len)
 car_id_to_rwse = 'all'
 # car_id_to_rwse = 109
 

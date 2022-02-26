@@ -128,9 +128,9 @@ class MCEVAL():
         self.episode_id += 1
         self.current_episode_count += 1
         np.random.seed(self.episode_id)
-        self.env.trans_time = np.random.randint(\
-                            self.history_len, 200) # controller ==> 'neural'
-
+        # self.env.trans_time = np.random.randint(\
+        #                     self.history_len, 200) # controller ==> 'neural'
+        self.env.trans_time = 31
         for trace in range(self.eval_config['mc_config']['traces_n']):
             self.run_trace(trace)
         for veh_id, data_log in self.env.real_mc_log.items():
