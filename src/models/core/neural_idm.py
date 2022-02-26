@@ -246,7 +246,7 @@ class IDMForwardSim(tf.keras.Model):
         env_state = (env_state-self.env_scaler.mean_)/self.env_scaler.var_**0.5
         return env_state
 
-    def get_att(self, inputs, m_veh_exists):
+    def get_att(self, inputs):
         x = self.att_layer_1(inputs)
         x = self.att_layer_2(x)
         f_att_x = self.clip_value(self.f_att_neu(x), 20)
@@ -310,7 +310,7 @@ class IDMForwardSim(tf.keras.Model):
             merger_c = merger_cs[:, step-1:step, :]
 
             inputs = tf.concat([proj_latent, enc_h, env_state, merger_c], axis=-1)
-            f_att_score, m_att_score = self.get_att(inputs, m_veh_exists)
+            f_att_score, m_att_score = self.get_att(inputs)
             # m_att_score = idm_s[:, step-1:step, -3:-2]
             # f_att_score = 1 - m_att_score
             idm_state = [ego_v, ef_dv, ef_delta_x]
