@@ -17,7 +17,7 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'latent_mlp_12'
-    model_name = 'neural_idm_355'
+    model_name = 'neural_idm_367'
     # model_name = 'neural_045'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_05'
@@ -27,7 +27,7 @@ def main():
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_355': 'NeuralIDMVehicle',
+            'neural_idm_367': 'NeuralIDMVehicle',
             'neural_045': 'NeuralVehicle',
             'latent_mlp_12': 'LatentMLPVehicle',
             'mlp_05': 'MLPVehicle',
@@ -42,7 +42,7 @@ def main():
         from vehicles.neural.neural_idm_vehicle import NeuralIDMVehicle
         env.neural_vehicle = NeuralIDMVehicle()
     elif model_vehicle_map[model_name] == 'LatentMLPVehicle':
-        epoch_count = '15'
+        epoch_count = '20'
         from vehicles.neural.latent_mlp_vehicle import LatentMLPVehicle
         env.neural_vehicle = LatentMLPVehicle()
     elif model_vehicle_map[model_name] == 'MLPVehicle':
@@ -50,24 +50,24 @@ def main():
         from vehicles.neural.mlp_vehicle import MLPVehicle
         env.neural_vehicle = MLPVehicle()
     elif model_vehicle_map[model_name] == 'LSTMVehicle':
-        epoch_count = '10'
+        epoch_count = '20'
         from vehicles.neural.lstm_vehicle import LSTMVehicle
         env.neural_vehicle = LSTMVehicle()
 
     episode_id = 22 # wrong switch to 1
-    episode_id = 526
+    episode_id = 504
     # episode_id = 506 # late switch
-    trace = 3
+    trace = 0
     np.random.seed(episode_id)
-    env.trans_time = np.random.randint(\
-                history_len, 100) # controller ==> 'neural'
-
+    # env.trans_time = np.random.randint(\
+    #             history_len, 100) # controller ==> 'neural'
+    env.trans_time = 31
     env.neural_vehicle.initialize_agent(
                         model_name, epoch_count, data_id)
     env.initialize_env(episode_id)
-    viewer = ViewerMC(config)
     tf.random.set_seed(trace)
     env.debugging_mode = True
+    viewer = ViewerMC(config)
     # env.debugging_mode = False
     while True:
         if env.time_step > 0:

@@ -160,13 +160,13 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_356'
+model_name = 'neural_idm_367'
 # model_name = 'neural_idm_322'
 # model_name = 'neural_idm_test_15'
 epoch_count = '21'
 # epoch_count = '15'
-epoch_count = '15'
 epoch_count = '20'
+# epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -319,8 +319,8 @@ while Example_pred < 10:
     if episode not in covered_episodes and episode != -8 and \
                 e_veh_att[40:].mean() == 1 and \
                 e_veh_att[:30].mean() == 0:
-                # e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
-
+    # if episode not in covered_episodes and episode != -8 and \
+    #             e_veh_att.mean() == 0 and m_veh_exists.mean() == 1:
         Example_pred += 1
         covered_episodes.append(episode)
         merger_cs = vectorise(future_m_veh_c[sample_index, :, 2:], traces_n)
@@ -423,13 +423,6 @@ while Example_pred < 10:
 
 
 # %%
-"""
-SINGLE VISUALISATION
-"""
-# %%
-for i in range(10):
-    plt.plot(displacement_seq[i, :, 0], color='gray')
-plt.plot(dxs[sample_index[0], :, 0], color='red')
 
 
 # %%
@@ -459,7 +452,7 @@ z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm)
-displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att,\
+displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
                                              future_idm_ss, merger_cs])
 f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
 act_seq = act_seq.numpy()
@@ -535,7 +528,7 @@ plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
 traces_n = 50
 model.forward_sim.attention_temp = 5
 sample_index = [11540]
-sample_index = [11086]
+sample_index = [10449]
 tf.random.set_seed(2021)
 
 distribution_name = 'prior'
@@ -562,7 +555,7 @@ z_idm, z_att = model.belief_net.sample_z(latent_dis_param)
 proj_idm = model.belief_net.z_proj_idm(z_idm)
 proj_att = model.belief_net.z_proj_att(z_att)
 idm_params = model.idm_layer(proj_idm)
-displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att,\
+displacement_seq, act_seq, att_scores = model.forward_sim.rollout([idm_params, proj_att, enc_h, \
                                              future_idm_ss, merger_cs])
 f_att_seq, m_att_seq = att_scores[0].numpy(), att_scores[1].numpy()
 act_seq = act_seq.numpy()
@@ -618,7 +611,7 @@ plt.title(str(sample_index[0]) + ' -- Attention on merger')
 """
 Visualisation of latent distribution for a given example in the dataset
 """
-latent_dim = 3
+latent_dim = 6
 from scipy.stats import norm
 min_bound = z_idm.numpy().min()
 max_bound = z_idm.numpy().max()

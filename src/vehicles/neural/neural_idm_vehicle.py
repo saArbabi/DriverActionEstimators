@@ -165,8 +165,11 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         return np.float32(state)
 
     def get_neur_att(self, att_context):
-        f_att_score, m_att_score = self.model.forward_sim.get_att(att_context, self.m_veh_exists)
-        return f_att_score.numpy()[0][0][0], m_att_score.numpy()[0][0][0]
+        f_att_score, m_att_score = self.model.forward_sim.get_att(att_context)
+        f_att_score, m_att_score = f_att_score.numpy()[0][0][0], m_att_score.numpy()[0][0][0]
+        f_att_score = (1 - self.m_veh_exists) + f_att_score*self.m_veh_exists
+        m_att_score = m_att_score*self.m_veh_exists
+        return f_att_score, m_att_score
 
     def action_clip(self, act_long):
         return min(max([-6, act_long]), 6)

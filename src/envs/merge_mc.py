@@ -63,7 +63,8 @@ class EnvMergeMC(EnvMerge):
             print(msg)
             self.collision_vehs = f'ego_{e_veh.id}_merger_{e_veh.neighbours["m"].id}'
             return True
-        elif e_veh.neighbours['f'].glob_x-e_veh.glob_x <= self.min_delta_x:
+        elif e_veh.neighbours['f'] and \
+                e_veh.neighbours['f'].glob_x-e_veh.glob_x <= self.min_delta_x:
             msg = 'Collision detected between follower\
                             {} and leader {}'.format(e_veh.id, e_veh.neighbours['f'].id)
 
