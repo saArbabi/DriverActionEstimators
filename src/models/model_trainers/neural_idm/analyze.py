@@ -160,13 +160,13 @@ train_samples.shape
 """
 Load model (with config file)
 """
-model_name = 'neural_idm_365'
+model_name = 'neural_idm_367'
 # model_name = 'neural_idm_322'
 # model_name = 'neural_idm_test_15'
 epoch_count = '21'
 # epoch_count = '15'
-epoch_count = '5'
 epoch_count = '20'
+# epoch_count = '20'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:

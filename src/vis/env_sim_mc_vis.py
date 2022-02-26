@@ -17,7 +17,7 @@ def main():
     env = EnvMergeMC(config)
 
     # model_name = 'latent_mlp_12'
-    model_name = 'neural_idm_364'
+    model_name = 'neural_idm_367'
     # model_name = 'neural_045'
     # model_name = 'latent_mlp_02'
     # model_name = 'mlp_05'
@@ -27,7 +27,7 @@ def main():
     rollout_len = 50
 
     model_vehicle_map = {
-            'neural_idm_364': 'NeuralIDMVehicle',
+            'neural_idm_367': 'NeuralIDMVehicle',
             'neural_045': 'NeuralVehicle',
             'latent_mlp_12': 'LatentMLPVehicle',
             'mlp_05': 'MLPVehicle',

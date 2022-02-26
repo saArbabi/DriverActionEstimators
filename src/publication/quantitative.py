@@ -27,9 +27,9 @@ model_names = ['neural_idm_326', 'neural_idm_353', 'neural_idm_353__', 'neural_i
 # model_names = ['neural_idm_326']
 model_names = ['neural_045', 'neural_idm_362','neural_idm_365','latent_mlp_22','mlp_05', 'lstm_05']
 # model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
-# model_names = ['neural_045', 'neural_idm_355']
+model_names = ['neural_idm_362', 'neural_idm_366', 'neural_idm_367']
 mc_run_name = 'rwse'
-mc_run_name = 'test_fix'
+# mc_run_name = 'test_fix'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name

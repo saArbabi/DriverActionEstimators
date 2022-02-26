@@ -55,7 +55,7 @@ config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 512,
+    "batch_size": 200,
     "vae_loss_weight": 0.02,
     "attention_temp": 1,
     "latent_dim": 6,
@@ -175,7 +175,7 @@ class Trainer():
             print(round((time.time()-t0)), 'secs per epoch')
 
 
-            # self.save_model()
+            self.save_model()
         # self.read_losses()
 
     def save_model(self):
@@ -193,12 +193,12 @@ class Trainer():
 
 tf.random.set_seed(2021)
 # exp_id = 't'
-exp_id = '365'
+exp_id = '367'
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-# model_trainer.load_pre_trained(epoch_count='15')
-# model_trainer.model.vae_loss_weight = 0.03
+model_trainer.load_pre_trained(epoch_count='14')
+model_trainer.model.vae_loss_weight = 0.03
 
 print(model_trainer.exp_dir)
 # %%
@@ -206,12 +206,12 @@ print(model_trainer.exp_dir)
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs = 5)
+model_trainer.train(train_input, test_input, epochs = 2)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################n
 ################## ##### ####### ##########0#
-model_trainer.save_model()
+# model_trainer.save_model()
 # %%
 
 fig = plt.figure(figsize=(15, 10))
