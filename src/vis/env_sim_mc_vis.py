@@ -19,7 +19,7 @@ def main():
     # model_name = 'latent_mlp_12'
     model_name = 'neural_idm_367'
     # model_name = 'neural_045'
-    # model_name = 'latent_mlp_02'
+    model_name = 'latent_mlp_22'
     # model_name = 'mlp_05'
     # model_name = 'lstm_04'
     data_id = '049'
@@ -29,7 +29,7 @@ def main():
     model_vehicle_map = {
             'neural_idm_367': 'NeuralIDMVehicle',
             'neural_045': 'NeuralVehicle',
-            'latent_mlp_12': 'LatentMLPVehicle',
+            'latent_mlp_22': 'LatentMLPVehicle',
             'mlp_05': 'MLPVehicle',
             'lstm_04': 'LSTMVehicle'}
 
@@ -55,9 +55,9 @@ def main():
         env.neural_vehicle = LSTMVehicle()
 
     episode_id = 22 # wrong switch to 1
-    episode_id = 504
+    episode_id = 510
     # episode_id = 506 # late switch
-    trace = 0
+    trace = 6
     np.random.seed(episode_id)
     # env.trans_time = np.random.randint(\
     #             history_len, 100) # controller ==> 'neural'

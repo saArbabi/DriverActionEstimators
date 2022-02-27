@@ -25,11 +25,8 @@ runtimes = {}
 model_names = ['neural_idm_326', 'neural_idm_327', 'neural_044', 'latent_mlp_22','mlp_05', 'lstm_05']
 model_names = ['neural_idm_326', 'neural_idm_353', 'neural_idm_353__', 'neural_idm_355']
 # model_names = ['neural_idm_326']
-model_names = ['neural_045', 'neural_idm_362','neural_idm_365','latent_mlp_22','mlp_05', 'lstm_05']
-# model_names = ['neural_idm_320', 'neural_040', 'lstm_04']
-model_names = ['neural_idm_362', 'neural_idm_366', 'neural_idm_367']
+model_names = ['neural_045', 'neural_idm_367', 'latent_mlp_22', 'mlp_05', 'lstm_05']
 mc_run_name = 'rwse'
-# mc_run_name = 'test_fix'
 
 for model_name in model_names:
     exp_dir = './src/evaluation/mc_collections/'+ mc_run_name + '/' + model_name
@@ -80,6 +77,8 @@ for model_name in model_names:
     # snips_true[model_name] = np.array(snips_true[model_name])[14:, :, :, :]
     snips_pred[model_name] = np.array(snips_pred[model_name])
     snips_true[model_name] = np.array(snips_true[model_name])
+
+100/730
 list(snips_pred.values())[0].shape
 # %%
 
@@ -90,7 +89,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(27):
+for i in range(15, 16):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -103,8 +102,8 @@ for i in range(27):
 
         for trace in range(10):
             state_pred = snips_pred[model_name][i,trace,:,state_index]
-            # plt.plot(state_pred, color='grey')
-            plt.plot(state_pred, label=trace)
+            plt.plot(state_pred, color='grey')
+            # plt.plot(state_pred, label=trace)
         plt.legend()
 
 # %%
@@ -171,7 +170,7 @@ def get_rwse(vehs_err_arr):
 """
 rwse x position
 """
-time_vals = np.linspace(0, 5, rollout_len)
+time_vals = np.linspace(0, 10, rollout_len)
 car_id_to_rwse = 'all'
 # car_id_to_rwse = 109
 
@@ -196,7 +195,7 @@ position_axis.set_ylabel('RWSE position (m)', labelpad=10)
 position_axis.minorticks_off()
 # position_axis.set_ylim(0, 5)
 position_axis.set_xticklabels([])
-# 0%%
+# x%%
 """
 rwse speed
 """
@@ -218,6 +217,27 @@ speed_axis.minorticks_off()
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
 # %%
 
+# legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
+vehs_err_arr = get_veh_err(indxs['speed'], 'neural_idm_367', car_id_to_rwse)
+vehs_err_arr.shape
+np.where(vehs_err_arr > 80)
+_ = plt.hist(vehs_err_arr.flatten(), bins=50)
+
+# %%
+vehs_err_arr = get_veh_err(indxs['speed'], 'neural_045', car_id_to_rwse)
+vehs_err_arr.shape
+_ = plt.hist(vehs_err_arr.flatten(), bins=50)
+# %%
+
+
+    speed_axis.plot(time_vals, error_total, label=model_name)
+speed_axis.set_ylabel('RWSE speed ($ms^{-1}$)', labelpad=10)
+speed_axis.set_xlabel('Time horizon (s)')
+speed_axis.minorticks_off()
+# speed_axis.set_ylim(0, 2)
+# speed_axis.set_yticks([0, 1, 2, 3])
+speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
+# %%
 
 speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
 

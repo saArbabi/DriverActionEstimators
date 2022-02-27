@@ -119,19 +119,8 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                              m_veh_speed,
                              em_delta_y,
                              delta_x_to_merge])
-
         obs_t0.append(m_veh_exists)
         self.m_veh_exists = m_veh_exists
-        # if self.id == 'neur_2':
-        #     print('m_veh_exists', m_veh_exists)
-        #     # print('ef_act', ef_act)
-        #     # print('em_act', em_act)
-        #     # print('f_att_score', f_att_score)
-        #     # print('m_att_score', m_att_score)
-        #     print('delta_x_to_merge ', delta_x_to_merge)
-            # print('nei ', self.neighbours)
-            # print('att_context ', att_context)
-
         return [np.array([[obs_t0]]), [[[float(m_veh_exists)]]]]
 
     def driver_params_update(self, idm_params):
@@ -203,10 +192,20 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         ef_act = self.action_clip(self.idm_action(self, self.neighbours['f']))
 
         if self.neighbours['m'] and self.neighbours['m'].glob_x > self.glob_x:
-            em_act = self.action_clip(self.idm_action(self, self.neighbours['m']))
+            em_act = self.idm_action(self, self.neighbours['m'])
+            # if self.id == 'neur_2':
+            #     print('em_act ', em_act)
+
+            if em_act < -20:
+                # not a feasible action
+                em_act = 0
+                m_att_score = 0
+            else:
+                em_act = self.action_clip(em_act)
         else:
-            em_act = -6
-            # m_att_score = 0
+            # no merger to attend to
+            em_act = 0
+            m_att_score = 0
 
 
         self.att = m_att_score

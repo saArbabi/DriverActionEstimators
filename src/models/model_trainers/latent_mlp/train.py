@@ -38,6 +38,7 @@ with open(data_files_dir+'latent_mlp/'+data_arr_name+'.pickle', 'rb') as handle:
     test_input = pickle.load(handle)
 train_input[-1].shape
 train_input[-1].shape
+train_input[0].shape
 train_input[-1][0, :, -1]
 train_input[-1][110, :, 0]
 # %%
@@ -46,7 +47,7 @@ config = {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
     "batch_size": 512,
-    "vae_loss_weight": 0.05,
+    "vae_loss_weight": 0.001,
     "latent_dim": 6,
     },
     "Note": ""
@@ -128,7 +129,7 @@ class Trainer():
 
 tf.random.set_seed(2021)
 model_trainer = Trainer()
-exp_id = '22'
+exp_id = '24'
 model_name = 'latent_mlp_'+exp_id
 model_trainer.exp_dir = './src/models/experiments/'+model_name
 # model_trainer.train(train_input, test_input, epochs=1)
@@ -142,7 +143,7 @@ model_trainer.exp_dir = './src/models/experiments/'+model_name
 ################## ##### ##################
 ################## ##### ####§##############
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs=10)
+model_trainer.train(train_input, test_input, epochs=5)
 ################## ##### ##################
 ################## ##### ##################
 ################## ##### ##################
