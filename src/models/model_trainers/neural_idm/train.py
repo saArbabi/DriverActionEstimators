@@ -18,8 +18,8 @@ sys.path.insert(0, './src')
 """
 Load data
 """
+rollout_len = 10
 history_len = 30 # steps
-rollout_len = 50
 data_id = '049'
 dataset_name = 'sim_data_'+data_id
 data_arr_name = 'train_input{history_len}_f{rollout_len}'.format(\
@@ -37,12 +37,16 @@ with open(data_files_dir+data_arr_name+'.pickle', 'rb') as handle:
 train_input[2].shape
 print(round(train_input[-1].shape[0]*0.1/60**2, 1), \
       ' hours of driving')
+#
+for i, item in enumerate(train_input):
+    train_input[i] = item[:, :10, :]
 
-
+for i, item in enumerate(test_input):
+    test_input[i] = item[:, :10, :]
+train_input[2].shape
 
 # %%
 train_input[-1][:, :, 0].min()
-
 train_input[-1][:, :, -1:].mean(axis=0)
 train_input[-1][:, :, -1:].std(axis=0)
 train_input[2][:, :, 11:12].std()
@@ -55,7 +59,7 @@ config = {
  "model_config": {
     "dataset_name": dataset_name,
     "learning_rate": 1e-3,
-    "batch_size": 200,
+    "batch_size": 100,
     "vae_loss_weight": 0.02,
     "attention_temp": 1,
     "latent_dim": 6,
@@ -82,7 +86,7 @@ class Trainer():
         reload(neural_idm)
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config, exp_id)
-        # self.model.make_event_files()
+        self.model.make_event_files()
         self.model.forward_sim.rollout_len = rollout_len
 
         with open(data_files_dir+'env_scaler.pickle', 'rb') as handle:
@@ -100,7 +104,7 @@ class Trainer():
         exp_dir = self.exp_dir+'/model_epo'+epoch_count
         self.epoch_count = int(epoch_count)
         self.model.load_weights(exp_dir).expect_partial()
-        # self.read_losses()
+        self.read_losses()
 
     def update_config(self):
         config['train_info'] = {}
@@ -176,7 +180,7 @@ class Trainer():
 
 
             # self.save_model()
-        # self.read_losses()
+        self.read_losses()
 
     def save_model(self):
         if not os.path.exists(self.exp_dir):
@@ -190,29 +194,35 @@ class Trainer():
         else:
             print('This checkpoint is already saved')
 
-
-tf.random.set_seed(2021)
-# exp_id = 't'
-exp_id = '367'
+seed_value = 1
+tf.random.set_seed(seed_value)
+# exp_id = 'test6'
+exp_id = '367_seed_' + str(seed_value)
 model_name = 'neural_idm_'+exp_id
 model_trainer = Trainer(exp_id)
 model_trainer.exp_dir = './src/models/experiments/' + model_name
-model_trainer.load_pre_trained(epoch_count='19')
-model_trainer.model.vae_loss_weight = 0.1
-
+# model_trainer.load_pre_trained(epoch_count='19')
 print(model_trainer.exp_dir)
 # %%
-# model_trainer.model.vae_loss_weight = 2
+# for seed_value in range(2, 11):
+#     exp_id = '367_seed_' + str(seed_value)
+#     model_name = 'neural_idm_'+exp_id
+#     model_trainer = Trainer(exp_id)
+#     model_trainer.exp_dir = './src/models/experiments/' + model_name
+#     model_trainer.train(train_input, test_input, epochs = 10)
+
+# %%
 ################## Train ##################
 ################## ##### ##################
 ################## ##### ##################
-model_trainer.train(train_input, test_input, epochs = 1)
+model_trainer.train(train_input, test_input, epochs = 10)
 ################## ##### ##################
 ################## ##### ########### #######
 ################## ##### ##################n
 ################## ##### ####### ##########0#
-model_trainer.save_model()
-# %%
+# model_trainer.save_model()
+
+#a %%
 
 fig = plt.figure(figsize=(15, 10))
 # plt.style.use('default')
@@ -257,17 +267,8 @@ tot_axis.set_ylabel('tot_loss')
 tot_axis.legend(['test', 'train'])
 print('train_losses displacement_loss ', train_losses['displacement_loss'][-1])
 
-# x%%
+# 2%%
 model_trainer.save_model()
 
 # %%
-x = np.linspace(-100, 50, 100)
-min = 15
-max = 25
-temp = 1/(max-min)
-
-y = min + (max-min)/(1 + np.exp(-temp*x))
-# y = np.exp(x)
-plt.plot(x, y)
-print('grad at x=0: '+str((y[50]-y[49])/(x[50]-x[49])))
-# %%
+ 

@@ -526,7 +526,7 @@ plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
 """Prediction for an specific sample from the dataset
 """
 traces_n = 50
-model.forward_sim.attention_temp = 5
+model.forward_sim.attention_temp = 1
 sample_index = [11540]
 sample_index = [10449]
 tf.random.set_seed(2021)

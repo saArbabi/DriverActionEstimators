@@ -91,7 +91,20 @@ with open(data_files_dir+'/sim_data.pickle', 'rb') as handle:
     sim_data = pickle.load(handle)
 sim_data.shape
 sim_data[20, 1]
+sim_data[:, 2]
+sim_data[:, 2]
 # %%
+"""
+count cars
+"""
+count = 0
+np.unique(sim_data[sim_data[:, 0] == 1][:, 2]).shape[0]
+for i in range(500):
+    count += np.unique(sim_data[sim_data[:, 0] == i][:, 2]).shape[0]-2 #
+count
+2000 * 200 * 0.1/60**2
+# %%
+
 
 
 lens = []
@@ -119,6 +132,21 @@ history_future_usc, history_sca, future_sca, future_idm_s, \
                 future_m_veh_c, future_e_veh_a = data_arrays
 
 history_future_usc.shape
+history_future_usc[:, 2]
+# %%
+"""
+count cars
+"""
+count = 0
+np.unique(sim_data[sim_data[:, 0] == 1][:, 2]).shape[0]
+history_future_usc = history_future_usc[:, 0, 0:3]
+for i in range(500):
+    count += np.unique(history_future_usc[history_future_usc[:, 0] == i][:, 2]).shape[0]
+count
+2000 * 50 * 0.1/(60**2)
+np.unique(history_future_usc[history_future_usc[:, 0] == 9][:, 2]).shape[0]
+# %%
+
 
 # %%
 train_input, test_input = prep_data(data_arrays)

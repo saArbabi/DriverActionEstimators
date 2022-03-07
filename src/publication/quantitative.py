@@ -26,6 +26,7 @@ model_names = ['neural_idm_326', 'neural_idm_327', 'neural_044', 'latent_mlp_22'
 model_names = ['neural_idm_326', 'neural_idm_353', 'neural_idm_353__', 'neural_idm_355']
 # model_names = ['neural_idm_326']
 model_names = ['neural_045', 'neural_idm_367', 'latent_mlp_22', 'mlp_05', 'lstm_05']
+# model_names = ['neural_idm_367', 'neural_045']
 mc_run_name = 'rwse'
 
 for model_name in model_names:
@@ -89,7 +90,7 @@ Models being compared qualitatively must have the same history_len.
 """
 state_index = indxs['speed']
 state_index = indxs['act_long']
-for i in range(15, 16):
+for i in range(109, 110):
     epis_id = snips_true[model_names[-1]][i,0,0,1]
     veh_id = snips_true[model_names[-1]][i,0,0,2]
     state_true = snips_true[model_names[-1]][i,0,:,state_index]
@@ -220,7 +221,7 @@ speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
 # legends = ['NIDM', 'LSTM-MDN', 'MLP-MDN']
 vehs_err_arr = get_veh_err(indxs['speed'], 'neural_idm_367', car_id_to_rwse)
 vehs_err_arr.shape
-np.where(vehs_err_arr > 80)
+np.where(vehs_err_arr > 300)
 _ = plt.hist(vehs_err_arr.flatten(), bins=50)
 
 # %%
@@ -246,6 +247,15 @@ speed_axis.legend(loc='upper center', bbox_to_anchor=(0.5, -.2), ncol=5)
 collision_counts = {}
 for model_name in model_names:
     count = len(collision_logs[model_name])
-    # collision_counts[model_name] = [count, count/10]
-    collision_counts[model_name] = [count, count]
+    collision_counts[model_name] = [count, 100*count/200]
+    # collision_counts[model_name] = [count, count]
+collision_counts
+
+# %%
+""""Collision counts"""
+collision_counts = {}
+for model_name in model_names:
+    count = len(collision_logs[model_name])
+    collision_counts[model_name] = [count, 100*count/200]
+    # collision_counts[model_name] = [count, count]
 collision_counts
