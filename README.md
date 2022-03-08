@@ -8,6 +8,8 @@ This repository is the official implementation of NIDM. Using a sequence of past
 To train the model(s), go to the models/model_trainers folder and
 run the script for any of the models.
 
+![alt text](https://github.com/saArbabi/DriverActionEstimators/blob/main/Figures/latent_evolution.gif)
+
 ## Evaluation
 Evaluations are done by collecting bunch of metrics from a set number of simulation episodes. The config for the
 setup is in the evaluation folder. To initiate a MC run, run the eval_run.py script (e.g., from powershell).
