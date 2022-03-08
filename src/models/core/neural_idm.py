@@ -54,6 +54,9 @@ class NeurIDMModel(AbstractModel):
         train_ds = self.batch_data(train_test_data[0], self.batch_size)
         test_ds = self.batch_data(train_test_data[1], int(self.batch_size/2))
         for step, batch_data in enumerate(zip(train_ds, test_ds)):
+            # exp_path = './src/models/experiments/'+\
+            #                     'neural_idm_367_latent_anim'+'/model_epo'+str(step)
+            # self.save_weights(exp_path)
             step = tf.convert_to_tensor(step, dtype=tf.int64)
             # train step
             self.train_step(batch_data[0][:-1], batch_data[0][-1], step)
@@ -80,11 +83,12 @@ class NeurIDMModel(AbstractModel):
         tf.debugging.check_numerics(loss, message='Checking loss')
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        with self.train_writer.as_default():
-            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
-            tf.summary.scalar('action_loss', action_loss, step=step)
-            tf.summary.scalar('kl_loss', kl_loss, step=step)
-            tf.summary.scalar('tot_loss', loss, step=step)
+        # with self.train_writer.as_default():
+        #     tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+        #     tf.summary.scalar('action_loss', action_loss, step=step)
+        #     tf.summary.scalar('kl_loss', kl_loss, step=step)
+        #     tf.summary.scalar('tot_loss', loss, step=step)
+
 
     @tf.function(experimental_relax_shapes=True)
     def test_step(self, states, targets, step):
@@ -97,11 +101,11 @@ class NeurIDMModel(AbstractModel):
                                  displacement_loss,
                                  action_loss)
 
-        with self.test_writer.as_default():
-            tf.summary.scalar('displacement_loss', displacement_loss, step=step)
-            tf.summary.scalar('action_loss', action_loss, step=step)
-            tf.summary.scalar('kl_loss', kl_loss, step=step)
-            tf.summary.scalar('tot_loss', loss, step=step)
+        # with self.test_writer.as_default():
+        #     tf.summary.scalar('displacement_loss', displacement_loss, step=step)
+        #     tf.summary.scalar('action_loss', action_loss, step=step)
+        #     tf.summary.scalar('kl_loss', kl_loss, step=step)
+        #     tf.summary.scalar('tot_loss', loss, step=step)
 
     def call(self, inputs):
         enc_h = self.h_seq_encoder(inputs[0]) # history

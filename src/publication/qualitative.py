@@ -356,8 +356,7 @@ axins = inset_axes(ax,
                     width="5%",
                     height="90%",
                     loc='right',
-                    borderpad=-30
-                   )
+                    borderpad=-30)
 fig.colorbar(latent_plot, cax=axins, ticks=np.arange(0, 1.1, 0.2))
 plt.ylabel('$\psi$', fontsize=25, rotation=0, labelpad=10)
 
@@ -625,4 +624,3 @@ axs[my_axis].set_ylim(-0.1, 10)
 axs[my_axis].set_yticks([0, 3, 6, 9])
 axs[my_axis].set_xticks([3.5, 4])
 # plt.savefig("idm_params.png", dpi=500, bbox_inches='tight')
- 
