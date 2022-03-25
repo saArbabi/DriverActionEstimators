@@ -22,7 +22,7 @@ put in the config file the number of episodes you want, and then run the eval_ru
 script.
 
 ## Runtime 
-The average NIDM runtime per 100 time steps of policy rollout is 635 (ms). In our experiments, computations are done on an NVIDIA GeForce GTX 1050 and an \SI{3.2}{\giga\hertz} Intel i5-6500 CPU. 
+The average NIDM runtime per 100 time steps of policy rollout is 635 (ms). In our experiments, computations are done on an NVIDIA GeForce GTX 1050 and an 3.2 GHz Intel i5-6500 CPU. 
 
 ## Data Preprocessing
 The synthetic dataset we use for training contains 500 driving episodes which amount to roughly three hours of driving by 1500 drivers each with unique IDM parameters.
