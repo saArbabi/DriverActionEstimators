@@ -20,7 +20,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
         from models.core.neural_idm import  NeurIDMModel
         self.model = NeurIDMModel(config)
         # self.model.forward_sim.attention_temp = 3
-
         self.model.load_weights(exp_path).expect_partial()
 
     def initialize_agent(self, model_name, epoch_count, data_id):
@@ -59,7 +58,6 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
                         'em_delta_v', 'em_delta_x',
                         'm_veh_action_p', 'm_veh_speed','em_delta_y',
                         'delta_x_to_merge','m_veh_exists']
-
         index = 0
         for item_name in feature_names:
             self.indxs[item_name] = index
@@ -214,3 +212,5 @@ class NeuralIDMVehicle(IDMMOBILVehicleMerge):
 
 
         return act_long
+
+ 
