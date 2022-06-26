@@ -21,6 +21,9 @@ Note: eval_obj.py allows you to start Monte Carlo simulations from any driving e
 put in the config file the number of episodes you want, and then run the eval_run.py
 script.
 
+## Runtime 
+The average NIDM runtime per 100 time steps of a single policy rollout is 635 ms. In our experiments, computations are done on an NVIDIA GeForce GTX 1050 and an 3.2 GHz Intel i5-6500 CPU. 
+
 ## Data Preprocessing
 The synthetic dataset we use for training contains 500 driving episodes which amount to roughly three hours of driving by 1500 drivers each with unique IDM parameters.
 The following set of features are used to represent the local traffic context from ego car's viewpoint:
