@@ -107,17 +107,56 @@ def get_ll_space(ll_dic, ll_name, loss_weight):
     return ll_mean, max_bound, min_bound
 
 # %%
-""" plot setup
+""" plot total loss
 """
-plt.style.use('ieee')
 plt.rcParams["font.family"] = "Times New Roman"
-MEDIUM_SIZE = 11
+params = {
+          'font.family': "Times New Roman",
+          'legend.fontsize': 18,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
+MEDIUM_SIZE = 18
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 
+fig, ax = plt.subplots(figsize=(8, 4))
+
+ll_mean, max_bound, min_bound = get_ll_space(test_losses, 'tot_loss', 1)
+plt.plot(ll_mean, color='blue')
+plt.fill_between(range(max_bound.shape[0]), max_bound, min_bound, color='blue', alpha=0.2)
+
+ll_mean, max_bound, min_bound = get_ll_space(train_losses, 'tot_loss', 1)
+plt.plot(ll_mean, color='red')
+plt.fill_between(range(max_bound.shape[0]), max_bound, min_bound, color='red', alpha=0.2)
+
+
+plt.ylabel('$\mathcal{L}_{Total}$')
+plt.xlabel('Iterations')
+plt.ylim([-0.005, 0.15])
+
+#
+plt.legend(['Training set', 'Validation set'], ncol=1)
+plt.savefig("loss_plot.pdf", bbox_inches='tight')
+
+
+# %%
+""" plot all losses
+"""
+plt.rcParams["font.family"] = "Times New Roman"
+params = {
+          'font.family': "Times New Roman",
+          'legend.fontsize': 18,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
+MEDIUM_SIZE = 18
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
 subplot_xcount = 2
 subplot_ycount = 2
-fig, axs = plt.subplots(subplot_ycount, subplot_xcount, figsize=(7, 5))
+fig, axs = plt.subplots(subplot_ycount, subplot_xcount, figsize=(8, 5))
 # fig.tight_layout()
 fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.35, hspace=0.0)
 # axs[0, 0].spines['bottom'].set_visible(False)
@@ -133,22 +172,25 @@ for ax1, ax2 in zip(axs[0], axs[1]):
     ax1.tick_params(top=True, right=True, direction='in')
     ax2.tick_params(top=True, right=True, direction='in')
 
-axs[0, 0].set_ylabel('$\mathcal{L}_x$')
+axs[0, 0].set_ylabel('$\mathcal{L}_{\mathrm{x}}$')
 axs[0, 0].set_ylim([0, 0.005])
 axs[0, 0].set_yticks([0, 0.005, 0.01])
 
-axs[0, 1].set_ylabel('$\mathcal{L}_{KL}$')
+axs[0, 1].set_ylabel('$\mathcal{L}_{\mathrm{KL}}$')
 axs[0, 1].set_yticks([0.25, 0.75])
 axs[0, 1].set_ylim([0, 0.9])
 
 axs[1, 0].set_ylabel('$\mathcal{L}_a$')
 axs[1, 0].set_ylim([0, 0.15])
 axs[1, 0].set_yticks([0., 0.1])
+axs[1, 0].set_xticks([0., 4000, 8000])
 
-axs[1, 1].set_ylabel('$\mathcal{L}_{Total}$')
+axs[1, 1].set_ylabel('$\mathcal{L}_{\mathrm{Total}}$')
 axs[1, 1].set_ylim([0, 0.15])
 axs[1, 1].set_yticks([0., 0.1])
+axs[1, 1].set_xticks([0., 4000, 8000])
 
+# x%%
 
 ################## displacement_loss LOSS ####    ###########
 ll_mean, max_bound, min_bound = get_ll_space(train_losses, 'displacement_loss', 10)
@@ -166,7 +208,6 @@ axs[1, 0].fill_between(range(max_bound.shape[0]), max_bound, min_bound, color='r
 ll_mean, max_bound, min_bound = get_ll_space(test_losses, 'action_loss', 1)
 axs[1, 0].plot(ll_mean, color='blue')
 axs[1, 0].fill_between(range(max_bound.shape[0]), max_bound, min_bound, color='blue', alpha=0.2)
-
 ################## kl LOSS ##################
 ll_mean, max_bound, min_bound = get_ll_space(train_losses, 'kl_loss', 1)
 axs[0, 1].plot(ll_mean, color='red')
@@ -185,9 +226,9 @@ axs[1, 1].plot(ll_mean, color='blue')
 axs[1, 1].fill_between(range(max_bound.shape[0]), max_bound, min_bound, color='blue', alpha=0.2)
 
 
-legend = fig.legend(['Training set', 'Validation set'], loc='lower center', bbox_to_anchor=(0.5, -.04),
+legend = fig.legend(['Training set', 'Validation set'], loc='upper center', bbox_to_anchor=(0.5, 1),
        ncol=2, fancybox=True)
 
 frame = legend.get_frame()
 frame.set_edgecolor('black')
-# plt.savefig("loss_plot.png", bbox_inches='tight')
+plt.savefig("loss_plot.pdf", bbox_inches='tight')

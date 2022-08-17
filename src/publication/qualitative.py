@@ -88,10 +88,10 @@ val_samples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 Load model (with config file)
 """
 model_name = 'neural_idm_367'
-# model_name = 'neural_idm_367_low_beta' # run with epoch 3
+model_name = 'neural_idm_367_low_beta' # run with epoch 3
 # model_name = 'neural_045'
 epoch_count = '10'
-# epoch_count = '3'
+epoch_count = '3'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
@@ -304,42 +304,44 @@ plt.title(str(sample_index[0]) + ' -- Attention on merger')
 
 """ plot setup
 """
-plt.style.use('ieee')
+MEDIUM_SIZE = 18
 plt.rcParams["font.family"] = "Times New Roman"
-MEDIUM_SIZE = 11
+params = {
+          'font.family': "Times New Roman",
+          'legend.fontsize': 18,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-
-
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 # %%
 """
 Latent visualisation - NIDM VS CVAE
 """
-MEDIUM_SIZE = 18
-from matplotlib import rc
-
-# %%
-zsamples_n = 8000
+zsamples_n = 5000
 tf.random.set_seed(2021)
 examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
 sampled_z = latent_samples(model, examples_to_vis).numpy()
 
 # %%
-fig = pyplot.figure(figsize=(5, 5))
+fig = pyplot.figure()
 ax = plt.axes(projection='3d')
 ax.zaxis.set_rotate_label(False)
-ax.set_xlabel('$z_1$', fontsize=25, rotation=0)
-ax.set_ylabel('$z_2$', fontsize=25, labelpad=10, rotation=0)
-ax.set_zlabel('$z_3$', fontsize=25, rotation=0)
-# x ticks
+ax.set_xlabel('$z_1$', rotation=0, fontsize=25)
+ax.set_ylabel('$z_2$', labelpad=10, rotation=0, fontsize=25)
+ax.set_zlabel('$z_3$', rotation=0, fontsize=25)
+ax.tick_params(axis='both', which='major', pad=1)
+
+# z1 ticks
 ax.set_xlim(-5, 5)
 ax.set_xticks([-4, 0, 4])
 
-# y ticks
+# z2 ticks
 ax.set_ylim(-22, 5)
 ax.set_yticks([-20, -10, 0])
 
-# z ticks
+# z3 ticks
 ax.set_zlim(-3.2, 5)
 ax.set_zticks([-3, 0, 3, 6])
 
@@ -348,7 +350,7 @@ aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiv
 color_shade = aggressiveness
 
 latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-          s=10, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.3, alpha=0.5)
+          s=10, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
 
 # ax.view_init(10, 10)
 # ax.grid(False)
@@ -356,43 +358,52 @@ axins = inset_axes(ax,
                     width="5%",
                     height="90%",
                     loc='right',
-                    borderpad=-30)
-fig.colorbar(latent_plot, cax=axins, ticks=np.arange(0, 1.1, 0.2))
-plt.ylabel('$\psi$', fontsize=25, rotation=0, labelpad=10)
+                    borderpad=-3.5)
+fig.colorbar(latent_plot, cax=axins, ticks=[0.1, 0.3, 0.5, 0.7, 0.9])
+plt.ylabel('$\psi$', fontsize=25, rotation=0, labelpad=12)
 
-plt.savefig("NIDM_latent.png", dpi=500, bbox_inches='tight')
+plt.savefig("NIDM_latent.jpg", dpi=500, bbox_inches='tight')
 
 
 # %%
-fig = pyplot.figure(figsize=(5, 5))
+fig = pyplot.figure()
 ax = plt.axes(projection='3d')
 ax.zaxis.set_rotate_label(False)
 ax.set_xlabel('$z_1$', fontsize=25)
-ax.set_ylabel('$z_2$', fontsize=25)
-ax.set_zlabel('$z_3$', fontsize=25, rotation=0)
+ax.set_ylabel('$z_2$', rotation=0, fontsize=25)
+ax.set_zlabel('$z_3$', fontsize=25)
+ax.tick_params(axis='both', which='major', pad=1)
+# z1 ticks
+ax.set_xlim(-10.5, 10.5)
+
+# z2 ticks
+ax.set_ylim(-1.5, 1.5)
+
+# z3 ticks
+ax.set_zlim(-1.5, 1.5)
 
 aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiveness']]
 color_shade = aggressiveness
 #
 latent_plot = ax.scatter(sampled_z[:, 0], sampled_z[:, 1], sampled_z[:, 2],
-          s=10, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.3, alpha=0.5)
+          s=10, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
 
-axins = inset_axes(ax,
-                    width="5%",
-                    height="90%",
-                    loc='right',
-                    borderpad=-30
-                   )
-fig.colorbar(latent_plot, cax=axins, ticks=np.arange(0, 1.1, 0.2))
 
-plt.ylabel('$\psi$', fontsize=25, rotation=0, labelpad=10)
-# plt.savefig("neural_latent.png", dpi=500, bbox_inches='tight')
+plt.savefig("neural_latent.jpg", dpi=500, bbox_inches='tight')
 
 # %%
 """
 Action Figure
 """
-fig = plt.figure(figsize=(5, 2.5))
+from matplotlib.lines import Line2D
+custom_lines = [Line2D([0], [0], color='black', lw=4, linestyle='-'),
+                Line2D([0], [0], color='grey', lw=4),
+                Line2D([0], [0], color='red', lw=4, linestyle='--'),
+                ]
+
+
+
+fig = plt.figure(figsize=(8, 4))
 ax_1 = fig.add_subplot(111)
 fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.1)
 
@@ -413,7 +424,7 @@ ax_1.plot(time_axis[history_len:], traj[history_len:], color='red', \
 
 
 ax_1.set_xlabel('Time (s)')
-ax_1.set_ylabel('Long. Accel ($ms^{-2}$)')
+ax_1.set_ylabel('Long. Accel ($\mathdefault{m/s^2}$)')
 ax_1.set_xticks([0., 2, 4, 6, 8])
 ax_1.set_yticks([3, 0, -3, -6,])
 ax_1.set_ylim(-6.5, 4.1)
@@ -421,44 +432,57 @@ ax_1.set_xlim(0, 8.1)
 ax_1.grid(alpha=0.2)
 ax_1.minorticks_off()
 ax_1.tick_params(top=False)
-# plt.savefig("action_fig.png", dpi=500, bbox_inches='tight')
+ax_1.legend(custom_lines, ['Action history', 'NIDM',\
+                              'Ground-truth', 'Agent chosen plan'], ncol=1)
+
+
+plt.savefig("action_fig.pdf", dpi=500, bbox_inches='tight')
 # %%
 """
 Attetnion Figure
 """
-fig = plt.figure(figsize=(5, 2.5))
+custom_lines = [Line2D([0], [0], color='blue', lw=3, linestyle='--'),
+                Line2D([0], [0], color='red', lw=3, linestyle='--'),
+                Line2D([0], [0], color='blue', lw=3, linestyle='-'),
+                Line2D([0], [0], color='red', lw=3, linestyle='-')]
+
+fig = plt.figure(figsize=(8, 4))
 ax_2 = fig.add_subplot(111)
+linewidth = 2.5
+ax_2.plot(time_axis[:history_len-1], e_veh_att[:history_len-1], color='red', linestyle='-', label='$True \; w_m$', linewidth=linewidth)
+ax_2.plot(time_axis[history_len:], e_veh_att[history_len:], color='red', linestyle='--', label='$True \; w_m$', linewidth=linewidth)
 
-ax_2.plot(time_axis[:history_len-1], e_veh_att[:history_len-1], color='red', linestyle='-', label='$True \; w_m$', linewidth = 3)
-ax_2.plot(time_axis[history_len:], e_veh_att[history_len:], color='red', linestyle='--', label='$True \; w_m$', linewidth = 3)
 
-
-ax_2.plot(time_axis[:history_len-1], 1-e_veh_att[:history_len-1], color='blue', linestyle='-', label='$True \; w_f$', linewidth = 3)
-ax_2.plot(time_axis[history_len:], 1-e_veh_att[history_len:], color='blue', linestyle='--', label='$True \; w_f$', linewidth = 3)
+ax_2.plot(time_axis[:history_len-1], 1-e_veh_att[:history_len-1], color='blue', linestyle='-', label='$True \; w_f$', linewidth=linewidth)
+ax_2.plot(time_axis[history_len:], 1-e_veh_att[history_len:], color='blue', linestyle='--', label='$True \; w_f$', linewidth=linewidth)
 
 
 def get_att_space(att_seq):
-    att_stdev = att_seq[:, :].std(axis=0)
+    att_stdev = att_seq[:, :].std(axis=0)/2
     att_mean = att_seq[:, :].mean(axis=0)
     return att_mean, np.clip(att_mean+att_stdev, 0, 1), np.clip(att_mean-att_stdev, 0, 1)
 
 att_mean, max_bound, min_bound = get_att_space(m_att_seq[:, :, 0])
 ax_2.fill_between(time_axis[history_len-1:], max_bound, \
                 min_bound, color='red', alpha=0.2, label='$ NIDM \; w_m$')
-ax_2.plot(time_axis[history_len-1:], att_mean, color='red', alpha=0.5, linewidth = 3)
+
+ax_2.plot(time_axis[history_len-1:], att_mean, color='red', alpha=0.5, linewidth=linewidth)
 
 att_mean, max_bound, min_bound = get_att_space(f_att_seq[:, :, 0])
 ax_2.fill_between(time_axis[history_len-1:], max_bound, \
                 min_bound, color='blue', alpha=0.2, label='$NIDM \; w_f$')
 ax_2.plot(time_axis[history_len-1:], att_mean, color='blue', alpha=0.5, linewidth = 3, linestyle='-')
 
-ax_2.set_xlim(0, 8.1)
+ax_2.set_xlim(3, 8.1)
 ax_2.set_xlabel('Time (s)')
 ax_2.set_ylabel('Ego attention')
 ax_2.set_yticks([0., 0.5, 1])
-ax_2.set_xticks([0., 2, 4, 6, 8])
+# ax_2.legend(custom_lines, ['True $w_l$', 'True $w_m$', 'NIDM $w_l$', 'NIDM $w_m$'],
+#                   loc='upper center', bbox_to_anchor=(0.5, 1.18), edgecolor='black', ncol=4)
+
+ax_2.legend(custom_lines, ['True $w_l$', 'True $w_m$', 'NIDM $w_l$', 'NIDM $w_m$'], edgecolor='black', ncol=1)
 ax_2.minorticks_off()
-plt.savefig("attention_fig.png", dpi=500, bbox_inches='tight')
+plt.savefig("attention_fig.pdf", dpi=500, bbox_inches='tight')
 # %%
 """
 2D Latent figure
@@ -467,44 +491,56 @@ zsamples_n = 5000
 examples_to_vis = np.random.choice(val_samples, zsamples_n, replace=False)
 sampled_z = latent_samples(model, examples_to_vis).numpy()
 # %%
-fig = plt.figure(figsize=(4, 2.5))
+fig = plt.figure(figsize=(6.5, 4))
 ax_3 = fig.add_subplot(111)
-
 aggressiveness = history_future_usc[examples_to_vis, 0, hf_usc_indexs['aggressiveness']]
-color_shade = aggressiveness
-latent_plot = ax_3.scatter(sampled_z[:, 0], sampled_z[:, 1], alpha=0.5,
-                s=10, c=color_shade, cmap='rainbow',
-                edgecolors='black', linewidth=0.2)
 
+color_shade = aggressiveness
+latent_plot = ax_3.scatter(sampled_z[:, 0], sampled_z[:, 1],
+                s=10, c=color_shade, cmap='rainbow', edgecolors='black', linewidth=0.2)
 ax_3.grid(False)
-ax_3.scatter(z_idm[:, 0], z_idm[:, 1], s=10, edgecolors='black', color='white')
+ax_3.scatter(z_idm[:, 0], z_idm[:, 1], s=20, marker="x", edgecolors='none', color='black')
+ax_3.scatter(z_idm[:, 0].numpy().mean(), z_idm[:, 1].numpy().mean(), s=5000, marker="s", edgecolors='black', facecolors='none')
+
 axins = inset_axes(ax_3,
                     width="5%",
                     height="90%",
                     loc='right',
-                    borderpad=-11
+                    borderpad=-2
                    )
 fig.colorbar(latent_plot, cax=axins, ticks=[0.1, 0.3, 0.5, 0.7, 0.9])
-
 plt.ylabel('$\psi$', fontsize=25, rotation=0, labelpad=12)
-ax_3.set_xlabel('$z_1$', fontsize=20)
-ax_3.set_ylabel('$z_2$', rotation=0, fontsize=20)
+ax_3.set_xlabel('$z_1$', fontsize=35)
+ax_3.set_ylabel('$z_2$', fontsize=35)
 ax_3.set_xticks([-5, 0, 5])
-ax_3.set_xlim(-7, 5.5)
-ax_3.set_ylim(-11, 10.2)
+# ax_3.set_xlim(-7, 5.5)
+ax_3.set_ylim(-11, 11)
 
 
 ax_3.minorticks_off()
 
-plt.savefig("latent_fig.png", dpi=500, bbox_inches='tight')
+plt.savefig("latent_fig.jpg", dpi=500, bbox_inches='tight')
 
 
 # %%
 subplot_xcount = 5
 subplot_ycount = 1
-fig, axs = plt.subplots(subplot_ycount, subplot_xcount, figsize=(15, 2.5))
+fig, axs = plt.subplots(subplot_ycount, subplot_xcount, figsize=(15, 3))
 fig.tight_layout()
-fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.25, hspace=0.1)
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.1)
+
+for i, ax in enumerate(axs):
+    ax.set_ylim(-0.1,  12.1)
+    if i > 0:
+        # ax.set_yticks([])
+        ax.set_yticklabels(['']*2)
+        # ax.grid(alpha=0)
+    if i == 0:
+        ax.set_ylabel('Probability Density', fontsize=18)
+
+
+
+# 2%%
 
 def get_gmm_ll(data, test_x, n_classes=3):
     """
@@ -520,8 +556,8 @@ def get_gmm_ll(data, test_x, n_classes=3):
 
 """desired_v"""
 my_axis = 0
-axs[my_axis].set_ylabel('Probability Density')
-axs[my_axis].set_xlabel('$v_{des} \; (ms^{-1})$', fontsize=18)
+
+axs[my_axis].set_xlabel('$\mathdefault{v_{des} \; (m/s)}$', fontsize=20)
 true_val = true_params[my_axis]
 min_xlim = 23
 max_xlim = 26
@@ -535,15 +571,15 @@ axs[my_axis].plot([true_val, true_val], [-0.1, 20],
             linewidth=1.5, color='black', linestyle='--')
 axs[my_axis].scatter(param_samples, gmm_ll_data, s=10, color='blue', alpha=0.5)
 
-axs[my_axis].set_xlim(min_xlim-0.1,  max_xlim+0.1)
-axs[my_axis].set_ylim(-0.1,  2.8)
-axs[my_axis].set_xticks([23, 24.5, 26])
-axs[my_axis].set_yticks([0, 1, 2, 3])
+# axs[my_axis].set_xlim(min_xlim-0.1,  max_xlim+0.1)
+# axs[my_axis].set_ylim(-0.1,  12.1)
+# axs[my_axis].set_xticks([23, 24.5, 26])
+# axs[my_axis].set_yticks([0, 1, 2, 3])
 
 """desired_tgap"""
 my_axis = 1
-axs[my_axis].set_ylabel('Probability Density')
-axs[my_axis].set_xlabel('$T_{des} \; (s)$', fontsize=18)
+
+axs[my_axis].set_xlabel('$\mathdefault{T_{des} \; (s)}$', fontsize=20)
 true_val = true_params[my_axis]
 min_xlim = 0.41
 max_xlim = 1.1
@@ -556,15 +592,11 @@ axs[my_axis].plot(x, gmm_ll_test, linewidth=1, color='red')
 axs[my_axis].plot([true_val, true_val], [-0.1, 20],
             linewidth=1.5, color='black', linestyle='--')
 axs[my_axis].scatter(param_samples, gmm_ll_data, s=10, color='blue', alpha=0.5)
-axs[my_axis].set_xlim(0.39,  max_xlim+0.01)
-axs[my_axis].set_ylim(-0.1, 12.1)
-axs[my_axis].set_xticks([0.4, 0.6, 0.8, 1])
-axs[my_axis].set_yticks([0, 6, 12])
 
 """min_jamx"""
 my_axis = 2
-axs[my_axis].set_ylabel('Probability Density')
-axs[my_axis].set_xlabel('$d_{min}  \; (m)$', fontsize=18)
+
+axs[my_axis].set_xlabel('$\mathdefault{d_{min}  \; (m)}$', fontsize=20)
 true_val = true_params[my_axis]
 min_xlim = 0.5
 max_xlim = 1.7
@@ -577,15 +609,11 @@ axs[my_axis].plot(x, gmm_ll_test, linewidth=1, color='red')
 axs[my_axis].plot([true_val, true_val], [-0.1, 20],
             linewidth=1.5, color='black', linestyle='--')
 axs[my_axis].scatter(param_samples, gmm_ll_data, s=10, color='blue', alpha=0.5)
-axs[my_axis].set_xlim(min_xlim-0.01,  max_xlim+0.01)
-axs[my_axis].set_ylim(-0.1, 12)
-axs[my_axis].set_yticks([0, 5, 10])
-
 
 """max_act"""
 my_axis = 3
-axs[my_axis].set_ylabel('Probability Density')
-axs[my_axis].set_xlabel('$a_{max} \; (ms^{-2})$', fontsize=18)
+
+axs[my_axis].set_xlabel('$\mathdefault{a_{max} \; (m/s^2)}$', fontsize=20)
 true_val = true_params[my_axis]
 min_xlim = 2.3
 max_xlim = 4.2
@@ -598,15 +626,11 @@ axs[my_axis].plot(x, gmm_ll_test, linewidth=1, color='red')
 axs[my_axis].plot([true_val, true_val], [-0.1, 20],
             linewidth=1.5, color='black', linestyle='--')
 axs[my_axis].scatter(param_samples, gmm_ll_data, s=10, color='blue', alpha=0.5)
-axs[my_axis].set_xlim(min_xlim-0.01,  max_xlim+0.01)
-axs[my_axis].set_ylim(-0.1, 2.5)
-axs[my_axis].set_yticks([0, 1, 2, 3])
-
 
 """min_act"""
 my_axis = 4
-axs[my_axis].set_ylabel('Probability Density')
-axs[my_axis].set_xlabel('$b_{max}  \; (ms^{-2})$', fontsize=18)
+
+axs[my_axis].set_xlabel('$\mathdefault{b_{max}  \; (m/s^2)}$', fontsize=20)
 true_val = true_params[my_axis]
 min_xlim = 3.4
 max_xlim = 4.2
@@ -619,8 +643,5 @@ axs[my_axis].plot(x, gmm_ll_test, linewidth=1, color='red')
 axs[my_axis].plot([true_val, true_val], [-0.1, 20],
             linewidth=1.5, color='black', linestyle='--')
 axs[my_axis].scatter(param_samples, gmm_ll_data, s=10, color='blue', alpha=0.5)
-axs[my_axis].set_xlim(min_xlim-0.01,  max_xlim+0.01)
-axs[my_axis].set_ylim(-0.1, 10)
-axs[my_axis].set_yticks([0, 3, 6, 9])
-axs[my_axis].set_xticks([3.5, 4])
-# plt.savefig("idm_params.png", dpi=500, bbox_inches='tight')
+
+plt.savefig("idm_params.pdf", dpi=500, bbox_inches='tight')

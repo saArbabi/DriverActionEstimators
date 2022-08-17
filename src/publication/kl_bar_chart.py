@@ -119,13 +119,23 @@ kl_divergences
 # %%
 """ plot setup
 """
-plt.style.use('ieee')
+MEDIUM_SIZE = 20
 plt.rcParams["font.family"] = "Times New Roman"
-MEDIUM_SIZE = 11
+params = {
+          'font.family': "Times New Roman",
+          'legend.fontsize': 18,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+# to change default colormap
+plt.rcParams["image.cmap"] = "Set1"
+# to change default color cycle
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Set1.colors)
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
-fig, ax = plt.subplots(figsize=(7, 3))
+fig, ax = plt.subplots(figsize=(8, 4))
 ax.grid(axis='y', alpha=0.5)
 ax.axes.xaxis.set_ticks([], minor=True)
 ax.axes.yaxis.set_ticks([], minor=True)
@@ -158,7 +168,7 @@ ax.set_xticks(xlabel_loc)
 ax.legend(edgecolor='black')
 fig.tight_layout()
 
-# plt.savefig("kl_bar_chart.png", dpi=500)
+plt.savefig("kl_bar_chart.pdf", dpi=500, bbox_inches='tight')
 
 
 # %%

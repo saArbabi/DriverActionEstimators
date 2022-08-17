@@ -113,21 +113,32 @@ for model_name in model_names:
 # %%
 """ RWSE plot setup
 """
-plt.style.use('ieee')
+MEDIUM_SIZE = 22
 plt.rcParams["font.family"] = "Times New Roman"
-MEDIUM_SIZE = 11
+params = {
+          'font.family': "Times New Roman",
+          'legend.fontsize': 1,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
 plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+# to change default colormap
+plt.rcParams["image.cmap"] = "Set1"
+# to change default color cycle
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color=plt.cm.Set1.colors)
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
-fig = plt.figure(figsize=(7, 4))
+linewidth = 3
+
+fig = plt.figure(figsize=(10, 7))
 position_axis = fig.add_subplot(211)
 speed_axis = fig.add_subplot(212)
 fig.subplots_adjust(hspace=0.)
 
-speed_axis.set_ylabel('RWSE speed ($\mathrm{ms^{-1}}$)', labelpad=10)
+speed_axis.set_ylabel('RWSE speed (m/s)', labelpad=10)
 speed_axis.set_xlabel('Time horizon (s)')
 position_axis.set_ylabel('RWSE position (m)', labelpad=5)
-
 
 speed_axis.minorticks_off()
 speed_axis.set_ylim(-0.1, 4.5)
@@ -142,25 +153,23 @@ position_axis.set_xticklabels([])
 rwse x position
 """
 for model_name in model_names:
-    if model_name == 'neural_idm_367':
+    if model_name == 'neural_idm_367' or model_name == 'latent_mlp_22':
         position_axis.plot(time_vals, rwse_x[model_name], \
-                           label=model_paper_name[model_name], linestyle='--', linewidth=2)
+                           label=model_paper_name[model_name], linestyle='--', linewidth=linewidth)
     else:
-        position_axis.plot(time_vals, rwse_x[model_name], label=model_paper_name[model_name], linewidth=2)
+        position_axis.plot(time_vals, rwse_x[model_name], label=model_paper_name[model_name], linewidth=linewidth)
 """
 rwse speed
 """
 for model_name in model_names:
-    if model_name == 'neural_idm_367':
+    if model_name == 'neural_idm_367' or model_name == 'latent_mlp_22':
         speed_axis.plot(time_vals, rwse_v[model_name], \
-                           label=model_paper_name[model_name], linestyle='--', linewidth=2)
+                           label=model_paper_name[model_name], linestyle='--', linewidth=linewidth)
     else:
-        speed_axis.plot(time_vals, rwse_v[model_name], label=model_paper_name[model_name], linewidth=2)
+        speed_axis.plot(time_vals, rwse_v[model_name], label=model_paper_name[model_name], linewidth=linewidth)
 
 
-position_axis.legend(loc='upper center', fontsize=MEDIUM_SIZE,
-                     bbox_to_anchor=(0.5, 1.25),
-                      ncol=5, edgecolor='black')
-# plt.savefig("rwse.png", dpi=500)
+position_axis.legend(fontsize=18, ncol=1, edgecolor='black')
+plt.savefig("rwse.pdf", dpi=500, bbox_inches='tight')
 
 # %%
