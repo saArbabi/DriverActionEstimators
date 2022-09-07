@@ -1,0 +1,18 @@
+{
+    "status": "NOT STARTED",
+    "model_vehicle_map": {
+        "neural_idm_362": "NeuralIDMVehicle",
+        "neural_045": "NeuralVehicle",
+        "latent_mlp_22": "LatentMLPVehicle",
+        "mlp_05": "MLPVehicle",
+        "lstm_05": "LSTMVehicle"
+    },
+    "mc_config": {
+        "data_id": "049",
+        "episodes_n": 5,
+        "traces_n": 2,
+        "history_len": 30,
+        "rollout_len": 100
+    },
+    "progress_logging": {}
+}

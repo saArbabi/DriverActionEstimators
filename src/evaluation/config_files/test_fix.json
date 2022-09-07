@@ -1,0 +1,56 @@
+{
+    "status": "COMPLETE",
+    "model_vehicle_map": {
+        "neural_idm_362": "NeuralIDMVehicle",
+        "neural_idm_364": "NeuralIDMVehicle",
+        "neural_idm_365": "NeuralIDMVehicle",
+        "neural_045": "NeuralVehicle",
+        "latent_mlp_22": "LatentMLPVehicle",
+        "mlp_05": "MLPVehicle",
+        "lstm_05": "LSTMVehicle"
+    },
+    "mc_config": {
+        "data_id": "049",
+        "episodes_n": 10,
+        "traces_n": 1,
+        "history_len": 30,
+        "rollout_len": 100
+    },
+    "progress_logging": {
+        "neural_045": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 08:10:08"
+        },
+        "latent_mlp_22": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 08:10:45"
+        },
+        "mlp_05": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 08:32:52"
+        },
+        "lstm_05": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 08:33:19"
+        },
+        "neural_idm_362": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 08:42:09"
+        },
+        "neural_idm_364": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 10:32:17"
+        },
+        "neural_idm_365": {
+            "episode_in_prog": 510,
+            "current_episode_count": "10/10",
+            "last_update": "26/02/2022 10:56:13"
+        }
+    }
+}
