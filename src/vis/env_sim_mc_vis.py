@@ -55,7 +55,7 @@ def main():
         env.neural_vehicle = LSTMVehicle()
 
     episode_id = 22 # wrong switch to 1
-    episode_id = 539
+    episode_id = 363
     # episode_id = 506 # late switch
     trace = 6
     np.random.seed(episode_id)

@@ -5,3 +5,7 @@ datasets/
 publication_results/
 
 src/evaluation/mc_collections/
+
+*.gif
+
+*.pickle

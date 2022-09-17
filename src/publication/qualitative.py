@@ -88,10 +88,10 @@ val_samples = np.where(history_future_usc[:, 0:1, 0] == val_epis)[0]
 Load model (with config file)
 """
 model_name = 'neural_idm_367'
-model_name = 'neural_idm_367_low_beta' # run with epoch 3
+# model_name = 'neural_idm_367_low_beta' # run with epoch 3
 # model_name = 'neural_045'
 epoch_count = '10'
-epoch_count = '3'
+# epoch_count = '3'
 exp_path = './src/models/experiments/'+model_name+'/model_epo'+epoch_count
 exp_dir = os.path.dirname(exp_path)
 with open(exp_dir+'/'+'config.json', 'rb') as handle:
