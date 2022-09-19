@@ -42,10 +42,6 @@ for key, value in collections.items():
     collections[key] = [dic_to_arr(value[0]), dic_to_arr(value[1])]
 
 collections[key][1].shape
-collections['lstm_05'][1][0, 2, -1, 1]
-collections['neural_idm_367'][1][0, 2, -1, 1]
-collections.keys()
-# real_arr.shape
 
 # %%
 plt.plot(real_arr[0, -2, :, 1], color='red')
@@ -169,13 +165,13 @@ def animation_frame(i):
     #     scatter.set_offsets(real_arr[0, n, i, 3:])
 
 animation = FuncAnimation(plot_viewer.fig, func=animation_frame,
-                          frames=range(150), interval=100)
+                          frames=range(200), interval=100)
 
 
 # setting up wrtiers object
 Writer = writers['ffmpeg']
-writer = Writer(fps=10)
-animation.save('sim_example.mp4', writer, dpi=100)
+writer = Writer(fps=10, bitrate=3000)
+animation.save('sim_example.mp4', writer, dpi=250)
 print('COMPETE')
 
 
